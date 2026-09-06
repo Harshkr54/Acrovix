@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ACROVIX — Technology, Cybersecurity & Infrastructure Solutions</title>
+    <meta name="description" content="ACROVIX INNOVATIONS PRIVATE LIMITED — Enterprise technology, cybersecurity, infrastructure, and digital solutions designed to help organizations scale securely and efficiently." />
+    
+    <!-- Open Graph Metadata -->
+    <meta property="og:title" content="ACROVIX — Technology, Cybersecurity & Infrastructure Solutions" />
+    <meta property="og:description" content="Engineering Growth Through Technology & Infrastructure" />
+    <meta property="og:type" content="website" />
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Prevent Theme Flash -->
+    <script>
+      (function() {
+        try {
+          var saved = localStorage.getItem('acrovix-theme');
+          var theme = (saved === 'dark' || saved === 'light') ? saved : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+          if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.documentElement.setAttribute('data-theme', 'dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.setAttribute('data-theme', 'light');
+          }
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body class="bg-acrovix-bg text-acrovix-body font-sans antialiased selection:bg-acrovix-teal-primary selection:text-white min-h-screen overflow-x-hidden">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

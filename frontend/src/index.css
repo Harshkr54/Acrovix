@@ -1,0 +1,195 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --acrovix-bg-rgb: 244 250 248;
+  --acrovix-bg-secondary-rgb: 238 248 246;
+  --acrovix-card-rgb: 255 255 255;
+  --acrovix-aqua-light-rgb: 230 245 242;
+  --acrovix-teal-primary-rgb: 13 148 136;
+  --acrovix-teal-bright-rgb: 20 184 166;
+  --acrovix-heading-rgb: 16 42 67;
+  --acrovix-body-rgb: 82 107 132;
+  --acrovix-muted-rgb: 113 134 154;
+}
+
+[data-theme="dark"], .dark {
+  --acrovix-bg-rgb: 7 21 31;
+  --acrovix-bg-secondary-rgb: 10 27 38;
+  --acrovix-card-rgb: 16 41 54;
+  --acrovix-aqua-light-rgb: 20 47 61;
+  --acrovix-teal-primary-rgb: 20 184 166;
+  --acrovix-teal-bright-rgb: 45 212 191;
+  --acrovix-heading-rgb: 244 250 249;
+  --acrovix-body-rgb: 200 217 220;
+  --acrovix-muted-rgb: 157 179 185;
+}
+
+@layer base {
+  body {
+    background-color: rgb(var(--acrovix-bg-rgb));
+    color: rgb(var(--acrovix-body-rgb));
+    overflow-x: hidden;
+    font-family: 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  .h1-primary {
+    font-family: 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    word-spacing: 0.15em !important;
+  }
+
+  h1,
+  .h1-primary {
+    font-weight: 600;
+    line-height: 3rem !important;
+    letter-spacing: -0.015em;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    color: rgb(var(--acrovix-heading-rgb));
+  }
+}
+
+@layer utilities {
+  .bg-glass {
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .dark .bg-glass {
+    background: rgba(11, 28, 42, 0.85);
+  }
+
+  .bg-glass-card {
+    background: rgb(var(--acrovix-bg-rgb) / 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgb(var(--acrovix-teal-primary-rgb) / 0.18);
+  }
+
+  .border-glass {
+    border-color: rgb(var(--acrovix-teal-primary-rgb) / 0.18);
+  }
+
+  .aqua-gradient-bg {
+    background: rgb(var(--acrovix-bg-rgb));
+  }
+
+  .aqua-orb {
+    background: rgb(var(--acrovix-teal-primary-rgb) / 0.08);
+  }
+
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+
+  .transform-style-3d {
+    transform-style: preserve-3d;
+  }
+
+  .backface-hidden {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  .rotate-y-180 {
+    transform: rotateY(180deg);
+  }
+
+  .hd-text {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Global Scrollbar Button/Arrow Removal */
+  ::-webkit-scrollbar-button {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: transparent !important;
+  }
+
+  /* Horizontal Category Filter Scrollbar */
+  .custom-scrollbar-x {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--acrovix-teal-primary-rgb)) rgb(var(--acrovix-teal-primary-rgb) / 0.12);
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .custom-scrollbar-x::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .custom-scrollbar-x::-webkit-scrollbar-track {
+    background: rgb(var(--acrovix-teal-primary-rgb) / 0.12);
+    border-radius: 9999px;
+  }
+
+  .custom-scrollbar-x::-webkit-scrollbar-thumb {
+    background: rgb(var(--acrovix-teal-primary-rgb));
+    border-radius: 9999px;
+  }
+
+  .custom-scrollbar-x::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--acrovix-teal-bright-rgb));
+  }
+
+  /* Vertical Product Card Capability List Scrollbar */
+  .custom-scrollbar-y {
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--acrovix-teal-primary-rgb)) rgb(var(--acrovix-teal-primary-rgb) / 0.12);
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .custom-scrollbar-y::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  .custom-scrollbar-y::-webkit-scrollbar-track {
+    background: rgb(var(--acrovix-teal-primary-rgb) / 0.12);
+    border-radius: 9999px;
+  }
+
+  .custom-scrollbar-y::-webkit-scrollbar-thumb {
+    background: rgb(var(--acrovix-teal-primary-rgb));
+    border-radius: 9999px;
+  }
+
+  .custom-scrollbar-y::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--acrovix-teal-bright-rgb));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

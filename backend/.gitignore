@@ -1,0 +1,24 @@
+# Maven target directory
+target/
+
+# IDE & Editor files
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+.factorypath
+.vscode/
+
+# Logs
+logs/
+*.log
+
+# Environment & Secrets
+.env
+*.env
+application-local.properties
+
+# OS files
+.DS_Store
+Thumbs.db

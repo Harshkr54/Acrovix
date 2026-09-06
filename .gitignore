@@ -1,0 +1,8 @@
+# Environment files and secrets
+.env
+*.env
+application-local.properties
+
+# Backend target & logs
+backend/target/
+*.log
