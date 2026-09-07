@@ -22,13 +22,13 @@ public class EmailService {
     private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
     private final RestTemplate restTemplate = new RestTemplate();
 
-    @Value("${acrovix.mail.from-email:sweta@acrovix.com}")
+    @Value("${acrovix.mail.from-email:sales@acrovix.com}")
     private String fromEmail;
 
     @Value("${acrovix.mail.from-name:ACROVIX}")
     private String fromName;
 
-    @Value("${acrovix.mail.notification-email:sweta@acrovix.com}")
+    @Value("${acrovix.mail.notification-email:sales@acrovix.com}")
     private String notificationEmail;
 
     @Value("${acrovix.mail.asset-base-url:https://acrovix.com/email-assets}")
@@ -76,7 +76,7 @@ public class EmailService {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a");
         String formattedDate = enquiry.getCreatedAt() != null ? enquiry.getCreatedAt().format(formatter) : "N/A";
         
-        String logoUrl = assetBaseUrl + "/logo.png";
+        String logoUrl = assetBaseUrl + "/Acrovix_logo.png";
         String heroArtwork = assetBaseUrl + "/hero-artwork.png";
         
         String iconSync = assetBaseUrl + "/sync.png";
@@ -359,7 +359,7 @@ public class EmailService {
                                             <tr>
                                                 <td style="padding-right:12px;"><img src="%s" alt="Email" width="30" style="display:block;"></td>
                                                 <td>
-                                                    <a href="mailto:sweta@acrovix.com" style="word-break:break-word;color:#0f172a;text-decoration:none;font-weight:bold;font-size:12px;font-family:Arial,sans-serif;">sweta@acrovix.com</a><br>
+                                                    <a href="mailto:sales@acrovix.com" target="_blank" rel="noopener noreferrer" style="word-break:break-word;color:#0f172a;text-decoration:none;font-weight:bold;font-size:12px;font-family:Arial,sans-serif;">sales@acrovix.com</a><br>
                                                     <span style="color:#64748b;font-size:11px;font-family:Arial,sans-serif;">Email Us</span>
                                                 </td>
                                             </tr>
@@ -390,7 +390,13 @@ public class EmailService {
                                 <tr>
                                     <!-- LEFT: Logo -->
                                     <td class="mobile-full mobile-center mobile-pad-bottom" width="200" style="width:40%%;vertical-align:middle;" valign="middle">
-                                        <a href="https://acrovix.com"><img src="%s" alt="ACROVIX" width="160" style="max-width:100%%;height:auto;margin:0;display:block;"></a>
+                                        <table role="presentation" style="margin:0;background-color:#F7FCFA;border-radius:12px;" class="mobile-center">
+                                            <tr>
+                                                <td style="padding:10px 14px;text-align:center;">
+                                                    <a href="https://acrovix.com"><img src="%s" alt="ACROVIX" width="160" style="max-width:100%%;height:auto;display:block;margin:0 auto;"></a>
+                                                </td>
+                                            </tr>
+                                        </table>
                                     </td>
                                     <!-- RIGHT: Links & Socials -->
                                     <td class="mobile-full mobile-center" width="300" style="width:60%%;vertical-align:middle;text-align:right;" valign="middle" align="right">

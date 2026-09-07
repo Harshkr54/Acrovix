@@ -41,7 +41,7 @@ class EmailServiceTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(emailService, "restTemplate", restTemplate);
-        ReflectionTestUtils.setField(emailService, "fromEmail", "sweta@acrovix.com");
+        ReflectionTestUtils.setField(emailService, "fromEmail", "sales@acrovix.com");
         ReflectionTestUtils.setField(emailService, "fromName", "ACROVIX");
         ReflectionTestUtils.setField(emailService, "notificationEmail", "admin@acrovix.com");
         ReflectionTestUtils.setField(emailService, "assetBaseUrl", "https://acrovix.com");
@@ -68,7 +68,7 @@ class EmailServiceTest {
         String content = ReflectionTestUtils.invokeMethod(emailService, "buildSharedEmailTemplate", testEnquiry, true);
         
         // Assert shared layout characteristics
-        assertTrue(content.contains("logo.png"));
+        assertTrue(content.contains("Acrovix_logo.png"));
         assertTrue(content.contains("hero-artwork.png"));
         assertTrue(content.contains("SYNC"));
         assertTrue(content.contains("SCALE"));
@@ -97,7 +97,7 @@ class EmailServiceTest {
         String content = ReflectionTestUtils.invokeMethod(emailService, "buildSharedEmailTemplate", testEnquiry, false);
         
         // Assert shared layout characteristics
-        assertTrue(content.contains("logo.png"));
+        assertTrue(content.contains("Acrovix_logo.png"));
         assertTrue(content.contains("hero-artwork.png"));
         assertTrue(content.contains("SYNC"));
         assertTrue(content.contains("SCALE"));
@@ -157,11 +157,11 @@ class EmailServiceTest {
         assertEquals("john@example.com", to.get(0).get("email"));
         
         Map<String, String> sender = (Map<String, String>) body.get("sender");
-        assertEquals("sweta@acrovix.com", sender.get("email"));
+        assertEquals("sales@acrovix.com", sender.get("email"));
         assertEquals("ACROVIX", sender.get("name"));
         
         String htmlContent = (String) body.get("htmlContent");
-        assertTrue(htmlContent.contains("logo.png"));
+        assertTrue(htmlContent.contains("Acrovix_logo.png"));
         assertFalse(htmlContent.contains(".svg"));
     }
 
@@ -184,7 +184,7 @@ class EmailServiceTest {
         assertEquals("admin@acrovix.com", to.get(0).get("email"));
         
         Map<String, String> sender = (Map<String, String>) body.get("sender");
-        assertEquals("sweta@acrovix.com", sender.get("email"));
+        assertEquals("sales@acrovix.com", sender.get("email"));
         assertEquals("ACROVIX", sender.get("name"));
         
         String htmlContent = (String) body.get("htmlContent");

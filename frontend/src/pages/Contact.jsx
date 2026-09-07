@@ -52,7 +52,7 @@ const Contact = () => {
                     <div className="w-10 h-10 rounded-lg bg-acrovix-card border border-acrovix-teal-primary/20 flex items-center justify-center text-acrovix-teal-primary flex-shrink-0">
                       <Mail className="w-5 h-5" />
                     </div>
-                    <a href={`mailto:${COMPANY_INFO.contact.email}`} className="text-sm sm:text-base font-bold text-acrovix-heading hover:text-acrovix-teal-primary transition-colors break-all sm:break-normal">
+                    <a href={`mailto:${COMPANY_INFO.contact.email}`} target="_blank" rel="noopener noreferrer" className="text-sm sm:text-base font-bold text-acrovix-heading hover:text-acrovix-teal-primary transition-colors break-all sm:break-normal">
                       {COMPANY_INFO.contact.email}
                     </a>
                   </div>
@@ -75,14 +75,7 @@ const Contact = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-acrovix-card border border-acrovix-teal-primary/20 flex items-center justify-center text-acrovix-teal-primary flex-shrink-0">
-                      <MapPin className="w-5 h-5" />
-                    </div>
-                    <div className="text-sm font-semibold text-acrovix-body">
-                      {COMPANY_INFO.contact.address}
-                    </div>
-                  </div>
+
                 </div>
               </GlassCard>
 

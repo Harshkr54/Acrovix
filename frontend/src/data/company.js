@@ -78,9 +78,8 @@ export const COMPANY_INFO = {
     }
   ],
   contact: {
-    email: "sweta@acrovix.com",
+    email: "sales@acrovix.com",
     website: "www.acrovix.com",
-    phone: "+91-8660947415",
-    address: "Registered Corporate Office details to be updated"
+    phone: "+91-8660947415"
   }
 };
