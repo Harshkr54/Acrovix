@@ -105,15 +105,34 @@ const Contact = () => {
                     Our team provides centralized project management, remote infrastructure monitoring, and field execution supervision across strategic project locations.
                   </p>
 
-                  <div className="h-80 rounded-2xl bg-acrovix-card dark:bg-[#102936] border border-acrovix-teal-primary/20 flex flex-col items-center justify-center p-6 text-center relative overflow-hidden">
-                    <MapPin className="w-12 h-12 text-acrovix-teal-primary mb-3 animate-bounce" />
-                    <span className="text-sm font-bold text-acrovix-heading mb-1">
-                      {COMPANY_INFO.name}
-                    </span>
-                    <span className="text-xs font-semibold text-acrovix-muted max-w-xs">
-                      Location & Map data to be updated upon physical office registration release.
-                    </span>
-                    <div className="absolute inset-0 border-2 border-dashed border-acrovix-teal-primary/15 rounded-2xl pointer-events-none"></div>
+                  <div className="space-y-5">
+                    {/* Bengaluru Office */}
+                    <div className="group rounded-2xl bg-acrovix-card dark:bg-[#102936] border border-acrovix-teal-primary/20 p-5 sm:p-6 flex items-start gap-4 hover:border-acrovix-teal-primary/40 transition-colors duration-300">
+                      <div className="w-12 h-12 rounded-xl bg-acrovix-bg border border-acrovix-teal-primary/10 flex items-center justify-center text-acrovix-teal-primary flex-shrink-0 shadow-sm">
+                        <MapPin className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-base sm:text-lg font-bold text-acrovix-heading mb-1.5">Bengaluru Office</h4>
+                        <p className="text-sm text-acrovix-body leading-relaxed">
+                          Kengeri Satellite Town,<br />
+                          Bengaluru, Karnataka, India
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Bihar Office */}
+                    <div className="group rounded-2xl bg-acrovix-card dark:bg-[#102936] border border-acrovix-teal-primary/20 p-5 sm:p-6 flex items-start gap-4 hover:border-acrovix-teal-primary/40 transition-colors duration-300">
+                      <div className="w-12 h-12 rounded-xl bg-acrovix-bg border border-acrovix-teal-primary/10 flex items-center justify-center text-acrovix-teal-primary flex-shrink-0 shadow-sm">
+                        <MapPin className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-base sm:text-lg font-bold text-acrovix-heading mb-1.5">Bihar Office</h4>
+                        <p className="text-sm text-acrovix-body leading-relaxed">
+                          Near Mahadev Singh College,<br />
+                          Sarai, Bhagalpur, Bihar, India
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
