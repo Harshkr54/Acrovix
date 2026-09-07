@@ -52,8 +52,8 @@ const Contact = () => {
                     <div className="w-10 h-10 rounded-lg bg-acrovix-card border border-acrovix-teal-primary/20 flex items-center justify-center text-acrovix-teal-primary flex-shrink-0">
                       <Mail className="w-5 h-5" />
                     </div>
-                    <a href={`mailto:${COMPANY_INFO.contact.email}`} target="_blank" rel="noopener noreferrer" className="text-sm sm:text-base font-bold text-acrovix-heading hover:text-acrovix-teal-primary transition-colors break-all sm:break-normal">
-                      {COMPANY_INFO.contact.email}
+                    <a href="mailto:sales@acrovix.com" target="_blank" rel="noopener noreferrer" className="text-sm sm:text-base font-bold text-acrovix-heading hover:text-acrovix-teal-primary transition-colors break-all sm:break-normal">
+                      sales@acrovix.com
                     </a>
                   </div>
 

@@ -124,8 +124,8 @@ const Footer = () => {
             <ul className="space-y-3 text-sm">
               <li className="flex items-center gap-2.5 text-slate-300">
                 <Mail className="w-4 h-4 text-acrovix-teal-bright flex-shrink-0" />
-                <a href={`mailto:${COMPANY_INFO.contact.email}`} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
-                  {COMPANY_INFO.contact.email}
+                <a href="mailto:sales@acrovix.com" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+                  sales@acrovix.com
                 </a>
               </li>
               <li className="flex items-center gap-2.5 text-slate-300">
