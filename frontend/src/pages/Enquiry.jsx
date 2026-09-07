@@ -3,7 +3,7 @@ import SEO from '../components/SEO';
 import Breadcrumb from '../components/Breadcrumb';
 import GlassCard from '../components/GlassCard';
 import Button from '../components/Button';
-import CTASection from '../sections/CTASection';
+
 import { submitEnquiry } from '../api/enquiryService';
 import { Send, CheckCircle2, AlertCircle, RefreshCw, Building, ShieldCheck } from 'lucide-react';
 
@@ -363,7 +363,7 @@ const Enquiry = () => {
           </div>
         </div>
 
-        <CTASection />
+
       </main>
     </>
   );

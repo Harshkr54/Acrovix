@@ -3,7 +3,7 @@ import SEO from '../components/SEO';
 import Breadcrumb from '../components/Breadcrumb';
 import SectionHeading from '../components/SectionHeading';
 import GlassCard from '../components/GlassCard';
-import CTASection from '../sections/CTASection';
+
 import { COMPANY_INFO } from '../data/company';
 import { Target, Eye, Compass, ShieldCheck, CheckCircle2, Award, Building } from 'lucide-react';
 
@@ -123,7 +123,7 @@ const About = () => {
           </div>
         </div>
 
-        <CTASection />
+
       </main>
     </>
   );

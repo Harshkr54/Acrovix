@@ -9,7 +9,7 @@ import IndustriesSection from '../sections/IndustriesSection';
 import PortfolioSection from '../sections/PortfolioSection';
 import InnovationSection from '../sections/InnovationSection';
 import WhyAcrovixSection from '../sections/WhyAcrovixSection';
-import CTASection from '../sections/CTASection';
+
 
 const Home = () => {
   return (
@@ -28,7 +28,7 @@ const Home = () => {
         <PortfolioSection />
         <InnovationSection />
         <WhyAcrovixSection />
-        <CTASection />
+
       </main>
     </>
   );

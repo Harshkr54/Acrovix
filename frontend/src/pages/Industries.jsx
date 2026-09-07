@@ -2,7 +2,7 @@ import React from 'react';
 import SEO from '../components/SEO';
 import Breadcrumb from '../components/Breadcrumb';
 import IndustryCard from '../components/IndustryCard';
-import CTASection from '../sections/CTASection';
+
 import { INDUSTRIES_DATA } from '../data/industries';
 import { Building2 } from 'lucide-react';
 
@@ -39,7 +39,7 @@ const Industries = () => {
           </div>
         </div>
 
-        <CTASection />
+
       </main>
     </>
   );

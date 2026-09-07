@@ -4,7 +4,7 @@ import SEO from '../components/SEO';
 import Breadcrumb from '../components/Breadcrumb';
 import GlassCard from '../components/GlassCard';
 import Button from '../components/Button';
-import CTASection from '../sections/CTASection';
+
 import { PORTFOLIO_DATA } from '../data/portfolio';
 import { FileText, CheckCircle2, Cpu, ArrowRight, Layers, Award, X, Maximize2 } from 'lucide-react';
 
@@ -273,7 +273,7 @@ const PortfolioDetail = () => {
           </div>
         )}
 
-        <CTASection />
+
       </main>
     </>
   );

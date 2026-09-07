@@ -4,7 +4,7 @@ import Breadcrumb from '../components/Breadcrumb';
 import SectionHeading from '../components/SectionHeading';
 import GlassCard from '../components/GlassCard';
 import Button from '../components/Button';
-import CTASection from '../sections/CTASection';
+
 import { COMPANY_INFO } from '../data/company';
 import { Mail, Globe, Phone, MapPin, ArrowRight, ShieldCheck } from 'lucide-react';
 
@@ -125,7 +125,7 @@ const Contact = () => {
           </div>
         </div>
 
-        <CTASection />
+
       </main>
     </>
   );

@@ -3,7 +3,7 @@ import SEO from '../components/SEO';
 import Breadcrumb from '../components/Breadcrumb';
 import SectionHeading from '../components/SectionHeading';
 import ServiceCard from '../components/ServiceCard';
-import CTASection from '../sections/CTASection';
+
 import { SERVICES_DATA } from '../data/services';
 import { Layers } from 'lucide-react';
 
@@ -40,7 +40,7 @@ const Services = () => {
           </div>
         </div>
 
-        <CTASection />
+
       </main>
     </>
   );

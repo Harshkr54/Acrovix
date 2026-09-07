@@ -4,7 +4,7 @@ import SEO from '../components/SEO';
 import Breadcrumb from '../components/Breadcrumb';
 import GlassCard from '../components/GlassCard';
 import Button from '../components/Button';
-import CTASection from '../sections/CTASection';
+
 import { SERVICES_DATA } from '../data/services';
 import { Cpu, ShieldCheck, CheckCircle2, ArrowRight, Layers, Compass } from 'lucide-react';
 
@@ -138,7 +138,7 @@ const ServiceDetail = () => {
           </div>
         </div>
 
-        <CTASection />
+
       </main>
     </>
   );

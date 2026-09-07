@@ -3,7 +3,7 @@ import SEO from '../components/SEO';
 import Breadcrumb from '../components/Breadcrumb';
 import SectionHeading from '../components/SectionHeading';
 import PortfolioCard from '../components/PortfolioCard';
-import CTASection from '../sections/CTASection';
+
 import { PORTFOLIO_DATA } from '../data/portfolio';
 import { FileText } from 'lucide-react';
 
@@ -40,7 +40,7 @@ const Portfolio = () => {
           </div>
         </div>
 
-        <CTASection />
+
       </main>
     </>
   );

@@ -4,7 +4,7 @@ import SEO from '../components/SEO';
 import Breadcrumb from '../components/Breadcrumb';
 import GlassCard from '../components/GlassCard';
 import Button from '../components/Button';
-import CTASection from '../sections/CTASection';
+
 import { INDUSTRIES_DATA } from '../data/industries';
 import { Landmark, Activity, Building2, Tv, CloudCog, HardHat, Factory, ShoppingBag, ArrowRight, CheckCircle2 } from 'lucide-react';
 
@@ -89,7 +89,7 @@ const IndustryDetail = () => {
           </div>
         </div>
 
-        <CTASection />
+
       </main>
     </>
   );
