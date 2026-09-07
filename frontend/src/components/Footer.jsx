@@ -29,6 +29,18 @@ const Footer = () => {
             <p className="font-semibold text-acrovix-teal-bright text-sm tracking-widest uppercase">
               {COMPANY_INFO.name}
             </p>
+            
+            <div className="flex flex-col gap-1 text-xs text-slate-400 pb-1">
+              <div className="flex flex-wrap items-baseline gap-1.5">
+                <span className="font-semibold text-slate-500">CIN:</span>
+                <span className="break-all sm:break-normal">U46511BR2026PTC085813</span>
+              </div>
+              <div className="flex flex-wrap items-baseline gap-1.5">
+                <span className="font-semibold text-slate-500">GSTIN:</span>
+                <span className="break-all sm:break-normal">10ABFCA9588C1ZR</span>
+              </div>
+            </div>
+
             <p className="text-sm text-slate-300 max-w-sm leading-relaxed">
               {COMPANY_INFO.positioning}. Engineering enterprise technology, cybersecurity, and infrastructure solutions for sustainable growth.
             </p>
@@ -38,17 +50,6 @@ const Footer = () => {
               <span>SCALE</span>
               <span className="text-slate-600">|</span>
               <span>SUCCEED</span>
-            </div>
-            
-            <div className="pt-3 flex flex-col gap-1 text-xs text-slate-400">
-              <div className="flex flex-wrap items-baseline gap-1.5">
-                <span className="font-semibold text-slate-500">CIN:</span>
-                <span className="break-all sm:break-normal">U46511BR2026PTC085813</span>
-              </div>
-              <div className="flex flex-wrap items-baseline gap-1.5">
-                <span className="font-semibold text-slate-500">GSTIN:</span>
-                <span className="break-all sm:break-normal">10ABFCA9588C1ZR</span>
-              </div>
             </div>
           </div>
 
