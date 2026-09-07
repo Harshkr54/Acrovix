@@ -6,12 +6,23 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpEntity;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class EmailServiceTest {
@@ -19,14 +30,22 @@ class EmailServiceTest {
     @InjectMocks
     private EmailService emailService;
 
+    @Mock
+    private RestTemplate restTemplate;
+
+    @Captor
+    private ArgumentCaptor<HttpEntity<Map<String, Object>>> requestCaptor;
+
     private Enquiry testEnquiry;
 
     @BeforeEach
     void setUp() {
+        ReflectionTestUtils.setField(emailService, "restTemplate", restTemplate);
         ReflectionTestUtils.setField(emailService, "fromEmail", "sweta@acrovix.com");
         ReflectionTestUtils.setField(emailService, "fromName", "ACROVIX");
         ReflectionTestUtils.setField(emailService, "notificationEmail", "admin@acrovix.com");
         ReflectionTestUtils.setField(emailService, "assetBaseUrl", "https://acrovix.com");
+        ReflectionTestUtils.setField(emailService, "brevoApiKey", "test-api-key");
 
         testEnquiry = Enquiry.builder()
                 .id(1L)
@@ -117,5 +136,72 @@ class EmailServiceTest {
         // The word Subject shouldn't be a field label
         assertFalse(customerContent.contains(">Subject</td>"));
         assertFalse(customerContent.contains("Subject:"));
+    }
+
+    @Test
+    @DisplayName("Customer email sends correct API request to Brevo")
+    @SuppressWarnings("unchecked")
+    void testSendCustomerAcknowledgement() {
+        emailService.sendCustomerAcknowledgement(testEnquiry);
+        
+        verify(restTemplate).postForEntity(eq("https://api.brevo.com/v3/smtp/email"), requestCaptor.capture(), eq(String.class));
+        
+        HttpEntity<Map<String, Object>> request = requestCaptor.getValue();
+        assertEquals("test-api-key", request.getHeaders().getFirst("api-key"));
+        
+        Map<String, Object> body = request.getBody();
+        assertNotNull(body);
+        assertEquals("Thank You for Contacting ACROVIX - ACR-20250907-001", body.get("subject"));
+        
+        List<Map<String, String>> to = (List<Map<String, String>>) body.get("to");
+        assertEquals("john@example.com", to.get(0).get("email"));
+        
+        Map<String, String> sender = (Map<String, String>) body.get("sender");
+        assertEquals("sweta@acrovix.com", sender.get("email"));
+        assertEquals("ACROVIX", sender.get("name"));
+        
+        String htmlContent = (String) body.get("htmlContent");
+        assertTrue(htmlContent.contains("logo.png"));
+        assertFalse(htmlContent.contains(".svg"));
+    }
+
+    @Test
+    @DisplayName("Admin email sends correct API request to Brevo")
+    @SuppressWarnings("unchecked")
+    void testSendInternalNotification() {
+        emailService.sendInternalNotification(testEnquiry);
+        
+        verify(restTemplate).postForEntity(eq("https://api.brevo.com/v3/smtp/email"), requestCaptor.capture(), eq(String.class));
+        
+        HttpEntity<Map<String, Object>> request = requestCaptor.getValue();
+        assertEquals("test-api-key", request.getHeaders().getFirst("api-key"));
+        
+        Map<String, Object> body = request.getBody();
+        assertNotNull(body);
+        assertEquals("New Enquiry Received - ACR-20250907-001", body.get("subject"));
+        
+        List<Map<String, String>> to = (List<Map<String, String>>) body.get("to");
+        assertEquals("admin@acrovix.com", to.get(0).get("email"));
+        
+        Map<String, String> sender = (Map<String, String>) body.get("sender");
+        assertEquals("sweta@acrovix.com", sender.get("email"));
+        assertEquals("ACROVIX", sender.get("name"));
+        
+        String htmlContent = (String) body.get("htmlContent");
+        assertTrue(htmlContent.contains("NEW ENQUIRY"));
+        assertFalse(htmlContent.contains(".svg"));
+    }
+
+    @Test
+    @DisplayName("Failure from Brevo API is handled properly")
+    void testApiFailure() {
+        when(restTemplate.postForEntity(any(String.class), any(), eq(String.class)))
+            .thenThrow(new RuntimeException("API Error"));
+            
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            emailService.sendCustomerAcknowledgement(testEnquiry);
+        });
+        
+        assertEquals("Failed to send email", exception.getMessage());
     }
 }

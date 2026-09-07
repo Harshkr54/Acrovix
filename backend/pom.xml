@@ -53,11 +53,7 @@
 			<optional>true</optional>
 		</dependency>
 
-		<!-- Spring Boot Starter Mail for Brevo SMTP Integration -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-mail</artifactId>
-		</dependency>
+
 
 		<!-- Spring Boot Starter Test -->
 		<dependency>

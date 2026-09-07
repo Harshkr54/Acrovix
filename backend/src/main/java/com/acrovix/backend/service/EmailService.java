@@ -1,24 +1,26 @@
 package com.acrovix.backend.service;
 
 import com.acrovix.backend.entity.Enquiry;
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
 
 import java.time.format.DateTimeFormatter;
 
 @Service
-@RequiredArgsConstructor
 public class EmailService {
 
     private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
-    private final JavaMailSender mailSender;
+    private final RestTemplate restTemplate = new RestTemplate();
 
     @Value("${acrovix.mail.from-email:sweta@acrovix.com}")
     private String fromEmail;
@@ -31,6 +33,9 @@ public class EmailService {
 
     @Value("${acrovix.mail.asset-base-url:https://acrovix.com/email-assets}")
     private String assetBaseUrl;
+
+    @Value("${acrovix.mail.brevo-api-key:}")
+    private String brevoApiKey;
 
     public void sendCustomerAcknowledgement(Enquiry enquiry) {
         String subject = "Thank You for Contacting ACROVIX - " + enquiry.getReferenceId();
@@ -46,17 +51,22 @@ public class EmailService {
 
     private void sendHtmlEmail(String to, String subject, String htmlBody) {
         try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("api-key", brevoApiKey);
 
-            helper.setFrom(String.format("%s <%s>", fromName, fromEmail));
-            helper.setTo(to);
-            helper.setSubject(subject);
-            helper.setText(htmlBody, true);
+            Map<String, Object> body = Map.of(
+                "sender", Map.of("email", fromEmail, "name", fromName),
+                "to", List.of(Map.of("email", to)),
+                "subject", subject,
+                "htmlContent", htmlBody
+            );
 
-            mailSender.send(message);
-            logger.info("Successfully sent email to: {}", to);
-        } catch (MessagingException e) {
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+            restTemplate.postForEntity("https://api.brevo.com/v3/smtp/email", request, String.class);
+            
+            logger.info("Successfully sent email request to: {}", to);
+        } catch (Exception e) {
             logger.error("Failed to send email to: {}", to, e);
             throw new RuntimeException("Failed to send email", e);
         }
