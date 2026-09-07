@@ -39,6 +39,17 @@ const Footer = () => {
               <span className="text-slate-600">|</span>
               <span>SUCCEED</span>
             </div>
+            
+            <div className="pt-3 flex flex-col gap-1 text-xs text-slate-400">
+              <div className="flex flex-wrap items-baseline gap-1.5">
+                <span className="font-semibold text-slate-500">CIN:</span>
+                <span className="break-all sm:break-normal">U46511BR2026PTC085813</span>
+              </div>
+              <div className="flex flex-wrap items-baseline gap-1.5">
+                <span className="font-semibold text-slate-500">GSTIN:</span>
+                <span className="break-all sm:break-normal">10ABFCA9588C1ZR</span>
+              </div>
+            </div>
           </div>
 
           {/* Company Links */}
