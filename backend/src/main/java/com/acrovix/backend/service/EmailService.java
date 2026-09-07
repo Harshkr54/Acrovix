@@ -34,7 +34,7 @@ public class EmailService {
     @Value("${acrovix.mail.asset-base-url:https://acrovix.com/email-assets}")
     private String assetBaseUrl;
 
-    @Value("${acrovix.mail.brevo-api-key:}")
+    @Value("${brevo.api-key:}")
     private String brevoApiKey;
 
     public void sendCustomerAcknowledgement(Enquiry enquiry) {
