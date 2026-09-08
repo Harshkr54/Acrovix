@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MessageSquare, X, Sparkles } from 'lucide-react';
+import { X } from 'lucide-react';
+import { ChatIcon } from './ChatIcon';
 import { AIComingSoon } from './AIComingSoon';
 import { INITIAL_WELCOME_MESSAGE, getAIResponse } from '../data/demoChatData';
 import '../styles/chatbot.css';
@@ -95,10 +96,9 @@ export function AIChatbot() {
           <X className="w-6 h-6" />
         ) : (
           <div className="relative flex items-center justify-center">
-            <MessageSquare className="w-6 h-6" />
-            <Sparkles className="w-3 h-3 absolute -top-1 -right-1 text-teal-200" />
+            <ChatIcon className="w-6 h-6" />
             {hasUnread && (
-              <span className="absolute -top-1 -left-1 w-3 h-3 bg-rose-500 rounded-full border-2 border-white"></span>
+              <span className="absolute -top-1 -left-1 w-3 h-3 bg-rose-500 rounded-full border-2 border-white dark:border-[#102936]"></span>
             )}
           </div>
         )}

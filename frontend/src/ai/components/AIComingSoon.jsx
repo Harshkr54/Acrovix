@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bot } from 'lucide-react';
+import { ChatIcon } from './ChatIcon';
 import { AIChatHeader } from './AIChatHeader';
 
 export function AIComingSoon({ onMinimize, onClose }) {
@@ -15,7 +15,7 @@ export function AIComingSoon({ onMinimize, onClose }) {
       {/* Body */}
       <div className="flex-1 flex flex-col items-center justify-center p-6 text-center bg-white dark:bg-[#07151F]">
         <div className="w-16 h-16 rounded-2xl bg-teal-50 dark:bg-[#102A43] flex items-center justify-center mb-6 shadow-inner border border-teal-100 dark:border-acrovix-teal-primary/30">
-          <Bot className="w-8 h-8 text-acrovix-teal-primary dark:text-acrovix-teal-bright" />
+          <ChatIcon className="w-8 h-8 text-acrovix-teal-primary dark:text-acrovix-teal-bright" />
         </div>
         
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3">

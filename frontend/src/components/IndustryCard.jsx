@@ -34,7 +34,7 @@ const IndustryCard = ({ industry }) => {
       <div className="pt-4 border-t border-acrovix-teal-primary/10">
         <Link
           to={`/industries/${industry.slug}`}
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-acrovix-teal-primary hover:text-acrovix-teal-bright group-hover:translate-x-1 transition-all"
+          className="inline-flex items-center gap-1.5 text-sm font-bold text-acrovix-teal-primary hover:text-acrovix-teal-bright group-hover:translate-x-1 transition-all"
         >
           <span>View Solutions</span>
           <ArrowRight className="w-3.5 h-3.5" />

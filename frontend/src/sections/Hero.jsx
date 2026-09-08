@@ -36,7 +36,7 @@ const Hero = () => {
             </div>
 
             {/* Micro Highlights */}
-            <div className="pt-6 grid grid-cols-3 gap-4 border-t border-acrovix-teal-primary/16 max-w-md mx-auto lg:mx-0">
+            <div className="pt-8 mt-4 grid grid-cols-3 gap-4 border-t border-acrovix-teal-primary/16 max-w-md mx-auto lg:mx-0">
               <div>
                 <span className="block text-lg font-bold text-acrovix-heading">SYNC</span>
                 <span className="text-xs text-acrovix-muted">Integrated Systems</span>
@@ -80,9 +80,12 @@ const Hero = () => {
                         <div className="text-[11px] text-acrovix-muted">System Integration & DevOps</div>
                       </div>
                     </div>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-                      ACTIVE
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                      <span className="text-[10px] font-bold text-acrovix-muted uppercase tracking-wider">
+                        ACTIVE
+                      </span>
+                    </div>
                   </div>
 
                   {/* Node 2 */}
@@ -96,9 +99,12 @@ const Hero = () => {
                         <div className="text-[11px] text-acrovix-muted">Unified Observability & Data Armour</div>
                       </div>
                     </div>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-teal-500/15 text-acrovix-teal-primary">
-                      PROTECTED
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-teal-500"></span>
+                      <span className="text-[10px] font-bold text-acrovix-muted uppercase tracking-wider">
+                        PROTECTED
+                      </span>
+                    </div>
                   </div>
 
                   {/* Node 3 */}
@@ -112,9 +118,12 @@ const Hero = () => {
                         <div className="text-[11px] text-acrovix-muted">AWS, Azure & Hybrid Deployment</div>
                       </div>
                     </div>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/15 text-sky-600 dark:text-sky-400">
-                      SCALED
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
+                      <span className="text-[10px] font-bold text-acrovix-muted uppercase tracking-wider">
+                        SCALED
+                      </span>
+                    </div>
                   </div>
                 </div>
 

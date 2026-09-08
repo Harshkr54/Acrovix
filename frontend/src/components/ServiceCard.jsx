@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { Cpu, ShieldCheck, ArrowRight, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Cpu, ShieldCheck, ArrowRight, CheckCircle2 } from 'lucide-react';
 import GlassCard from './GlassCard';
 
 const iconMap = {
@@ -9,14 +9,8 @@ const iconMap = {
 };
 
 const ServiceCard = ({ service }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
   const IconComponent = iconMap[service.iconName] || Cpu;
-
-  const hasMore = service.capabilities && service.capabilities.length > 4;
-  const hiddenCount = hasMore ? service.capabilities.length - 4 : 0;
-  const visibleCapabilities = isExpanded
-    ? service.capabilities
-    : service.capabilities.slice(0, 4);
+  const visibleCapabilities = service.capabilities ? service.capabilities.slice(0, 4) : [];
 
   return (
     <GlassCard className="flex flex-col h-full justify-between group border-acrovix-teal-primary/20 hover:border-acrovix-teal-primary/40">
@@ -37,46 +31,25 @@ const ServiceCard = ({ service }) => {
         </h3>
 
         {/* Short Description */}
-        <p className="text-sm text-acrovix-body leading-relaxed mb-6">
+        <p className="text-sm text-acrovix-body leading-relaxed mb-8">
           {service.shortDescription}
         </p>
 
         {/* Capability Preview */}
-        <div className="space-y-2 mb-8 border-t border-acrovix-teal-primary/10 pt-4">
+        <div className="space-y-3 mb-8 border-t border-acrovix-teal-primary/10 pt-6">
           <h4 className="text-xs font-bold text-acrovix-heading uppercase tracking-wider mb-2">
             Key Capabilities
           </h4>
           
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {visibleCapabilities.map((cap, idx) => (
-              <div key={idx} className="flex items-start gap-2 text-xs text-acrovix-body animate-in fade-in duration-200">
-                <CheckCircle2 className="w-3.5 h-3.5 text-acrovix-teal-primary flex-shrink-0 mt-0.5" />
+              <div key={idx} className="flex items-start gap-2.5 text-sm text-acrovix-body">
+                <CheckCircle2 className="w-4 h-4 text-acrovix-teal-primary flex-shrink-0 mt-0.5" />
                 <span>{cap}</span>
               </div>
             ))}
           </div>
 
-          {hasMore && (
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={() => setIsExpanded(!isExpanded)}
-                aria-expanded={isExpanded}
-                className="inline-flex items-center gap-1 text-xs font-semibold text-acrovix-teal-primary hover:text-acrovix-teal-bright focus:outline-none focus:ring-2 focus:ring-acrovix-teal-bright focus:ring-offset-1 rounded transition-colors py-0.5"
-              >
-                <span>
-                  {isExpanded
-                    ? 'Show less'
-                    : `+ ${hiddenCount} more capabilities`}
-                </span>
-                {isExpanded ? (
-                  <ChevronUp className="w-3.5 h-3.5" />
-                ) : (
-                  <ChevronDown className="w-3.5 h-3.5" />
-                )}
-              </button>
-            </div>
-          )}
         </div>
       </div>
 
