@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MessageSquare, X, Sparkles } from 'lucide-react';
-import { AIChatWindow } from './AIChatWindow';
+import { AIComingSoon } from './AIComingSoon';
 import { INITIAL_WELCOME_MESSAGE, getAIResponse } from '../data/demoChatData';
 import '../styles/chatbot.css';
 
@@ -106,12 +106,7 @@ export function AIChatbot() {
 
       {/* Chat Window Panel */}
       {isOpen && (
-        <AIChatWindow
-          messages={messages}
-          isTyping={isTyping}
-          onSendMessage={handleSendMessage}
-          onSelectQuickAction={handleSelectQuickAction}
-          onNavigate={handleNavigate}
+        <AIComingSoon
           onMinimize={() => setIsOpen(false)}
           onClose={() => setIsOpen(false)}
         />
