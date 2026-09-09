@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
-import { ChatIcon } from './ChatIcon';
-import { AIComingSoon } from './AIComingSoon';
+import chatbotIcon from '../../assets/chatbot-icon.png';
+import { AIChatWindow } from './AIChatWindow';
 import { INITIAL_WELCOME_MESSAGE, getAIResponse } from '../data/demoChatData';
 import '../styles/chatbot.css';
 
@@ -86,19 +86,23 @@ export function AIChatbot() {
       <button
         onClick={toggleChat}
         aria-label={isOpen ? "Close ACROVIX AI Assistant" : "Open ACROVIX AI Assistant"}
-        className={`fixed bottom-6 right-6 z-50 p-3.5 rounded-full flex items-center justify-center transition-all duration-300 transform hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-acrovix-teal-bright focus:ring-offset-2 shadow-none ${
+        className={`fixed bottom-6 right-6 z-50 flex items-center justify-center rounded-full transition-all duration-300 transform hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-acrovix-teal-bright focus:ring-offset-2 ${
           isOpen
-            ? 'bg-[#0B1C2A] dark:bg-[#102936] text-white rotate-90'
-            : 'bg-acrovix-teal-primary hover:bg-acrovix-teal-bright text-white'
+            ? 'p-3.5 bg-[#0B1C2A] dark:bg-[#102936] text-white rotate-90 shadow-none'
+            : 'w-16 h-16 bg-transparent shadow-lg shadow-acrovix-teal-primary/25'
         }`}
       >
         {isOpen ? (
           <X className="w-6 h-6" />
         ) : (
-          <div className="relative flex items-center justify-center">
-            <ChatIcon className="w-6 h-6" />
+          <div className="relative flex items-center justify-center w-full h-full">
+            <img
+              src={chatbotIcon}
+              alt="Open ACROVIX AI Assistant"
+              className="w-full h-full object-contain rounded-full"
+            />
             {hasUnread && (
-              <span className="absolute -top-1 -left-1 w-3 h-3 bg-rose-500 rounded-full border-2 border-white dark:border-[#102936]"></span>
+              <span className="absolute -top-0.5 -left-0.5 w-3.5 h-3.5 bg-rose-500 rounded-full border-2 border-white dark:border-[#102936]"></span>
             )}
           </div>
         )}
@@ -106,7 +110,12 @@ export function AIChatbot() {
 
       {/* Chat Window Panel */}
       {isOpen && (
-        <AIComingSoon
+        <AIChatWindow
+          messages={messages}
+          isTyping={isTyping}
+          onSendMessage={handleSendMessage}
+          onSelectQuickAction={handleSelectQuickAction}
+          onNavigate={handleNavigate}
           onMinimize={() => setIsOpen(false)}
           onClose={() => setIsOpen(false)}
         />

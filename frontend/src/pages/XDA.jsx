@@ -193,6 +193,8 @@ const XDA = () => {
       <SEO
         title="XDA — Xcel Data Armour | Data Security, Protection & Observability"
         description="One unified platform for data security, protection & observability. Centralized visibility, threat telemetry, PII masking, and continuous compliance assurances for enterprise leadership."
+        path="/xda"
+        keywords="Xcel Data Armour, data observability platform, PII masking, threat telemetry, compliance monitoring platform"
       />
 
       {/* Main Container */}

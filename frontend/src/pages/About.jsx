@@ -13,6 +13,8 @@ const About = () => {
       <SEO
         title="About Us | ACROVIX INNOVATIONS PRIVATE LIMITED"
         description="Learn about ACROVIX INNOVATIONS PRIVATE LIMITED — our vision, mission, approach, and enterprise technology and cloud capabilities."
+        path="/about"
+        keywords="about ACROVIX, IT company profile, enterprise technology partner, cybersecurity company India"
       />
       <main className="pt-28 pb-16 bg-acrovix-bg min-h-screen">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

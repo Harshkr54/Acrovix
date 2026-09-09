@@ -17,6 +17,7 @@ logs/
 # Environment & Secrets
 .env
 *.env
+!.env.example
 application-local.properties
 
 # OS files

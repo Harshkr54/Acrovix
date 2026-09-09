@@ -11,8 +11,18 @@ const Services = () => {
   return (
     <>
       <SEO
-        title="Services & Capabilities | ACROVIX"
-        description="Explore ACROVIX services: Enterprise IT Solutions and Cybersecurity & Observability."
+        title="IT Services & Capabilities | ACROVIX"
+        description="Explore ACROVIX's enterprise IT services: Enterprise IT Solutions, Cloud & DevOps, System Integration, and Cybersecurity & Observability."
+        path="/services"
+        keywords="IT services, enterprise IT solutions, cybersecurity services, cloud & DevOps services, system integration, managed IT services, IT consulting"
+        structuredData={{
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://acrovix.com/" },
+            { "@type": "ListItem", "position": 2, "name": "Services", "item": "https://acrovix.com/services" }
+          ]
+        }}
       />
       <main className="pt-28 pb-16 bg-acrovix-bg min-h-screen">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

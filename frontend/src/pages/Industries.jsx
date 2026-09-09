@@ -12,6 +12,8 @@ const Industries = () => {
       <SEO
         title="Industries We Serve | ACROVIX"
         description="Discover industry solutions engineered by ACROVIX for Banking, Healthcare, Government, SaaS, Construction, Manufacturing, and Retail."
+        path="/industries"
+        keywords="IT solutions for banking, healthcare IT services, government IT infrastructure, retail technology solutions, manufacturing IT services"
       />
       <main className="pt-28 pb-16 bg-acrovix-bg min-h-screen">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Bot, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
+import chatbotIcon from '../../assets/chatbot-icon.png';
 
 export function AIMessage({ message, onNavigate }) {
   const isAI = message.sender === 'ai';
@@ -12,8 +13,8 @@ export function AIMessage({ message, onNavigate }) {
     >
       <div className={`flex max-w-[85%] ${isAI ? 'flex-row items-start space-x-2' : 'flex-row-reverse space-x-reverse space-x-2'}`}>
         {isAI && (
-          <div className="w-6 h-6 rounded-full bg-acrovix-teal-primary/10 border border-acrovix-teal-primary/30 flex items-center justify-center flex-shrink-0 mt-0.5">
-            <Bot className="w-3.5 h-3.5 text-acrovix-teal-primary" />
+          <div className="w-6 h-6 rounded-full flex-shrink-0 mt-0.5 overflow-hidden bg-white border border-acrovix-teal-primary/30">
+            <img src={chatbotIcon} alt="ACROVIX Assistant" className="w-full h-full object-cover" />
           </div>
         )}
 

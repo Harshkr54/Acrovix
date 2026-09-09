@@ -34,6 +34,17 @@ const IndustryDetail = () => {
       <SEO
         title={`${industry.title} | Industries`}
         description={industry.shortDescription}
+        path={`/industries/${industry.slug}`}
+        keywords={`IT solutions for ${industry.title}, ${industry.title} technology partner, ${industry.title} cybersecurity`}
+        structuredData={{
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://acrovix.com/" },
+            { "@type": "ListItem", "position": 2, "name": "Industries", "item": "https://acrovix.com/industries" },
+            { "@type": "ListItem", "position": 3, "name": industry.title, "item": `https://acrovix.com/industries/${industry.slug}` }
+          ]
+        }}
       />
       <main className="pt-28 pb-16 bg-acrovix-bg min-h-screen">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

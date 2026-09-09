@@ -28,6 +28,30 @@ const ServiceDetail = () => {
       <SEO
         title={`${service.title} | Services`}
         description={service.shortDescription}
+        path={`/services/${service.slug}`}
+        keywords={`${service.title}, ${service.category}, ${service.capabilities.slice(0, 4).join(', ')}`}
+        structuredData={{
+          "@context": "https://schema.org",
+          "@type": "Service",
+          "name": service.title,
+          "serviceType": service.category,
+          "description": service.longDescription,
+          "provider": {
+            "@type": "Organization",
+            "name": "ACROVIX INNOVATIONS PRIVATE LIMITED",
+            "url": "https://acrovix.com"
+          },
+          "areaServed": "IN",
+          "url": `https://acrovix.com/services/${service.slug}`,
+          "hasOfferCatalog": {
+            "@type": "OfferCatalog",
+            "name": service.title,
+            "itemListElement": service.capabilities.map((cap) => ({
+              "@type": "Offer",
+              "itemOffered": { "@type": "Service", "name": cap }
+            }))
+          }
+        }}
       />
       <main className="pt-28 pb-16 bg-acrovix-bg min-h-screen">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

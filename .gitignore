@@ -6,3 +6,12 @@ application-local.properties
 # Backend target & logs
 backend/target/
 *.log
+
+# Frontend build artifacts & dependencies
+frontend/node_modules/
+frontend/dist/
+
+# IDE / editor local settings
+.idea/
+backend/.idea/
+.vscode/

@@ -41,6 +41,16 @@ const PortfolioDetail = () => {
       <SEO
         title={`${caseStudy.title} | Case Study`}
         description={caseStudy.shortDescription}
+        path={`/portfolio/${caseStudy.slug}`}
+        image={caseStudy.image}
+        structuredData={{
+          "@context": "https://schema.org",
+          "@type": "CreativeWork",
+          "name": caseStudy.title,
+          "about": caseStudy.shortDescription,
+          "creator": { "@type": "Organization", "name": "ACROVIX INNOVATIONS PRIVATE LIMITED" },
+          "url": `https://acrovix.com/portfolio/${caseStudy.slug}`
+        }}
       />
       <main className="pt-28 pb-16 bg-acrovix-bg min-h-screen">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

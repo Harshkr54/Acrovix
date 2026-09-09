@@ -14,6 +14,14 @@ const Contact = () => {
       <SEO
         title="Contact Us | ACROVIX INNOVATIONS PRIVATE LIMITED"
         description="Get in touch with ACROVIX INNOVATIONS PRIVATE LIMITED for technology, cybersecurity, and infrastructure enquiries."
+        path="/contact"
+        keywords="contact ACROVIX, IT services enquiry, cybersecurity consultation, ACROVIX phone number, ACROVIX email"
+        structuredData={{
+          "@context": "https://schema.org",
+          "@type": "ContactPage",
+          "name": "Contact ACROVIX",
+          "url": "https://acrovix.com/contact"
+        }}
       />
       <main className="pt-28 pb-16 bg-acrovix-bg min-h-screen">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

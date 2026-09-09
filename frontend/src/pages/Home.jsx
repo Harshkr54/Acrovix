@@ -17,6 +17,19 @@ const Home = () => {
       <SEO
         title="ACROVIX — Technology, Cybersecurity & Infrastructure Solutions"
         description="ACROVIX INNOVATIONS PRIVATE LIMITED — Enterprise technology, cybersecurity, infrastructure and digital solutions designed to help organizations scale securely and efficiently."
+        path="/"
+        keywords="IT services company, IT solutions provider, cybersecurity company, managed IT services, enterprise IT infrastructure, cloud & DevOps services, IT company India"
+        structuredData={{
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          "name": "ACROVIX",
+          "url": "https://acrovix.com",
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://acrovix.com/services?query={search_term_string}",
+            "query-input": "required name=search_term_string"
+          }
+        }}
       />
       <main>
         <Hero />

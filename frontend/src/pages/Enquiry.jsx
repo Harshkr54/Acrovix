@@ -114,6 +114,8 @@ const Enquiry = () => {
       <SEO
         title="Submit Enquiry | ACROVIX INNOVATIONS PRIVATE LIMITED"
         description="Submit your enterprise IT, cybersecurity, or cloud infrastructure requirement to ACROVIX INNOVATIONS PRIVATE LIMITED."
+        path="/enquiry"
+        keywords="request IT consultation, get IT quote, submit IT requirement, ACROVIX enquiry"
       />
       <main className="pt-28 pb-16 bg-acrovix-bg min-h-screen">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

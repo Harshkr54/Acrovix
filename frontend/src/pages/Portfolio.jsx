@@ -13,6 +13,8 @@ const Portfolio = () => {
       <SEO
         title="Portfolio & Case Studies | ACROVIX"
         description="Explore sample case studies demonstrating ACROVIX capabilities across cloud observability, system integration, and DevOps."
+        path="/portfolio"
+        keywords="ACROVIX case studies, IT project portfolio, cloud migration case study, cybersecurity implementation examples"
       />
       <main className="pt-28 pb-16 bg-acrovix-bg min-h-screen">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

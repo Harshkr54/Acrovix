@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import SEO from '../components/SEO';
 import { 
   PRODUCTS_DATA, 
   PRODUCT_CATEGORIES 
@@ -309,6 +310,12 @@ const Products = () => {
 
   return (
     <div className="min-h-screen bg-acrovix-bg pt-24 pb-20 px-4 sm:px-6 lg:px-8">
+      <SEO
+        title="Products & Technology Partners | ACROVIX"
+        description="Explore ACROVIX's technology product ecosystem across virtualization, cloud storage, data protection, endpoint security, and identity management from leading global vendors."
+        path="/products"
+        keywords="IT products, enterprise software vendors, data backup solutions, endpoint security products, VDI solutions, identity and access management products"
+      />
       {/* Container */}
       <div className="max-w-7xl mx-auto">
         

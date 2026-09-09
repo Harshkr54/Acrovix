@@ -1,24 +1,18 @@
 import React from 'react';
-import { Minus, X, Bot } from 'lucide-react';
-import acrovixLogo from '../../assets/Acrovix_logo.png';
+import { Minus, X } from 'lucide-react';
+import chatbotIcon from '../../assets/chatbot-icon.png';
 
 export function AIChatHeader({ onMinimize, onClose }) {
   return (
     <div className="flex items-center justify-between px-4 py-3 bg-[#102A43] dark:bg-[#081923] text-white border-b border-acrovix-teal-primary/30 rounded-t-2xl shadow-sm">
       <div className="flex items-center space-x-3">
-        {/* Brand logo avatar or icon */}
-        <div className="w-8 h-8 rounded-lg bg-[#F7FCFA] p-1 flex items-center justify-center border border-acrovix-teal-primary/20 shadow-inner overflow-hidden">
-          <img 
-            src={acrovixLogo} 
-            alt="ACROVIX" 
-            className="h-full w-auto object-contain"
-            onError={(e) => {
-              // Fallback to bot icon if logo image fails to load
-              e.target.style.display = 'none';
-              e.target.nextSibling.style.display = 'block';
-            }}
+        {/* Chatbot mascot avatar */}
+        <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center border border-acrovix-teal-primary/20 shadow-inner overflow-hidden flex-shrink-0">
+          <img
+            src={chatbotIcon}
+            alt="ACROVIX Assistant"
+            className="w-full h-full object-cover"
           />
-          <Bot className="w-4 h-4 text-acrovix-teal-bright hidden" />
         </div>
         <div>
           <div className="flex items-center space-x-2">
