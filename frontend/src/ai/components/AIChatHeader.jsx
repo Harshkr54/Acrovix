@@ -1,12 +1,25 @@
-import React from 'react';
-import { Minus, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { Minus, X, Trash2 } from 'lucide-react';
 import chatbotIcon from '../../assets/chatbot-icon.png';
 
-export function AIChatHeader({ onMinimize, onClose }) {
+export function AIChatHeader({ onMinimize, onClose, onClearHistory, geminiAvailable }) {
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const handleClearClick = () => {
+    if (showConfirm) {
+      onClearHistory?.();
+      setShowConfirm(false);
+    } else {
+      setShowConfirm(true);
+      // Auto-cancel confirm after 3s
+      setTimeout(() => setShowConfirm(false), 3000);
+    }
+  };
+
   return (
     <div className="flex items-center justify-between px-4 py-3 bg-[#102A43] dark:bg-[#081923] text-white border-b border-acrovix-teal-primary/30 rounded-t-2xl shadow-sm">
       <div className="flex items-center space-x-3">
-        {/* Chatbot mascot avatar */}
+        {/* Avatar */}
         <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center border border-acrovix-teal-primary/20 shadow-inner overflow-hidden flex-shrink-0">
           <img
             src={chatbotIcon}
@@ -19,15 +32,34 @@ export function AIChatHeader({ onMinimize, onClose }) {
             <h3 className="text-sm font-semibold text-white tracking-wide">
               ACROVIX Assistant
             </h3>
+            {geminiAvailable && (
+              <span className="text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 rounded-full font-medium">
+                AI
+              </span>
+            )}
           </div>
           <div className="flex items-center space-x-1.5 mt-0.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-[11px] text-teal-100/80 font-medium">Online</span>
           </div>
         </div>
       </div>
 
       <div className="flex items-center space-x-1">
+        {/* Clear History Button */}
+        <button
+          onClick={handleClearClick}
+          aria-label="Clear chat history"
+          title={showConfirm ? 'Click again to confirm clear' : 'Clear chat history'}
+          className={`p-1.5 rounded-lg transition-colors focus:outline-none focus:ring-1 focus:ring-acrovix-teal-bright ${
+            showConfirm
+              ? 'text-rose-400 hover:text-rose-300 bg-rose-500/20'
+              : 'text-teal-100/60 hover:text-white hover:bg-white/10'
+          }`}
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+
         <button
           onClick={onMinimize}
           aria-label="Minimize Chat"
