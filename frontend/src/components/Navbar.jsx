@@ -77,7 +77,7 @@ const Navbar = () => {
           <Link
             to="/"
             onClick={() => handleNavClick('/')}
-            className="group relative inline-flex items-center justify-center h-[46px] sm:h-[52px] px-4 sm:px-5 py-1.5 rounded-xl bg-white dark:bg-white/95 border border-transparent dark:border-acrovix-teal-primary/10 transition-all duration-300 hover:shadow-[0_8px_16px_rgba(16,42,67,0.08)] hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-acrovix-teal-primary/60 overflow-hidden"
+            className="group relative inline-flex items-center justify-center h-[46px] sm:h-[52px] transition-all duration-300 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-acrovix-teal-primary/60 overflow-hidden dark:px-4 dark:sm:px-5 dark:py-1.5 dark:rounded-xl dark:bg-white/95 dark:border dark:border-acrovix-teal-primary/10"
             aria-label="ACROVIX INNOVATIONS PRIVATE LIMITED Home"
           >
             {/* Subtle glow effect on hover */}
