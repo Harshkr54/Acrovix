@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Menu, X, ArrowRight } from 'lucide-react';
 import Button from './Button';
 import ThemeToggle from './ThemeToggle';
@@ -65,42 +66,54 @@ const Navbar = () => {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
-          ? 'bg-white/75 dark:bg-[#081923]/95 backdrop-blur-md shadow-[0_4px_20px_rgba(16,42,67,0.06)] border-b border-acrovix-teal-primary/14 py-1.5'
-          : 'bg-white/68 dark:bg-[#081923]/85 backdrop-blur-sm py-2'
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 rounded-b-2xl ${isScrolled
+          ? 'bg-white/75 dark:bg-[#081923]/95 backdrop-blur-md shadow-[0_4px_20px_rgba(16,42,67,0.06)] border-b border-acrovix-teal-primary/14'
+          : 'bg-white/68 dark:bg-[#081923]/85 backdrop-blur-sm'
         }`}
     >
       <div className="w-full px-4 sm:px-6 md:px-8 lg:px-10">
-        <div className="flex items-center justify-between gap-3 sm:gap-4">
+        <div className={`flex items-center justify-between gap-3 sm:gap-4 transition-all duration-300 ${isScrolled ? 'h-[64px] sm:h-[72px]' : 'h-[72px] sm:h-[80px]'}`}>
           {/* Brand Logo Lockup */}
           <Link
             to="/"
             onClick={() => handleNavClick('/')}
-            className="inline-flex items-center justify-center h-[52px] sm:h-[56px] px-3.5 sm:px-4 py-1.5 rounded-xl bg-transparent dark:bg-[#F7FCFA] border border-transparent dark:border-acrovix-teal-primary/20 transition-all flex-shrink-0 focus:outline-none focus-visible:ring-1 focus-visible:ring-acrovix-teal-primary/60"
+            className="group relative inline-flex items-center justify-center h-[46px] sm:h-[52px] px-4 sm:px-5 py-1.5 rounded-xl bg-white dark:bg-white/95 border border-transparent dark:border-acrovix-teal-primary/10 transition-all duration-300 hover:shadow-[0_8px_16px_rgba(16,42,67,0.08)] hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-acrovix-teal-primary/60 overflow-hidden"
             aria-label="ACROVIX INNOVATIONS PRIVATE LIMITED Home"
           >
+            {/* Subtle glow effect on hover */}
+            <div className="absolute inset-0 bg-gradient-to-r from-acrovix-teal-primary/0 via-acrovix-teal-primary/5 to-acrovix-teal-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out" />
+            
             <img
               src={acrovixLogo}
               alt="ACROVIX INNOVATIONS PRIVATE LIMITED"
-              className="h-[44px] sm:h-[48px] w-auto object-contain"
+              className="h-[36px] sm:h-[42px] w-auto object-contain transition-transform duration-300 group-hover:scale-105 relative z-10"
             />
           </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-3 xl:gap-6" aria-label="Main Navigation">
-            {navLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                onClick={() => handleNavClick(link.path)}
-                className={`text-xs xl:text-sm font-bold transition-colors duration-200 hover:text-acrovix-teal-primary relative py-1 whitespace-nowrap ${isActive(link.path)
-                    ? 'text-acrovix-teal-primary after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-acrovix-teal-primary after:rounded-full'
-                    : 'text-acrovix-heading'
+            {navLinks.map((link) => {
+              const active = isActive(link.path);
+              return (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  onClick={() => handleNavClick(link.path)}
+                  className={`text-xs xl:text-sm font-bold transition-colors duration-200 hover:text-acrovix-teal-primary relative py-1 whitespace-nowrap ${
+                    active ? 'text-acrovix-teal-primary' : 'text-acrovix-heading'
                   }`}
-              >
-                {link.name}
-              </Link>
-            ))}
+                >
+                  {link.name}
+                  {active && (
+                    <motion.div
+                      layoutId="navbar-underline"
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-acrovix-teal-primary rounded-full"
+                      transition={{ type: "spring", stiffness: 140, damping: 16, mass: 1.1 }}
+                    />
+                  )}
+                </Link>
+              );
+            })}
           </nav>
 
           {/* Primary Actions & Theme Toggle (Desktop) */}
@@ -138,7 +151,7 @@ const Navbar = () => {
                 to={link.path}
                 onClick={() => handleNavClick(link.path)}
                 className={`text-base font-semibold py-2.5 px-3 rounded-lg transition-colors ${isActive(link.path)
-                    ? 'text-acrovix-teal-primary bg-acrovix-card font-bold'
+                    ? 'text-acrovix-teal-primary bg-acrovix-card font-bold border-l-4 border-acrovix-teal-primary'
                     : 'text-acrovix-heading hover:bg-acrovix-bg-secondary'
                   }`}
               >
