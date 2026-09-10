@@ -2,6 +2,7 @@ import React from 'react';
 import SEO from '../components/SEO';
 import Hero from '../sections/Hero';
 import CapabilityStrip from '../sections/CapabilityStrip';
+import StatsSection from '../sections/StatsSection';
 import ServicesSection from '../sections/ServicesSection';
 import AboutSection from '../sections/AboutSection';
 import PhilosophySection from '../sections/PhilosophySection';
@@ -9,7 +10,6 @@ import IndustriesSection from '../sections/IndustriesSection';
 import PortfolioSection from '../sections/PortfolioSection';
 import InnovationSection from '../sections/InnovationSection';
 import WhyAcrovixSection from '../sections/WhyAcrovixSection';
-
 
 const Home = () => {
   return (
@@ -34,6 +34,7 @@ const Home = () => {
       <main>
         <Hero />
         <CapabilityStrip />
+        <StatsSection />
         <ServicesSection />
         <AboutSection />
         <PhilosophySection />
