@@ -10,6 +10,8 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
@@ -72,7 +74,12 @@ public class EmailService {
     // ─────────────────────────────────────────────────────────────────────────
     private String buildUserEmail(Enquiry enquiry) {
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a");
-        String date = enquiry.getCreatedAt() != null ? enquiry.getCreatedAt().format(fmt) : "N/A";
+        String date = enquiry.getCreatedAt() != null
+            ? enquiry.getCreatedAt()
+                     .atZone(ZoneId.of("UTC"))
+                     .withZoneSameInstant(ZoneId.of("Asia/Kolkata"))
+                     .format(fmt)
+            : "N/A";
 
         String rows = buildRow("Full Name", enquiry.getFullName())
                     + buildRow("Company / Organization", enquiry.getCompanyName())
@@ -245,7 +252,12 @@ public class EmailService {
     // ─────────────────────────────────────────────────────────────────────────
     private String buildAdminEmail(Enquiry enquiry) {
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a");
-        String date = enquiry.getCreatedAt() != null ? enquiry.getCreatedAt().format(fmt) : "N/A";
+        String date = enquiry.getCreatedAt() != null
+            ? enquiry.getCreatedAt()
+                     .atZone(ZoneId.of("UTC"))
+                     .withZoneSameInstant(ZoneId.of("Asia/Kolkata"))
+                     .format(fmt)
+            : "N/A";
 
         String rows = buildRow("Full Name", enquiry.getFullName())
                     + buildRow("Company / Organization", enquiry.getCompanyName())
