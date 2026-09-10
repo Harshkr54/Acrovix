@@ -42,7 +42,6 @@ const Home = () => {
         <PortfolioSection />
         <InnovationSection />
         <WhyAcrovixSection />
-
       </main>
     </>
   );

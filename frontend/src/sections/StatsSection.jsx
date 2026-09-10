@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { Activity, Users, ShieldCheck, Zap } from 'lucide-react';
 
 const AnimatedCounter = ({ target, duration, isDecimal = false, suffix = '' }) => {
@@ -98,9 +99,13 @@ const StatsSection = () => {
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
-          {stats.map((stat) => (
-            <div 
+          {stats.map((stat, index) => (
+            <motion.div 
               key={stat.id}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ duration: 0.5, delay: index * 0.1 }}
               className="bg-white/5 dark:bg-[#102936]/40 backdrop-blur-md border border-white/10 dark:border-acrovix-teal-primary/20 rounded-2xl p-8 hover:bg-white/10 dark:hover:bg-[#102936]/60 transition-all duration-300 group hover:-translate-y-1 shadow-lg shadow-black/10"
             >
               <div className="flex flex-col items-center text-center space-y-4">
@@ -126,7 +131,7 @@ const StatsSection = () => {
                   </p>
                 </div>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>

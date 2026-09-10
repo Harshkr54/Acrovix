@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { ArrowRight, ShieldCheck, Server, Cpu, Database, Activity, Lock } from 'lucide-react';
 import Button from '../components/Button';
 import GlassCard from '../components/GlassCard';
@@ -10,7 +11,12 @@ const Hero = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           {/* Left Hero Content */}
-          <div className="lg:col-span-7 space-y-5 text-center lg:text-left">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7 }}
+            className="lg:col-span-7 space-y-5 text-center lg:text-left"
+          >
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-acrovix-card border border-acrovix-teal-primary/20 shadow-sm text-acrovix-teal-primary text-xs font-semibold uppercase tracking-wider">
               <span className="w-2 h-2 rounded-full bg-acrovix-teal-bright animate-ping"></span>
               <span>Enterprise IT • Cybersecurity • Cloud Solutions</span>
@@ -50,10 +56,15 @@ const Hero = () => {
                 <span className="text-xs text-acrovix-muted">Measurable Outcomes</span>
               </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* Right Hero Graphic Visual */}
-          <div className="lg:col-span-5">
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.7, delay: 0.2 }}
+            className="lg:col-span-5"
+          >
             <div className="relative mx-auto max-w-md lg:max-w-none">
               {/* Main Interactive Glass Node Graphic */}
               <GlassCard className="relative z-20 border-acrovix-teal-primary/30 p-8 shadow-2xl overflow-hidden" glow>
@@ -152,7 +163,7 @@ const Hero = () => {
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
     </section>
