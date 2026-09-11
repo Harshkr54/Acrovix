@@ -31,7 +31,7 @@ public class EmailService {
     @Value("${acrovix.mail.notification-email:sales@acrovix.com}")
     private String notificationEmail;
 
-    @Value("${brevo.api-key:}")
+    @Value("${brevo.api-key}")
     private String brevoApiKey;
 
     public void sendCustomerAcknowledgement(Enquiry enquiry) {
