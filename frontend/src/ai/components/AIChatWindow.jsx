@@ -30,7 +30,7 @@ export function AIChatWindow({
     <div
       role="dialog"
       aria-label="ACROVIX Assistant Chat Window"
-      className="fixed bottom-24 right-4 sm:right-6 z-50 w-[92vw] sm:w-[380px] h-[560px] max-h-[calc(100vh-7rem)] flex flex-col bg-white/95 dark:bg-[#102936]/95 backdrop-blur-xl border border-acrovix-teal-primary/20 dark:border-acrovix-teal-bright/30 rounded-2xl shadow-2xl shadow-acrovix-teal-primary/10 animate-chat-slide-up overflow-hidden"
+      className="fixed bottom-24 right-4 sm:right-6 z-50 w-[92vw] sm:w-[380px] h-[560px] min-w-[300px] min-h-[400px] max-w-[95vw] max-h-[calc(100vh-7rem)] flex flex-col bg-white/95 dark:bg-[#102936]/95 backdrop-blur-xl border border-acrovix-teal-primary/20 dark:border-acrovix-teal-bright/30 rounded-2xl shadow-2xl shadow-acrovix-teal-primary/10 animate-chat-slide-up overflow-hidden resize"
     >
       {/* Header */}
       <AIChatHeader

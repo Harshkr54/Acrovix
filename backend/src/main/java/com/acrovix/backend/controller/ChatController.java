@@ -124,7 +124,7 @@ public class ChatController {
                 "contents", contents,
                 "generationConfig", Map.of(
                     "temperature", 0.7,
-                    "maxOutputTokens", 300,
+                    "maxOutputTokens", 4000,
                     "topP", 0.9
                 )
             );
