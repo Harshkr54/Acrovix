@@ -33,7 +33,7 @@ public class ChatController {
     private String geminiApiKey;
 
     private static final String GEMINI_URL =
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=";
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=";
 
     // ACROVIX system prompt — injected into every request so Gemini knows the business context
     private static final String SYSTEM_PROMPT = """
