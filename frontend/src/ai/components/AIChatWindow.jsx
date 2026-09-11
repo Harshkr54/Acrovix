@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { AIChatHeader } from './AIChatHeader';
 import { AIMessage } from './AIMessage';
 import { AIQuickActions } from './AIQuickActions';
@@ -16,6 +16,7 @@ export function AIChatWindow({
   geminiAvailable
 }) {
   const messagesEndRef = useRef(null);
+  const [showClearPopup, setShowClearPopup] = useState(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -35,7 +36,7 @@ export function AIChatWindow({
       <AIChatHeader
         onMinimize={onMinimize}
         onClose={onClose}
-        onClearHistory={onClearHistory}
+        onClearRequest={() => setShowClearPopup(true)}
         geminiAvailable={geminiAvailable}
       />
 
@@ -78,6 +79,37 @@ export function AIChatWindow({
 
       {/* Input */}
       <AIInput onSendMessage={onSendMessage} disabled={isTyping} />
+
+      {/* Clear Confirmation Popup */}
+      {showClearPopup && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm rounded-2xl">
+          <div className="bg-white dark:bg-[#102A43] p-6 rounded-xl shadow-xl border border-acrovix-teal-primary/20 w-3/4 max-w-sm mx-4 transform animate-scale-in">
+            <h4 className="text-lg font-semibold text-gray-800 dark:text-white mb-2 text-center">
+              Clear Chat?
+            </h4>
+            <p className="text-sm text-gray-600 dark:text-gray-300 text-center mb-6">
+              Are you sure you want to delete the whole chat?
+            </p>
+            <div className="flex space-x-3 justify-center">
+              <button
+                onClick={() => setShowClearPopup(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 rounded-lg transition-colors"
+              >
+                No, Keep
+              </button>
+              <button
+                onClick={() => {
+                  onClearHistory?.();
+                  setShowClearPopup(false);
+                }}
+                className="px-4 py-2 text-sm font-medium text-white bg-rose-500 hover:bg-rose-600 rounded-lg transition-colors shadow-sm"
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

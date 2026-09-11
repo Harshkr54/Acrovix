@@ -2,20 +2,7 @@ import React, { useState } from 'react';
 import { Minus, X, Trash2 } from 'lucide-react';
 import chatbotIcon from '../../assets/chatbot-icon.png';
 
-export function AIChatHeader({ onMinimize, onClose, onClearHistory, geminiAvailable }) {
-  const [showConfirm, setShowConfirm] = useState(false);
-
-  const handleClearClick = () => {
-    if (showConfirm) {
-      onClearHistory?.();
-      setShowConfirm(false);
-    } else {
-      setShowConfirm(true);
-      // Auto-cancel confirm after 3s
-      setTimeout(() => setShowConfirm(false), 3000);
-    }
-  };
-
+export function AIChatHeader({ onMinimize, onClose, onClearRequest, geminiAvailable }) {
   return (
     <div className="flex items-center justify-between px-4 py-3 bg-[#102A43] dark:bg-[#081923] text-white border-b border-acrovix-teal-primary/30 rounded-t-2xl shadow-sm">
       <div className="flex items-center space-x-3">
@@ -48,14 +35,10 @@ export function AIChatHeader({ onMinimize, onClose, onClearHistory, geminiAvaila
       <div className="flex items-center space-x-1">
         {/* Clear History Button */}
         <button
-          onClick={handleClearClick}
+          onClick={onClearRequest}
           aria-label="Clear chat history"
-          title={showConfirm ? 'Click again to confirm clear' : 'Clear chat history'}
-          className={`p-1.5 rounded-lg transition-colors focus:outline-none focus:ring-1 focus:ring-acrovix-teal-bright ${
-            showConfirm
-              ? 'text-rose-400 hover:text-rose-300 bg-rose-500/20'
-              : 'text-teal-100/60 hover:text-white hover:bg-white/10'
-          }`}
+          title="Clear chat history"
+          className="p-1.5 text-teal-100/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors focus:outline-none focus:ring-1 focus:ring-acrovix-teal-bright"
         >
           <Trash2 className="w-3.5 h-3.5" />
         </button>
