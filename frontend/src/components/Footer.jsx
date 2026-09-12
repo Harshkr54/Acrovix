@@ -160,6 +160,7 @@ const Footer = () => {
             <span className="text-slate-500">Corporate IT Services &amp; Infrastructure</span>
             <Link to="/contact" className="hover:text-slate-200 transition-colors">Privacy Policy</Link>
             <Link to="/contact" className="hover:text-slate-200 transition-colors">Terms of Service</Link>
+            <a href="https://admin.acrovix.com/" target="_blank" rel="noopener noreferrer" className="text-gray-700 hover:text-gray-500 transition-colors text-xs">Admin Portal</a>
           </div>
         </div>
       </div>
