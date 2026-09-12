@@ -40,6 +40,8 @@ jobs:
       - name: Build admin frontend
         run: npm run build
         working-directory: ./Admin/admin-frontend
+        env:
+          VITE_API_BASE_URL: https://acrovix-admin-backend.onrender.com/api/admin
 
       - name: Assemble deployment directory
         run: |
