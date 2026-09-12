@@ -69,15 +69,6 @@ export default function Dashboard() {
         );
     }
 
-    const maxQuotations = Math.max(
-        stats.quotationsByStatus?.DRAFT || 0,
-        stats.quotationsByStatus?.SENT || 0,
-        stats.quotationsByStatus?.ACCEPTED || 0,
-        stats.quotationsByStatus?.REJECTED || 0,
-        stats.quotationsByStatus?.EXPIRED || 0,
-        1
-    );
-
     const normalizeStatus = (rawStatus) => {
         return rawStatus ? String(rawStatus).toUpperCase() : 'UNKNOWN';
     };
@@ -127,17 +118,9 @@ export default function Dashboard() {
                     </div>
                     <div>
                         <p className="text-[32px] font-bold text-text-primary tracking-tight">{stats.totalEnquiries ?? '—'}</p>
-                        <div className="flex items-center mt-1 text-[11px] font-medium text-[#059669]">
-                            <TrendingUp className="w-3 h-3 mr-1" />
-                            <span>12.5%</span>
-                            <span className="text-text-muted ml-1 font-normal">from last month</span>
+                        <div className="flex items-center mt-1 text-[11px] font-medium text-text-muted">
+                            <span>No comparison data</span>
                         </div>
-                    </div>
-                    {/* Mock Bar Chart */}
-                    <div className="mt-6 flex items-end gap-1.5 h-8">
-                        {[4, 6, 5, 8, 7, 10, 8, 12, 10, 14].map((h, i) => (
-                            <div key={i} className="w-full bg-[#EEF2FF] rounded-t-sm" style={{ height: `${h * 7}%` }}></div>
-                        ))}
                     </div>
                 </div>
 
@@ -151,17 +134,9 @@ export default function Dashboard() {
                     </div>
                     <div>
                         <p className="text-[32px] font-bold text-text-primary tracking-tight">{stats.newEnquiries ?? '—'}</p>
-                        <div className="flex items-center mt-1 text-[11px] font-medium text-[#059669]">
-                            <TrendingUp className="w-3 h-3 mr-1" />
-                            <span>8.2%</span>
-                            <span className="text-text-muted ml-1 font-normal">from last month</span>
+                        <div className="flex items-center mt-1 text-[11px] font-medium text-text-muted">
+                            <span>No comparison data</span>
                         </div>
-                    </div>
-                    {/* Mock Bar Chart */}
-                    <div className="mt-6 flex items-end gap-1.5 h-8">
-                        {[3, 4, 3, 5, 4, 6, 5, 8, 6, 9].map((h, i) => (
-                            <div key={i} className="w-full bg-[#ECFEFF] rounded-t-sm" style={{ height: `${h * 7}%` }}></div>
-                        ))}
                     </div>
                 </div>
 
@@ -175,17 +150,9 @@ export default function Dashboard() {
                     </div>
                     <div>
                         <p className="text-[32px] font-bold text-text-primary tracking-tight">{stats.totalQuotations ?? '—'}</p>
-                        <div className="flex items-center mt-1 text-[11px] font-medium text-[#DC2626]">
-                            <TrendingUp className="w-3 h-3 mr-1 rotate-180" />
-                            <span>4.1%</span>
-                            <span className="text-text-muted ml-1 font-normal">from last month</span>
+                        <div className="flex items-center mt-1 text-[11px] font-medium text-text-muted">
+                            <span>No comparison data</span>
                         </div>
-                    </div>
-                    {/* Mock Bar Chart */}
-                    <div className="mt-6 flex items-end gap-1.5 h-8">
-                        {[5, 4, 6, 5, 7, 6, 8, 7, 9, 8].map((h, i) => (
-                            <div key={i} className="w-full bg-[#F5F3FF] rounded-t-sm" style={{ height: `${h * 7}%` }}></div>
-                        ))}
                     </div>
                 </div>
 
@@ -199,17 +166,9 @@ export default function Dashboard() {
                     </div>
                     <div>
                         <p className="text-[32px] font-bold text-text-primary tracking-tight">{stats.acceptedQuotations ?? '—'}</p>
-                        <div className="flex items-center mt-1 text-[11px] font-medium text-[#059669]">
-                            <TrendingUp className="w-3 h-3 mr-1" />
-                            <span>22.2%</span>
-                            <span className="text-text-muted ml-1 font-normal">from last month</span>
+                        <div className="flex items-center mt-1 text-[11px] font-medium text-text-muted">
+                            <span>No comparison data</span>
                         </div>
-                    </div>
-                    {/* Mock Bar Chart */}
-                    <div className="mt-6 flex items-end gap-1.5 h-8">
-                        {[2, 3, 2, 4, 3, 5, 4, 6, 5, 8].map((h, i) => (
-                            <div key={i} className="w-full bg-[#ECFDF5] rounded-t-sm" style={{ height: `${h * 7}%` }}></div>
-                        ))}
                     </div>
                 </div>
 
@@ -230,29 +189,11 @@ export default function Dashboard() {
                             </div>
                         </div>
                         
-                        {/* Mock Chart Area */}
-                        <div className="flex-1 relative flex flex-col justify-end pb-8">
-                            {/* Grid Lines */}
-                            <div className="absolute inset-0 flex flex-col justify-between pb-8 pointer-events-none">
-                                {[40, 30, 20, 10, 0].map((val) => (
-                                    <div key={val} className="flex items-center w-full">
-                                        <span className="w-8 text-right text-[10px] text-text-muted mr-4 font-medium">{val}</span>
-                                        <div className="flex-1 border-b border-border-subtle/50"></div>
-                                    </div>
-                                ))}
-                            </div>
-                            
-                            {/* Bars */}
-                            <div className="relative z-10 flex justify-around items-end h-[200px] pl-12 pr-4">
-                                {[{m: 'Jul', n: 30, e: 15}, {m: 'Aug', n: 40, e: 20}, {m: 'Sep', n: 55, e: 35}, {m: 'Oct', n: 60, e: 40}, {m: 'Nov', n: 75, e: 50}, {m: 'Dec', n: 90, e: 65}].map((data) => (
-                                    <div key={data.m} className="flex flex-col items-center gap-2">
-                                        <div className="flex gap-1.5 items-end h-[160px]">
-                                            <div className="w-5 bg-[#4F46E5] rounded-t-sm shadow-sm" style={{ height: `${data.n}%` }}></div>
-                                            <div className="w-5 bg-[#EEF2FF] rounded-t-sm border border-[#4F46E5]/10" style={{ height: `${data.e}%` }}></div>
-                                        </div>
-                                        <span className="text-[11px] font-medium text-text-muted mt-2">{data.m}</span>
-                                    </div>
-                                ))}
+                        {/* Empty Chart Area */}
+                        <div className="flex-1 relative flex flex-col justify-center items-center pb-8 min-h-[200px]">
+                            <div className="flex flex-col items-center text-text-muted opacity-60">
+                                <Activity className="w-8 h-8 mb-2" />
+                                <span className="text-[13px] font-medium">Historical trend data not available</span>
                             </div>
                         </div>
                         
@@ -282,7 +223,7 @@ export default function Dashboard() {
                         <div className="flex-1 px-6 pb-6 overflow-y-auto max-h-[300px]">
                             {stats.recentActivities && stats.recentActivities.length > 0 ? (
                                 <div className="relative pl-3 space-y-6 before:absolute before:inset-y-0 before:left-[11px] before:w-[2px] before:bg-border-subtle/50">
-                                    {stats.recentActivities.map((activity, idx) => {
+                                    {stats.recentActivities.map((activity) => {
                                         // Generate visual properties based on entity type for the exact reference match
                                         let iconStyle = 'bg-[#EFF6FF] text-[#2563EB]';
                                         let Icon = MessageSquare;
