@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { API_BASE_URL, getAuthHeaders } from '../services/api';
-import { Plus, Trash2, Send, Save, Wand2, Copy, ArrowUp, ArrowDown, Calculator, FileText, User, Hash, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Send, Save, Wand2, Copy, ArrowUp, ArrowDown, Calculator, User, Hash, AlertCircle, RefreshCw } from 'lucide-react';
 
 export default function QuotationBuilder() {
     const { enquiryId } = useParams();
@@ -10,28 +10,38 @@ export default function QuotationBuilder() {
     const [enquiry, setEnquiry] = useState(null);
     const [roughText, setRoughText] = useState('');
     const [isParsing, setIsParsing] = useState(false);
-    const [items, setItems] = useState([
+    const [items, setItems] = useState(() => [
         { id: Date.now(), description: '', category: '', quantity: 1, unit: 'unit', unitPrice: 0, discountPercent: 0, taxPercent: 18 }
     ]);
     const [quotationId, setQuotationId] = useState(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [error, setError] = useState(null);
 
-    useEffect(() => {
-        // Fetch enquiry for prefilling
+    const initializeBuilder = React.useCallback(() => {
+        setError(null);
         fetch(`${API_BASE_URL}/enquiries/${enquiryId}`, { headers: getAuthHeaders() })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error("Failed to load enquiry data");
+                return res.json();
+            })
             .then(data => {
                 setEnquiry(data);
-                // Create draft quotation immediately upon loading this page
-                fetch(`${API_BASE_URL}/quotations/enquiry/${enquiryId}`, {
+                return fetch(`${API_BASE_URL}/quotations/enquiry/${enquiryId}`, {
                     method: 'POST',
                     headers: getAuthHeaders()
-                })
-                .then(res => res.json())
-                .then(q => setQuotationId(q.id))
-                .catch(err => console.error("Error creating draft", err));
+                });
+            })
+            .then(res => res.json())
+            .then(q => setQuotationId(q.id))
+            .catch(err => {
+                console.error("Initialization Error", err);
+                setError(err.message || "Failed to initialize workspace.");
             });
     }, [enquiryId]);
+
+    useEffect(() => {
+        initializeBuilder();
+    }, [initializeBuilder]);
 
     const handleParseText = async () => {
         if (!roughText.trim()) return;
@@ -163,7 +173,8 @@ export default function QuotationBuilder() {
             setTimeout(() => {
                 setIsSaving(false);
             }, 500); // brief delay for UX
-        } catch (err) {
+        } catch (error) {
+            console.error(error);
             alert("Failed to save draft");
             setIsSaving(false);
         }
@@ -185,10 +196,27 @@ export default function QuotationBuilder() {
             } else {
                 throw new Error("Failed to send");
             }
-        } catch (err) {
-            alert("Failed to send quotation.");
+        } catch (error) {
+            console.error(error);
+            alert(error.message || "Failed to send quotation.");
         }
     };
+
+    if (error) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[50vh] text-center px-4">
+                <div className="w-16 h-16 bg-[#FEF2F2] border border-[#FCA5A5] flex items-center justify-center rounded-[20px] mb-6 shadow-sm">
+                    <AlertCircle className="w-8 h-8 text-[#DC2626]" />
+                </div>
+                <h2 className="text-[20px] font-bold text-text-primary mb-2 tracking-tight">Initialization Failed</h2>
+                <p className="text-text-secondary mb-6 text-[13px] leading-relaxed max-w-sm">{error}</p>
+                <button onClick={initializeBuilder} className="btn-primary flex items-center px-4 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]">
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Retry
+                </button>
+            </div>
+        );
+    }
 
     if (!enquiry) {
         return (

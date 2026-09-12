@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { API_BASE_URL, getAuthHeaders } from '../services/api';
 import { Link } from 'react-router-dom';
-import { Search, Filter, Calendar, ChevronLeft, ChevronRight, Plus, Inbox, MoreHorizontal } from 'lucide-react';
+import { Search, Filter, Calendar, ChevronLeft, ChevronRight, Plus, Inbox, MoreHorizontal, AlertCircle, RefreshCw } from 'lucide-react';
 
 export default function EnquiryList() {
     const [enquiries, setEnquiries] = useState([]);
@@ -17,6 +17,7 @@ export default function EnquiryList() {
     const [totalElements, setTotalElements] = useState(0);
     const itemsPerPage = 10;
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     const fetchEnquiries = useCallback(() => {
         setIsLoading(true);
@@ -29,15 +30,20 @@ export default function EnquiryList() {
         if (toDate) url += `&toDate=${encodeURIComponent(toDate + 'T23:59:59')}`;
 
         fetch(url, { headers: getAuthHeaders() })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error('Failed to fetch enquiries');
+                return res.json();
+            })
             .then(data => {
                 setEnquiries(data.content);
                 setTotalPages(data.totalPages);
                 setTotalElements(data.totalElements);
                 setIsLoading(false);
+                setError(null);
             })
             .catch(err => {
                 console.error("Error fetching enquiries", err);
+                setError(err.message || 'An unexpected error occurred');
                 setIsLoading(false);
             });
     }, [currentPage, searchTerm, statusFilter, industryFilter, serviceFilter, fromDate, toDate]);
@@ -162,7 +168,23 @@ export default function EnquiryList() {
                             </tr>
                         </thead>
                         <tbody className="bg-bg-card divide-y divide-border-subtle/40">
-                            {isLoading ? (
+                            {error ? (
+                                <tr>
+                                    <td colSpan="6" className="px-6 py-20 text-center">
+                                        <div className="flex flex-col items-center justify-center space-y-4 max-w-sm mx-auto">
+                                            <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mb-1">
+                                                <AlertCircle className="w-6 h-6 text-red-500" />
+                                            </div>
+                                            <p className="text-[15px] font-bold text-text-primary">Failed to load enquiries</p>
+                                            <p className="text-[13px] text-text-secondary leading-relaxed">{error}</p>
+                                            <button onClick={fetchEnquiries} className="btn-primary mt-2">
+                                                <RefreshCw className="w-4 h-4 mr-2" />
+                                                Retry
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : isLoading ? (
                                 <tr>
                                     <td colSpan="6" className="px-6 py-16 text-center">
                                         <div className="flex flex-col items-center justify-center space-y-3">

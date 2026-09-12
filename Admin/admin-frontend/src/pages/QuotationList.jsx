@@ -15,11 +15,7 @@ export default function QuotationList() {
     const [downloadingPdfId, setDownloadingPdfId] = useState(null);
     const itemsPerPage = 10;
 
-    useEffect(() => {
-        fetchQuotations();
-    }, [currentPage]);
-
-    const fetchQuotations = () => {
+    const fetchQuotations = React.useCallback(() => {
         setIsLoading(true);
         setError(null);
         fetch(`${API_BASE_URL}/quotations?page=${currentPage}&size=${itemsPerPage}`, { headers: getAuthHeaders() })
@@ -40,7 +36,11 @@ export default function QuotationList() {
                 setError(err.message || 'An error occurred while loading quotations.');
                 setIsLoading(false);
             });
-    };
+    }, [currentPage]);
+
+    useEffect(() => {
+        fetchQuotations();
+    }, [fetchQuotations]);
 
     const handleViewPdf = async (id) => {
         if (downloadingPdfId) return;
@@ -82,7 +82,12 @@ export default function QuotationList() {
         }
     };
 
-    const getStatusStyle = (status) => {
+    const normalizeStatus = (rawStatus) => {
+        return rawStatus ? String(rawStatus).toUpperCase() : 'UNKNOWN';
+    };
+
+    const getStatusStyle = (rawStatus) => {
+        const status = normalizeStatus(rawStatus);
         switch(status) {
             case 'DRAFT': return 'text-[#71869A]';
             case 'SENT': return 'text-[#2563EB]';
@@ -186,7 +191,7 @@ export default function QuotationList() {
                                     <td className="px-6 py-4 whitespace-nowrap align-top">
                                         <span className={`inline-flex items-center text-[10px] font-bold uppercase tracking-wider ${getStatusStyle(q.status)}`}>
                                             <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5"></span>
-                                            {q.status}
+                                            {normalizeStatus(q.status)}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-[12px] text-text-muted font-medium align-top hidden sm:table-cell">

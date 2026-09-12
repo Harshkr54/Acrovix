@@ -1,24 +1,35 @@
 import React, { useEffect, useState } from 'react';
 import { API_BASE_URL, getAuthHeaders } from '../services/api';
-import { FileText, Inbox, Activity, CheckCircle, TrendingUp, Clock, ChevronRight, Filter, Plus, MoreHorizontal } from 'lucide-react';
+import { FileText, Inbox, Activity, CheckCircle, TrendingUp, Clock, ChevronRight, Filter, Plus, MoreHorizontal, MessageSquare, User, AlertCircle, RefreshCw } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 export default function Dashboard() {
     const [stats, setStats] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
     const navigate = useNavigate();
 
-    useEffect(() => {
+    const fetchDashboardData = () => {
+        setIsLoading(true);
+        setError(null);
         fetch(`${API_BASE_URL}/dashboard/stats`, { headers: getAuthHeaders() })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error('Failed to fetch dashboard data');
+                return res.json();
+            })
             .then(data => {
                 setStats(data);
                 setIsLoading(false);
             })
             .catch(err => {
                 console.error("Error fetching stats", err);
+                setError(err.message || 'An unexpected error occurred');
                 setIsLoading(false);
             });
+    };
+
+    useEffect(() => {
+        fetchDashboardData();
     }, []);
 
     if (isLoading) {
@@ -32,12 +43,28 @@ export default function Dashboard() {
         );
     }
 
+    if (error) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[50vh] max-w-md mx-auto text-center px-4">
+                <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4">
+                    <AlertCircle className="w-8 h-8 text-red-500" />
+                </div>
+                <h3 className="text-lg font-bold text-text-primary mb-2">Failed to Load Dashboard</h3>
+                <p className="text-sm text-text-secondary mb-6">{error}</p>
+                <button onClick={fetchDashboardData} className="btn-primary flex items-center shadow-sm">
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Retry
+                </button>
+            </div>
+        );
+    }
+
     if (!stats) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[50vh] text-text-secondary">
                 <Activity className="w-12 h-12 mb-4 opacity-30 text-text-muted" />
-                <p className="text-sm font-medium">Unable to load dashboard statistics.</p>
-                <p className="text-xs mt-1 text-text-muted">Please check your connection or try again later.</p>
+                <p className="text-sm font-medium">No dashboard data available.</p>
+                <p className="text-xs mt-1 text-text-muted">New data will appear here once generated.</p>
             </div>
         );
     }

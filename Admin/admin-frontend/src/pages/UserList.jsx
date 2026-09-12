@@ -1,36 +1,42 @@
 import React, { useEffect, useState } from 'react';
 import { API_BASE_URL, getAuthHeaders } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { UserPlus, ShieldAlert, Mail, Lock, Shield, Users } from 'lucide-react';
+import { UserPlus, ShieldAlert, Mail, Lock, Shield, Users, AlertCircle, RefreshCw } from 'lucide-react';
 
 export default function UserList() {
     const { user: currentUser } = useAuth();
     const [users, setUsers] = useState([]);
     const [showForm, setShowForm] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
     
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [role, setRole] = useState('SALES');
 
-    useEffect(() => {
-        fetchUsers();
-    }, []);
-
-    const fetchUsers = () => {
+    const fetchUsers = React.useCallback(() => {
         setIsLoading(true);
+        setError(null);
         fetch(`${API_BASE_URL}/users`, { headers: getAuthHeaders() })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error('Failed to fetch users');
+                return res.json();
+            })
             .then(data => {
                 setUsers(data);
                 setIsLoading(false);
             })
             .catch(err => {
                 console.error("Error fetching users", err);
+                setError(err.message || 'An unexpected error occurred');
                 setIsLoading(false);
             });
-    };
+    }, []);
+
+    useEffect(() => {
+        fetchUsers();
+    }, [fetchUsers]);
 
     const handleCreate = async (e) => {
         e.preventDefault();
@@ -187,7 +193,23 @@ export default function UserList() {
                             </tr>
                         </thead>
                         <tbody className="bg-bg-card divide-y divide-border-subtle/40 rounded-b-[24px]">
-                            {isLoading ? (
+                            {error ? (
+                                <tr>
+                                    <td colSpan="5" className="px-6 py-20 text-center">
+                                        <div className="flex flex-col items-center justify-center space-y-4 max-w-sm mx-auto">
+                                            <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mb-1">
+                                                <AlertCircle className="w-6 h-6 text-red-500" />
+                                            </div>
+                                            <p className="text-[15px] font-bold text-text-primary">Failed to load users</p>
+                                            <p className="text-[13px] text-text-secondary leading-relaxed">{error}</p>
+                                            <button onClick={fetchUsers} className="btn-primary mt-2">
+                                                <RefreshCw className="w-4 h-4 mr-2" />
+                                                Retry
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : isLoading ? (
                                 <tr>
                                     <td colSpan="5" className="px-6 py-16 text-center">
                                         <div className="flex justify-center mb-4">
