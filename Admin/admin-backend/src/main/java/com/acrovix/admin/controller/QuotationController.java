@@ -29,10 +29,24 @@ public class QuotationController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
-    public ResponseEntity<Page<Quotation>> getAllQuotations(
+    public ResponseEntity<Page<java.util.Map<String, Object>>> getAllQuotations(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(quotationRepository.findAll(PageRequest.of(page, size, Sort.by("createdAt").descending())));
+        Page<Quotation> quotations = quotationRepository.findAll(PageRequest.of(page, size, Sort.by("createdAt").descending()));
+        
+        Page<java.util.Map<String, Object>> dtoPage = quotations.map(q -> {
+            java.util.Map<String, Object> map = new java.util.HashMap<>();
+            map.put("id", q.getId());
+            map.put("quotationNumber", q.getQuotationNumber());
+            map.put("clientName", q.getClientName());
+            map.put("clientCompany", q.getClientCompany());
+            map.put("grandTotal", q.getGrandTotal());
+            map.put("status", q.getStatus());
+            map.put("createdAt", q.getCreatedAt());
+            return map;
+        });
+        
+        return ResponseEntity.ok(dtoPage);
     }
 
     @PostMapping("/enquiry/{enquiryId}")

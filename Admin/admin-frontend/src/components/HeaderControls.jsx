@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FileText, Sun, Moon, Bell, Settings as SettingsIcon, ChevronRight, LogOut, File, Clock, Loader2, Check } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { fetchApi } from '../services/api';
@@ -9,6 +9,7 @@ export default function HeaderControls() {
     const { user, logout } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
+    const location = useLocation();
 
     const [activeDropdown, setActiveDropdown] = useState(null);
     const containerRef = useRef(null);
@@ -38,6 +39,10 @@ export default function HeaderControls() {
             }
         }
     };
+
+    useEffect(() => {
+        setActiveDropdown(null);
+    }, [location.pathname]);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -345,7 +350,10 @@ export default function HeaderControls() {
 
             {/* Settings Link */}
             <button 
-                onClick={() => navigate('/settings')}
+                onClick={() => {
+                    setActiveDropdown(null);
+                    navigate('/settings');
+                }}
                 className="hidden sm:flex w-10 h-10 rounded-full bg-bg-card border border-border-subtle items-center justify-center text-text-muted hover:text-text-primary hover:shadow-sm transition-all"
             >
                 <SettingsIcon className="w-4 h-4" />
