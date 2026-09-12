@@ -1,0 +1,41 @@
+name: Deploy Admin to Hostinger Prod
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'Admin/admin-frontend/**'
+      - '.github/workflows/deploy-admin.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: ./Admin/admin-frontend
+
+      - name: Build frontend
+        run: npm run build
+        working-directory: ./Admin/admin-frontend
+
+      - name: Publish hostinger-admin-prod
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./Admin/admin-frontend/dist
+          publish_branch: hostinger-admin-prod
+          force_orphan: true
