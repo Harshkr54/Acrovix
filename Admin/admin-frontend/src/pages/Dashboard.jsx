@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { API_BASE_URL, getAuthHeaders } from '../services/api';
-import { FileText, Inbox, Activity, CheckCircle, TrendingUp, Clock, ChevronRight, Filter, Plus, MoreHorizontal, MessageSquare, User, AlertCircle, RefreshCw } from 'lucide-react';
+import { FileText, Inbox, Activity, CheckCircle, TrendingUp, Clock, ChevronRight, Filter, Plus, MoreHorizontal, MessageSquare, User, AlertCircle, RefreshCw, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 export default function Dashboard() {
@@ -8,66 +8,65 @@ export default function Dashboard() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const navigate = useNavigate();
+    const abortControllerRef = useRef(null);
 
-    const fetchDashboardData = () => {
+    const fetchDashboardData = useCallback(() => {
         setIsLoading(true);
         setError(null);
-        fetch(`${API_BASE_URL}/dashboard/stats`, { headers: getAuthHeaders() })
-            .then(res => {
-                if (!res.ok) throw new Error('Failed to fetch dashboard data');
-                return res.json();
-            })
-            .then(data => {
-                setStats(data);
-                setIsLoading(false);
-            })
-            .catch(err => {
-                console.error("Error fetching stats", err);
-                setError(err.message || 'An unexpected error occurred');
-                setIsLoading(false);
-            });
-    };
+        
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+        
+        let isTimeout = false;
+        const timeoutId = setTimeout(() => {
+            isTimeout = true;
+            controller.abort();
+        }, 15000);
+
+        fetch(`${API_BASE_URL}/dashboard/stats`, { 
+            headers: getAuthHeaders(),
+            signal: controller.signal
+        })
+        .then(res => {
+            if (!res.ok) throw new Error('Failed to fetch dashboard data');
+            return res.json();
+        })
+        .then(data => {
+            setStats(data);
+            setIsLoading(false);
+        })
+        .catch(err => {
+            if (err.name === 'AbortError') {
+                if (isTimeout) {
+                    setError('Dashboard data is taking longer than expected.');
+                    setIsLoading(false);
+                }
+                // Silently ignore component unmounts
+                return;
+            }
+            console.error("Error fetching stats", err);
+            setError(err.message || 'An unexpected error occurred');
+            setIsLoading(false);
+        })
+        .finally(() => {
+            clearTimeout(timeoutId);
+        });
+    }, []);
 
     useEffect(() => {
         fetchDashboardData();
-    }, []);
+        return () => {
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+        };
+    }, [fetchDashboardData]);
 
-    if (isLoading) {
-        return (
-            <div className="flex h-full items-center justify-center min-h-[50vh]">
-                <div className="flex flex-col items-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#14B8A6] mb-4"></div>
-                    <p className="text-sm text-text-muted">Loading dashboard data...</p>
-                </div>
-            </div>
-        );
-    }
 
-    if (error) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[50vh] max-w-md mx-auto text-center px-4">
-                <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4">
-                    <AlertCircle className="w-8 h-8 text-red-500" />
-                </div>
-                <h3 className="text-lg font-bold text-text-primary mb-2">Failed to Load Dashboard</h3>
-                <p className="text-sm text-text-secondary mb-6">{error}</p>
-                <button onClick={fetchDashboardData} className="btn-primary flex items-center shadow-sm">
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Retry
-                </button>
-            </div>
-        );
-    }
-
-    if (!stats) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[50vh] text-text-secondary">
-                <Activity className="w-12 h-12 mb-4 opacity-30 text-text-muted" />
-                <p className="text-sm font-medium">No dashboard data available.</p>
-                <p className="text-xs mt-1 text-text-muted">New data will appear here once generated.</p>
-            </div>
-        );
-    }
 
     const normalizeStatus = (rawStatus) => {
         return rawStatus ? String(rawStatus).toUpperCase() : 'UNKNOWN';
@@ -105,8 +104,22 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            {/* KPI Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+            {error ? (
+                <div className="flex flex-col items-center justify-center min-h-[300px] bg-bg-card rounded-[24px] border border-border-subtle text-center px-4">
+                    <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4">
+                        <AlertCircle className="w-8 h-8 text-red-500" />
+                    </div>
+                    <h3 className="text-lg font-bold text-text-primary mb-2">Failed to Load Dashboard</h3>
+                    <p className="text-sm text-text-secondary mb-6">{error}</p>
+                    <button onClick={fetchDashboardData} className="btn-primary flex items-center shadow-sm">
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Retry
+                    </button>
+                </div>
+            ) : (
+                <>
+                    {/* KPI Cards Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
                 
                 {/* Total Enquiries KPI */}
                 <div className="card p-6 flex flex-col justify-between">
@@ -117,7 +130,9 @@ export default function Dashboard() {
                         </div>
                     </div>
                     <div>
-                        <p className="text-[32px] font-bold text-text-primary tracking-tight">{stats.totalEnquiries ?? '—'}</p>
+                        <div className="text-[32px] font-bold text-text-primary tracking-tight h-[38px] flex items-center">
+                            {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-[#4F46E5] ml-1" /> : (stats?.totalEnquiries ?? '—')}
+                        </div>
                         <div className="flex items-center mt-1 text-[11px] font-medium text-text-muted">
                             <span>No comparison data</span>
                         </div>
@@ -133,7 +148,9 @@ export default function Dashboard() {
                         </div>
                     </div>
                     <div>
-                        <p className="text-[32px] font-bold text-text-primary tracking-tight">{stats.newEnquiries ?? '—'}</p>
+                        <div className="text-[32px] font-bold text-text-primary tracking-tight h-[38px] flex items-center">
+                            {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-[#0891B2] ml-1" /> : (stats?.newEnquiries ?? '—')}
+                        </div>
                         <div className="flex items-center mt-1 text-[11px] font-medium text-text-muted">
                             <span>No comparison data</span>
                         </div>
@@ -149,7 +166,9 @@ export default function Dashboard() {
                         </div>
                     </div>
                     <div>
-                        <p className="text-[32px] font-bold text-text-primary tracking-tight">{stats.totalQuotations ?? '—'}</p>
+                        <div className="text-[32px] font-bold text-text-primary tracking-tight h-[38px] flex items-center">
+                            {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-[#7C3AED] ml-1" /> : (stats?.totalQuotations ?? '—')}
+                        </div>
                         <div className="flex items-center mt-1 text-[11px] font-medium text-text-muted">
                             <span>No comparison data</span>
                         </div>
@@ -165,7 +184,9 @@ export default function Dashboard() {
                         </div>
                     </div>
                     <div>
-                        <p className="text-[32px] font-bold text-text-primary tracking-tight">{stats.acceptedQuotations ?? '—'}</p>
+                        <div className="text-[32px] font-bold text-text-primary tracking-tight h-[38px] flex items-center">
+                            {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-[#059669] ml-1" /> : (stats?.acceptedQuotations ?? '—')}
+                        </div>
                         <div className="flex items-center mt-1 text-[11px] font-medium text-text-muted">
                             <span>No comparison data</span>
                         </div>
@@ -221,7 +242,11 @@ export default function Dashboard() {
                             </Link>
                         </div>
                         <div className="flex-1 px-6 pb-6 overflow-y-auto max-h-[300px]">
-                            {stats.recentActivities && stats.recentActivities.length > 0 ? (
+                            {isLoading ? (
+                                <div className="flex justify-center items-center py-12">
+                                    <Loader2 className="w-6 h-6 animate-spin text-[#14B8A6]" />
+                                </div>
+                            ) : stats?.recentActivities && stats.recentActivities.length > 0 ? (
                                 <div className="relative pl-3 space-y-6 before:absolute before:inset-y-0 before:left-[11px] before:w-[2px] before:bg-border-subtle/50">
                                     {stats.recentActivities.map((activity) => {
                                         // Generate visual properties based on entity type for the exact reference match
@@ -331,7 +356,9 @@ export default function Dashboard() {
                         </div>
                     )}
                 </div>
-            </div>
+        </div>
+            </>
+            )}
             
         </div>
     );
