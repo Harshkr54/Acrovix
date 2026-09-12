@@ -7,6 +7,7 @@ on:
     paths:
       - 'Admin/admin-frontend/**'
       - '.github/workflows/deploy-admin.yml'
+      - '.ftpignore'
 
 jobs:
   build-and-deploy:
