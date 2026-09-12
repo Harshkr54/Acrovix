@@ -11,6 +11,7 @@ export default function QuotationList() {
     const [currentPage, setCurrentPage] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
     const [totalElements, setTotalElements] = useState(0);
+    const [downloadingPdfId, setDownloadingPdfId] = useState(null);
     const itemsPerPage = 10;
 
     useEffect(() => {
@@ -38,6 +39,46 @@ export default function QuotationList() {
                 setError(err.message || 'An error occurred while loading quotations.');
                 setIsLoading(false);
             });
+    };
+
+    const handleViewPdf = async (id) => {
+        if (downloadingPdfId) return;
+        setDownloadingPdfId(id);
+        
+        try {
+            const response = await fetch(`${API_BASE_URL}/quotations/${id}/pdf`, {
+                method: 'GET',
+                headers: getAuthHeaders()
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    throw new Error("Unauthorized. Please log in again.");
+                } else if (response.status === 403) {
+                    throw new Error("You do not have permission to view this PDF.");
+                } else if (response.status === 404) {
+                    throw new Error("PDF not found.");
+                }
+                throw new Error("Failed to load PDF.");
+            }
+
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            
+            // Open in new tab
+            window.open(url, '_blank');
+            
+            // Clean up the URL object after a reasonable time for the new tab to load it
+            setTimeout(() => {
+                URL.revokeObjectURL(url);
+            }, 60000);
+            
+        } catch (err) {
+            console.error("PDF Fetch Error:", err);
+            alert(err.message || "Failed to open PDF.");
+        } finally {
+            setDownloadingPdfId(null);
+        }
     };
 
     const getStatusBadge = (status) => {
@@ -160,14 +201,17 @@ export default function QuotationList() {
                                                     Edit
                                                 </Link>
                                             ) : (
-                                                <a
-                                                    href={`${API_BASE_URL}/quotations/${q.id}/pdf`}
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                    className="text-blue-400 hover:text-blue-300 font-medium text-xs transition-colors"
+                                                <button
+                                                    onClick={() => handleViewPdf(q.id)}
+                                                    disabled={downloadingPdfId === q.id}
+                                                    className="text-blue-400 hover:text-blue-300 font-medium text-xs transition-colors disabled:opacity-50 flex items-center"
                                                 >
-                                                    View PDF
-                                                </a>
+                                                    {downloadingPdfId === q.id ? (
+                                                        <><span className="animate-spin w-3 h-3 border-b-2 border-blue-400 rounded-full mr-1.5"></span> Loading...</>
+                                                    ) : (
+                                                        'View PDF'
+                                                    )}
+                                                </button>
                                             )}
                                         </div>
                                     </td>
