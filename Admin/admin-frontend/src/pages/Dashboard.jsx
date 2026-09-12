@@ -300,7 +300,11 @@ export default function Dashboard() {
                     </Link>
                 </div>
                 <div className="overflow-x-auto">
-                    {stats.recentEnquiries && stats.recentEnquiries.length > 0 ? (
+                    {isLoading ? (
+                        <div className="flex justify-center items-center py-12 bg-bg-card rounded-b-[24px]">
+                            <Loader2 className="w-6 h-6 animate-spin text-[#4F46E5]" />
+                        </div>
+                    ) : stats?.recentEnquiries && stats.recentEnquiries.length > 0 ? (
                         <table className="min-w-full divide-y divide-border-subtle">
                             <thead>
                                 <tr>
