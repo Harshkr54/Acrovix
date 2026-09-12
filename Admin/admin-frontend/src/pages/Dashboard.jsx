@@ -51,7 +51,12 @@ export default function Dashboard() {
         1
     );
 
-    const getStatusStyle = (status) => {
+    const normalizeStatus = (rawStatus) => {
+        return rawStatus ? String(rawStatus).toUpperCase() : 'UNKNOWN';
+    };
+
+    const getStatusStyle = (rawStatus) => {
+        const status = normalizeStatus(rawStatus);
         switch(status) {
             case 'NEW': return 'text-[#2563EB]';
             case 'CONTACTED': return 'text-[#4F46E5]';
@@ -333,7 +338,7 @@ export default function Dashboard() {
                                         <td className="px-6 py-3.5 whitespace-nowrap">
                                             <span className={`inline-flex items-center text-[10px] font-bold uppercase tracking-wider ${getStatusStyle(enq.status)}`}>
                                                 <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5"></span>
-                                                {enq.status}
+                                                {normalizeStatus(enq.status)}
                                             </span>
                                         </td>
                                         <td className="px-6 py-3.5 whitespace-nowrap text-[12px] text-text-muted font-medium">
