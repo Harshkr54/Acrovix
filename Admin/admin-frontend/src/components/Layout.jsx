@@ -3,6 +3,7 @@ import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { LayoutDashboard, MessageSquare, LogOut, FileText, Shield, Menu, X, ChevronLeft, ChevronRight, Sun, Moon, Search, Bell, Settings } from 'lucide-react';
+import HeaderControls from './HeaderControls';
 
 export default function Layout() {
     const { user, logout } = useAuth();
@@ -192,39 +193,7 @@ export default function Layout() {
                         </div>
                     </div>
                     
-                    <div className="flex items-center space-x-3 sm:space-x-4 ml-4">
-                        <button className="w-10 h-10 rounded-full bg-bg-card border border-border-subtle flex items-center justify-center text-text-muted hover:text-text-primary hover:shadow-sm transition-all relative">
-                            <FileText className="w-4 h-4" />
-                        </button>
-                        <button
-                            onClick={toggleTheme}
-                            className="w-10 h-10 rounded-full bg-bg-card border border-border-subtle flex items-center justify-center text-text-muted hover:text-text-primary hover:shadow-sm transition-all relative"
-                            aria-label="Toggle Theme"
-                            title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-                        >
-                            {theme === 'dark' ? (
-                                <Sun className="w-4 h-4" />
-                            ) : (
-                                <Moon className="w-4 h-4" />
-                            )}
-                        </button>
-                        <button className="w-10 h-10 rounded-full bg-bg-card border border-border-subtle flex items-center justify-center text-text-muted hover:text-text-primary hover:shadow-sm transition-all relative">
-                            <Bell className="w-4 h-4" />
-                            <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-[#ef4444] rounded-full border border-white"></span>
-                        </button>
-                        <button className="hidden sm:flex w-10 h-10 rounded-full bg-bg-card border border-border-subtle items-center justify-center text-text-muted hover:text-text-primary hover:shadow-sm transition-all">
-                            <Settings className="w-4 h-4" />
-                        </button>
-                        
-                        <div className="hidden sm:flex items-center ml-2 pl-4 border-l border-border-subtle">
-                            <div className="flex items-center space-x-2 bg-bg-card px-3 py-1.5 rounded-full border border-border-subtle shadow-sm cursor-pointer hover:bg-bg-hover transition-colors">
-                                <div className="w-7 h-7 rounded-full bg-[#EEF2FF] flex items-center justify-center text-[#4F46E5] font-bold text-xs">
-                                    {user?.role === 'SUPER_ADMIN' ? 'SA' : user?.name?.charAt(0)?.toUpperCase()}
-                                </div>
-                                <ChevronRight className="w-4 h-4 text-text-muted rotate-90" />
-                            </div>
-                        </div>
-                    </div>
+                    <HeaderControls />
                 </header>
 
                 {/* Page content */}

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { API_BASE_URL, getAuthHeaders } from '../services/api';
+import { fetchApi } from '../services/api';
 import { FileText, Plus, AlertCircle, ChevronLeft, ChevronRight, File } from 'lucide-react';
 
 export default function QuotationList() {
@@ -18,13 +18,7 @@ export default function QuotationList() {
     const fetchQuotations = React.useCallback(() => {
         setIsLoading(true);
         setError(null);
-        fetch(`${API_BASE_URL}/quotations?page=${currentPage}&size=${itemsPerPage}`, { headers: getAuthHeaders() })
-            .then(async (res) => {
-                if (!res.ok) {
-                    throw new Error('Failed to fetch quotations');
-                }
-                return res.json();
-            })
+        fetchApi(`/quotations?page=${currentPage}&size=${itemsPerPage}`)
             .then(data => {
                 setQuotations(data.content);
                 setTotalPages(data.totalPages);
@@ -47,22 +41,8 @@ export default function QuotationList() {
         setDownloadingPdfId(id);
         
         try {
-            const response = await fetch(`${API_BASE_URL}/quotations/${id}/pdf`, {
-                method: 'GET',
-                headers: getAuthHeaders()
-            });
-
-            if (!response.ok) {
-                if (response.status === 401) {
-                    throw new Error("Unauthorized. Please log in again.");
-                } else if (response.status === 403) {
-                    throw new Error("You do not have permission to view this PDF.");
-                } else if (response.status === 404) {
-                    throw new Error("PDF not found.");
-                }
-                throw new Error("Failed to load PDF.");
-            }
-
+            const response = await fetchApi(`/quotations/${id}/pdf`);
+            
             const blob = await response.blob();
             const url = URL.createObjectURL(blob);
             
@@ -201,7 +181,7 @@ export default function QuotationList() {
                                         <div className="flex items-center justify-center space-x-3">
                                             {q.status === 'DRAFT' ? (
                                                 <Link
-                                                    to={`/quotations/new/${q.enquiry?.id}`}
+                                                    to={`/quotations/edit/${q.id}`}
                                                     className="inline-flex items-center text-[#4F46E5] hover:text-[#4338CA] font-semibold text-[12px] transition-colors"
                                                 >
                                                     Edit draft

@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.acrovix.admin.exception.ResourceNotFoundException;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -26,13 +28,14 @@ public class QuotationService {
     private final AdminUserRepository userRepository;
     private final SequenceGeneratorService sequenceGenerator;
     private final AdminActivityRepository activityRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public Quotation createDraftQuotation(Long enquiryId, Long adminId) {
         AdminEnquiry enquiry = enquiryRepository.findById(enquiryId)
-                .orElseThrow(() -> new RuntimeException("Enquiry not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Enquiry not found"));
         AdminUser admin = userRepository.findById(adminId)
-                .orElseThrow(() -> new RuntimeException("Admin not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Admin not found"));
 
         Quotation quotation = Quotation.builder()
                 .quotationNumber(sequenceGenerator.generateNextQuotationNumber())
@@ -58,10 +61,10 @@ public class QuotationService {
     @Transactional
     public Quotation saveQuotationDraft(Long quotationId, QuotationRequest request, Long adminId) {
         Quotation quotation = quotationRepository.findById(quotationId)
-                .orElseThrow(() -> new RuntimeException("Quotation not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Quotation not found"));
 
         if (!"DRAFT".equals(quotation.getStatus())) {
-            throw new RuntimeException("Only DRAFT quotations can be modified");
+            throw new IllegalArgumentException("Only DRAFT quotations can be modified");
         }
 
         quotation.setClientName(request.getClientName());
@@ -123,7 +126,7 @@ public class QuotationService {
     @Transactional
     public void markAsSent(Long quotationId, Long adminId) {
         Quotation quotation = quotationRepository.findById(quotationId)
-                .orElseThrow(() -> new RuntimeException("Quotation not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Quotation not found"));
         
         quotation.setStatus("SENT");
         quotationRepository.save(quotation);
@@ -133,6 +136,11 @@ public class QuotationService {
             enquiry.setStatus("QUOTED");
             enquiryRepository.save(enquiry);
             logActivity(adminId, "Enquiry marked as QUOTED due to SENT quotation", "AdminEnquiry", enquiry.getId());
+            
+            AdminUser assignee = enquiry.getAssignedTo();
+            if (assignee != null && !assignee.getId().equals(adminId)) {
+                notificationService.createQuotationSentNotification(assignee, quotationId, quotation.getQuotationNumber());
+            }
         }
         
         logActivity(adminId, "Sent Quotation: " + quotation.getQuotationNumber(), "Quotation", quotation.getId());

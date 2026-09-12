@@ -317,10 +317,10 @@ export default function Dashboard() {
                                 {stats.recentEnquiries.map((enq) => (
                                     <tr key={enq.id} className="hover:bg-bg-hover transition-colors">
                                         <td className="px-6 py-3.5 whitespace-nowrap text-[13px] font-bold text-text-primary">
-                                            {enq.enquiryNumber}
+                                            {enq.referenceId}
                                         </td>
                                         <td className="px-6 py-3.5 whitespace-nowrap text-[13px] font-medium text-text-secondary">
-                                            {enq.clientName}
+                                            {enq.fullName}
                                         </td>
                                         <td className="px-6 py-3.5 whitespace-nowrap text-[13px] text-text-secondary">
                                             {enq.companyName || '—'}

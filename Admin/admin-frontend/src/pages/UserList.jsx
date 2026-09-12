@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { API_BASE_URL, getAuthHeaders } from '../services/api';
+import { fetchApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { UserPlus, ShieldAlert, Mail, Lock, Shield, Users, AlertCircle, RefreshCw } from 'lucide-react';
 
@@ -18,18 +18,14 @@ export default function UserList() {
     const fetchUsers = React.useCallback(() => {
         setIsLoading(true);
         setError(null);
-        fetch(`${API_BASE_URL}/users`, { headers: getAuthHeaders() })
-            .then(res => {
-                if (!res.ok) throw new Error('Failed to fetch users');
-                return res.json();
-            })
+        fetchApi('/users')
             .then(data => {
                 setUsers(data);
                 setIsLoading(false);
             })
             .catch(err => {
                 console.error("Error fetching users", err);
-                setError(err.message || 'An unexpected error occurred');
+                setError(err.message);
                 setIsLoading(false);
             });
     }, []);
@@ -41,50 +37,41 @@ export default function UserList() {
     const handleCreate = async (e) => {
         e.preventDefault();
         try {
-            const res = await fetch(`${API_BASE_URL}/users`, {
+            await fetchApi('/users', {
                 method: 'POST',
-                headers: getAuthHeaders(),
                 body: JSON.stringify({ name, email, password, role })
             });
-            if (res.ok) {
-                fetchUsers();
-                setShowForm(false);
-                setName(''); setEmail(''); setPassword(''); setRole('SALES');
-            } else {
-                alert("Failed to create user. Email might already exist.");
-            }
+            fetchUsers();
+            setShowForm(false);
+            setName(''); setEmail(''); setPassword(''); setRole('SALES');
         } catch (error) {
-            alert("Error creating user");
+            alert(error.message || "Failed to create user.");
         }
     };
 
     const toggleStatus = async (id, currentStatus) => {
         if (!window.confirm(`Are you sure you want to ${currentStatus ? 'disable' : 'enable'} this user?`)) return;
         try {
-            const res = await fetch(`${API_BASE_URL}/users/${id}/status`, {
+            await fetchApi(`/users/${id}/status`, {
                 method: 'PATCH',
-                headers: getAuthHeaders(),
                 body: JSON.stringify({ enabled: !currentStatus })
             });
-            if (res.ok) fetchUsers();
-            else alert("Failed to update status");
+            fetchUsers();
         } catch (error) {
-            alert("Error updating status");
+            alert(error.message || "Failed to update status");
         }
     };
 
     const changeRole = async (id, newRole) => {
         if (!window.confirm(`Change role to ${newRole}?`)) return;
         try {
-            const res = await fetch(`${API_BASE_URL}/users/${id}/role`, {
+            await fetchApi(`/users/${id}/role`, {
                 method: 'PATCH',
-                headers: getAuthHeaders(),
                 body: JSON.stringify({ role: newRole })
             });
-            if (res.ok) fetchUsers();
-            else alert("Failed to update role");
+            fetchUsers();
         } catch (error) {
-            alert("Error updating role");
+            alert(error.message || "Failed to update role");
         }
     };
 

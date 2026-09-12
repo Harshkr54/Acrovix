@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { API_BASE_URL, getAuthHeaders } from '../services/api';
+import { fetchApi } from '../services/api';
 import { Link } from 'react-router-dom';
 import { Search, Filter, Calendar, ChevronLeft, ChevronRight, Plus, Inbox, MoreHorizontal, AlertCircle, RefreshCw } from 'lucide-react';
 
@@ -21,7 +21,7 @@ export default function EnquiryList() {
 
     const fetchEnquiries = useCallback(() => {
         setIsLoading(true);
-        let url = `${API_BASE_URL}/enquiries?page=${currentPage}&size=${itemsPerPage}`;
+        let url = `/enquiries?page=${currentPage}&size=${itemsPerPage}`;
         if (searchTerm) url += `&search=${encodeURIComponent(searchTerm)}`;
         if (statusFilter) url += `&status=${encodeURIComponent(statusFilter)}`;
         if (industryFilter) url += `&industry=${encodeURIComponent(industryFilter)}`;
@@ -29,11 +29,7 @@ export default function EnquiryList() {
         if (fromDate) url += `&fromDate=${encodeURIComponent(fromDate + 'T00:00:00')}`;
         if (toDate) url += `&toDate=${encodeURIComponent(toDate + 'T23:59:59')}`;
 
-        fetch(url, { headers: getAuthHeaders() })
-            .then(res => {
-                if (!res.ok) throw new Error('Failed to fetch enquiries');
-                return res.json();
-            })
+        fetchApi(url)
             .then(data => {
                 setEnquiries(data.content);
                 setTotalPages(data.totalPages);
@@ -43,7 +39,7 @@ export default function EnquiryList() {
             })
             .catch(err => {
                 console.error("Error fetching enquiries", err);
-                setError(err.message || 'An unexpected error occurred');
+                setError(err.message);
                 setIsLoading(false);
             });
     }, [currentPage, searchTerm, statusFilter, industryFilter, serviceFilter, fromDate, toDate]);
@@ -53,12 +49,17 @@ export default function EnquiryList() {
     }, [fetchEnquiries]);
 
     const updateStatus = async (id, status) => {
-        await fetch(`${API_BASE_URL}/enquiries/${id}/status`, {
-            method: 'PATCH',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({ status })
-        });
-        fetchEnquiries();
+        try {
+            await fetchApi(`/enquiries/${id}/status`, {
+                method: 'PATCH',
+                body: JSON.stringify({ status })
+            });
+            window.dispatchEvent(new Event('notification-update'));
+            fetchEnquiries();
+        } catch (error) {
+            console.error(error);
+            alert(error.message || "Failed to update status");
+        }
     };
 
     const normalizeStatus = (rawStatus) => {

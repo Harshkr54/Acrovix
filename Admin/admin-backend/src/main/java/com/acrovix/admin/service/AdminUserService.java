@@ -1,15 +1,22 @@
 package com.acrovix.admin.service;
 
 import com.acrovix.admin.dto.AdminUserRequest;
+import com.acrovix.admin.dto.AdminUserResponse;
+import com.acrovix.admin.dto.ChangePasswordRequest;
+import com.acrovix.admin.dto.UpdateProfileRequest;
 import com.acrovix.admin.entity.AdminActivity;
 import com.acrovix.admin.entity.AdminUser;
 import com.acrovix.admin.entity.Role;
 import com.acrovix.admin.repository.AdminActivityRepository;
 import com.acrovix.admin.repository.AdminUserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.acrovix.admin.exception.ResourceConflictException;
+import com.acrovix.admin.exception.ResourceNotFoundException;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -22,14 +29,26 @@ public class AdminUserService {
     private final AdminActivityRepository activityRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public List<AdminUser> getAllUsers() {
-        return userRepository.findAll().stream().peek(user -> user.setPassword(null)).collect(Collectors.toList());
+    private AdminUserResponse mapToResponse(AdminUser user) {
+        return AdminUserResponse.builder()
+                .id(user.getId())
+                .name(user.getName())
+                .email(user.getEmail())
+                .role(user.getRole().name())
+                .enabled(user.isEnabled())
+                .createdAt(user.getCreatedAt())
+                .lastLogin(user.getLastLogin())
+                .build();
+    }
+
+    public List<AdminUserResponse> getAllUsers() {
+        return userRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
     }
 
     @Transactional
-    public AdminUser createUser(AdminUserRequest request, Long adminId) {
+    public AdminUserResponse createUser(AdminUserRequest request, Long adminId) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("Email already exists");
+            throw new ResourceConflictException("Email already exists");
         }
 
         AdminUser user = AdminUser.builder()
@@ -44,22 +63,89 @@ public class AdminUserService {
         
         AdminActivity activity = AdminActivity.builder()
                 .adminUserId(adminId)
-                .action("Created Admin User: " + saved.getEmail())
+                .action("Created admin user: " + saved.getEmail())
                 .entityType("AdminUser")
                 .entityId(saved.getId())
                 .build();
         activityRepository.save(activity);
         
-        saved.setPassword(null);
-        return saved;
+        return mapToResponse(saved);
+    }
+
+    @Transactional
+    public AdminUserResponse updateUser(Long userId, UpdateProfileRequest request, Long adminId) {
+        AdminUser user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        if (!user.getEmail().equals(request.getEmail()) && userRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new ResourceConflictException("Email already exists");
+        }
+        user.setName(request.getName());
+        user.setEmail(request.getEmail());
+        userRepository.save(user);
+
+        AdminActivity activity = AdminActivity.builder()
+                .adminUserId(adminId)
+                .action("Updated admin user: " + user.getEmail())
+                .entityType("AdminUser")
+                .entityId(user.getId())
+                .build();
+        activityRepository.save(activity);
+
+        return mapToResponse(user);
+    }
+
+    public AdminUserResponse getProfile(Long adminId) {
+        AdminUser user = userRepository.findById(adminId).orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        return mapToResponse(user);
+    }
+
+    @Transactional
+    public AdminUserResponse updateProfile(Long adminId, UpdateProfileRequest request) {
+        AdminUser user = userRepository.findById(adminId).orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        if (!user.getEmail().equals(request.getEmail()) && userRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new ResourceConflictException("Email already exists");
+        }
+        user.setName(request.getName());
+        user.setEmail(request.getEmail());
+        userRepository.save(user);
+
+        AdminActivity activity = AdminActivity.builder()
+                .adminUserId(adminId)
+                .action("Updated own profile")
+                .entityType("AdminUser")
+                .entityId(user.getId())
+                .build();
+        activityRepository.save(activity);
+
+        return mapToResponse(user);
+    }
+
+    @Transactional
+    public void changePassword(Long adminId, ChangePasswordRequest request) {
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new IllegalArgumentException("New passwords do not match");
+        }
+        AdminUser user = userRepository.findById(adminId).orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new BadCredentialsException("Incorrect current password");
+        }
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+
+        AdminActivity activity = AdminActivity.builder()
+                .adminUserId(adminId)
+                .action("Changed own password")
+                .entityType("AdminUser")
+                .entityId(user.getId())
+                .build();
+        activityRepository.save(activity);
     }
 
     @Transactional
     public void updateUserStatus(Long userId, boolean enabled, Long adminId) {
         if (userId.equals(adminId)) {
-            throw new RuntimeException("Cannot disable yourself");
+            throw new IllegalArgumentException("Cannot disable yourself");
         }
-        AdminUser user = userRepository.findById(userId).orElseThrow();
+        AdminUser user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User not found"));
         user.setEnabled(enabled);
         userRepository.save(user);
 
@@ -75,9 +161,9 @@ public class AdminUserService {
     @Transactional
     public void updateUserRole(Long userId, String role, Long adminId) {
         if (userId.equals(adminId)) {
-            throw new RuntimeException("Cannot change your own role");
+            throw new IllegalArgumentException("Cannot change your own role");
         }
-        AdminUser user = userRepository.findById(userId).orElseThrow();
+        AdminUser user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User not found"));
         user.setRole(Role.valueOf(role));
         userRepository.save(user);
 

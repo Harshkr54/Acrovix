@@ -1,43 +1,85 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { API_BASE_URL, getAuthHeaders } from '../services/api';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { fetchApi } from '../services/api';
 import { Plus, Trash2, Send, Save, Wand2, Copy, ArrowUp, ArrowDown, Calculator, User, Hash, AlertCircle, RefreshCw } from 'lucide-react';
 
 export default function QuotationBuilder() {
-    const { enquiryId } = useParams();
+    const { enquiryId, quotationId } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
+    
+    // Determine mode based on URL
+    const isEditMode = location.pathname.includes('/edit/');
     
     const [enquiry, setEnquiry] = useState(null);
     const [roughText, setRoughText] = useState('');
     const [isParsing, setIsParsing] = useState(false);
-    const [items, setItems] = useState(() => [
-        { id: Date.now(), description: '', category: '', quantity: 1, unit: 'unit', unitPrice: 0, discountPercent: 0, taxPercent: 18 }
-    ]);
-    const [quotationId, setQuotationId] = useState(null);
+    const [items, setItems] = useState([]);
+    const [currentQuotationId, setCurrentQuotationId] = useState(null);
+    const [quotationNumber, setQuotationNumber] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState(null);
+    const [isInitializing, setIsInitializing] = useState(true);
 
-    const initializeBuilder = React.useCallback(() => {
+    const initializeBuilder = React.useCallback(async () => {
+        setIsInitializing(true);
         setError(null);
-        fetch(`${API_BASE_URL}/enquiries/${enquiryId}`, { headers: getAuthHeaders() })
-            .then(res => {
-                if (!res.ok) throw new Error("Failed to load enquiry data");
-                return res.json();
-            })
-            .then(data => {
-                setEnquiry(data);
-                return fetch(`${API_BASE_URL}/quotations/enquiry/${enquiryId}`, {
-                    method: 'POST',
-                    headers: getAuthHeaders()
+        
+        try {
+            if (isEditMode && quotationId) {
+                // EDIT MODE: Load existing quotation
+                const q = await fetchApi(`/quotations/${quotationId}`);
+                setCurrentQuotationId(q.id);
+                setQuotationNumber(q.quotationNumber);
+                
+                // Fallback enquiry data to support standalone quotations
+                setEnquiry({
+                    referenceId: q.enquiry?.referenceId || 'Standalone',
+                    fullName: q.clientName,
+                    companyName: q.clientCompany,
+                    businessEmail: q.clientEmail,
+                    phoneNumber: q.clientPhone || '—',
+                    projectRequirement: q.enquiry?.projectRequirement || '—'
                 });
-            })
-            .then(res => res.json())
-            .then(q => setQuotationId(q.id))
-            .catch(err => {
-                console.error("Initialization Error", err);
-                setError(err.message || "Failed to initialize workspace.");
-            });
-    }, [enquiryId]);
+                
+                if (q.items && q.items.length > 0) {
+                    setItems(q.items.map(item => ({
+                        id: item.id || Date.now() + Math.random(),
+                        description: item.description || '',
+                        category: item.category || '',
+                        quantity: item.quantity || 1,
+                        unit: item.unit || 'unit',
+                        unitPrice: item.unitPrice || 0,
+                        discountPercent: item.discountPercent || 0,
+                        taxPercent: item.taxPercent || 18,
+                        sourceText: ''
+                    })));
+                } else {
+                    setItems([{ id: Date.now(), description: '', category: '', quantity: 1, unit: 'unit', unitPrice: 0, discountPercent: 0, taxPercent: 18 }]);
+                }
+
+            } else if (!isEditMode && enquiryId) {
+                // NEW MODE: Create draft from enquiry
+                const enqData = await fetchApi(`/enquiries/${enquiryId}`);
+                setEnquiry(enqData);
+                
+                // Create the draft immediately on mount
+                const q = await fetchApi(`/quotations/enquiry/${enquiryId}`, { method: 'POST' });
+                setCurrentQuotationId(q.id);
+                setQuotationNumber(q.quotationNumber);
+                
+                // Navigate to edit route so we don't recreate it on refresh
+                navigate(`/quotations/edit/${q.id}`, { replace: true });
+            } else {
+                throw new Error("Invalid routing parameters.");
+            }
+        } catch (err) {
+            console.error("Initialization Error", err);
+            setError(err.message || "Failed to initialize workspace.");
+        } finally {
+            setIsInitializing(false);
+        }
+    }, [enquiryId, quotationId, isEditMode, navigate]);
 
     useEffect(() => {
         initializeBuilder();
@@ -47,12 +89,10 @@ export default function QuotationBuilder() {
         if (!roughText.trim()) return;
         setIsParsing(true);
         try {
-            const res = await fetch(`${API_BASE_URL}/gemini/extract`, {
+            const data = await fetchApi('/gemini/extract', {
                 method: 'POST',
-                headers: getAuthHeaders(),
                 body: JSON.stringify({ roughText })
             });
-            const data = await res.json();
             
             // Format imported data and append to grid
             const newItems = data.map(item => ({
@@ -144,7 +184,7 @@ export default function QuotationBuilder() {
     const totals = calculateTotals();
 
     const handleSaveDraft = async () => {
-        if (!quotationId) return;
+        if (!currentQuotationId) return;
         setIsSaving(true);
         
         const payload = {
@@ -165,9 +205,8 @@ export default function QuotationBuilder() {
         };
 
         try {
-            await fetch(`${API_BASE_URL}/quotations/${quotationId}`, {
+            await fetchApi(`/quotations/${currentQuotationId}`, {
                 method: 'PUT',
-                headers: getAuthHeaders(),
                 body: JSON.stringify(payload)
             });
             setTimeout(() => {
@@ -175,7 +214,7 @@ export default function QuotationBuilder() {
             }, 500); // brief delay for UX
         } catch (error) {
             console.error(error);
-            alert("Failed to save draft");
+            alert(error.message || "Failed to save draft");
             setIsSaving(false);
         }
     };
@@ -186,16 +225,12 @@ export default function QuotationBuilder() {
         await handleSaveDraft(); // Ensure latest is saved
         
         try {
-            const res = await fetch(`${API_BASE_URL}/quotations/${quotationId}/send`, {
-                method: 'POST',
-                headers: getAuthHeaders()
+            await fetchApi(`/quotations/${currentQuotationId}/send`, {
+                method: 'POST'
             });
-            if (res.ok) {
-                alert("Quotation sent successfully!");
-                navigate('/enquiries');
-            } else {
-                throw new Error("Failed to send");
-            }
+            window.dispatchEvent(new Event('notification-update'));
+            alert("Quotation sent successfully!");
+            navigate('/enquiries');
         } catch (error) {
             console.error(error);
             alert(error.message || "Failed to send quotation.");
@@ -218,7 +253,7 @@ export default function QuotationBuilder() {
         );
     }
 
-    if (!enquiry) {
+    if (isInitializing || !enquiry) {
         return (
             <div className="flex h-full items-center justify-center min-h-[50vh]">
                 <div className="flex flex-col items-center">
@@ -236,7 +271,9 @@ export default function QuotationBuilder() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
                 <div>
                     <div className="flex items-center space-x-3 mb-1">
-                        <h1 className="text-[28px] font-bold text-text-primary tracking-tight leading-tight">Create Quotation</h1>
+                        <h1 className="text-[28px] font-bold text-text-primary tracking-tight leading-tight">
+                            {quotationNumber || 'Create Quotation'}
+                        </h1>
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-bg-muted text-text-secondary uppercase tracking-wider">
                             DRAFT
                         </span>

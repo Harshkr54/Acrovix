@@ -8,6 +8,7 @@ import EnquiryList from './pages/EnquiryList';
 import QuotationBuilder from './pages/QuotationBuilder';
 import QuotationList from './pages/QuotationList';
 import UserList from './pages/UserList';
+import Settings from './pages/Settings';
 
 const ProtectedRoute = ({ children }) => {
     const { user } = useAuth();
@@ -27,7 +28,9 @@ function App() {
                 <Route path="enquiries" element={<EnquiryList />} />
                 <Route path="quotations" element={<QuotationList />} />
                 <Route path="quotations/new/:enquiryId" element={<QuotationBuilder />} />
+                <Route path="quotations/edit/:quotationId" element={<QuotationBuilder />} />
                 <Route path="users" element={<UserList />} />
+                <Route path="settings" element={<Settings />} />
             </Route>
         </Routes>
     );

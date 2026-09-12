@@ -62,6 +62,7 @@ public class DashboardController {
         stats.put("quotationsByStatus", quotationsByStatus);
         
         stats.put("recentActivities", activityRepository.findTop50ByOrderByCreatedAtDesc());
+        stats.put("recentEnquiries", enquiryRepository.findTop5ByOrderByCreatedAtDesc());
         return ResponseEntity.ok(stats);
     }
 }

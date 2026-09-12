@@ -1,6 +1,8 @@
 package com.acrovix.admin.controller;
 
 import com.acrovix.admin.dto.AdminUserRequest;
+import com.acrovix.admin.dto.AdminUserResponse;
+import com.acrovix.admin.dto.UpdateProfileRequest;
 import com.acrovix.admin.entity.AdminUser;
 import com.acrovix.admin.service.AdminUserService;
 import lombok.RequiredArgsConstructor;
@@ -8,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 import java.util.List;
 import java.util.Map;
@@ -21,16 +24,25 @@ public class AdminUserController {
 
     @GetMapping
     @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public ResponseEntity<List<AdminUser>> getAllUsers() {
+    public ResponseEntity<List<AdminUserResponse>> getAllUsers() {
         return ResponseEntity.ok(userService.getAllUsers());
     }
 
     @PostMapping
     @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public ResponseEntity<AdminUser> createUser(
+    public ResponseEntity<AdminUserResponse> createUser(
             @RequestBody AdminUserRequest request,
             @AuthenticationPrincipal AdminUser admin) {
         return ResponseEntity.ok(userService.createUser(request, admin.getId()));
+    }
+
+    @PatchMapping("/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<AdminUserResponse> updateUser(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateProfileRequest request,
+            @AuthenticationPrincipal AdminUser admin) {
+        return ResponseEntity.ok(userService.updateUser(id, request, admin.getId()));
     }
 
     @PatchMapping("/{id}/status")

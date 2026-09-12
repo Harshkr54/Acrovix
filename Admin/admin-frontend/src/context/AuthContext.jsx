@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { API_BASE_URL } from '../services/api';
+import { API_BASE_URL, fetchApi } from '../services/api';
 
 const AuthContext = createContext();
 
@@ -18,21 +18,22 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     const login = async (email, password) => {
-        const response = await fetch(`${API_BASE_URL}/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
-        });
-        
-        if (response.ok) {
-            const data = await response.json();
+        try {
+            const data = await fetchApi('/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            
             localStorage.setItem('adminToken', data.token);
             const userData = { name: data.name, email: data.email, role: data.role };
             localStorage.setItem('adminUser', JSON.stringify(userData));
             setUser(userData);
             return true;
+        } catch (error) {
+            console.error("Login Error:", error.message);
+            return false;
         }
-        return false;
     };
 
     const logout = () => {

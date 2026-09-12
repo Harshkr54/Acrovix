@@ -13,6 +13,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.acrovix.admin.exception.ResourceNotFoundException;
+
 import jakarta.persistence.criteria.Predicate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -25,6 +27,7 @@ public class AdminEnquiryService {
     private final AdminEnquiryRepository enquiryRepository;
     private final AdminUserRepository userRepository;
     private final AdminActivityRepository activityRepository;
+    private final NotificationService notificationService;
 
     public Page<AdminEnquiry> getAllEnquiries(Pageable pageable, String search, String status, String industry, String serviceReq, LocalDateTime fromDate, LocalDateTime toDate) {
         Specification<AdminEnquiry> spec = (root, query, cb) -> {
@@ -48,7 +51,7 @@ public class AdminEnquiryService {
     }
 
     public AdminEnquiry getEnquiry(Long id) {
-        return enquiryRepository.findById(id).orElseThrow(() -> new RuntimeException("Enquiry not found"));
+        return enquiryRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Enquiry not found"));
     }
 
     @Transactional
@@ -62,10 +65,17 @@ public class AdminEnquiryService {
     @Transactional
     public void assignAdmin(Long id, Long assigneeId, Long adminId) {
         AdminEnquiry enquiry = getEnquiry(id);
-        AdminUser assignee = userRepository.findById(assigneeId).orElseThrow(() -> new RuntimeException("User not found"));
+        AdminUser assignee = userRepository.findById(assigneeId).orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        
+        boolean isNewAssignment = (enquiry.getAssignedTo() == null || !enquiry.getAssignedTo().getId().equals(assigneeId));
+        
         enquiry.setAssignedTo(assignee);
         enquiryRepository.save(enquiry);
-        logActivity(adminId, "Assigned to " + assignee.getName(), "AdminEnquiry", id);
+        logActivity(adminId, "Assigned enquiry #" + id + " to admin #" + assigneeId, "AdminEnquiry", id);
+
+        if (isNewAssignment && !assignee.getId().equals(adminId)) {
+            notificationService.createEnquiryAssignedNotification(assignee, id);
+        }
     }
 
     @Transactional
@@ -73,7 +83,7 @@ public class AdminEnquiryService {
         AdminEnquiry enquiry = getEnquiry(id);
         enquiry.setNotes(notes);
         enquiryRepository.save(enquiry);
-        logActivity(adminId, "Updated Notes", "AdminEnquiry", id);
+        logActivity(adminId, "Updated notes for enquiry #" + id, "AdminEnquiry", id);
     }
 
     private void logActivity(Long adminId, String action, String entityType, Long entityId) {
