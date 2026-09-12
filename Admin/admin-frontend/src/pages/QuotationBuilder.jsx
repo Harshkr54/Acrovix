@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { API_BASE_URL, getAuthHeaders } from '../services/api';
-import { Plus, Trash2, Send, Save, Wand2, Copy, ArrowUp, ArrowDown, Calculator, FileText, User } from 'lucide-react';
+import { Plus, Trash2, Send, Save, Wand2, Copy, ArrowUp, ArrowDown, Calculator, FileText, User, Hash, AlertCircle } from 'lucide-react';
 
 export default function QuotationBuilder() {
     const { enquiryId } = useParams();
@@ -192,31 +192,42 @@ export default function QuotationBuilder() {
 
     if (!enquiry) {
         return (
-            <div className="flex flex-col items-center justify-center h-[50vh] text-slate-500">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500 mb-4"></div>
-                <p>Initializing quotation builder...</p>
+            <div className="flex h-full items-center justify-center min-h-[50vh]">
+                <div className="flex flex-col items-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#14B8A6] mb-4"></div>
+                    <p className="text-[13px] font-medium text-text-muted">Initializing workspace...</p>
+                </div>
             </div>
         );
     }
 
     return (
         <div className="space-y-6 max-w-[1600px] mx-auto pb-12">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <h1 className="text-2xl font-bold text-slate-100 flex items-center">
-                    <FileText className="w-6 h-6 mr-2 text-brand-500" />
-                    Quotation Builder
-                </h1>
+            
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
+                <div>
+                    <div className="flex items-center space-x-3 mb-1">
+                        <h1 className="text-[28px] font-bold text-text-primary tracking-tight leading-tight">Create Quotation</h1>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-bg-muted text-text-secondary uppercase tracking-wider">
+                            DRAFT
+                        </span>
+                    </div>
+                    <p className="text-[13px] text-text-muted flex items-center mt-1">
+                        <span className="font-mono text-text-secondary mr-2">Ref: {enquiry.referenceId}</span>
+                    </p>
+                </div>
                 <div className="flex items-center space-x-3">
                     <button 
                         onClick={handleSaveDraft} 
                         disabled={isSaving}
-                        className="btn-secondary flex items-center px-4 py-2"
+                        className="inline-flex items-center justify-center px-4 py-2.5 bg-bg-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors shadow-sm"
                     >
-                        {isSaving ? <span className="animate-pulse">Saving...</span> : <><Save className="mr-2 h-4 w-4" /> Save Draft</>}
+                        {isSaving ? <><span className="animate-spin w-4 h-4 border-b-2 border-text-primary rounded-full mr-2"></span> Saving</> : <><Save className="mr-2 h-4 w-4 text-text-secondary" /> Save Draft</>}
                     </button>
                     <button 
                         onClick={handleSend} 
-                        className="btn-primary flex items-center px-4 py-2"
+                        className="btn-primary flex items-center px-5 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]"
                     >
                         <Send className="mr-2 h-4 w-4" /> Send Quotation
                     </button>
@@ -224,46 +235,46 @@ export default function QuotationBuilder() {
             </div>
 
             {/* Client Info */}
-            <div className="card p-6 border-l-4 border-l-brand-500">
-                <div className="flex items-center text-sm font-medium text-brand-400 mb-4 uppercase tracking-wider">
-                    <User className="w-4 h-4 mr-2" />
-                    Client Details
+            <div className="card p-6 md:p-8">
+                <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center text-[11px] font-bold text-text-secondary uppercase tracking-wider">
+                        <User className="w-4 h-4 mr-2" />
+                        Client Details
+                    </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                     <div>
-                        <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">Client Name</p>
-                        <p className="font-medium text-slate-200">{enquiry.fullName}</p>
+                        <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Client Name</p>
+                        <p className="text-[13px] font-semibold text-text-primary leading-tight">{enquiry.fullName}</p>
                     </div>
                     <div>
-                        <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">Company</p>
-                        <p className="font-medium text-slate-200">{enquiry.companyName}</p>
+                        <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Company</p>
+                        <p className="text-[13px] font-semibold text-text-primary leading-tight">{enquiry.companyName || '—'}</p>
                     </div>
                     <div>
-                        <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">Email</p>
-                        <p className="font-medium text-slate-200">{enquiry.businessEmail}</p>
+                        <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Email</p>
+                        <p className="text-[13px] font-medium text-text-primary truncate" title={enquiry.businessEmail}>{enquiry.businessEmail}</p>
                     </div>
                     <div>
-                        <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">Requirement</p>
-                        <p className="font-medium text-slate-200 truncate" title={enquiry.projectRequirement}>{enquiry.projectRequirement}</p>
+                        <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Requirement</p>
+                        <p className="text-[13px] font-medium text-text-primary truncate" title={enquiry.projectRequirement}>{enquiry.projectRequirement}</p>
                     </div>
                 </div>
             </div>
 
             {/* Gemini Import */}
-            <div className="card p-6 border border-purple-500/30 shadow-purple-500/10 relative overflow-hidden group">
-                <div className="absolute -right-10 -top-10 text-purple-500/5 group-hover:scale-110 transition-transform duration-500 pointer-events-none">
+            <div className="card p-6 md:p-8 border border-[#7C3AED]/20 relative overflow-hidden group">
+                <div className="absolute -right-8 -top-8 text-[#7C3AED]/5 pointer-events-none transition-transform group-hover:scale-110 duration-700">
                     <Wand2 className="w-48 h-48" />
                 </div>
-                <h2 className="text-lg font-medium text-slate-100 mb-3 flex items-center relative z-10">
-                    <div className="p-1.5 bg-purple-500/20 rounded-lg mr-3">
-                        <Wand2 className="h-5 w-5 text-purple-400" />
-                    </div>
+                <h2 className="text-[14px] font-bold text-text-primary mb-4 flex items-center relative z-10 tracking-tight">
+                    <Wand2 className="h-4 w-4 text-[#7C3AED] mr-2" />
                     AI Auto-Extraction
                 </h2>
                 <div className="flex flex-col sm:flex-row gap-4 relative z-10">
                     <textarea 
-                        className="flex-1 input-field h-24 resize-none border-purple-900/50 focus:ring-purple-500/50 focus:border-purple-500" 
-                        placeholder="Paste rough client requirements here... (e.g., 'We need 2 DELL servers at 60k each and a Cisco router for 5k')"
+                        className="flex-1 input-field h-24 resize-none rounded-xl text-[13px] bg-bg-main" 
+                        placeholder="Paste rough requirements... (e.g., 'We need 2 DELL servers at 60k each and a Cisco router for 5k')"
                         value={roughText}
                         onChange={(e) => setRoughText(e.target.value)}
                     ></textarea>
@@ -271,10 +282,10 @@ export default function QuotationBuilder() {
                         <button 
                             onClick={handleParseText}
                             disabled={isParsing || !roughText.trim()}
-                            className="w-full h-12 flex justify-center items-center px-4 py-2 border border-purple-500/30 rounded-lg text-sm font-medium text-purple-100 bg-purple-600/20 hover:bg-purple-600/40 disabled:opacity-50 transition-colors"
+                            className="w-full h-11 flex justify-center items-center px-4 border border-[#7C3AED]/30 rounded-xl text-[13px] font-semibold text-[#7C3AED] bg-[#7C3AED]/5 hover:bg-[#7C3AED]/10 disabled:opacity-50 transition-colors shadow-sm"
                         >
                             {isParsing ? (
-                                <><span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span> Parsing...</>
+                                <><span className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-current mr-2"></span> Parsing</>
                             ) : (
                                 'Extract to Rows'
                             )}
@@ -283,25 +294,30 @@ export default function QuotationBuilder() {
                 </div>
             </div>
 
-            {/* Spreadsheet Grid */}
-            <div className="card overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-700/50 bg-slate-800/80 flex justify-between items-center">
-                    <h2 className="text-lg font-medium text-slate-200">Line Items</h2>
+            {/* Item Editor */}
+            <div className="card overflow-hidden flex flex-col">
+                <div className="px-6 py-5 border-b border-border-subtle flex justify-between items-center bg-bg-card">
+                    <h2 className="text-base font-bold text-text-primary tracking-tight flex items-center">
+                        <Hash className="w-4 h-4 mr-2 text-text-secondary" /> Line Items
+                    </h2>
                 </div>
+                
                 <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-slate-700/50">
-                        <thead className="bg-slate-900/50">
+                    <table className="min-w-[900px] w-full">
+                        <thead>
                             <tr>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Description</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider w-28">Qty</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider w-32">Price (₹)</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider w-24">Disc %</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider w-24">Tax %</th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider w-32">Line Total</th>
-                                <th className="px-4 py-3 w-32 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">Actions</th>
+                                <th className="px-4 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider w-[25%] bg-bg-card">Description</th>
+                                <th className="px-3 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider w-[15%] bg-bg-card">Category</th>
+                                <th className="px-3 py-4 text-center text-[11px] font-bold text-text-muted uppercase tracking-wider w-[10%] bg-bg-card">Qty</th>
+                                <th className="px-3 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider w-[10%] bg-bg-card">Unit</th>
+                                <th className="px-3 py-4 text-right text-[11px] font-bold text-text-muted uppercase tracking-wider w-[12%] bg-bg-card">Price (₹)</th>
+                                <th className="px-3 py-4 text-center text-[11px] font-bold text-text-muted uppercase tracking-wider w-[8%] bg-bg-card">Disc %</th>
+                                <th className="px-3 py-4 text-center text-[11px] font-bold text-text-muted uppercase tracking-wider w-[8%] bg-bg-card">Tax %</th>
+                                <th className="px-4 py-4 text-right text-[11px] font-bold text-text-muted uppercase tracking-wider w-[12%] bg-bg-card">Total</th>
+                                <th className="px-2 py-4 text-center text-[11px] font-bold text-text-muted uppercase tracking-wider w-[6%] bg-bg-card"></th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-700/50 bg-slate-800/30">
+                        <tbody className="divide-y divide-border-subtle/40 bg-bg-card">
                             {items.map((item, index) => {
                                 const qty = parseFloat(item.quantity) || 0;
                                 const price = parseFloat(item.unitPrice) || 0;
@@ -311,50 +327,85 @@ export default function QuotationBuilder() {
                                 const lineTotal = net * (1 + tax/100);
 
                                 return (
-                                    <tr key={item.id} className="hover:bg-slate-700/20 transition-colors group">
+                                    <tr key={item.id} className="group hover:bg-bg-hover transition-colors">
                                         <td className="px-4 py-3 align-top">
                                             <input 
                                                 type="text" 
                                                 value={item.description} 
                                                 onChange={(e) => updateItem(item.id, 'description', e.target.value)} 
-                                                className="input-field py-1.5 px-3 text-sm" 
+                                                className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-3 text-[13px] font-semibold text-text-primary transition-all outline-none" 
                                                 placeholder="Item description"
                                             />
                                             {item.sourceText && (
-                                                <p className="text-[11px] text-slate-500 mt-1.5 italic border-l-2 border-purple-500/50 pl-2 ml-1">
-                                                    Extracted from: "{item.sourceText}"
+                                                <p className="text-[11px] text-text-secondary mt-1 italic pl-3 border-l-2 border-[#7C3AED]/40 leading-tight">
+                                                    "{item.sourceText}"
                                                 </p>
                                             )}
                                         </td>
-                                        <td className="px-2 py-3 align-top">
-                                            <input type="number" step="any" min="0" value={item.quantity} onChange={(e) => updateItem(item.id, 'quantity', e.target.value)} className="input-field py-1.5 px-2 text-sm text-center" />
+                                        <td className="px-3 py-3 align-top">
+                                            <input 
+                                                type="text" 
+                                                value={item.category} 
+                                                onChange={(e) => updateItem(item.id, 'category', e.target.value)} 
+                                                className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-3 text-[13px] font-medium text-text-primary transition-all outline-none" 
+                                                placeholder="Category"
+                                            />
                                         </td>
-                                        <td className="px-2 py-3 align-top">
-                                            <input type="number" step="any" min="0" value={item.unitPrice} onChange={(e) => updateItem(item.id, 'unitPrice', e.target.value)} className="input-field py-1.5 px-2 text-sm text-right" />
+                                        <td className="px-3 py-3 align-top text-center">
+                                            <input 
+                                                type="number" step="any" min="0" 
+                                                value={item.quantity} 
+                                                onChange={(e) => updateItem(item.id, 'quantity', e.target.value)} 
+                                                className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary text-center transition-all outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                                            />
                                         </td>
-                                        <td className="px-2 py-3 align-top">
-                                            <input type="number" step="any" min="0" max="100" value={item.discountPercent} onChange={(e) => updateItem(item.id, 'discountPercent', e.target.value)} className="input-field py-1.5 px-2 text-sm text-center" />
+                                        <td className="px-3 py-3 align-top">
+                                            <input 
+                                                type="text" 
+                                                value={item.unit} 
+                                                onChange={(e) => updateItem(item.id, 'unit', e.target.value)} 
+                                                className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-3 text-[13px] font-medium text-text-primary transition-all outline-none" 
+                                            />
                                         </td>
-                                        <td className="px-2 py-3 align-top">
-                                            <input type="number" step="any" min="0" max="100" value={item.taxPercent} onChange={(e) => updateItem(item.id, 'taxPercent', e.target.value)} className="input-field py-1.5 px-2 text-sm text-center" />
+                                        <td className="px-3 py-3 align-top text-right">
+                                            <input 
+                                                type="number" step="any" min="0" 
+                                                value={item.unitPrice} 
+                                                onChange={(e) => updateItem(item.id, 'unitPrice', e.target.value)} 
+                                                className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-3 text-[13px] font-medium text-text-primary text-right transition-all outline-none font-mono tracking-tight" 
+                                            />
+                                        </td>
+                                        <td className="px-3 py-3 align-top text-center">
+                                            <input 
+                                                type="number" step="any" min="0" max="100" 
+                                                value={item.discountPercent} 
+                                                onChange={(e) => updateItem(item.id, 'discountPercent', e.target.value)} 
+                                                className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary text-center transition-all outline-none" 
+                                            />
+                                        </td>
+                                        <td className="px-3 py-3 align-top text-center">
+                                            <input 
+                                                type="number" step="any" min="0" max="100" 
+                                                value={item.taxPercent} 
+                                                onChange={(e) => updateItem(item.id, 'taxPercent', e.target.value)} 
+                                                className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary text-center transition-all outline-none" 
+                                            />
                                         </td>
                                         <td className="px-4 py-3 align-top text-right">
-                                            <div className="font-semibold text-slate-200 mt-1.5">₹{lineTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                                            <div className="font-bold text-text-primary mt-2 font-mono text-[14px] tracking-tight">
+                                                {lineTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </div>
                                         </td>
-                                        <td className="px-2 py-3 align-top">
-                                            <div className="flex items-center justify-center space-x-1 mt-1 opacity-40 group-hover:opacity-100 transition-opacity">
-                                                <button onClick={() => moveItemUp(index)} disabled={index === 0} className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-md disabled:opacity-30 transition-colors" title="Move Up">
-                                                    <ArrowUp className="w-3.5 h-3.5" />
-                                                </button>
-                                                <button onClick={() => moveItemDown(index)} disabled={index === items.length - 1} className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-md disabled:opacity-30 transition-colors" title="Move Down">
-                                                    <ArrowDown className="w-3.5 h-3.5" />
-                                                </button>
-                                                <button onClick={() => duplicateItem(item.id)} className="p-1.5 text-blue-400 hover:text-white hover:bg-blue-600 rounded-md transition-colors" title="Duplicate">
-                                                    <Copy className="w-3.5 h-3.5" />
-                                                </button>
-                                                <button onClick={() => removeItem(item.id)} className="p-1.5 text-red-400 hover:text-white hover:bg-red-600 rounded-md transition-colors" title="Delete">
-                                                    <Trash2 className="w-3.5 h-3.5" />
-                                                </button>
+                                        <td className="px-2 py-3 align-top text-center">
+                                            <div className="flex flex-col items-center justify-center space-y-1.5 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <div className="flex space-x-1.5">
+                                                    <button onClick={() => moveItemUp(index)} disabled={index === 0} className="p-1 text-text-muted hover:text-text-primary hover:bg-bg-main rounded disabled:opacity-30" title="Move Up"><ArrowUp className="w-3.5 h-3.5" /></button>
+                                                    <button onClick={() => moveItemDown(index)} disabled={index === items.length - 1} className="p-1 text-text-muted hover:text-text-primary hover:bg-bg-main rounded disabled:opacity-30" title="Move Down"><ArrowDown className="w-3.5 h-3.5" /></button>
+                                                </div>
+                                                <div className="flex space-x-1.5">
+                                                    <button onClick={() => duplicateItem(item.id)} className="p-1 text-[#4F46E5] hover:bg-[#4F46E5]/10 rounded" title="Duplicate"><Copy className="w-3.5 h-3.5" /></button>
+                                                    <button onClick={() => removeItem(item.id)} className="p-1 text-[#DC2626] hover:bg-[#DC2626]/10 rounded" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
+                                                </div>
                                             </div>
                                         </td>
                                     </tr>
@@ -363,35 +414,41 @@ export default function QuotationBuilder() {
                         </tbody>
                     </table>
                 </div>
-                <div className="p-4 border-t border-slate-700/50 bg-slate-900/50">
-                    <button onClick={addItem} className="inline-flex items-center px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-sm font-medium rounded-lg text-slate-200 transition-colors">
-                        <Plus className="w-4 h-4 mr-2 text-brand-400" /> Add Blank Row
+                
+                {/* Add Item Row */}
+                <div className="p-5 border-t border-border-subtle/50 bg-bg-card rounded-b-[24px]">
+                    <button onClick={addItem} className="inline-flex items-center px-4 py-2.5 bg-bg-main hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors shadow-sm">
+                        <Plus className="w-4 h-4 mr-2 text-[#4F46E5]" />
+                        Add Item
                     </button>
                 </div>
             </div>
 
-            {/* Totals Preview */}
-            <div className="flex justify-end">
-                <div className="card p-6 w-full max-w-sm border-t-4 border-t-brand-500">
-                    <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4 flex items-center">
+            {/* Totals Preview - Light Summary Panel */}
+            <div className="flex flex-col md:flex-row md:justify-end">
+                <div className="card p-8 w-full md:max-w-[420px] bg-bg-card border border-border-subtle shadow-sm relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#4F46E5]/5 rounded-full -mr-16 -mt-16 blur-2xl pointer-events-none"></div>
+                    <div className="absolute bottom-0 left-0 w-32 h-32 bg-[#14B8A6]/5 rounded-full -ml-16 -mb-16 blur-2xl pointer-events-none"></div>
+                    
+                    <h3 className="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-6 flex items-center relative z-10">
                         <Calculator className="w-4 h-4 mr-2" /> Quotation Summary
                     </h3>
-                    <div className="space-y-3">
-                        <div className="flex justify-between text-sm text-slate-300">
-                            <span>Subtotal</span>
-                            <span className="font-mono">₹{totals.subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <div className="space-y-4 relative z-10">
+                        <div className="flex justify-between text-[13px] text-text-secondary">
+                            <span className="font-medium">Subtotal</span>
+                            <span className="font-mono font-semibold text-text-primary tracking-tight">₹{totals.subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
-                        <div className="flex justify-between text-sm">
-                            <span className="text-slate-300">Total Discount</span>
-                            <span className="text-red-400 font-mono">-₹{totals.discount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <div className="flex justify-between text-[13px]">
+                            <span className="font-medium text-text-secondary">Total Discount</span>
+                            <span className="text-[#DC2626] font-mono font-semibold tracking-tight">-₹{totals.discount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
-                        <div className="flex justify-between text-sm text-slate-300 pb-3 border-b border-slate-700/50">
-                            <span>Total Tax</span>
-                            <span className="font-mono">₹{totals.tax.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <div className="flex justify-between text-[13px] text-text-secondary pb-5 border-b border-border-subtle">
+                            <span className="font-medium">Total Tax</span>
+                            <span className="font-mono font-semibold text-text-primary tracking-tight">₹{totals.tax.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
-                        <div className="flex justify-between items-end pt-2">
-                            <span className="text-base font-medium text-slate-200">Grand Total</span>
-                            <span className="text-2xl font-bold text-white font-mono tracking-tight">₹{totals.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <div className="flex justify-between items-end pt-3">
+                            <span className="text-[15px] font-bold text-text-primary">Grand Total</span>
+                            <span className="text-[32px] font-bold text-[#4F46E5] font-mono tracking-tight leading-none">₹{totals.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                     </div>
                 </div>

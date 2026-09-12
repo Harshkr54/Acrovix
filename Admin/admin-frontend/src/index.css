@@ -1,52 +1,111 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand-50: #eff6ff;
-  --color-brand-100: #dbeafe;
-  --color-brand-200: #bfdbfe;
-  --color-brand-300: #93c5fd;
-  --color-brand-400: #60a5fa;
-  --color-brand-500: #3b82f6;
-  --color-brand-600: #2563eb;
-  --color-brand-700: #1d4ed8;
-  --color-brand-800: #1e40af;
-  --color-brand-900: #1e3a8a;
-  --color-brand-950: #172554;
+  /* Dynamic Semantic Colors */
+  --color-bg-main: var(--theme-bg-main);
+  --color-bg-card: var(--theme-bg-card);
+  --color-bg-hover: var(--theme-bg-hover);
+  --color-bg-muted: var(--theme-bg-muted);
+  --color-bg-highlight: var(--theme-bg-highlight);
+  
+  --color-border-subtle: var(--theme-border-subtle);
+  
+  --color-text-primary: var(--theme-text-primary);
+  --color-text-secondary: var(--theme-text-secondary);
+  --color-text-muted: var(--theme-text-muted);
+  --color-text-highlight: var(--theme-text-highlight);
+  
+  /* Static Brand Colors */
+  --color-acx-teal: #14B8A6;
+  --color-acx-teal-light: #2DD4BF;
+  --color-acx-deep-teal: #0D9488;
+  
+  /* Reference Accent Colors */
+  --color-accent-blue: #EFF6FF; /* Very light blue background for icons */
+  --color-accent-blue-text: #2563EB; /* Deep blue for icons */
+  --color-accent-indigo: #EEF2FF;
+  --color-accent-indigo-text: #4F46E5;
+  --color-accent-violet: #F5F3FF;
+  --color-accent-violet-text: #7C3AED;
+  --color-accent-cyan: #ECFEFF;
+  --color-accent-cyan-text: #0891B2;
+}
+
+:root {
+  /* LIGHT MODE (DEFAULT - STRICT REFERENCE MATCH) */
+  --theme-bg-main: #F5F7FC; /* Very light subtle cool-white */
+  --theme-bg-card: #FFFFFF; /* Pure white cards */
+  --theme-bg-hover: #F8FAFC; 
+  --theme-bg-muted: #F1F5F9;
+  --theme-bg-highlight: #EEF2FF; /* Indigo-tinted highlight */
+  
+  --theme-border-subtle: #E2E8F0; /* Thin subtle borders */
+  
+  --theme-text-primary: #102A43; /* Deep navy */
+  --theme-text-secondary: #526B84;
+  --theme-text-muted: #71869A;
+  --theme-text-highlight: #0D9488;
+}
+
+:root[data-theme="dark"] {
+  /* DARK MODE (PRESERVED) */
+  --theme-bg-main: #07151F;
+  --theme-bg-card: #0A1B26;
+  --theme-bg-hover: #0D202B;
+  --theme-bg-muted: #102936;
+  --theme-bg-highlight: #142F3D;
+  
+  --theme-border-subtle: rgba(255, 255, 255, 0.08);
+  
+  --theme-text-primary: #F4F9F9;
+  --theme-text-secondary: #C8D9DC;
+  --theme-text-muted: #9DB3B9;
+  --theme-text-highlight: #F4F9F9;
 }
 
 @layer base {
   body {
-    @apply bg-slate-900 text-slate-300 antialiased selection:bg-brand-500/30 selection:text-brand-200;
+    @apply bg-bg-main text-text-primary antialiased selection:bg-acx-teal/30 selection:text-acx-deep-teal;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
 
 @layer components {
   .input-field {
-    @apply w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-colors text-slate-200 placeholder-slate-500;
+    @apply w-full px-4 py-2.5 bg-bg-card border border-border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-acx-teal/20 focus:border-acx-teal transition-colors duration-200 text-text-primary placeholder-text-muted shadow-sm;
   }
   
   .btn-primary {
-    @apply px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg font-medium transition-colors shadow-sm shadow-brand-900/50 focus:outline-none focus:ring-2 focus:ring-brand-500/50 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply px-5 py-2.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl font-medium transition-colors duration-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/50 disabled:opacity-50 disabled:cursor-not-allowed;
   }
   
   .btn-secondary {
-    @apply px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500/50 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply px-5 py-2.5 bg-bg-card hover:bg-bg-hover text-text-secondary border border-border-subtle rounded-xl font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-border-subtle disabled:opacity-50 disabled:cursor-not-allowed shadow-sm;
   }
   
   .btn-danger {
-    @apply px-4 py-2 bg-red-600/10 hover:bg-red-600/20 text-red-500 border border-red-600/20 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-red-500/50 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply px-5 py-2.5 bg-[#fef2f2] hover:bg-[#fee2e2] text-[#ef4444] border border-[#fca5a5] rounded-xl font-medium transition-colors duration-200 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed shadow-sm;
+  }
+  
+  /* Updated for Dark mode as well */
+  :root[data-theme="dark"] .btn-danger {
+    @apply bg-[#7f1d1d]/20 hover:bg-[#7f1d1d]/40 text-[#fca5a5] border-[#7f1d1d]/40;
   }
   
   .card {
-    @apply bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl shadow-lg;
+    @apply bg-bg-card border border-border-subtle rounded-[24px] shadow-[0_4px_24px_rgba(16,42,67,0.03)];
   }
   
   .table-header {
-    @apply px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider border-b border-slate-700/50 bg-slate-800/50;
+    @apply px-5 py-4 text-left text-xs font-semibold text-text-muted border-b border-border-subtle bg-bg-card;
   }
   
   .table-cell {
-    @apply px-6 py-4 whitespace-nowrap text-sm text-slate-300 border-b border-slate-700/50;
+    @apply px-5 py-4 whitespace-nowrap text-sm text-text-secondary border-b border-border-subtle/40;
+  }
+  
+  .bg-dotted-pattern {
+    background-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='2' cy='2' r='1.5' fill='%2314B8A6' fill-opacity='0.15'/%3E%3C/svg%3E");
+    background-size: 24px 24px;
   }
 }
