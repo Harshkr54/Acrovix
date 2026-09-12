@@ -1,0 +1,11 @@
+.env
+.env.*
+target/
+.git/
+.idea/
+*.iml
+logs/
+*.log
+.mvn/
+mvnw
+mvnw.cmd
