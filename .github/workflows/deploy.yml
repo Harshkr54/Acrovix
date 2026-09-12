@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'frontend/**'
+      - 'Admin/admin-frontend/**'
       - '.github/workflows/deploy.yml'
 
 permissions:
@@ -24,18 +25,32 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install frontend dependencies
+      - name: Install public frontend dependencies
         run: npm ci
         working-directory: ./frontend
 
-      - name: Build frontend
+      - name: Build public frontend
         run: npm run build
         working-directory: ./frontend
+
+      - name: Install admin frontend dependencies
+        run: npm ci
+        working-directory: ./Admin/admin-frontend
+
+      - name: Build admin frontend
+        run: npm run build
+        working-directory: ./Admin/admin-frontend
+
+      - name: Assemble deployment directory
+        run: |
+          mkdir -p deploy_root/admin
+          cp -R frontend/dist/* deploy_root/
+          cp -R Admin/admin-frontend/dist/* deploy_root/admin/
 
       - name: Publish hostinger-prod
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./frontend/dist
+          publish_dir: ./deploy_root
           publish_branch: hostinger-prod
           force_orphan: true
