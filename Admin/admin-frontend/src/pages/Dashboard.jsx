@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { fetchApi } from '../services/api';
-import { FileText, Inbox, Activity, CheckCircle, Clock, ChevronRight, Filter, Plus, MoreHorizontal, MessageSquare, User, AlertCircle, RefreshCw, Loader2, X, RotateCcw } from 'lucide-react';
+import { FileText, Inbox, Activity, CheckCircle, Clock, ChevronRight, Filter, Plus, MoreHorizontal, MessageSquare, User, AlertCircle, RefreshCw, Loader2, X, RotateCcw, Eye, Check } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import CreateQuotationModal from '../components/CreateQuotationModal';
@@ -46,6 +46,10 @@ export default function Dashboard() {
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const filterRef = useRef(null);
 
+    // Recent Enquiries action menu state
+    const [activeActionMenuId, setActiveActionMenuId] = useState(null);
+    const actionMenuRef = useRef(null);
+
     const hasActiveFilters = 
         appliedFilters.dateRange !== 'ALL_TIME' ||
         appliedFilters.enquiryStatus !== 'ALL' ||
@@ -90,16 +94,20 @@ export default function Dashboard() {
         fetchDashboardData(appliedFilters);
     }, [fetchDashboardData, appliedFilters]);
 
-    // Click outside listener for filter popover
+    // Click outside listener for filter popover and action menus
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (filterRef.current && !filterRef.current.contains(event.target)) {
                 setIsFilterOpen(false);
             }
+            if (actionMenuRef.current && !actionMenuRef.current.contains(event.target)) {
+                setActiveActionMenuId(null);
+            }
         };
         const handleEscape = (event) => {
             if (event.key === 'Escape') {
                 setIsFilterOpen(false);
+                setActiveActionMenuId(null);
             }
         };
 
@@ -128,8 +136,37 @@ export default function Dashboard() {
         setIsFilterOpen(false);
     };
 
+    const handleUpdateEnquiryStatus = async (id, newStatus) => {
+        setActiveActionMenuId(null);
+        try {
+            await fetchApi(`/enquiries/${id}/status`, {
+                method: 'PATCH',
+                body: JSON.stringify({ status: newStatus })
+            });
+            window.dispatchEvent(new Event('notification-update'));
+            fetchDashboardData(appliedFilters);
+        } catch (err) {
+            console.error("Failed to update enquiry status", err);
+            setError(err.message || "Failed to update enquiry status");
+        }
+    };
+
     const normalizeStatus = (rawStatus) => {
-        return rawStatus ? String(rawStatus).toUpperCase() : 'UNKNOWN';
+        if (!rawStatus) return 'NEW';
+        const upper = String(rawStatus).toUpperCase();
+        return ['NEW', 'CONTACTED', 'QUOTED', 'CONVERTED', 'CLOSED'].includes(upper) ? upper : 'UNKNOWN';
+    };
+
+    const getStatusLabel = (rawStatus) => {
+        const status = normalizeStatus(rawStatus);
+        switch(status) {
+            case 'NEW': return 'New';
+            case 'CONTACTED': return 'Contacted';
+            case 'QUOTED': return 'Quoted';
+            case 'CONVERTED': return 'Converted';
+            case 'CLOSED': return 'Closed';
+            default: return 'Unknown';
+        }
     };
 
     const getStatusStyle = (rawStatus) => {
@@ -558,7 +595,7 @@ export default function Dashboard() {
                                         {stats.recentEnquiries.map((enq) => (
                                             <tr key={enq.id} className="hover:bg-bg-hover transition-colors">
                                                 <td className="px-6 py-3.5 whitespace-nowrap text-[13px] font-bold text-text-primary">
-                                                    {enq.referenceId}
+                                                    {enq.referenceId || `ACX-ENQ-${enq.id}`}
                                                 </td>
                                                 <td className="px-6 py-3.5 whitespace-nowrap text-[13px] font-medium text-text-secondary">
                                                     {enq.fullName}
@@ -567,21 +604,90 @@ export default function Dashboard() {
                                                     {enq.companyName || '—'}
                                                 </td>
                                                 <td className="px-6 py-3.5 whitespace-nowrap text-[13px] text-text-secondary">
-                                                    {enq.serviceRequired}
+                                                    {enq.serviceRequired || '—'}
                                                 </td>
                                                 <td className="px-6 py-3.5 whitespace-nowrap">
-                                                    <span className={`inline-flex items-center text-[10px] font-bold uppercase tracking-wider ${getStatusStyle(enq.status)}`}>
+                                                    <span className={`inline-flex items-center text-[10px] font-bold tracking-wider ${getStatusStyle(enq.status)}`}>
                                                         <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5"></span>
-                                                        {normalizeStatus(enq.status)}
+                                                        {getStatusLabel(enq.status)}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-3.5 whitespace-nowrap text-[12px] text-text-muted font-medium">
                                                     {new Date(enq.createdAt).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
                                                 </td>
-                                                <td className="px-6 py-3.5 whitespace-nowrap text-center">
-                                                    <button className="p-1 rounded bg-bg-muted text-text-muted hover:text-text-primary transition-colors">
+                                                <td className="px-6 py-3.5 whitespace-nowrap text-center relative">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setActiveActionMenuId(activeActionMenuId === enq.id ? null : enq.id);
+                                                        }}
+                                                        className={`p-1.5 rounded-lg border transition-all ${
+                                                            activeActionMenuId === enq.id
+                                                                ? 'bg-[#EEF2FF] border-[#818CF8] text-[#4F46E5] dark:bg-[#312E81]/30 dark:border-[#6366F1] dark:text-[#818CF8] shadow-sm'
+                                                                : 'bg-bg-card border-border-subtle text-text-secondary hover:text-text-primary hover:shadow-sm'
+                                                        }`}
+                                                        title="Actions"
+                                                        aria-label={`Actions for ${enq.referenceId || enq.id}`}
+                                                    >
                                                         <MoreHorizontal className="w-4 h-4" />
                                                     </button>
+
+                                                    {activeActionMenuId === enq.id && (
+                                                        <div
+                                                            ref={actionMenuRef}
+                                                            className="absolute right-6 top-10 w-48 bg-bg-card rounded-2xl shadow-xl border border-border-subtle p-2 z-50 animate-in fade-in-50 zoom-in-95 duration-150 text-left"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                            <div className="px-3 py-1.5 border-b border-border-subtle text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
+                                                                Actions ({enq.referenceId || `ENQ-${enq.id}`})
+                                                            </div>
+
+                                                            <Link
+                                                                to="/enquiries"
+                                                                onClick={() => setActiveActionMenuId(null)}
+                                                                className="flex items-center w-full px-3 py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover rounded-xl transition-colors"
+                                                            >
+                                                                <Eye className="w-3.5 h-3.5 mr-2 text-[#4F46E5]" />
+                                                                View in Enquiries
+                                                            </Link>
+
+                                                            <Link
+                                                                to={`/quotations/new/${enq.id}`}
+                                                                onClick={() => setActiveActionMenuId(null)}
+                                                                className="flex items-center w-full px-3 py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover rounded-xl transition-colors"
+                                                            >
+                                                                <Plus className="w-3.5 h-3.5 mr-2 text-[#059669]" />
+                                                                Create Quotation
+                                                            </Link>
+
+                                                            <div className="my-1 border-t border-border-subtle"></div>
+
+                                                            <div className="px-3 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
+                                                                Update Status
+                                                            </div>
+
+                                                            {['NEW', 'CONTACTED', 'QUOTED', 'CONVERTED', 'CLOSED'].map((st) => (
+                                                                <button
+                                                                    key={st}
+                                                                    type="button"
+                                                                    onClick={() => handleUpdateEnquiryStatus(enq.id, st)}
+                                                                    className={`flex items-center justify-between w-full px-3 py-1.5 text-xs rounded-lg transition-colors ${
+                                                                        normalizeStatus(enq.status) === st
+                                                                            ? 'bg-[#EEF2FF] text-[#4F46E5] font-bold dark:bg-[#312E81]/30'
+                                                                            : 'text-text-secondary hover:bg-bg-hover font-medium'
+                                                                    }`}
+                                                                >
+                                                                    <span className="flex items-center">
+                                                                        <span className={`w-1.5 h-1.5 rounded-full mr-2 ${getStatusStyle(st).replace('text-', 'bg-')}`} />
+                                                                        {getStatusLabel(st)}
+                                                                    </span>
+                                                                    {normalizeStatus(enq.status) === st && (
+                                                                        <Check className="w-3.5 h-3.5 text-[#4F46E5]" />
+                                                                    )}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                 </td>
                                             </tr>
                                         ))}

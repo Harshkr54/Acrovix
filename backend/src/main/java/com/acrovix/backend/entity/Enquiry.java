@@ -45,6 +45,10 @@ public class Enquiry {
     @Column(name = "preferred_contact_method", length = 50)
     private String preferredContactMethod;
 
+    @Column(name = "status", length = 50)
+    @Builder.Default
+    private String status = "NEW";
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -52,6 +56,9 @@ public class Enquiry {
     protected void onCreate() {
         if (this.createdAt == null) {
             this.createdAt = LocalDateTime.now();
+        }
+        if (this.status == null) {
+            this.status = "NEW";
         }
     }
 }

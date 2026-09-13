@@ -82,7 +82,21 @@ export default function EnquiryList() {
     };
 
     const normalizeStatus = (rawStatus) => {
-        return rawStatus ? String(rawStatus).toUpperCase() : 'UNKNOWN';
+        if (!rawStatus) return 'NEW';
+        const upper = String(rawStatus).toUpperCase();
+        return ['NEW', 'CONTACTED', 'QUOTED', 'CONVERTED', 'CLOSED'].includes(upper) ? upper : 'UNKNOWN';
+    };
+
+    const getStatusLabel = (rawStatus) => {
+        const status = normalizeStatus(rawStatus);
+        switch(status) {
+            case 'NEW': return 'New';
+            case 'CONTACTED': return 'Contacted';
+            case 'QUOTED': return 'Quoted';
+            case 'CONVERTED': return 'Converted';
+            case 'CLOSED': return 'Closed';
+            default: return 'Unknown';
+        }
     };
 
     const getStatusStyle = (rawStatus) => {
@@ -269,7 +283,7 @@ export default function EnquiryList() {
                                                 </select>
                                                 <span className={`inline-flex items-center text-[10px] font-bold uppercase tracking-wider ${getStatusStyle(enq.status)}`}>
                                                     <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5"></span>
-                                                    {normalizeStatus(enq.status)}
+                                                    {getStatusLabel(enq.status)}
                                                 </span>
                                             </div>
                                         </td>

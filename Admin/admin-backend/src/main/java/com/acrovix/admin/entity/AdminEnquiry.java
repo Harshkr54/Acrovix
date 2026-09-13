@@ -50,8 +50,12 @@ public class AdminEnquiry {
 
     // --- NEW ADMIN COLUMNS ---
     
-    @Column(name = "status", length = 50)
+    @Column(name = "status", length = 50, columnDefinition = "VARCHAR(50) DEFAULT 'NEW'")
     private String status = "NEW"; // Defaults to NEW in Java
+
+    public String getStatus() {
+        return status != null ? status : "NEW";
+    }
 
     @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     @ManyToOne(fetch = FetchType.LAZY)
