@@ -73,6 +73,16 @@ public class QuotationController {
         return ResponseEntity.ok(mapToDetailDto(q));
     }
 
+    @GetMapping("/enquiry/{enquiryId}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    public ResponseEntity<java.util.List<java.util.Map<String, Object>>> getQuotationsByEnquiryId(
+            @PathVariable Long enquiryId,
+            @AuthenticationPrincipal AdminUser admin) {
+        java.util.List<Quotation> list = quotationService.getQuotationsByEnquiryId(enquiryId, admin);
+        java.util.List<java.util.Map<String, Object>> dtos = list.stream().map(this::mapToDto).collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(dtos);
+    }
+
     @PostMapping("/enquiry/{enquiryId}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
     public ResponseEntity<java.util.Map<String, Object>> createDraftQuotation(

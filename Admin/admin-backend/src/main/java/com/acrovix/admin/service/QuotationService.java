@@ -31,6 +31,15 @@ public class QuotationService {
     private final NotificationService notificationService;
     private final AuthorizationService authorizationService;
 
+    public List<Quotation> getQuotationsByEnquiryId(Long enquiryId, AdminUser currentUser) {
+        AdminEnquiry enquiry = enquiryRepository.findById(enquiryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Enquiry not found"));
+        if (currentUser != null) {
+            authorizationService.checkEnquiryAccess(currentUser, enquiry);
+        }
+        return quotationRepository.findByEnquiryIdAndDeletedAtIsNull(enquiryId);
+    }
+
     @Transactional
     public Quotation createDraftQuotation(Long enquiryId, AdminUser admin) {
         AdminEnquiry enquiry = enquiryRepository.findById(enquiryId)

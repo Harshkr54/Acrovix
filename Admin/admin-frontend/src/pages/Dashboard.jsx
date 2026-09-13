@@ -4,6 +4,7 @@ import { FileText, Inbox, Activity, CheckCircle, Clock, ChevronRight, Filter, Pl
 import { Link, useNavigate } from 'react-router-dom';
 
 import CreateQuotationModal from '../components/CreateQuotationModal';
+import EnquiryDetailModal from '../components/EnquiryDetailModal';
 
 const DEFAULT_FILTERS = {
     dateRange: 'ALL_TIME',
@@ -46,9 +47,12 @@ export default function Dashboard() {
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const filterRef = useRef(null);
 
-    // Recent Enquiries action menu state
+    // Recent Enquiries action menu & modal state
     const [activeActionMenuId, setActiveActionMenuId] = useState(null);
     const actionMenuRef = useRef(null);
+    const [selectedEnquiry, setSelectedEnquiry] = useState(null);
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    const [rowQuotationsMap, setRowQuotationsMap] = useState({});
 
     const hasActiveFilters = 
         appliedFilters.dateRange !== 'ALL_TIME' ||
@@ -148,6 +152,33 @@ export default function Dashboard() {
         } catch (err) {
             console.error("Failed to update enquiry status", err);
             setError(err.message || "Failed to update enquiry status");
+        }
+    };
+
+    const handleOpenEnquiry = (enq) => {
+        setSelectedEnquiry(enq);
+        setIsDetailModalOpen(true);
+    };
+
+    const handleToggleActionMenu = (e, enqId) => {
+        e.stopPropagation();
+        if (activeActionMenuId === enqId) {
+            setActiveActionMenuId(null);
+        } else {
+            setActiveActionMenuId(enqId);
+            if (!rowQuotationsMap[enqId]) {
+                fetchApi(`/quotations/enquiry/${enqId}`)
+                    .then(data => {
+                        setRowQuotationsMap(prev => ({
+                            ...prev,
+                            [enqId]: Array.isArray(data) ? data : []
+                        }));
+                    })
+                    .catch(err => {
+                        console.error("Failed to fetch quotations for enquiry", err);
+                        setRowQuotationsMap(prev => ({ ...prev, [enqId]: [] }));
+                    });
+            }
         }
     };
 
@@ -593,7 +624,12 @@ export default function Dashboard() {
                                     </thead>
                                     <tbody className="bg-bg-card divide-y divide-border-subtle/40">
                                         {stats.recentEnquiries.map((enq) => (
-                                            <tr key={enq.id} className="hover:bg-bg-hover transition-colors">
+                                            <tr 
+                                                key={enq.id} 
+                                                onDoubleClick={() => handleOpenEnquiry(enq)}
+                                                className="hover:bg-bg-hover transition-colors cursor-pointer select-none"
+                                                title="Double-click to open enquiry details"
+                                            >
                                                 <td className="px-6 py-3.5 whitespace-nowrap text-[13px] font-bold text-text-primary">
                                                     {enq.referenceId || `ACX-ENQ-${enq.id}`}
                                                 </td>
@@ -606,7 +642,7 @@ export default function Dashboard() {
                                                 <td className="px-6 py-3.5 whitespace-nowrap text-[13px] text-text-secondary">
                                                     {enq.serviceRequired || '—'}
                                                 </td>
-                                                <td className="px-6 py-3.5 whitespace-nowrap">
+                                                <td className="px-6 py-3.5 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                                                     <span className={`inline-flex items-center text-[10px] font-bold tracking-wider ${getStatusStyle(enq.status)}`}>
                                                         <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5"></span>
                                                         {getStatusLabel(enq.status)}
@@ -615,12 +651,9 @@ export default function Dashboard() {
                                                 <td className="px-6 py-3.5 whitespace-nowrap text-[12px] text-text-muted font-medium">
                                                     {new Date(enq.createdAt).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
                                                 </td>
-                                                <td className="px-6 py-3.5 whitespace-nowrap text-center relative">
+                                                <td className="px-6 py-3.5 whitespace-nowrap text-center relative" onClick={(e) => e.stopPropagation()}>
                                                     <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setActiveActionMenuId(activeActionMenuId === enq.id ? null : enq.id);
-                                                        }}
+                                                        onClick={(e) => handleToggleActionMenu(e, enq.id)}
                                                         className={`p-1.5 rounded-lg border transition-all ${
                                                             activeActionMenuId === enq.id
                                                                 ? 'bg-[#EEF2FF] border-[#818CF8] text-[#4F46E5] dark:bg-[#312E81]/30 dark:border-[#6366F1] dark:text-[#818CF8] shadow-sm'
@@ -635,22 +668,31 @@ export default function Dashboard() {
                                                     {activeActionMenuId === enq.id && (
                                                         <div
                                                             ref={actionMenuRef}
-                                                            className="absolute right-6 top-10 w-48 bg-bg-card rounded-2xl shadow-xl border border-border-subtle p-2 z-50 animate-in fade-in-50 zoom-in-95 duration-150 text-left"
+                                                            className="absolute right-6 top-10 w-52 bg-bg-card rounded-2xl shadow-xl border border-border-subtle p-2 z-50 animate-in fade-in-50 zoom-in-95 duration-150 text-left"
                                                             onClick={(e) => e.stopPropagation()}
                                                         >
-                                                            <div className="px-3 py-1.5 border-b border-border-subtle text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
-                                                                Actions ({enq.referenceId || `ENQ-${enq.id}`})
+                                                            {/* OPEN SECTION */}
+                                                            <div className="px-3 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
+                                                                Open
                                                             </div>
-
-                                                            <Link
-                                                                to="/enquiries"
-                                                                onClick={() => setActiveActionMenuId(null)}
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setActiveActionMenuId(null);
+                                                                    handleOpenEnquiry(enq);
+                                                                }}
                                                                 className="flex items-center w-full px-3 py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover rounded-xl transition-colors"
                                                             >
                                                                 <Eye className="w-3.5 h-3.5 mr-2 text-[#4F46E5]" />
-                                                                View in Enquiries
-                                                            </Link>
+                                                                Open Enquiry
+                                                            </button>
 
+                                                            <div className="my-1 border-t border-border-subtle"></div>
+
+                                                            {/* QUOTATION SECTION */}
+                                                            <div className="px-3 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
+                                                                Quotation
+                                                            </div>
                                                             <Link
                                                                 to={`/quotations/new/${enq.id}`}
                                                                 onClick={() => setActiveActionMenuId(null)}
@@ -660,8 +702,39 @@ export default function Dashboard() {
                                                                 Create Quotation
                                                             </Link>
 
+                                                            {rowQuotationsMap[enq.id] && rowQuotationsMap[enq.id].length > 0 && (
+                                                                rowQuotationsMap[enq.id].length === 1 ? (
+                                                                    <Link
+                                                                        to={`/quotations/edit/${rowQuotationsMap[enq.id][0].id}`}
+                                                                        onClick={() => setActiveActionMenuId(null)}
+                                                                        className="flex items-center w-full px-3 py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover rounded-xl transition-colors"
+                                                                    >
+                                                                        <FileText className="w-3.5 h-3.5 mr-2 text-[#7C3AED]" />
+                                                                        Open Quotation
+                                                                    </Link>
+                                                                ) : (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setActiveActionMenuId(null);
+                                                                            handleOpenEnquiry(enq);
+                                                                        }}
+                                                                        className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover rounded-xl transition-colors"
+                                                                    >
+                                                                        <span className="flex items-center">
+                                                                            <FileText className="w-3.5 h-3.5 mr-2 text-[#7C3AED]" />
+                                                                            Open Quotation
+                                                                        </span>
+                                                                        <span className="text-[10px] bg-[#F5F3FF] text-[#7C3AED] px-1.5 py-0.5 rounded-full font-bold">
+                                                                            {rowQuotationsMap[enq.id].length}
+                                                                        </span>
+                                                                    </button>
+                                                                )
+                                                            )}
+
                                                             <div className="my-1 border-t border-border-subtle"></div>
 
+                                                            {/* UPDATE STATUS SECTION */}
                                                             <div className="px-3 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
                                                                 Update Status
                                                             </div>
@@ -707,6 +780,13 @@ export default function Dashboard() {
                 </>
             )}
             
+            {/* Enquiry Detail Modal */}
+            <EnquiryDetailModal
+                isOpen={isDetailModalOpen}
+                onClose={() => setIsDetailModalOpen(false)}
+                enquiry={selectedEnquiry}
+                onStatusUpdate={() => fetchDashboardData(appliedFilters)}
+            />
         </div>
     );
 }

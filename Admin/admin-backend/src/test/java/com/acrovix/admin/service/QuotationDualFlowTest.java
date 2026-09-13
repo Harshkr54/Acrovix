@@ -252,4 +252,23 @@ class QuotationDualFlowTest {
         assertNotNull(pdfBytes);
         assertTrue(pdfBytes.length > 0);
     }
+
+    @Test
+    void testGetQuotationsByEnquiryIdSuccessExcludesDeleted() {
+        when(enquiryRepository.findById(10L)).thenReturn(java.util.Optional.of(enquiry));
+        Quotation activeQ = Quotation.builder().id(201L).quotationNumber("ACX-Q-2026-0005").enquiry(enquiry).deletedAt(null).build();
+        when(quotationRepository.findByEnquiryIdAndDeletedAtIsNull(10L)).thenReturn(java.util.List.of(activeQ));
+
+        java.util.List<Quotation> results = quotationService.getQuotationsByEnquiryId(10L, salesUser1);
+        assertNotNull(results);
+        assertEquals(1, results.size());
+        assertEquals("ACX-Q-2026-0005", results.get(0).getQuotationNumber());
+    }
+
+    @Test
+    void testGetQuotationsByEnquiryIdAccessDeniedForUnauthorizedUser() {
+        when(enquiryRepository.findById(10L)).thenReturn(java.util.Optional.of(enquiry));
+
+        assertThrows(AccessDeniedException.class, () -> quotationService.getQuotationsByEnquiryId(10L, salesUser2));
+    }
 }
