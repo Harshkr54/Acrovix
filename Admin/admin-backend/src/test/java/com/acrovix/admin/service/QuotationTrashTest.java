@@ -304,4 +304,17 @@ class QuotationTrashTest {
         // Cascades to items automatically via JPA orphanRemoval = true
         assertFalse(draftQuotation1.getItems().isEmpty());
     }
+
+    // 19. Active quotation returns successfully with items populated.
+    @Test
+    void testActiveQuotationReturnsWithItems() {
+        when(quotationRepository.findById(201L)).thenReturn(Optional.of(draftQuotation1));
+
+        Quotation activeQuotation = quotationService.getQuotationById(201L, superAdmin);
+
+        assertNotNull(activeQuotation);
+        assertNull(activeQuotation.getDeletedAt());
+        assertEquals(1, activeQuotation.getItems().size());
+        assertEquals("Server", activeQuotation.getItems().get(0).getDescription());
+    }
 }

@@ -66,27 +66,30 @@ public class QuotationController {
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
-    public ResponseEntity<Quotation> getQuotationById(
+    public ResponseEntity<java.util.Map<String, Object>> getQuotationById(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser admin) {
-        return ResponseEntity.ok(quotationService.getQuotationById(id, admin));
+        Quotation q = quotationService.getQuotationById(id, admin);
+        return ResponseEntity.ok(mapToDetailDto(q));
     }
 
     @PostMapping("/enquiry/{enquiryId}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
-    public ResponseEntity<Quotation> createDraftQuotation(
+    public ResponseEntity<java.util.Map<String, Object>> createDraftQuotation(
             @PathVariable Long enquiryId,
             @AuthenticationPrincipal AdminUser admin) {
-        return ResponseEntity.ok(quotationService.createDraftQuotation(enquiryId, admin));
+        Quotation q = quotationService.createDraftQuotation(enquiryId, admin);
+        return ResponseEntity.ok(mapToDetailDto(q));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
-    public ResponseEntity<Quotation> saveQuotationDraft(
+    public ResponseEntity<java.util.Map<String, Object>> saveQuotationDraft(
             @PathVariable Long id,
             @Valid @RequestBody QuotationRequest request,
             @AuthenticationPrincipal AdminUser admin) {
-        return ResponseEntity.ok(quotationService.saveQuotationDraft(id, request, admin));
+        Quotation q = quotationService.saveQuotationDraft(id, request, admin);
+        return ResponseEntity.ok(mapToDetailDto(q));
     }
 
     @DeleteMapping("/{id}")
@@ -155,6 +158,60 @@ public class QuotationController {
         map.put("grandTotal", q.getGrandTotal());
         map.put("status", q.getStatus());
         map.put("createdAt", q.getCreatedAt());
+        return map;
+    }
+
+    private java.util.Map<String, Object> mapToDetailDto(Quotation q) {
+        if (q == null) return null;
+        java.util.Map<String, Object> map = new java.util.HashMap<>();
+        map.put("id", q.getId());
+        map.put("quotationNumber", q.getQuotationNumber());
+        map.put("clientName", q.getClientName());
+        map.put("clientCompany", q.getClientCompany());
+        map.put("clientEmail", q.getClientEmail());
+        map.put("clientPhone", q.getClientPhone());
+        map.put("status", q.getStatus());
+        map.put("subtotal", q.getSubtotal());
+        map.put("discountAmount", q.getDiscountAmount());
+        map.put("taxAmount", q.getTaxAmount());
+        map.put("grandTotal", q.getGrandTotal());
+        map.put("validUntil", q.getValidUntil());
+        map.put("termsAndConditions", q.getTermsAndConditions());
+        map.put("createdAt", q.getCreatedAt());
+        map.put("updatedAt", q.getUpdatedAt());
+        map.put("deletedAt", q.getDeletedAt());
+
+        if (q.getEnquiry() != null) {
+            java.util.Map<String, Object> enqMap = new java.util.HashMap<>();
+            enqMap.put("id", q.getEnquiry().getId());
+            enqMap.put("referenceId", q.getEnquiry().getReferenceId());
+            enqMap.put("fullName", q.getEnquiry().getFullName());
+            enqMap.put("companyName", q.getEnquiry().getCompanyName());
+            enqMap.put("businessEmail", q.getEnquiry().getBusinessEmail());
+            enqMap.put("phoneNumber", q.getEnquiry().getPhoneNumber());
+            enqMap.put("projectRequirement", q.getEnquiry().getProjectRequirement());
+            map.put("enquiry", enqMap);
+        }
+
+        java.util.List<java.util.Map<String, Object>> itemDtos = new java.util.ArrayList<>();
+        if (q.getItems() != null) {
+            for (com.acrovix.admin.entity.QuotationItem item : q.getItems()) {
+                java.util.Map<String, Object> itemMap = new java.util.HashMap<>();
+                itemMap.put("id", item.getId());
+                itemMap.put("description", item.getDescription());
+                itemMap.put("category", item.getCategory());
+                itemMap.put("quantity", item.getQuantity());
+                itemMap.put("unit", item.getUnit());
+                itemMap.put("unitPrice", item.getUnitPrice());
+                itemMap.put("discountPercent", item.getDiscountPercent());
+                itemMap.put("taxPercent", item.getTaxPercent());
+                itemMap.put("lineTotal", item.getLineTotal());
+                itemMap.put("sortOrder", item.getSortOrder());
+                itemDtos.add(itemMap);
+            }
+        }
+        map.put("items", itemDtos);
+
         return map;
     }
 }
