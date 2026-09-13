@@ -44,8 +44,12 @@ public class AdminEnquiryService {
             if (status != null && !status.isEmpty()) predicates.add(cb.equal(root.get("status"), status));
             if (industry != null && !industry.isEmpty()) predicates.add(cb.equal(root.get("industrySector"), industry));
             if (serviceReq != null && !serviceReq.isEmpty()) predicates.add(cb.equal(root.get("serviceRequired"), serviceReq));
-            if (fromDate != null) predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), fromDate));
-            if (toDate != null) predicates.add(cb.lessThanOrEqualTo(root.get("createdAt"), toDate));
+            if (fromDate != null && toDate != null && fromDate.isAfter(toDate)) {
+                predicates.add(cb.disjunction());
+            } else {
+                if (fromDate != null) predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), fromDate));
+                if (toDate != null) predicates.add(cb.lessThanOrEqualTo(root.get("createdAt"), toDate));
+            }
             return cb.and(predicates.toArray(new Predicate[0]));
         };
         return enquiryRepository.findAll(spec, pageable);

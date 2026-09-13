@@ -152,7 +152,6 @@ export default function UserList() {
                                     </div>
                                     <select value={role} onChange={e => setRole(e.target.value)} className="input-field pl-11 appearance-none rounded-xl text-[13px] bg-bg-main h-11 cursor-pointer">
                                         <option value="SALES">Sales</option>
-                                        <option value="EDITOR">Editor</option>
                                         <option value="SUPER_ADMIN">Super Admin</option>
                                     </select>
                                 </div>
@@ -228,7 +227,6 @@ export default function UserList() {
                                                 className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md border border-border-subtle bg-bg-main text-text-primary appearance-none outline-none focus:border-[#14B8A6] disabled:opacity-50 disabled:border-transparent transition-colors cursor-pointer"
                                             >
                                                 <option value="SALES">Sales</option>
-                                                <option value="EDITOR">Editor</option>
                                                 <option value="SUPER_ADMIN">Super Admin</option>
                                             </select>
                                         </td>

@@ -6,11 +6,13 @@ import { Search, Filter, Calendar, ChevronLeft, ChevronRight, Plus, Inbox, MoreH
 export default function EnquiryList() {
     const [enquiries, setEnquiries] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [industryFilter, setIndustryFilter] = useState('');
     const [serviceFilter, setServiceFilter] = useState('');
     const [fromDate, setFromDate] = useState('');
     const [toDate, setToDate] = useState('');
+    const [dateError, setDateError] = useState(null);
     
     const [currentPage, setCurrentPage] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
@@ -19,10 +21,27 @@ export default function EnquiryList() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    // Debounce search input to prevent firing API calls on every keystroke
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchTerm);
+        }, 350);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
     const fetchEnquiries = useCallback(() => {
+        // Validate date range if both dates are selected
+        if (fromDate && toDate && fromDate > toDate) {
+            setDateError("From Date cannot be later than To Date.");
+            setIsLoading(false);
+            return;
+        } else {
+            setDateError(null);
+        }
+
         setIsLoading(true);
         let url = `/enquiries?page=${currentPage}&size=${itemsPerPage}`;
-        if (searchTerm) url += `&search=${encodeURIComponent(searchTerm)}`;
+        if (debouncedSearch) url += `&search=${encodeURIComponent(debouncedSearch)}`;
         if (statusFilter) url += `&status=${encodeURIComponent(statusFilter)}`;
         if (industryFilter) url += `&industry=${encodeURIComponent(industryFilter)}`;
         if (serviceFilter) url += `&service=${encodeURIComponent(serviceFilter)}`;
@@ -31,9 +50,9 @@ export default function EnquiryList() {
 
         fetchApi(url)
             .then(data => {
-                setEnquiries(data.content);
-                setTotalPages(data.totalPages);
-                setTotalElements(data.totalElements);
+                setEnquiries(data.content || []);
+                setTotalPages(data.totalPages || 0);
+                setTotalElements(data.totalElements || 0);
                 setIsLoading(false);
                 setError(null);
             })
@@ -42,7 +61,7 @@ export default function EnquiryList() {
                 setError(err.message);
                 setIsLoading(false);
             });
-    }, [currentPage, searchTerm, statusFilter, industryFilter, serviceFilter, fromDate, toDate]);
+    }, [currentPage, debouncedSearch, statusFilter, industryFilter, serviceFilter, fromDate, toDate]);
 
     useEffect(() => {
         fetchEnquiries();
@@ -89,6 +108,14 @@ export default function EnquiryList() {
                 </div>
             </div>
             
+            {/* Date Validation Error Banner */}
+            {dateError && (
+                <div className="p-3 bg-[#FEF2F2] border border-[#FCA5A5] rounded-xl flex items-center gap-2 text-[13px] font-medium text-[#DC2626]">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{dateError}</span>
+                </div>
+            )}
+
             {/* Toolbar */}
             <div className="card p-4 flex flex-col md:flex-row md:items-center gap-4">
                 <div className="relative flex-1 min-w-[200px]">
@@ -139,7 +166,7 @@ export default function EnquiryList() {
                             type="date" 
                             value={fromDate}
                             onChange={(e) => {setFromDate(e.target.value); setCurrentPage(0);}}
-                            className="input-field w-36 text-sm h-11"
+                            className={`input-field w-36 text-sm h-11 ${dateError ? 'border-[#DC2626]' : ''}`}
                             title="From Date"
                         />
                         <span className="text-text-muted text-[11px] font-semibold uppercase">to</span>
@@ -147,7 +174,7 @@ export default function EnquiryList() {
                             type="date" 
                             value={toDate}
                             onChange={(e) => {setToDate(e.target.value); setCurrentPage(0);}}
-                            className="input-field w-36 text-sm h-11"
+                            className={`input-field w-36 text-sm h-11 ${dateError ? 'border-[#DC2626]' : ''}`}
                             title="To Date"
                         />
                     </div>

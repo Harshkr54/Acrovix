@@ -41,14 +41,20 @@ export const fetchApi = async (endpoint, options = {}) => {
             // Attempt to parse JSON error from backend
             let errorMessage = 'An unexpected error occurred';
             try {
-                const errorData = await response.json();
-                if (errorData.message) {
-                    errorMessage = errorData.message;
-                } else if (errorData.error) {
-                    errorMessage = errorData.error;
+                const text = await response.text();
+                if (text && text.trim().length > 0) {
+                    const errorData = JSON.parse(text);
+                    if (errorData.message) {
+                        errorMessage = errorData.message;
+                    } else if (errorData.error) {
+                        errorMessage = errorData.error;
+                    }
                 }
             } catch (e) {
-                // Fallback to HTTP status messages if JSON parsing fails
+                // Fallback to HTTP status messages below
+            }
+
+            if (errorMessage === 'An unexpected error occurred') {
                 if (response.status === 400) errorMessage = "Please check the information you entered.";
                 else if (response.status === 401) errorMessage = "Your session has expired or unauthorized.";
                 else if (response.status === 403) errorMessage = "You do not have permission to perform this action.";
@@ -62,17 +68,27 @@ export const fetchApi = async (endpoint, options = {}) => {
             throw error;
         }
 
-        // Return empty JSON for 204 No Content
+        // Return empty object for 204 No Content
         if (response.status === 204) {
             return {};
         }
 
-        // Return blob for PDF endpoints
+        // Return response object for PDF endpoints
         if (url.includes('/pdf')) {
             return response;
         }
 
-        return await response.json();
+        // Read text first to safely handle empty bodies on 200/201
+        const text = await response.text();
+        if (!text || text.trim() === '') {
+            return {};
+        }
+
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            return {};
+        }
     } catch (error) {
         // Network failures or manually thrown errors
         if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
