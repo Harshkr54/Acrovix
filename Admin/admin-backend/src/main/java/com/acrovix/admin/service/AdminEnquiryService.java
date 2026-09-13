@@ -13,6 +13,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.acrovix.admin.entity.Role;
 import com.acrovix.admin.exception.ResourceNotFoundException;
 
 import jakarta.persistence.criteria.Predicate;
@@ -30,9 +31,15 @@ public class AdminEnquiryService {
     private final NotificationService notificationService;
     private final AuthorizationService authorizationService;
 
-    public Page<AdminEnquiry> getAllEnquiries(Pageable pageable, String search, String status, String industry, String serviceReq, LocalDateTime fromDate, LocalDateTime toDate) {
+    public Page<AdminEnquiry> getAllEnquiries(Pageable pageable, String search, String status, String industry, String serviceReq, LocalDateTime fromDate, LocalDateTime toDate, AdminUser currentUser) {
         Specification<AdminEnquiry> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
+            if (currentUser != null && currentUser.getRole() == Role.SALES) {
+                predicates.add(cb.or(
+                    cb.isNull(root.get("assignedTo")),
+                    cb.equal(root.get("assignedTo").get("id"), currentUser.getId())
+                ));
+            }
             if (search != null && !search.isEmpty()) {
                 String likePattern = "%" + search.toLowerCase() + "%";
                 predicates.add(cb.or(
@@ -53,6 +60,10 @@ public class AdminEnquiryService {
             return cb.and(predicates.toArray(new Predicate[0]));
         };
         return enquiryRepository.findAll(spec, pageable);
+    }
+
+    public Page<AdminEnquiry> getAllEnquiries(Pageable pageable, String search, String status, String industry, String serviceReq, LocalDateTime fromDate, LocalDateTime toDate) {
+        return getAllEnquiries(pageable, search, status, industry, serviceReq, fromDate, toDate, null);
     }
 
     public AdminEnquiry getEnquiry(Long id, AdminUser currentUser) {

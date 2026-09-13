@@ -47,7 +47,7 @@ jobs:
         run: |
           mkdir -p deploy_root/admin
           cp -R frontend/dist/* deploy_root/
-          cp -R Admin/admin-frontend/dist/* deploy_root/admin/
+          cp -R Admin/admin-frontend/dist/. deploy_root/admin/
 
       - name: Publish hostinger-prod
         uses: peaceiris/actions-gh-pages@v3

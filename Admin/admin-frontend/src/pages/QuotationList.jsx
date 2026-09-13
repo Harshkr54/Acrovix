@@ -24,9 +24,9 @@ export default function QuotationList() {
         setError(null);
         fetchApi(`/quotations?page=${currentPage}&size=${itemsPerPage}`)
             .then(data => {
-                setQuotations(data.content);
-                setTotalPages(data.totalPages);
-                setTotalElements(data.totalElements);
+                setQuotations(data?.content || []);
+                setTotalPages(data?.totalPages || 0);
+                setTotalElements(data?.totalElements || 0);
                 setIsLoading(false);
             })
             .catch(err => {

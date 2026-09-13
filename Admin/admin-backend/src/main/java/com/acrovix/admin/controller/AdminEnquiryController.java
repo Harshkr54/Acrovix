@@ -33,8 +33,9 @@ public class AdminEnquiryController {
             @RequestParam(required = false) String industry,
             @RequestParam(required = false) String service,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fromDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime toDate) {
-        return ResponseEntity.ok(enquiryService.getAllEnquiries(PageRequest.of(page, size, Sort.by("createdAt").descending()), search, status, industry, service, fromDate, toDate));
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime toDate,
+            @AuthenticationPrincipal AdminUser admin) {
+        return ResponseEntity.ok(enquiryService.getAllEnquiries(PageRequest.of(page, size, Sort.by("createdAt").descending()), search, status, industry, service, fromDate, toDate, admin));
     }
 
     @GetMapping("/{id}")

@@ -25,6 +25,7 @@ export default function QuotationBuilder() {
     const [currentQuotationId, setCurrentQuotationId] = useState(null);
     const [quotationNumber, setQuotationNumber] = useState('');
     const [isSaving, setIsSaving] = useState(false);
+    const [isSending, setIsSending] = useState(false);
     const [error, setError] = useState(null);
     const [isInitializing, setIsInitializing] = useState(true);
 
@@ -72,7 +73,7 @@ export default function QuotationBuilder() {
                 }
 
             } else if (!isEditMode && enquiryId) {
-                // NEW MODE: Create draft from enquiry
+                // NEW MODE: Load enquiry details, but DO NOT create a draft in DB on mount!
                 const enqData = await fetchApi(`/enquiries/${enquiryId}`);
                 setEnquiry(enqData);
                 setClientName(enqData.fullName || '');
@@ -80,14 +81,9 @@ export default function QuotationBuilder() {
                 setClientEmail(enqData.businessEmail || '');
                 setClientPhone(enqData.phoneNumber || '');
                 setQuotationSource('ENQUIRY');
-                
-                // Create the draft immediately on mount
-                const q = await fetchApi(`/quotations/enquiry/${enquiryId}`, { method: 'POST' });
-                setCurrentQuotationId(q.id);
-                setQuotationNumber(q.quotationNumber);
-                
-                // Navigate to edit route so we don't recreate it on refresh
-                navigate(`/quotations/edit/${q.id}`, { replace: true });
+                setItems([{ id: Date.now(), description: '', category: '', quantity: 1, unit: 'unit', unitPrice: 0, discountPercent: 0, taxPercent: 18 }]);
+                setCurrentQuotationId(null);
+                setQuotationNumber('');
             } else {
                 throw new Error("Invalid routing parameters.");
             }
@@ -97,7 +93,7 @@ export default function QuotationBuilder() {
         } finally {
             setIsInitializing(false);
         }
-    }, [enquiryId, quotationId, isEditMode, navigate]);
+    }, [enquiryId, quotationId, isEditMode]);
 
     useEffect(() => {
         initializeBuilder();
@@ -202,30 +198,46 @@ export default function QuotationBuilder() {
     const totals = calculateTotals();
 
     const handleSaveDraft = async () => {
-        if (!currentQuotationId) return;
+        if (isSaving || isSending) return;
         setIsSaving(true);
+        setError(null);
         
-        const payload = {
-            clientName: clientName,
-            clientCompany: clientCompany,
-            clientEmail: clientEmail,
-            clientPhone: clientPhone,
-            quotationSource: quotationSource,
-            sourceNotes: sourceNotes,
-            items: items.map((item, index) => ({
-                description: item.description,
-                category: item.category,
-                quantity: item.quantity,
-                unit: item.unit,
-                unitPrice: item.unitPrice,
-                discountPercent: item.discountPercent,
-                taxPercent: item.taxPercent,
-                sortOrder: index
-            }))
-        };
-
         try {
-            await fetchApi(`/quotations/${currentQuotationId}`, {
+            let activeQuotationId = currentQuotationId;
+
+            // If draft has not been persisted in DB yet (unsaved enquiry quotation):
+            if (!activeQuotationId && enquiryId) {
+                const q = await fetchApi(`/quotations/enquiry/${enquiryId}`, { method: 'POST' });
+                activeQuotationId = q.id;
+                setCurrentQuotationId(q.id);
+                setQuotationNumber(q.quotationNumber);
+                navigate(`/quotations/edit/${q.id}`, { replace: true });
+            }
+
+            if (!activeQuotationId) {
+                throw new Error("No active quotation to save.");
+            }
+
+            const payload = {
+                clientName: clientName,
+                clientCompany: clientCompany,
+                clientEmail: clientEmail,
+                clientPhone: clientPhone,
+                quotationSource: quotationSource,
+                sourceNotes: sourceNotes,
+                items: items.map((item, index) => ({
+                    description: item.description,
+                    category: item.category,
+                    quantity: item.quantity,
+                    unit: item.unit,
+                    unitPrice: item.unitPrice,
+                    discountPercent: item.discountPercent,
+                    taxPercent: item.taxPercent,
+                    sortOrder: index
+                }))
+            };
+
+            await fetchApi(`/quotations/${activeQuotationId}`, {
                 method: 'PUT',
                 body: JSON.stringify(payload)
             });
@@ -233,27 +245,73 @@ export default function QuotationBuilder() {
                 setIsSaving(false);
             }, 500); // brief delay for UX
         } catch (error) {
-            console.error(error);
+            console.error("Save Draft Error:", error);
             alert(error.message || "Failed to save draft");
             setIsSaving(false);
         }
     };
 
     const handleSend = async () => {
+        if (isSending || isSaving) return;
         if (!window.confirm("Are you sure you want to send this quotation?")) return;
         
-        await handleSaveDraft(); // Ensure latest is saved
-        
+        setIsSending(true);
+        setError(null);
+
         try {
-            await fetchApi(`/quotations/${currentQuotationId}/send`, {
+            let activeQuotationId = currentQuotationId;
+
+            // If draft has not been persisted in DB yet:
+            if (!activeQuotationId && enquiryId) {
+                const q = await fetchApi(`/quotations/enquiry/${enquiryId}`, { method: 'POST' });
+                activeQuotationId = q.id;
+                setCurrentQuotationId(q.id);
+                setQuotationNumber(q.quotationNumber);
+                navigate(`/quotations/edit/${q.id}`, { replace: true });
+            }
+
+            if (!activeQuotationId) {
+                throw new Error("No active quotation to send.");
+            }
+
+            const payload = {
+                clientName: clientName,
+                clientCompany: clientCompany,
+                clientEmail: clientEmail,
+                clientPhone: clientPhone,
+                quotationSource: quotationSource,
+                sourceNotes: sourceNotes,
+                items: items.map((item, index) => ({
+                    description: item.description,
+                    category: item.category,
+                    quantity: item.quantity,
+                    unit: item.unit,
+                    unitPrice: item.unitPrice,
+                    discountPercent: item.discountPercent,
+                    taxPercent: item.taxPercent,
+                    sortOrder: index
+                }))
+            };
+
+            // Ensure latest state is saved
+            await fetchApi(`/quotations/${activeQuotationId}`, {
+                method: 'PUT',
+                body: JSON.stringify(payload)
+            });
+
+            // Send email
+            await fetchApi(`/quotations/${activeQuotationId}/send`, {
                 method: 'POST'
             });
+
             window.dispatchEvent(new Event('notification-update'));
             alert("Quotation sent successfully!");
             navigate('/enquiries');
         } catch (error) {
-            console.error(error);
+            console.error("Send Quotation Error:", error);
             alert(error.message || "Failed to send quotation.");
+        } finally {
+            setIsSending(false);
         }
     };
 
@@ -325,16 +383,17 @@ export default function QuotationBuilder() {
                 <div className="flex items-center space-x-3">
                     <button 
                         onClick={handleSaveDraft} 
-                        disabled={isSaving}
+                        disabled={isSaving || isSending}
                         className="inline-flex items-center justify-center px-4 py-2.5 bg-bg-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors shadow-sm"
                     >
                         {isSaving ? <><span className="animate-spin w-4 h-4 border-b-2 border-text-primary rounded-full mr-2"></span> Saving</> : <><Save className="mr-2 h-4 w-4 text-text-secondary" /> Save Draft</>}
                     </button>
                     <button 
                         onClick={handleSend} 
-                        className="btn-primary flex items-center px-5 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]"
+                        disabled={isSending || isSaving}
+                        className="btn-primary flex items-center px-5 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)] disabled:opacity-50"
                     >
-                        <Send className="mr-2 h-4 w-4" /> Send Quotation
+                        {isSending ? <><span className="animate-spin w-4 h-4 border-b-2 border-white rounded-full mr-2"></span> Sending...</> : <><Send className="mr-2 h-4 w-4" /> Send Quotation</>}
                     </button>
                 </div>
             </div>

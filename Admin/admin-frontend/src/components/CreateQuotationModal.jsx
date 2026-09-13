@@ -46,6 +46,7 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
 
     const handleCreateDirectQuotation = async (e) => {
         e.preventDefault();
+        if (isCreating) return;
         setError(null);
 
         if (!formData.clientName.trim()) {
