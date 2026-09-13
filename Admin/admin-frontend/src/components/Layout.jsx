@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { LayoutDashboard, MessageSquare, LogOut, FileText, Shield, Menu, X, ChevronLeft, ChevronRight, Sun, Moon, Search, Bell, Settings, Trash2 } from 'lucide-react';
 import HeaderControls from './HeaderControls';
+import { getInitials } from '../utils/userUtils';
 
 export default function Layout() {
     const { user, logout } = useAuth();
@@ -162,7 +163,7 @@ export default function Layout() {
                     {!isCollapsed && (
                         <div className="mb-4 flex items-center px-2">
                             <div className="w-10 h-10 rounded-full bg-[#EEF2FF] flex items-center justify-center mr-3 text-[#4F46E5] font-bold shadow-sm">
-                                {user?.role === 'SUPER_ADMIN' ? 'SA' : user?.name?.charAt(0)?.toUpperCase()}
+                                {getInitials(user?.name)}
                             </div>
                             <div className="overflow-hidden">
                                 <p className="text-sm font-semibold text-text-primary truncate leading-tight">{user?.name || 'Admin User'}</p>

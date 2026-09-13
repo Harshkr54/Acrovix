@@ -4,6 +4,7 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { fetchApi } from '../services/api';
+import { getInitials } from '../utils/userUtils';
 
 export default function HeaderControls() {
     const { user, logout } = useAuth();
@@ -370,7 +371,7 @@ export default function HeaderControls() {
                     }`}
                 >
                     <div className="w-7 h-7 rounded-full bg-[#EEF2FF] flex items-center justify-center text-[#4F46E5] font-bold text-xs">
-                        {user?.role === 'SUPER_ADMIN' ? 'SA' : user?.name?.charAt(0)?.toUpperCase()}
+                        {getInitials(user?.name)}
                     </div>
                     <ChevronRight className={`w-4 h-4 text-text-muted transition-transform ${activeDropdown === 'profile' ? '-rotate-90' : 'rotate-90'}`} />
                 </div>

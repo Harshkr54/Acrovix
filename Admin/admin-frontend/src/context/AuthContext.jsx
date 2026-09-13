@@ -10,11 +10,32 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const storedUser = localStorage.getItem('adminUser');
-        if (storedUser) {
-            setUser(JSON.parse(storedUser));
-        }
-        setLoading(false);
+        const initAuth = async () => {
+            const storedUser = localStorage.getItem('adminUser');
+            if (storedUser) {
+                try {
+                    setUser(JSON.parse(storedUser));
+                } catch (e) {
+                    console.error("Failed to parse stored user", e);
+                }
+            }
+
+            const token = localStorage.getItem('adminToken');
+            if (token) {
+                try {
+                    const data = await fetchApi('/profile');
+                    if (data && data.name) {
+                        const userData = { name: data.name, email: data.email, role: data.role };
+                        localStorage.setItem('adminUser', JSON.stringify(userData));
+                        setUser(userData);
+                    }
+                } catch (err) {
+                    console.error("Failed to sync profile on init:", err);
+                }
+            }
+            setLoading(false);
+        };
+        initAuth();
     }, []);
 
     const login = async (email, password) => {

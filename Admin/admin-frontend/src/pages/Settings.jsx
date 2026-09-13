@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Moon, Sun, Shield, Settings as SettingsIcon, Save, Lock, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { User, Moon, Sun, Shield, Settings as SettingsIcon, Save, Lock, Loader2, CheckCircle, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { fetchApi } from '../services/api';
@@ -21,6 +21,9 @@ export default function Settings() {
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isSavingPassword, setIsSavingPassword] = useState(false);
     const [passwordMessage, setPasswordMessage] = useState(null);
 
@@ -194,35 +197,65 @@ export default function Settings() {
                         <form onSubmit={handlePasswordSubmit} className="space-y-4">
                             <div>
                                 <label className="block text-[12px] font-semibold text-text-secondary mb-1.5">Current Password</label>
-                                <input 
-                                    type="password" 
-                                    value={currentPassword} 
-                                    onChange={e => setCurrentPassword(e.target.value)}
-                                    required
-                                    className="w-full px-4 py-2 bg-bg-main focus:bg-bg-card border border-border-subtle focus:border-[#4F46E5] rounded-lg text-sm text-text-primary outline-none transition-all"
-                                />
+                                <div className="relative">
+                                    <input 
+                                        type={showCurrentPassword ? "text" : "password"} 
+                                        value={currentPassword} 
+                                        onChange={e => setCurrentPassword(e.target.value)}
+                                        required
+                                        className="w-full pl-4 pr-11 py-2 bg-bg-main focus:bg-bg-card border border-border-subtle focus:border-[#4F46E5] rounded-lg text-sm text-text-primary outline-none transition-all"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                                        aria-label={showCurrentPassword ? "Hide password" : "Show password"}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-1 rounded-md transition-colors focus:outline-none"
+                                    >
+                                        {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                    </button>
+                                </div>
                             </div>
                             <div>
                                 <label className="block text-[12px] font-semibold text-text-secondary mb-1.5">New Password</label>
-                                <input 
-                                    type="password" 
-                                    value={newPassword} 
-                                    onChange={e => setNewPassword(e.target.value)}
-                                    required
-                                    minLength={8}
-                                    className="w-full px-4 py-2 bg-bg-main focus:bg-bg-card border border-border-subtle focus:border-[#4F46E5] rounded-lg text-sm text-text-primary outline-none transition-all"
-                                />
+                                <div className="relative">
+                                    <input 
+                                        type={showNewPassword ? "text" : "password"} 
+                                        value={newPassword} 
+                                        onChange={e => setNewPassword(e.target.value)}
+                                        required
+                                        minLength={8}
+                                        className="w-full pl-4 pr-11 py-2 bg-bg-main focus:bg-bg-card border border-border-subtle focus:border-[#4F46E5] rounded-lg text-sm text-text-primary outline-none transition-all"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowNewPassword(!showNewPassword)}
+                                        aria-label={showNewPassword ? "Hide password" : "Show password"}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-1 rounded-md transition-colors focus:outline-none"
+                                    >
+                                        {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                    </button>
+                                </div>
                             </div>
                             <div>
                                 <label className="block text-[12px] font-semibold text-text-secondary mb-1.5">Confirm New Password</label>
-                                <input 
-                                    type="password" 
-                                    value={confirmPassword} 
-                                    onChange={e => setConfirmPassword(e.target.value)}
-                                    required
-                                    minLength={8}
-                                    className="w-full px-4 py-2 bg-bg-main focus:bg-bg-card border border-border-subtle focus:border-[#4F46E5] rounded-lg text-sm text-text-primary outline-none transition-all"
-                                />
+                                <div className="relative">
+                                    <input 
+                                        type={showConfirmPassword ? "text" : "password"} 
+                                        value={confirmPassword} 
+                                        onChange={e => setConfirmPassword(e.target.value)}
+                                        required
+                                        minLength={8}
+                                        className="w-full pl-4 pr-11 py-2 bg-bg-main focus:bg-bg-card border border-border-subtle focus:border-[#4F46E5] rounded-lg text-sm text-text-primary outline-none transition-all"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-1 rounded-md transition-colors focus:outline-none"
+                                    >
+                                        {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                    </button>
+                                </div>
                             </div>
                             
                             <div className="pt-2">
