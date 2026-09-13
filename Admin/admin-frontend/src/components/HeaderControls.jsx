@@ -90,8 +90,8 @@ export default function HeaderControls() {
 
     const fetchUnreadCount = async () => {
         try {
-            const count = await fetchApi('/notifications/unread-count');
-            setUnreadCount(count);
+            const data = await fetchApi('/notifications/unread-count');
+            setUnreadCount(data?.unreadCount ?? 0);
         } catch (error) {
             console.error("Error fetching unread count", error);
         }

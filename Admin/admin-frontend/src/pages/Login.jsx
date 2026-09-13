@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Shield, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
+import { API_BASE_URL } from '../services/api';
 
 export default function Login() {
     const [email, setEmail] = useState('');
@@ -10,6 +11,14 @@ export default function Login() {
     const [isLoading, setIsLoading] = useState(false);
     const { login } = useAuth();
     const navigate = useNavigate();
+
+    // Fire-and-forget warm-up ping: wakes the Render backend while the admin
+    // is reading the login form, giving the JVM a head start before login.
+    // Uses the public /api/health endpoint — no auth required, result ignored.
+    useEffect(() => {
+        const healthUrl = API_BASE_URL.replace('/api/admin', '/api/health');
+        fetch(healthUrl).catch(() => {/* intentionally ignored */});
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();

@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -28,19 +29,33 @@ public class DashboardController {
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
     public ResponseEntity<Map<String, Object>> getStats() {
         Map<String, Object> stats = new HashMap<>();
-        
+
+        // --- Enquiries: 2 queries instead of 3 ---
+        // One query for total count + one GROUP BY for status counts
         long totalEnquiries = enquiryRepository.count();
-        long newEnquiries = enquiryRepository.countByStatus("NEW");
         LocalDateTime startOfMonth = YearMonth.now().atDay(1).atStartOfDay();
         long enquiriesThisMonth = enquiryRepository.countByCreatedAtAfter(startOfMonth);
-        
+
+        // Single GROUP BY query replaces individual countByStatus("NEW") calls
+        List<Object[]> enquiryStatusCounts = enquiryRepository.countGroupByStatus();
+        Map<String, Long> enquiriesByStatus = new HashMap<>();
+        for (Object[] row : enquiryStatusCounts) {
+            enquiriesByStatus.put((String) row[0], (Long) row[1]);
+        }
+        long newEnquiries = enquiriesByStatus.getOrDefault("NEW", 0L);
+
+        // --- Quotations: 2 queries instead of 7 ---
+        // One query for total count + one GROUP BY for all status counts
         long totalQuotations = quotationRepository.count();
-        long draftQuotations = quotationRepository.countByStatus("DRAFT");
-        long sentQuotations = quotationRepository.countByStatus("SENT");
-        long acceptedQuotations = quotationRepository.countByStatus("ACCEPTED");
-        long rejectedQuotations = quotationRepository.countByStatus("REJECTED");
-        long expiredQuotations = quotationRepository.countByStatus("EXPIRED");
-        
+
+        // Single GROUP BY query replaces 5 separate countByStatus() calls
+        List<Object[]> quotationStatusCounts = quotationRepository.countGroupByStatus();
+        Map<String, Long> quotationsByStatus = new HashMap<>();
+        for (Object[] row : quotationStatusCounts) {
+            quotationsByStatus.put((String) row[0], (Long) row[1]);
+        }
+        long acceptedQuotations = quotationsByStatus.getOrDefault("ACCEPTED", 0L);
+
         double conversionRate = 0.0;
         if (totalQuotations > 0) {
             conversionRate = (double) acceptedQuotations / totalQuotations * 100.0;
@@ -52,15 +67,8 @@ public class DashboardController {
         stats.put("totalQuotations", totalQuotations);
         stats.put("acceptedQuotations", acceptedQuotations);
         stats.put("conversionRate", Math.round(conversionRate * 10.0) / 10.0);
-        
-        Map<String, Long> quotationsByStatus = new HashMap<>();
-        quotationsByStatus.put("DRAFT", draftQuotations);
-        quotationsByStatus.put("SENT", sentQuotations);
-        quotationsByStatus.put("ACCEPTED", acceptedQuotations);
-        quotationsByStatus.put("REJECTED", rejectedQuotations);
-        quotationsByStatus.put("EXPIRED", expiredQuotations);
         stats.put("quotationsByStatus", quotationsByStatus);
-        
+
         stats.put("recentActivities", activityRepository.findTop50ByOrderByCreatedAtDesc());
         stats.put("recentEnquiries", enquiryRepository.findTop5ByOrderByCreatedAtDesc());
         return ResponseEntity.ok(stats);
