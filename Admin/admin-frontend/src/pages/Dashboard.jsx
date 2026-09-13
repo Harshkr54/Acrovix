@@ -626,8 +626,8 @@ export default function Dashboard() {
                                                                 ? 'bg-[#EEF2FF] border-[#818CF8] text-[#4F46E5] dark:bg-[#312E81]/30 dark:border-[#6366F1] dark:text-[#818CF8] shadow-sm'
                                                                 : 'bg-bg-card border-border-subtle text-text-secondary hover:text-text-primary hover:shadow-sm'
                                                         }`}
-                                                        title="Actions"
-                                                        aria-label={`Actions for ${enq.referenceId || enq.id}`}
+                                                        title="More actions"
+                                                        aria-label="More actions"
                                                     >
                                                         <MoreHorizontal className="w-4 h-4" />
                                                     </button>
