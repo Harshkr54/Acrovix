@@ -20,7 +20,7 @@ public class GeminiExtractionService {
     @Value("${gemini.api-key}")
     private String geminiApiKey;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public String extractQuotationRows(String roughText) {

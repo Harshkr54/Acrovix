@@ -33,10 +33,6 @@ public class EmailService {
     @Value("${acrovix.mail.from-name:ACROVIX}")
     private String fromName;
 
-    public EmailService(PdfService pdfService) {
-        this(pdfService, new RestTemplate());
-    }
-
     public EmailService(PdfService pdfService, RestTemplate restTemplate) {
         this.pdfService = pdfService;
         this.restTemplate = restTemplate;
