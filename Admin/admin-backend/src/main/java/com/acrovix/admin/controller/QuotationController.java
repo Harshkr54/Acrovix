@@ -153,6 +153,9 @@ public class QuotationController {
             @AuthenticationPrincipal AdminUser admin) {
         Quotation quotation = quotationRepository.findById(id)
                 .orElseThrow(() -> new com.acrovix.admin.exception.ResourceNotFoundException("Quotation not found"));
+        if (quotation.getDeletedAt() != null) {
+            throw new com.acrovix.admin.exception.ResourceNotFoundException("Quotation not found");
+        }
         authorizationService.checkQuotationAccess(admin, quotation);
         emailService.sendQuotationEmail(quotation);
         quotationService.markAsSent(id, admin);
