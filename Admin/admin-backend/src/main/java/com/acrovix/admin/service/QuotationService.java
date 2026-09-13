@@ -240,8 +240,9 @@ public class QuotationService {
 
     @Transactional(readOnly = true)
     public Quotation getQuotationById(Long id, AdminUser admin) {
-        Quotation quotation = quotationRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Quotation not found"));
+        Quotation quotation = quotationRepository.findWithDetailsById(id)
+                .orElseGet(() -> quotationRepository.findById(id)
+                        .orElseThrow(() -> new ResourceNotFoundException("Quotation not found")));
         if (quotation.getDeletedAt() != null) {
             throw new ResourceNotFoundException("Quotation not found");
         }

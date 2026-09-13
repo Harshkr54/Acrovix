@@ -136,9 +136,7 @@ public class QuotationController {
     public ResponseEntity<byte[]> previewPdf(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser admin) {
-        Quotation quotation = quotationRepository.findById(id)
-                .orElseThrow(() -> new com.acrovix.admin.exception.ResourceNotFoundException("Quotation not found"));
-        authorizationService.checkQuotationAccess(admin, quotation);
+        Quotation quotation = quotationService.getQuotationById(id, admin);
         byte[] pdf = pdfService.generateQuotationPdf(quotation);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=quotation.pdf")
@@ -151,12 +149,7 @@ public class QuotationController {
     public ResponseEntity<?> sendQuotation(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser admin) {
-        Quotation quotation = quotationRepository.findById(id)
-                .orElseThrow(() -> new com.acrovix.admin.exception.ResourceNotFoundException("Quotation not found"));
-        if (quotation.getDeletedAt() != null) {
-            throw new com.acrovix.admin.exception.ResourceNotFoundException("Quotation not found");
-        }
-        authorizationService.checkQuotationAccess(admin, quotation);
+        Quotation quotation = quotationService.getQuotationById(id, admin);
         emailService.sendQuotationEmail(quotation);
         quotationService.markAsSent(id, admin);
         return ResponseEntity.ok().build();

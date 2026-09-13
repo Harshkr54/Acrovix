@@ -95,13 +95,23 @@ public class EmailService {
             restTemplate.postForObject(url, entity, String.class);
             logger.info("Successfully sent quotation email #{} to {}", quotation.getId(), quotation.getClientEmail());
         } catch (IllegalArgumentException | IllegalStateException e) {
+            logger.error("Quotation email failed validation/configuration check [quotationId={}]: {}",
+                    quotation != null ? quotation.getId() : null, e.getMessage());
             throw e;
         } catch (HttpStatusCodeException e) {
-            logger.error("Brevo API HTTP Error {}: {}", e.getStatusCode(), e.getResponseBodyAsString());
-            throw new IllegalStateException("Failed to send email via Brevo (" + e.getStatusCode().value() + "). Please try again later.");
+            String responseBody = e.getResponseBodyAsString();
+            String sanitizedBody = (brevoApiKey != null && !brevoApiKey.trim().isEmpty())
+                    ? responseBody.replace(brevoApiKey.trim(), "[REDACTED]")
+                    : responseBody;
+            logger.error("Brevo API HTTP Error [quotationId={}] Status {}: {}",
+                    quotation != null ? quotation.getId() : null, e.getStatusCode().value(), sanitizedBody);
+            throw new IllegalStateException("Failed to send email via Brevo (" + e.getStatusCode().value() + "). Please try again later.", e);
         } catch (Exception e) {
-            logger.error("Failed to send quotation email via Brevo: {}", e.getMessage(), e);
-            throw new IllegalStateException("Unable to send quotation email. Please try again later.");
+            logger.error("Failed to send quotation email via Brevo [quotationId={}, clientEmail={}, exception={}]: {}",
+                    quotation != null ? quotation.getId() : null,
+                    quotation != null ? quotation.getClientEmail() : null,
+                    e.getClass().getSimpleName(), e.getMessage(), e);
+            throw new IllegalStateException("Unable to send quotation email. Please try again later.", e);
         }
     }
 }

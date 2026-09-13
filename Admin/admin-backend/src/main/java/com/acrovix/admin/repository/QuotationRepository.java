@@ -17,6 +17,9 @@ public interface QuotationRepository extends JpaRepository<Quotation, Long>, Jpa
     List<Quotation> findByEnquiryIdAndDeletedAtIsNull(Long enquiryId);
     long countByStatus(String status);
 
+    @Query("SELECT DISTINCT q FROM Quotation q LEFT JOIN FETCH q.enquiry LEFT JOIN FETCH q.items WHERE q.id = :id")
+    java.util.Optional<Quotation> findWithDetailsById(@org.springframework.data.repository.query.Param("id") Long id);
+
     Page<Quotation> findByDeletedAtIsNull(Pageable pageable);
     Page<Quotation> findByDeletedAtIsNotNull(Pageable pageable);
     Page<Quotation> findByDeletedAtIsNotNullAndStatus(String status, Pageable pageable);
