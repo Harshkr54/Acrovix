@@ -53,6 +53,7 @@ public class AdminEnquiry {
     @Column(name = "status", length = 50)
     private String status = "NEW"; // Defaults to NEW in Java
 
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_to")
     private AdminUser assignedTo;

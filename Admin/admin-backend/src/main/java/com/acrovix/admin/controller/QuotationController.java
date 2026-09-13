@@ -91,18 +91,22 @@ public class QuotationController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
-    public ResponseEntity<Quotation> moveToTrash(
+    public ResponseEntity<java.util.Map<String, Object>> moveToTrash(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser admin) {
-        return ResponseEntity.ok(quotationService.moveToTrash(id, admin));
+        Quotation q = quotationService.moveToTrash(id, admin);
+        java.util.Map<String, Object> map = mapToDto(q);
+        map.put("deletedAt", q.getDeletedAt());
+        return ResponseEntity.ok(map);
     }
 
     @PatchMapping("/{id}/restore")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
-    public ResponseEntity<Quotation> restoreFromTrash(
+    public ResponseEntity<java.util.Map<String, Object>> restoreFromTrash(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser admin) {
-        return ResponseEntity.ok(quotationService.restoreFromTrash(id, admin));
+        Quotation q = quotationService.restoreFromTrash(id, admin);
+        return ResponseEntity.ok(mapToDto(q));
     }
 
     @DeleteMapping("/{id}/permanent")

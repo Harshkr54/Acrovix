@@ -25,6 +25,7 @@ public class Quotation {
     @Column(name = "quotation_number", unique = true, nullable = false, length = 50)
     private String quotationNumber;
 
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "enquiry_id")
     private AdminEnquiry enquiry;
@@ -62,6 +63,7 @@ public class Quotation {
     @Column(name = "terms_and_conditions", columnDefinition = "TEXT")
     private String termsAndConditions;
 
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", nullable = false)
     private AdminUser createdBy;
