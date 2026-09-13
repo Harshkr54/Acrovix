@@ -13,6 +13,26 @@ const DEFAULT_FILTERS = {
     toDate: ''
 };
 
+const getChartTrendLabel = (dateRange) => {
+    switch (dateRange) {
+        case 'TODAY':
+            return 'Today Trend';
+        case 'LAST_7_DAYS':
+            return 'Last 7 Days Trend';
+        case 'LAST_30_DAYS':
+            return 'Last 30 Days Trend';
+        case 'THIS_MONTH':
+            return 'This Month Trend';
+        case 'THIS_YEAR':
+            return 'This Year Trend';
+        case 'CUSTOM':
+            return 'Custom Date Trend';
+        case 'ALL_TIME':
+        default:
+            return 'All Time Trend';
+    }
+};
+
 export default function Dashboard() {
     const [stats, setStats] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
