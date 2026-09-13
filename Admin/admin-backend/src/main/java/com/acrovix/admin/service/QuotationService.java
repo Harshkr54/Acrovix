@@ -55,6 +55,12 @@ public class QuotationService {
                 .build();
 
         Quotation saved = quotationRepository.save(quotation);
+        if (saved.getItems() != null) {
+            saved.getItems().size();
+        }
+        if (saved.getEnquiry() != null) {
+            saved.getEnquiry().getReferenceId();
+        }
         logActivity(admin.getId(), "Created Quotation DRAFT: " + saved.getQuotationNumber(), "Quotation", saved.getId());
         return saved;
     }
@@ -133,6 +139,12 @@ public class QuotationService {
         quotation.setGrandTotal(subtotal.add(totalTaxAmount));
 
         Quotation saved = quotationRepository.save(quotation);
+        if (saved.getItems() != null) {
+            saved.getItems().size();
+        }
+        if (saved.getEnquiry() != null) {
+            saved.getEnquiry().getReferenceId();
+        }
         logActivity(admin.getId(), "Updated Quotation: " + saved.getQuotationNumber(), "Quotation", saved.getId());
         return saved;
     }
@@ -188,6 +200,12 @@ public class QuotationService {
             throw new ResourceNotFoundException("Quotation not found");
         }
         authorizationService.checkQuotationAccess(admin, quotation);
+        if (quotation.getItems() != null) {
+            quotation.getItems().size();
+        }
+        if (quotation.getEnquiry() != null) {
+            quotation.getEnquiry().getReferenceId();
+        }
         return quotation;
     }
 

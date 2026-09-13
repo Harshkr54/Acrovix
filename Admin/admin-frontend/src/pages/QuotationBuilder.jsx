@@ -238,17 +238,33 @@ export default function QuotationBuilder() {
     };
 
     if (error) {
+        const isTrashError = error.includes("not found") || error.includes("404") || error.includes("Trash");
         return (
             <div className="flex flex-col items-center justify-center min-h-[50vh] text-center px-4">
                 <div className="w-16 h-16 bg-[#FEF2F2] border border-[#FCA5A5] flex items-center justify-center rounded-[20px] mb-6 shadow-sm">
                     <AlertCircle className="w-8 h-8 text-[#DC2626]" />
                 </div>
-                <h2 className="text-[20px] font-bold text-text-primary mb-2 tracking-tight">Initialization Failed</h2>
-                <p className="text-text-secondary mb-6 text-[13px] leading-relaxed max-w-sm">{error}</p>
-                <button onClick={initializeBuilder} className="btn-primary flex items-center px-4 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]">
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Retry
-                </button>
+                <h2 className="text-[20px] font-bold text-text-primary mb-2 tracking-tight">
+                    {isTrashError ? "Quotation Unavailable" : "Initialization Failed"}
+                </h2>
+                <p className="text-text-secondary mb-6 text-[13px] leading-relaxed max-w-sm">
+                    {isTrashError ? "This quotation is in Trash or no longer exists. Please restore it from the Trash section before editing." : error}
+                </p>
+                <div className="flex items-center space-x-3">
+                    <button onClick={() => navigate('/quotations')} className="inline-flex items-center px-4 py-2.5 bg-bg-card hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors shadow-sm">
+                        Back to Quotations
+                    </button>
+                    {isTrashError ? (
+                        <button onClick={() => navigate('/trash')} className="btn-primary flex items-center px-4 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]">
+                            Go to Trash
+                        </button>
+                    ) : (
+                        <button onClick={initializeBuilder} className="btn-primary flex items-center px-4 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]">
+                            <RefreshCw className="w-4 h-4 mr-2" />
+                            Retry
+                        </button>
+                    )}
+                </div>
             </div>
         );
     }
