@@ -33,8 +33,31 @@ public class PdfService {
 
             // Client Info
             document.add(new Paragraph("To: " + quotation.getClientName()));
-            document.add(new Paragraph(quotation.getClientCompany()));
+            if (quotation.getClientCompany() != null && !quotation.getClientCompany().isBlank()) {
+                document.add(new Paragraph(quotation.getClientCompany()));
+            }
             document.add(new Paragraph("Email: " + quotation.getClientEmail()));
+            if (quotation.getClientPhone() != null && !quotation.getClientPhone().isBlank()) {
+                document.add(new Paragraph("Phone: " + quotation.getClientPhone()));
+            }
+
+            String sourceDisplay;
+            if (quotation.getQuotationSource() != null) {
+                sourceDisplay = quotation.getQuotationSource().name();
+            } else if (quotation.getEnquiry() != null) {
+                sourceDisplay = "WEBSITE ENQUIRY";
+            } else {
+                sourceDisplay = "DIRECT";
+            }
+            document.add(new Paragraph("Source: " + sourceDisplay));
+
+            if (quotation.getEnquiry() != null && quotation.getEnquiry().getReferenceId() != null) {
+                document.add(new Paragraph("Enquiry Ref: " + quotation.getEnquiry().getReferenceId()));
+            }
+
+            if (quotation.getSourceNotes() != null && !quotation.getSourceNotes().isBlank()) {
+                document.add(new Paragraph("Source Notes: " + quotation.getSourceNotes()));
+            }
             document.add(new Paragraph(" "));
 
             // Items Table

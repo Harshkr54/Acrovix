@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { fetchApi } from '../services/api';
 import { FileText, Plus, AlertCircle, ChevronLeft, ChevronRight, File, Trash2 } from 'lucide-react';
+import CreateQuotationModal from '../components/CreateQuotationModal';
 
 export default function QuotationList() {
     const [quotations, setQuotations] = useState([]);
@@ -9,6 +10,7 @@ export default function QuotationList() {
     const [error, setError] = useState(null);
     const navigate = useNavigate();
 
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [currentPage, setCurrentPage] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
     const [totalElements, setTotalElements] = useState(0);
@@ -95,6 +97,23 @@ export default function QuotationList() {
         }
     };
 
+    const renderSourceBadge = (q) => {
+        const source = q.quotationSource;
+        if (source === 'ENQUIRY' || (!source && q.enquiry)) {
+            return (
+                <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-[#4F46E5] bg-[#4F46E5]/10 px-2 py-0.5 rounded-md mt-1">
+                    WEBSITE ENQUIRY
+                </span>
+            );
+        }
+        const label = source ? `DIRECT · ${source}` : 'DIRECT';
+        return (
+            <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-[#14B8A6] bg-[#14B8A6]/10 px-2 py-0.5 rounded-md mt-1">
+                {label}
+            </span>
+        );
+    };
+
     if (isLoading && quotations.length === 0) {
         return (
             <div className="flex h-[60vh] items-center justify-center">
@@ -129,23 +148,26 @@ export default function QuotationList() {
                 </div>
                 <h2 className="text-[24px] font-bold text-text-primary mb-3 tracking-tight">No quotations yet</h2>
                 <p className="text-text-secondary mb-8 text-[13px] leading-relaxed">Create your first quotation to get started.</p>
-                <Link to="/enquiries" className="btn-primary flex items-center px-4 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]">
+                <button onClick={() => setIsCreateModalOpen(true)} className="btn-primary flex items-center px-4 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]">
                     <Plus className="w-4 h-4 mr-2" />
                     Create Quotation
-                </Link>
+                </button>
+                <CreateQuotationModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
             </div>
         );
     }
 
     return (
         <div className="space-y-6 max-w-[1600px] mx-auto pb-12">
+            <CreateQuotationModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
+
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
                 <div>
                     <h1 className="text-[28px] font-bold text-text-primary tracking-tight leading-tight">Quotations</h1>
                     <p className="text-[13px] text-text-secondary mt-1">Create and manage client quotations.</p>
                 </div>
-                <button onClick={() => navigate('/enquiries')} className="btn-primary flex items-center px-4 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]">
+                <button onClick={() => setIsCreateModalOpen(true)} className="btn-primary flex items-center px-4 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]">
                     <Plus className="w-4 h-4 mr-2" />
                     Create Quotation
                 </button>
@@ -179,6 +201,7 @@ export default function QuotationList() {
                                     <td className="px-6 py-4 align-top">
                                         <div className="text-[13px] font-semibold text-text-primary leading-tight">{q.clientName}</div>
                                         <div className="text-[12px] text-text-secondary mt-0.5">{q.clientCompany || '—'}</div>
+                                        <div>{renderSourceBadge(q)}</div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap align-top">
                                         <div className="text-[13px] font-bold text-text-primary tracking-tight">

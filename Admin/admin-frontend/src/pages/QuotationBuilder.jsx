@@ -12,6 +12,13 @@ export default function QuotationBuilder() {
     const isEditMode = location.pathname.includes('/edit/');
     
     const [enquiry, setEnquiry] = useState(null);
+    const [clientName, setClientName] = useState('');
+    const [clientCompany, setClientCompany] = useState('');
+    const [clientEmail, setClientEmail] = useState('');
+    const [clientPhone, setClientPhone] = useState('');
+    const [quotationSource, setQuotationSource] = useState('ENQUIRY');
+    const [sourceNotes, setSourceNotes] = useState('');
+
     const [roughText, setRoughText] = useState('');
     const [isParsing, setIsParsing] = useState(false);
     const [items, setItems] = useState([]);
@@ -32,15 +39,21 @@ export default function QuotationBuilder() {
                 setCurrentQuotationId(q.id);
                 setQuotationNumber(q.quotationNumber);
                 
-                // Fallback enquiry data to support standalone quotations
-                setEnquiry({
-                    referenceId: q.enquiry?.referenceId || 'Standalone',
-                    fullName: q.clientName,
-                    companyName: q.clientCompany,
-                    businessEmail: q.clientEmail,
-                    phoneNumber: q.clientPhone || '—',
-                    projectRequirement: q.enquiry?.projectRequirement || '—'
-                });
+                setClientName(q.clientName || '');
+                setClientCompany(q.clientCompany || '');
+                setClientEmail(q.clientEmail || '');
+                setClientPhone(q.clientPhone || '');
+                setQuotationSource(q.quotationSource || (q.enquiry ? 'ENQUIRY' : 'DIRECT'));
+                setSourceNotes(q.sourceNotes || '');
+
+                setEnquiry(q.enquiry ? {
+                    referenceId: q.enquiry.referenceId,
+                    fullName: q.enquiry.fullName,
+                    companyName: q.enquiry.companyName,
+                    businessEmail: q.enquiry.businessEmail,
+                    phoneNumber: q.enquiry.phoneNumber,
+                    projectRequirement: q.enquiry.projectRequirement || '—'
+                } : null);
                 
                 if (q.items && q.items.length > 0) {
                     setItems(q.items.map(item => ({
@@ -62,6 +75,11 @@ export default function QuotationBuilder() {
                 // NEW MODE: Create draft from enquiry
                 const enqData = await fetchApi(`/enquiries/${enquiryId}`);
                 setEnquiry(enqData);
+                setClientName(enqData.fullName || '');
+                setClientCompany(enqData.companyName || '');
+                setClientEmail(enqData.businessEmail || '');
+                setClientPhone(enqData.phoneNumber || '');
+                setQuotationSource('ENQUIRY');
                 
                 // Create the draft immediately on mount
                 const q = await fetchApi(`/quotations/enquiry/${enquiryId}`, { method: 'POST' });
@@ -188,10 +206,12 @@ export default function QuotationBuilder() {
         setIsSaving(true);
         
         const payload = {
-            clientName: enquiry.fullName,
-            clientCompany: enquiry.companyName,
-            clientEmail: enquiry.businessEmail,
-            clientPhone: enquiry.phoneNumber,
+            clientName: clientName,
+            clientCompany: clientCompany,
+            clientEmail: clientEmail,
+            clientPhone: clientPhone,
+            quotationSource: quotationSource,
+            sourceNotes: sourceNotes,
             items: items.map((item, index) => ({
                 description: item.description,
                 category: item.category,
@@ -269,7 +289,7 @@ export default function QuotationBuilder() {
         );
     }
 
-    if (isInitializing || !enquiry) {
+    if (isInitializing) {
         return (
             <div className="flex h-full items-center justify-center min-h-[50vh]">
                 <div className="flex flex-col items-center">
@@ -295,7 +315,11 @@ export default function QuotationBuilder() {
                         </span>
                     </div>
                     <p className="text-[13px] text-text-muted flex items-center mt-1">
-                        <span className="font-mono text-text-secondary mr-2">Ref: {enquiry.referenceId}</span>
+                        {enquiry?.referenceId ? (
+                            <span className="font-mono text-text-secondary mr-2">Enquiry Ref: {enquiry.referenceId}</span>
+                        ) : (
+                            <span className="font-mono text-text-secondary mr-2">Source: {quotationSource || 'DIRECT'}</span>
+                        )}
                     </p>
                 </div>
                 <div className="flex items-center space-x-3">
@@ -320,27 +344,67 @@ export default function QuotationBuilder() {
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center text-[11px] font-bold text-text-secondary uppercase tracking-wider">
                         <User className="w-4 h-4 mr-2" />
-                        Client Details
+                        Client Details &amp; Source
                     </div>
+                    {enquiry?.referenceId ? (
+                        <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-[#4F46E5] bg-[#4F46E5]/10 px-2 py-0.5 rounded-md">
+                            WEBSITE ENQUIRY
+                        </span>
+                    ) : (
+                        <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-[#14B8A6] bg-[#14B8A6]/10 px-2 py-0.5 rounded-md">
+                            DIRECT · {quotationSource || 'PHONE'}
+                        </span>
+                    )}
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div>
                         <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Client Name</p>
-                        <p className="text-[13px] font-semibold text-text-primary leading-tight">{enquiry.fullName}</p>
+                        <input
+                            type="text"
+                            value={clientName}
+                            onChange={(e) => setClientName(e.target.value)}
+                            className="w-full bg-bg-main border border-border-subtle focus:border-[#14B8A6] rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
+                            placeholder="Client Name"
+                        />
                     </div>
                     <div>
                         <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Company</p>
-                        <p className="text-[13px] font-semibold text-text-primary leading-tight">{enquiry.companyName || '—'}</p>
+                        <input
+                            type="text"
+                            value={clientCompany}
+                            onChange={(e) => setClientCompany(e.target.value)}
+                            className="w-full bg-bg-main border border-border-subtle focus:border-[#14B8A6] rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
+                            placeholder="Company Name"
+                        />
                     </div>
                     <div>
                         <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Email</p>
-                        <p className="text-[13px] font-medium text-text-primary truncate" title={enquiry.businessEmail}>{enquiry.businessEmail}</p>
+                        <input
+                            type="email"
+                            value={clientEmail}
+                            onChange={(e) => setClientEmail(e.target.value)}
+                            className="w-full bg-bg-main border border-border-subtle focus:border-[#14B8A6] rounded-xl px-3 py-2 text-[13px] font-medium text-text-primary outline-none transition-colors"
+                            placeholder="client@email.com"
+                        />
                     </div>
                     <div>
-                        <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Requirement</p>
-                        <p className="text-[13px] font-medium text-text-primary truncate" title={enquiry.projectRequirement}>{enquiry.projectRequirement}</p>
+                        <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Phone</p>
+                        <input
+                            type="text"
+                            value={clientPhone}
+                            onChange={(e) => setClientPhone(e.target.value)}
+                            className="w-full bg-bg-main border border-border-subtle focus:border-[#14B8A6] rounded-xl px-3 py-2 text-[13px] font-medium text-text-primary outline-none transition-colors"
+                            placeholder="+91..."
+                        />
                     </div>
                 </div>
+
+                {sourceNotes && (
+                    <div className="mt-4 pt-4 border-t border-border-subtle/50">
+                        <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1">Source Notes</p>
+                        <p className="text-[13px] text-text-secondary italic">{sourceNotes}</p>
+                    </div>
+                )}
             </div>
 
             {/* Gemini Import */}

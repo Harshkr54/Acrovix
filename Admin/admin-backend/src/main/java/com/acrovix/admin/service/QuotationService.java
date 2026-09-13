@@ -45,6 +45,7 @@ public class QuotationService {
                 .clientCompany(enquiry.getCompanyName())
                 .clientEmail(enquiry.getBusinessEmail())
                 .clientPhone(enquiry.getPhoneNumber())
+                .quotationSource(QuotationSource.ENQUIRY)
                 .status("DRAFT")
                 .subtotal(BigDecimal.ZERO)
                 .discountAmount(BigDecimal.ZERO)
@@ -73,6 +74,38 @@ public class QuotationService {
     }
 
     @Transactional
+    public Quotation createDirectDraftQuotation(com.acrovix.admin.dto.CreateDirectQuotationRequest request, AdminUser admin) {
+        if (admin == null) {
+            throw new org.springframework.security.access.AccessDeniedException("Access denied: Unauthenticated user");
+        }
+
+        Quotation quotation = Quotation.builder()
+                .quotationNumber(sequenceGenerator.generateNextQuotationNumber())
+                .enquiry(null)
+                .clientName(request.getClientName())
+                .clientCompany(request.getClientCompany())
+                .clientEmail(request.getClientEmail())
+                .clientPhone(request.getClientPhone())
+                .quotationSource(request.getQuotationSource() != null ? request.getQuotationSource() : QuotationSource.OTHER)
+                .sourceNotes(request.getSourceNotes())
+                .status("DRAFT")
+                .subtotal(BigDecimal.ZERO)
+                .discountAmount(BigDecimal.ZERO)
+                .taxAmount(BigDecimal.ZERO)
+                .grandTotal(BigDecimal.ZERO)
+                .createdBy(admin)
+                .validUntil(LocalDate.now().plusDays(30))
+                .build();
+
+        Quotation saved = quotationRepository.save(quotation);
+        if (saved.getItems() != null) {
+            saved.getItems().size();
+        }
+        logActivity(admin.getId(), "Created Direct Quotation DRAFT: " + saved.getQuotationNumber(), "Quotation", saved.getId());
+        return saved;
+    }
+
+    @Transactional
     public Quotation saveQuotationDraft(Long quotationId, QuotationRequest request, AdminUser admin) {
         Quotation quotation = quotationRepository.findById(quotationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Quotation not found"));
@@ -91,6 +124,10 @@ public class QuotationService {
         quotation.setClientCompany(request.getClientCompany());
         quotation.setClientEmail(request.getClientEmail());
         quotation.setClientPhone(request.getClientPhone());
+        if (request.getQuotationSource() != null) {
+            quotation.setQuotationSource(request.getQuotationSource());
+        }
+        quotation.setSourceNotes(request.getSourceNotes());
         quotation.setTermsAndConditions(request.getTermsAndConditions());
 
         quotation.getItems().clear(); // Clear existing

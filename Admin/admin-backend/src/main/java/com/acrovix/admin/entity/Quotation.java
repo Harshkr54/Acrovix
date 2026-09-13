@@ -42,6 +42,13 @@ public class Quotation {
     @Column(name = "client_phone", length = 50)
     private String clientPhone;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "quotation_source", length = 50)
+    private QuotationSource quotationSource;
+
+    @Column(name = "source_notes", columnDefinition = "TEXT")
+    private String sourceNotes;
+
     @Column(nullable = false, length = 50)
     private String status = "DRAFT"; // DRAFT, SENT, ACCEPTED, REJECTED, EXPIRED
 

@@ -149,6 +149,15 @@ public class QuotationController {
         return ResponseEntity.ok().build();
     }
 
+    @PostMapping("/direct")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    public ResponseEntity<java.util.Map<String, Object>> createDirectDraftQuotation(
+            @Valid @RequestBody com.acrovix.admin.dto.CreateDirectQuotationRequest request,
+            @AuthenticationPrincipal AdminUser admin) {
+        Quotation q = quotationService.createDirectDraftQuotation(request, admin);
+        return ResponseEntity.ok(mapToDetailDto(q));
+    }
+
     private java.util.Map<String, Object> mapToDto(Quotation q) {
         java.util.Map<String, Object> map = new java.util.HashMap<>();
         map.put("id", q.getId());
@@ -158,6 +167,17 @@ public class QuotationController {
         map.put("grandTotal", q.getGrandTotal());
         map.put("status", q.getStatus());
         map.put("createdAt", q.getCreatedAt());
+
+        String sourceStr = null;
+        if (q.getQuotationSource() != null) {
+            sourceStr = q.getQuotationSource().name();
+        } else if (q.getEnquiry() != null) {
+            sourceStr = "ENQUIRY";
+        } else {
+            sourceStr = "DIRECT";
+        }
+        map.put("quotationSource", sourceStr);
+        map.put("sourceNotes", q.getSourceNotes());
         return map;
     }
 
@@ -180,6 +200,17 @@ public class QuotationController {
         map.put("createdAt", q.getCreatedAt());
         map.put("updatedAt", q.getUpdatedAt());
         map.put("deletedAt", q.getDeletedAt());
+
+        String sourceStr = null;
+        if (q.getQuotationSource() != null) {
+            sourceStr = q.getQuotationSource().name();
+        } else if (q.getEnquiry() != null) {
+            sourceStr = "ENQUIRY";
+        } else {
+            sourceStr = "DIRECT";
+        }
+        map.put("quotationSource", sourceStr);
+        map.put("sourceNotes", q.getSourceNotes());
 
         if (q.getEnquiry() != null) {
             java.util.Map<String, Object> enqMap = new java.util.HashMap<>();

@@ -3,6 +3,8 @@ import { fetchApi } from '../services/api';
 import { FileText, Inbox, Activity, CheckCircle, Clock, ChevronRight, Filter, Plus, MoreHorizontal, MessageSquare, User, AlertCircle, RefreshCw, Loader2, X, RotateCcw } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
+import CreateQuotationModal from '../components/CreateQuotationModal';
+
 const DEFAULT_FILTERS = {
     dateRange: 'ALL_TIME',
     enquiryStatus: 'ALL',
@@ -15,6 +17,7 @@ export default function Dashboard() {
     const [stats, setStats] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const navigate = useNavigate();
 
     // Filter states
@@ -270,10 +273,11 @@ export default function Dashboard() {
                         </div>
                     )}
 
-                    <button onClick={() => navigate('/quotations/new')} className="btn-primary flex items-center px-4 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]">
+                    <button onClick={() => setIsCreateModalOpen(true)} className="btn-primary flex items-center px-4 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]">
                         <Plus className="w-4 h-4 mr-2" />
                         Create Quotation
                     </button>
+                    <CreateQuotationModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
                 </div>
             </div>
 
