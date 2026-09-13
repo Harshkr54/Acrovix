@@ -109,8 +109,8 @@ public class DashboardService {
                 PageRequest.of(0, 5, Sort.by("createdAt").descending())
         ).getContent();
 
-        // Monthly Overview Chart Data (Last 6 Months)
-        List<Map<String, Object>> monthlyOverview = generateMonthlyOverview(enquiryStatus);
+        // Overview Chart Data synchronized with applied dateRange
+        List<Map<String, Object>> monthlyOverview = generateOverviewChartData(dateRange, start, end, enquiryStatus);
 
         Map<String, Object> stats = new HashMap<>();
         stats.put("totalEnquiries", totalEnquiries);
@@ -234,28 +234,194 @@ public class DashboardService {
         return map;
     }
 
-    private List<Map<String, Object>> generateMonthlyOverview(String enquiryStatus) {
+    private List<Map<String, Object>> generateOverviewChartData(
+            String dateRange,
+            LocalDateTime start,
+            LocalDateTime end,
+            String enquiryStatus) {
+
         List<Map<String, Object>> list = new ArrayList<>();
-        YearMonth current = YearMonth.now();
+        LocalDate today = LocalDate.now();
 
-        for (int i = 5; i >= 0; i--) {
-            YearMonth ym = current.minusMonths(i);
-            LocalDateTime monthStart = ym.atDay(1).atStartOfDay();
-            LocalDateTime monthEnd = ym.plusMonths(1).atDay(1).atStartOfDay();
+        switch (dateRange) {
+            case "TODAY": {
+                // 24 Hourly buckets (00:00 to 23:00)
+                for (int hour = 0; hour < 24; hour++) {
+                    LocalDateTime hStart = today.atTime(hour, 0, 0);
+                    LocalDateTime hEnd = hStart.plusHours(1);
 
-            Specification<AdminEnquiry> totalSpec = getEnquirySpec(monthStart, monthEnd, enquiryStatus);
-            long total = enquiryRepository.count(totalSpec);
+                    long total = countEnquiriesInRange(hStart, hEnd, enquiryStatus);
+                    long newCount = countEnquiriesInRange(hStart, hEnd, "ALL".equals(enquiryStatus) ? "NEW" : enquiryStatus);
 
-            Specification<AdminEnquiry> newSpec = getEnquirySpec(monthStart, monthEnd, "ALL".equals(enquiryStatus) ? "NEW" : enquiryStatus);
-            long newCount = enquiryRepository.count(newSpec);
+                    Map<String, Object> bucketData = new HashMap<>();
+                    bucketData.put("month", String.format("%02d:00", hour));
+                    bucketData.put("totalEnquiries", total);
+                    bucketData.put("newEnquiries", newCount);
+                    list.add(bucketData);
+                }
+                break;
+            }
+            case "LAST_7_DAYS": {
+                // 7 Daily buckets
+                for (int i = 6; i >= 0; i--) {
+                    LocalDate d = today.minusDays(i);
+                    LocalDateTime dStart = d.atStartOfDay();
+                    LocalDateTime dEnd = d.plusDays(1).atStartOfDay();
 
-            Map<String, Object> monthData = new HashMap<>();
-            monthData.put("month", ym.format(DateTimeFormatter.ofPattern("MMM")));
-            monthData.put("totalEnquiries", total);
-            monthData.put("newEnquiries", newCount);
-            list.add(monthData);
+                    long total = countEnquiriesInRange(dStart, dEnd, enquiryStatus);
+                    long newCount = countEnquiriesInRange(dStart, dEnd, "ALL".equals(enquiryStatus) ? "NEW" : enquiryStatus);
+
+                    Map<String, Object> bucketData = new HashMap<>();
+                    bucketData.put("month", d.format(DateTimeFormatter.ofPattern("dd MMM")));
+                    bucketData.put("totalEnquiries", total);
+                    bucketData.put("newEnquiries", newCount);
+                    list.add(bucketData);
+                }
+                break;
+            }
+            case "LAST_30_DAYS": {
+                // 30 Daily buckets
+                for (int i = 29; i >= 0; i--) {
+                    LocalDate d = today.minusDays(i);
+                    LocalDateTime dStart = d.atStartOfDay();
+                    LocalDateTime dEnd = d.plusDays(1).atStartOfDay();
+
+                    long total = countEnquiriesInRange(dStart, dEnd, enquiryStatus);
+                    long newCount = countEnquiriesInRange(dStart, dEnd, "ALL".equals(enquiryStatus) ? "NEW" : enquiryStatus);
+
+                    Map<String, Object> bucketData = new HashMap<>();
+                    bucketData.put("month", d.format(DateTimeFormatter.ofPattern("dd MMM")));
+                    bucketData.put("totalEnquiries", total);
+                    bucketData.put("newEnquiries", newCount);
+                    list.add(bucketData);
+                }
+                break;
+            }
+            case "THIS_MONTH": {
+                // Daily buckets for every day in current month
+                YearMonth ym = YearMonth.now();
+                int daysInMonth = ym.lengthOfMonth();
+                for (int day = 1; day <= daysInMonth; day++) {
+                    LocalDate d = ym.atDay(day);
+                    LocalDateTime dStart = d.atStartOfDay();
+                    LocalDateTime dEnd = d.plusDays(1).atStartOfDay();
+
+                    long total = countEnquiriesInRange(dStart, dEnd, enquiryStatus);
+                    long newCount = countEnquiriesInRange(dStart, dEnd, "ALL".equals(enquiryStatus) ? "NEW" : enquiryStatus);
+
+                    Map<String, Object> bucketData = new HashMap<>();
+                    bucketData.put("month", d.format(DateTimeFormatter.ofPattern("dd MMM")));
+                    bucketData.put("totalEnquiries", total);
+                    bucketData.put("newEnquiries", newCount);
+                    list.add(bucketData);
+                }
+                break;
+            }
+            case "THIS_YEAR": {
+                // 12 Monthly buckets for current year
+                int currentYear = today.getYear();
+                for (int month = 1; month <= 12; month++) {
+                    YearMonth ym = YearMonth.of(currentYear, month);
+                    LocalDateTime mStart = ym.atDay(1).atStartOfDay();
+                    LocalDateTime mEnd = ym.plusMonths(1).atDay(1).atStartOfDay();
+
+                    long total = countEnquiriesInRange(mStart, mEnd, enquiryStatus);
+                    long newCount = countEnquiriesInRange(mStart, mEnd, "ALL".equals(enquiryStatus) ? "NEW" : enquiryStatus);
+
+                    Map<String, Object> bucketData = new HashMap<>();
+                    bucketData.put("month", ym.format(DateTimeFormatter.ofPattern("MMM")));
+                    bucketData.put("totalEnquiries", total);
+                    bucketData.put("newEnquiries", newCount);
+                    list.add(bucketData);
+                }
+                break;
+            }
+            case "CUSTOM": {
+                if (start != null && end != null) {
+                    long daysDiff = java.time.temporal.ChronoUnit.DAYS.between(start.toLocalDate(), end.toLocalDate());
+                    if (daysDiff <= 31) {
+                        // Daily buckets
+                        LocalDate curr = start.toLocalDate();
+                        LocalDate endDate = end.toLocalDate();
+                        while (!curr.isAfter(endDate)) {
+                            LocalDateTime dStart = curr.atStartOfDay();
+                            LocalDateTime dEnd = curr.plusDays(1).atStartOfDay();
+
+                            long total = countEnquiriesInRange(dStart, dEnd, enquiryStatus);
+                            long newCount = countEnquiriesInRange(dStart, dEnd, "ALL".equals(enquiryStatus) ? "NEW" : enquiryStatus);
+
+                            Map<String, Object> bucketData = new HashMap<>();
+                            bucketData.put("month", curr.format(DateTimeFormatter.ofPattern("dd MMM")));
+                            bucketData.put("totalEnquiries", total);
+                            bucketData.put("newEnquiries", newCount);
+                            list.add(bucketData);
+
+                            curr = curr.plusDays(1);
+                        }
+                    } else {
+                        // Monthly buckets
+                        YearMonth startYm = YearMonth.from(start);
+                        YearMonth endYm = YearMonth.from(end);
+                        YearMonth curr = startYm;
+                        while (!curr.isAfter(endYm)) {
+                            LocalDateTime mStart = curr.atDay(1).atStartOfDay();
+                            LocalDateTime mEnd = curr.plusMonths(1).atDay(1).atStartOfDay();
+
+                            long total = countEnquiriesInRange(mStart, mEnd, enquiryStatus);
+                            long newCount = countEnquiriesInRange(mStart, mEnd, "ALL".equals(enquiryStatus) ? "NEW" : enquiryStatus);
+
+                            Map<String, Object> bucketData = new HashMap<>();
+                            bucketData.put("month", curr.format(DateTimeFormatter.ofPattern("MMM yy")));
+                            bucketData.put("totalEnquiries", total);
+                            bucketData.put("newEnquiries", newCount);
+                            list.add(bucketData);
+
+                            curr = curr.plusMonths(1);
+                        }
+                    }
+                }
+                break;
+            }
+            case "ALL_TIME":
+            default: {
+                // True all-time monthly aggregation from earliest enquiry to current month
+                LocalDateTime minCreated = enquiryRepository.findMinCreatedAt();
+                YearMonth startYm = minCreated != null ? YearMonth.from(minCreated) : YearMonth.now().minusMonths(5);
+                YearMonth currentYm = YearMonth.now();
+
+                // Guarantee at least 6 months if history is short
+                if (java.time.temporal.ChronoUnit.MONTHS.between(startYm, currentYm) < 5) {
+                    startYm = currentYm.minusMonths(5);
+                }
+
+                YearMonth curr = startYm;
+                boolean spansMultipleYears = startYm.getYear() != currentYm.getYear();
+                DateTimeFormatter fmt = spansMultipleYears ? DateTimeFormatter.ofPattern("MMM yy") : DateTimeFormatter.ofPattern("MMM");
+
+                while (!curr.isAfter(currentYm)) {
+                    LocalDateTime mStart = curr.atDay(1).atStartOfDay();
+                    LocalDateTime mEnd = curr.plusMonths(1).atDay(1).atStartOfDay();
+
+                    long total = countEnquiriesInRange(mStart, mEnd, enquiryStatus);
+                    long newCount = countEnquiriesInRange(mStart, mEnd, "ALL".equals(enquiryStatus) ? "NEW" : enquiryStatus);
+
+                    Map<String, Object> bucketData = new HashMap<>();
+                    bucketData.put("month", curr.format(fmt));
+                    bucketData.put("totalEnquiries", total);
+                    bucketData.put("newEnquiries", newCount);
+                    list.add(bucketData);
+
+                    curr = curr.plusMonths(1);
+                }
+                break;
+            }
         }
 
         return list;
+    }
+
+    private long countEnquiriesInRange(LocalDateTime start, LocalDateTime end, String status) {
+        Specification<AdminEnquiry> spec = getEnquirySpec(start, end, status);
+        return enquiryRepository.count(spec);
     }
 }

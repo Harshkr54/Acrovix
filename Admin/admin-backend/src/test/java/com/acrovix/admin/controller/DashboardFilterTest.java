@@ -268,4 +268,65 @@ class DashboardFilterTest {
                 () -> dashboardService.getDashboardStats("ALL_TIME", "ALL", "INVALID_STATUS", null, null)
         );
     }
+
+    @Test
+    void testOverviewChartBucketsForToday() {
+        when(enquiryRepository.count(any(Specification.class))).thenReturn(0L);
+        when(quotationRepository.count(any(Specification.class))).thenReturn(0L);
+        when(activityRepository.findTop50ByCreatedAtGreaterThanEqualAndCreatedAtLessThanOrderByCreatedAtDesc(any(), any())).thenReturn(List.of());
+        when(enquiryRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(new PageImpl<>(List.of()));
+
+        Map<String, Object> stats = dashboardService.getDashboardStats("TODAY", "ALL", "ALL", null, null);
+        assertNotNull(stats);
+        List<Map<String, Object>> chartData = (List<Map<String, Object>>) stats.get("monthlyOverview");
+        assertNotNull(chartData);
+        assertEquals(24, chartData.size());
+        assertEquals("00:00", chartData.get(0).get("month"));
+        assertEquals("23:00", chartData.get(23).get("month"));
+    }
+
+    @Test
+    void testOverviewChartBucketsForLast7Days() {
+        when(enquiryRepository.count(any(Specification.class))).thenReturn(0L);
+        when(quotationRepository.count(any(Specification.class))).thenReturn(0L);
+        when(activityRepository.findTop50ByCreatedAtGreaterThanEqualAndCreatedAtLessThanOrderByCreatedAtDesc(any(), any())).thenReturn(List.of());
+        when(enquiryRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(new PageImpl<>(List.of()));
+
+        Map<String, Object> stats = dashboardService.getDashboardStats("LAST_7_DAYS", "ALL", "ALL", null, null);
+        assertNotNull(stats);
+        List<Map<String, Object>> chartData = (List<Map<String, Object>>) stats.get("monthlyOverview");
+        assertNotNull(chartData);
+        assertEquals(7, chartData.size());
+    }
+
+    @Test
+    void testOverviewChartBucketsForThisYear() {
+        when(enquiryRepository.count(any(Specification.class))).thenReturn(0L);
+        when(quotationRepository.count(any(Specification.class))).thenReturn(0L);
+        when(activityRepository.findTop50ByCreatedAtGreaterThanEqualAndCreatedAtLessThanOrderByCreatedAtDesc(any(), any())).thenReturn(List.of());
+        when(enquiryRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(new PageImpl<>(List.of()));
+
+        Map<String, Object> stats = dashboardService.getDashboardStats("THIS_YEAR", "ALL", "ALL", null, null);
+        assertNotNull(stats);
+        List<Map<String, Object>> chartData = (List<Map<String, Object>>) stats.get("monthlyOverview");
+        assertNotNull(chartData);
+        assertEquals(12, chartData.size());
+        assertEquals("Jan", chartData.get(0).get("month"));
+        assertEquals("Dec", chartData.get(11).get("month"));
+    }
+
+    @Test
+    void testOverviewChartBucketsForAllTime() {
+        when(enquiryRepository.findMinCreatedAt()).thenReturn(LocalDateTime.of(2025, 1, 1, 0, 0));
+        when(enquiryRepository.count(any(Specification.class))).thenReturn(0L);
+        when(quotationRepository.count(any(Specification.class))).thenReturn(0L);
+        when(activityRepository.findTop50ByOrderByCreatedAtDesc()).thenReturn(List.of());
+        when(enquiryRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(new PageImpl<>(List.of()));
+
+        Map<String, Object> stats = dashboardService.getDashboardStats("ALL_TIME", "ALL", "ALL", null, null);
+        assertNotNull(stats);
+        List<Map<String, Object>> chartData = (List<Map<String, Object>>) stats.get("monthlyOverview");
+        assertNotNull(chartData);
+        assertTrue(chartData.size() >= 12, "Should have complete historical monthly buckets starting from min created_at");
+    }
 }

@@ -23,4 +23,7 @@ public interface AdminEnquiryRepository extends JpaRepository<AdminEnquiry, Long
      */
     @Query("SELECT e.status, COUNT(e) FROM AdminEnquiry e GROUP BY e.status")
     List<Object[]> countGroupByStatus();
+
+    @Query("SELECT MIN(e.createdAt) FROM AdminEnquiry e")
+    LocalDateTime findMinCreatedAt();
 }

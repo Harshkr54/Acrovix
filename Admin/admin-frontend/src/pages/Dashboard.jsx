@@ -380,46 +380,54 @@ export default function Dashboard() {
                                     <h2 className="text-base font-bold text-text-primary tracking-tight">Enquiries Overview</h2>
                                     <div className="flex items-center px-3 py-1.5 rounded-lg border border-border-subtle bg-bg-card text-xs font-semibold text-text-secondary">
                                         <Clock className="w-3.5 h-3.5 mr-2 text-text-muted" />
-                                        Last 6 Months Trend
+                                        {getChartTrendLabel(appliedFilters.dateRange)}
                                     </div>
                                 </div>
                                 
                                 {/* Dynamic Chart Bars */}
-                                <div className="flex-1 relative flex items-end justify-between gap-3 px-4 pb-4 min-h-[220px] pt-8 border-b border-border-subtle/50">
+                                <div className="flex-1 relative flex items-end justify-between gap-2 px-2 pb-4 min-h-[220px] pt-8 border-b border-border-subtle/50 overflow-x-auto">
                                     {isLoading ? (
                                         <div className="w-full flex justify-center items-center h-full">
                                             <Loader2 className="w-6 h-6 animate-spin text-[#4F46E5]" />
                                         </div>
                                     ) : stats?.monthlyOverview && stats.monthlyOverview.length > 0 ? (
-                                        stats.monthlyOverview.map((item, idx) => {
-                                            const totalHeightPct = Math.max(10, Math.round(((item.totalEnquiries || 0) / maxEnquiryCount) * 100));
-                                            const newHeightPct = Math.max(8, Math.round(((item.newEnquiries || 0) / maxEnquiryCount) * 100));
-
-                                            return (
-                                                <div key={idx} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group relative">
-                                                    {/* Tooltip */}
-                                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-10 bg-text-primary text-bg-main text-[10px] font-bold py-1 px-2 rounded-md shadow-lg pointer-events-none whitespace-nowrap z-20">
-                                                        {item.month}: {item.totalEnquiries} Total ({item.newEnquiries} New)
-                                                    </div>
-
-                                                    {/* Bars Container */}
-                                                    <div className="w-full max-w-[40px] flex items-end justify-center gap-1.5 h-full">
-                                                        {/* Total Enquiries Bar */}
-                                                        <div 
-                                                            className="w-1/2 bg-[#EEF2FF] border border-[#818CF8]/30 dark:bg-[#312E81]/30 dark:border-[#6366F1]/40 rounded-t-md transition-all duration-500"
-                                                            style={{ height: `${totalHeightPct}%` }}
-                                                        />
-                                                        {/* New Enquiries Bar */}
-                                                        <div 
-                                                            className="w-1/2 bg-[#4F46E5] rounded-t-md transition-all duration-500 shadow-sm"
-                                                            style={{ height: `${newHeightPct}%` }}
-                                                        />
-                                                    </div>
-                                                    {/* Month Label */}
-                                                    <span className="text-[11px] font-bold text-text-secondary mt-1">{item.month}</span>
-                                                </div>
+                                        (() => {
+                                            const overviewData = stats.monthlyOverview;
+                                            const maxEnquiryCount = Math.max(
+                                                1,
+                                                ...overviewData.map(i => Math.max(Number(i.totalEnquiries) || 0, Number(i.newEnquiries) || 0))
                                             );
-                                        })
+
+                                            return overviewData.map((item, idx) => {
+                                                const totalHeightPct = Math.max(10, Math.round(((item.totalEnquiries || 0) / maxEnquiryCount) * 100));
+                                                const newHeightPct = Math.max(8, Math.round(((item.newEnquiries || 0) / maxEnquiryCount) * 100));
+
+                                                return (
+                                                    <div key={idx} className="flex-1 min-w-[28px] flex flex-col items-center gap-2 h-full justify-end group relative">
+                                                        {/* Tooltip */}
+                                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-10 bg-text-primary text-bg-main text-[10px] font-bold py-1 px-2 rounded-md shadow-lg pointer-events-none whitespace-nowrap z-20">
+                                                            {item.month}: {item.totalEnquiries} Total ({item.newEnquiries} New)
+                                                        </div>
+
+                                                        {/* Bars Container */}
+                                                        <div className="w-full max-w-[40px] flex items-end justify-center gap-1 h-full">
+                                                            {/* Total Enquiries Bar */}
+                                                            <div
+                                                                className="w-1/2 bg-[#EEF2FF] border border-[#818CF8]/30 dark:bg-[#312E81]/30 dark:border-[#6366F1]/40 rounded-t-md transition-all duration-500"
+                                                                style={{ height: `${totalHeightPct}%` }}
+                                                            />
+                                                            {/* New Enquiries Bar */}
+                                                            <div
+                                                                className="w-1/2 bg-[#4F46E5] rounded-t-md transition-all duration-500 shadow-sm"
+                                                                style={{ height: `${newHeightPct}%` }}
+                                                            />
+                                                        </div>
+                                                        {/* Month/Time Label */}
+                                                        <span className="text-[10px] font-bold text-text-secondary mt-1 whitespace-nowrap">{item.month}</span>
+                                                    </div>
+                                                );
+                                            });
+                                        })()
                                     ) : (
                                         <div className="w-full flex flex-col items-center justify-center text-text-muted py-12">
                                             <Activity className="w-8 h-8 mb-2 opacity-40" />
