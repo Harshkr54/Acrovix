@@ -31,7 +31,7 @@ public class AdminUserController {
     @PostMapping
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<AdminUserResponse> createUser(
-            @RequestBody AdminUserRequest request,
+            @Valid @RequestBody AdminUserRequest request,
             @AuthenticationPrincipal AdminUser admin) {
         return ResponseEntity.ok(userService.createUser(request, admin.getId()));
     }

@@ -26,3 +26,5 @@ Admin/admin-frontend/node_modules/
 Admin/admin-frontend/dist/
 Admin/admin-backend/target/
 Admin/admin-backend/.mvn/
+deploy_root/
+

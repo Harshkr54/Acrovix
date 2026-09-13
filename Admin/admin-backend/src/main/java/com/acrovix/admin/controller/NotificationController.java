@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,6 +21,7 @@ public class NotificationController {
     private final NotificationService notificationService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
     public ResponseEntity<Page<NotificationResponse>> getNotifications(
             @AuthenticationPrincipal AdminUser admin,
             Pageable pageable) {
@@ -27,11 +29,13 @@ public class NotificationController {
     }
 
     @GetMapping("/unread-count")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
     public ResponseEntity<Map<String, Long>> getUnreadCount(@AuthenticationPrincipal AdminUser admin) {
         return ResponseEntity.ok(Map.of("unreadCount", notificationService.getUnreadCount(admin.getId())));
     }
 
     @PatchMapping("/{id}/read")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
     public ResponseEntity<?> markAsRead(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser admin) {
@@ -40,6 +44,7 @@ public class NotificationController {
     }
 
     @PatchMapping("/read-all")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
     public ResponseEntity<?> markAllAsRead(@AuthenticationPrincipal AdminUser admin) {
         notificationService.markAllAsRead(admin.getId());
         return ResponseEntity.ok().build();

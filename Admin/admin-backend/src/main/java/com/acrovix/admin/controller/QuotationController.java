@@ -6,6 +6,8 @@ import com.acrovix.admin.entity.Quotation;
 import com.acrovix.admin.service.QuotationService;
 import com.acrovix.admin.service.EmailService;
 import com.acrovix.admin.service.PdfService;
+import com.acrovix.admin.service.AuthorizationService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -26,6 +28,7 @@ public class QuotationController {
     private final PdfService pdfService;
     private final EmailService emailService;
     private final com.acrovix.admin.repository.QuotationRepository quotationRepository;
+    private final AuthorizationService authorizationService;
 
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
@@ -54,22 +57,26 @@ public class QuotationController {
     public ResponseEntity<Quotation> createDraftQuotation(
             @PathVariable Long enquiryId,
             @AuthenticationPrincipal AdminUser admin) {
-        return ResponseEntity.ok(quotationService.createDraftQuotation(enquiryId, admin.getId()));
+        return ResponseEntity.ok(quotationService.createDraftQuotation(enquiryId, admin));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
     public ResponseEntity<Quotation> saveQuotationDraft(
             @PathVariable Long id,
-            @RequestBody QuotationRequest request,
+            @Valid @RequestBody QuotationRequest request,
             @AuthenticationPrincipal AdminUser admin) {
-        return ResponseEntity.ok(quotationService.saveQuotationDraft(id, request, admin.getId()));
+        return ResponseEntity.ok(quotationService.saveQuotationDraft(id, request, admin));
     }
 
     @GetMapping("/{id}/pdf")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
-    public ResponseEntity<byte[]> previewPdf(@PathVariable Long id) {
-        Quotation quotation = quotationRepository.findById(id).orElseThrow();
+    public ResponseEntity<byte[]> previewPdf(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AdminUser admin) {
+        Quotation quotation = quotationRepository.findById(id)
+                .orElseThrow(() -> new com.acrovix.admin.exception.ResourceNotFoundException("Quotation not found"));
+        authorizationService.checkQuotationAccess(admin, quotation);
         byte[] pdf = pdfService.generateQuotationPdf(quotation);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=quotation.pdf")
@@ -82,10 +89,11 @@ public class QuotationController {
     public ResponseEntity<?> sendQuotation(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser admin) {
-        // Enforce transaction and status update logic safely
-        Quotation quotation = quotationRepository.findById(id).orElseThrow();
+        Quotation quotation = quotationRepository.findById(id)
+                .orElseThrow(() -> new com.acrovix.admin.exception.ResourceNotFoundException("Quotation not found"));
+        authorizationService.checkQuotationAccess(admin, quotation);
         emailService.sendQuotationEmail(quotation);
-        quotationService.markAsSent(id, admin.getId());
+        quotationService.markAsSent(id, admin);
         return ResponseEntity.ok().build();
     }
 }

@@ -29,13 +29,14 @@ public class QuotationService {
     private final SequenceGeneratorService sequenceGenerator;
     private final AdminActivityRepository activityRepository;
     private final NotificationService notificationService;
+    private final AuthorizationService authorizationService;
 
     @Transactional
-    public Quotation createDraftQuotation(Long enquiryId, Long adminId) {
+    public Quotation createDraftQuotation(Long enquiryId, AdminUser admin) {
         AdminEnquiry enquiry = enquiryRepository.findById(enquiryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Enquiry not found"));
-        AdminUser admin = userRepository.findById(adminId)
-                .orElseThrow(() -> new ResourceNotFoundException("Admin not found"));
+
+        authorizationService.checkEnquiryAccess(admin, enquiry);
 
         Quotation quotation = Quotation.builder()
                 .quotationNumber(sequenceGenerator.generateNextQuotationNumber())
@@ -54,14 +55,23 @@ public class QuotationService {
                 .build();
 
         Quotation saved = quotationRepository.save(quotation);
-        logActivity(adminId, "Created Quotation DRAFT: " + saved.getQuotationNumber(), "Quotation", saved.getId());
+        logActivity(admin.getId(), "Created Quotation DRAFT: " + saved.getQuotationNumber(), "Quotation", saved.getId());
         return saved;
     }
 
     @Transactional
-    public Quotation saveQuotationDraft(Long quotationId, QuotationRequest request, Long adminId) {
+    public Quotation createDraftQuotation(Long enquiryId, Long adminId) {
+        AdminUser admin = userRepository.findById(adminId)
+                .orElseThrow(() -> new ResourceNotFoundException("Admin not found"));
+        return createDraftQuotation(enquiryId, admin);
+    }
+
+    @Transactional
+    public Quotation saveQuotationDraft(Long quotationId, QuotationRequest request, AdminUser admin) {
         Quotation quotation = quotationRepository.findById(quotationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Quotation not found"));
+
+        authorizationService.checkQuotationAccess(admin, quotation);
 
         if (!"DRAFT".equals(quotation.getStatus())) {
             throw new IllegalArgumentException("Only DRAFT quotations can be modified");
@@ -119,15 +129,24 @@ public class QuotationService {
         quotation.setGrandTotal(subtotal.add(totalTaxAmount));
 
         Quotation saved = quotationRepository.save(quotation);
-        logActivity(adminId, "Updated Quotation: " + saved.getQuotationNumber(), "Quotation", saved.getId());
+        logActivity(admin.getId(), "Updated Quotation: " + saved.getQuotationNumber(), "Quotation", saved.getId());
         return saved;
+    }
+
+    @Transactional
+    public Quotation saveQuotationDraft(Long quotationId, QuotationRequest request, Long adminId) {
+        AdminUser admin = userRepository.findById(adminId)
+                .orElseThrow(() -> new ResourceNotFoundException("Admin not found"));
+        return saveQuotationDraft(quotationId, request, admin);
     }
     
     @Transactional
-    public void markAsSent(Long quotationId, Long adminId) {
+    public void markAsSent(Long quotationId, AdminUser admin) {
         Quotation quotation = quotationRepository.findById(quotationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Quotation not found"));
         
+        authorizationService.checkQuotationAccess(admin, quotation);
+
         quotation.setStatus("SENT");
         quotationRepository.save(quotation);
         
@@ -135,15 +154,22 @@ public class QuotationService {
             AdminEnquiry enquiry = quotation.getEnquiry();
             enquiry.setStatus("QUOTED");
             enquiryRepository.save(enquiry);
-            logActivity(adminId, "Enquiry marked as QUOTED due to SENT quotation", "AdminEnquiry", enquiry.getId());
+            logActivity(admin.getId(), "Enquiry marked as QUOTED due to SENT quotation", "AdminEnquiry", enquiry.getId());
             
             AdminUser assignee = enquiry.getAssignedTo();
-            if (assignee != null && !assignee.getId().equals(adminId)) {
+            if (assignee != null && !assignee.getId().equals(admin.getId())) {
                 notificationService.createQuotationSentNotification(assignee, quotationId, quotation.getQuotationNumber());
             }
         }
         
-        logActivity(adminId, "Sent Quotation: " + quotation.getQuotationNumber(), "Quotation", quotation.getId());
+        logActivity(admin.getId(), "Sent Quotation: " + quotation.getQuotationNumber(), "Quotation", quotation.getId());
+    }
+
+    @Transactional
+    public void markAsSent(Long quotationId, Long adminId) {
+        AdminUser admin = userRepository.findById(adminId)
+                .orElseThrow(() -> new ResourceNotFoundException("Admin not found"));
+        markAsSent(quotationId, admin);
     }
 
     private void logActivity(Long adminId, String action, String entityType, Long entityId) {

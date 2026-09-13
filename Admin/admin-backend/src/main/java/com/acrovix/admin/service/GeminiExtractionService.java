@@ -75,7 +75,15 @@ public class GeminiExtractionService {
             
             return textNode.asText();
         } catch (Exception e) {
-            throw new RuntimeException("Failed to extract data: " + e.getMessage());
+            // Log a sanitized error message server-side for diagnostics.
+            // Do NOT log the exception stack trace directly as it contains the raw API key in the URL parameter.
+            String rawMessage = e.getMessage();
+            String sanitizedMessage = (rawMessage != null && geminiApiKey != null && !geminiApiKey.isEmpty())
+                    ? rawMessage.replace(geminiApiKey, "[REDACTED_KEY]")
+                    : (rawMessage != null ? rawMessage : "Unknown error");
+            org.slf4j.LoggerFactory.getLogger(GeminiExtractionService.class)
+                    .error("Gemini extraction failed [Exception: {}, Message: {}]", e.getClass().getSimpleName(), sanitizedMessage);
+            throw new RuntimeException("Failed to extract data from the provided text. Please try again.");
         }
     }
 }

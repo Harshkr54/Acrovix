@@ -39,8 +39,10 @@ public class AdminEnquiryController {
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
-    public ResponseEntity<AdminEnquiry> getEnquiry(@PathVariable Long id) {
-        return ResponseEntity.ok(enquiryService.getEnquiry(id));
+    public ResponseEntity<AdminEnquiry> getEnquiry(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AdminUser admin) {
+        return ResponseEntity.ok(enquiryService.getEnquiry(id, admin));
     }
 
     @PatchMapping("/{id}/status")
@@ -49,7 +51,7 @@ public class AdminEnquiryController {
             @PathVariable Long id, 
             @RequestBody Map<String, String> body,
             @AuthenticationPrincipal AdminUser admin) {
-        enquiryService.updateStatus(id, body.get("status"), admin.getId());
+        enquiryService.updateStatus(id, body.get("status"), admin);
         return ResponseEntity.ok().build();
     }
 
@@ -59,7 +61,7 @@ public class AdminEnquiryController {
             @PathVariable Long id, 
             @RequestBody Map<String, Long> body,
             @AuthenticationPrincipal AdminUser admin) {
-        enquiryService.assignAdmin(id, body.get("adminId"), admin.getId());
+        enquiryService.assignAdmin(id, body.get("adminId"), admin);
         return ResponseEntity.ok().build();
     }
 
@@ -69,7 +71,7 @@ public class AdminEnquiryController {
             @PathVariable Long id, 
             @RequestBody Map<String, String> body,
             @AuthenticationPrincipal AdminUser admin) {
-        enquiryService.updateNotes(id, body.get("notes"), admin.getId());
+        enquiryService.updateNotes(id, body.get("notes"), admin);
         return ResponseEntity.ok().build();
     }
 }

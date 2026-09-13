@@ -28,6 +28,7 @@ public class AdminEnquiryService {
     private final AdminUserRepository userRepository;
     private final AdminActivityRepository activityRepository;
     private final NotificationService notificationService;
+    private final AuthorizationService authorizationService;
 
     public Page<AdminEnquiry> getAllEnquiries(Pageable pageable, String search, String status, String industry, String serviceReq, LocalDateTime fromDate, LocalDateTime toDate) {
         Specification<AdminEnquiry> spec = (root, query, cb) -> {
@@ -50,40 +51,66 @@ public class AdminEnquiryService {
         return enquiryRepository.findAll(spec, pageable);
     }
 
+    public AdminEnquiry getEnquiry(Long id, AdminUser currentUser) {
+        AdminEnquiry enquiry = enquiryRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Enquiry not found"));
+        if (currentUser != null) {
+            authorizationService.checkEnquiryAccess(currentUser, enquiry);
+        }
+        return enquiry;
+    }
+
     public AdminEnquiry getEnquiry(Long id) {
         return enquiryRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Enquiry not found"));
     }
 
     @Transactional
-    public void updateStatus(Long id, String status, Long adminId) {
-        AdminEnquiry enquiry = getEnquiry(id);
+    public void updateStatus(Long id, String status, AdminUser currentUser) {
+        AdminEnquiry enquiry = getEnquiry(id, currentUser);
         enquiry.setStatus(status);
         enquiryRepository.save(enquiry);
-        logActivity(adminId, "Updated Status to " + status, "AdminEnquiry", id);
+        logActivity(currentUser.getId(), "Updated Status to " + status, "AdminEnquiry", id);
     }
 
     @Transactional
-    public void assignAdmin(Long id, Long assigneeId, Long adminId) {
-        AdminEnquiry enquiry = getEnquiry(id);
+    public void updateStatus(Long id, String status, Long adminId) {
+        AdminUser admin = userRepository.findById(adminId).orElseThrow(() -> new ResourceNotFoundException("Admin not found"));
+        updateStatus(id, status, admin);
+    }
+
+    @Transactional
+    public void assignAdmin(Long id, Long assigneeId, AdminUser currentUser) {
+        AdminEnquiry enquiry = getEnquiry(id, currentUser);
         AdminUser assignee = userRepository.findById(assigneeId).orElseThrow(() -> new ResourceNotFoundException("User not found"));
         
         boolean isNewAssignment = (enquiry.getAssignedTo() == null || !enquiry.getAssignedTo().getId().equals(assigneeId));
         
         enquiry.setAssignedTo(assignee);
         enquiryRepository.save(enquiry);
-        logActivity(adminId, "Assigned enquiry #" + id + " to admin #" + assigneeId, "AdminEnquiry", id);
+        logActivity(currentUser.getId(), "Assigned enquiry #" + id + " to admin #" + assigneeId, "AdminEnquiry", id);
 
-        if (isNewAssignment && !assignee.getId().equals(adminId)) {
+        if (isNewAssignment && !assignee.getId().equals(currentUser.getId())) {
             notificationService.createEnquiryAssignedNotification(assignee, id);
         }
     }
 
     @Transactional
-    public void updateNotes(Long id, String notes, Long adminId) {
-        AdminEnquiry enquiry = getEnquiry(id);
+    public void assignAdmin(Long id, Long assigneeId, Long adminId) {
+        AdminUser admin = userRepository.findById(adminId).orElseThrow(() -> new ResourceNotFoundException("Admin not found"));
+        assignAdmin(id, assigneeId, admin);
+    }
+
+    @Transactional
+    public void updateNotes(Long id, String notes, AdminUser currentUser) {
+        AdminEnquiry enquiry = getEnquiry(id, currentUser);
         enquiry.setNotes(notes);
         enquiryRepository.save(enquiry);
-        logActivity(adminId, "Updated notes for enquiry #" + id, "AdminEnquiry", id);
+        logActivity(currentUser.getId(), "Updated notes for enquiry #" + id, "AdminEnquiry", id);
+    }
+
+    @Transactional
+    public void updateNotes(Long id, String notes, Long adminId) {
+        AdminUser admin = userRepository.findById(adminId).orElseThrow(() -> new ResourceNotFoundException("Admin not found"));
+        updateNotes(id, notes, admin);
     }
 
     private void logActivity(Long adminId, String action, String entityType, Long entityId) {

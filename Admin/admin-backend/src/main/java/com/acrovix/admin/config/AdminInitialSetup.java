@@ -32,7 +32,7 @@ public class AdminInitialSetup implements CommandLineRunner {
     @Override
     public void run(String... args) {
         if (!adminUserRepository.existsByEmail(initialEmail)) {
-            logger.info("No SUPER_ADMIN found with email {}. Creating default SUPER_ADMIN...", initialEmail);
+            logger.info("No SUPER_ADMIN found with configured initial email. Creating default SUPER_ADMIN...");
             AdminUser admin = AdminUser.builder()
                     .name(initialName)
                     .email(initialEmail)

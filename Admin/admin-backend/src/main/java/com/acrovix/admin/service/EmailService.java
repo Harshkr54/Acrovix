@@ -68,7 +68,10 @@ public class EmailService {
 
             restTemplate.postForObject(url, entity, String.class);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to send Brevo HTTP email: " + e.getMessage(), e);
+            // Log the full error server-side; do NOT expose API response details to callers.
+            org.slf4j.LoggerFactory.getLogger(EmailService.class)
+                    .error("Failed to send quotation email via Brevo", e);
+            throw new RuntimeException("Failed to send email. Please try again later.");
         }
     }
 }
