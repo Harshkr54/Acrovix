@@ -46,7 +46,7 @@ public class DashboardController {
 
         // --- Quotations: 2 queries instead of 7 ---
         // One query for total count + one GROUP BY for all status counts
-        long totalQuotations = quotationRepository.count();
+        long totalQuotations = quotationRepository.countByDeletedAtIsNull();
 
         // Single GROUP BY query replaces 5 separate countByStatus() calls
         List<Object[]> quotationStatusCounts = quotationRepository.countGroupByStatus();

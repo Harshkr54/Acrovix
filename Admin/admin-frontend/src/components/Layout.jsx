@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { LayoutDashboard, MessageSquare, LogOut, FileText, Shield, Menu, X, ChevronLeft, ChevronRight, Sun, Moon, Search, Bell, Settings } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, LogOut, FileText, Shield, Menu, X, ChevronLeft, ChevronRight, Sun, Moon, Search, Bell, Settings, Trash2 } from 'lucide-react';
 import HeaderControls from './HeaderControls';
 
 export default function Layout() {
@@ -28,6 +28,11 @@ export default function Layout() {
     if (user?.role === 'SUPER_ADMIN') {
         managementItems.push({ path: '/users', name: 'Users', icon: Shield });
     }
+
+    const systemItems = [
+        { path: '/trash', name: 'Trash', icon: Trash2 },
+        { path: '/settings', name: 'Settings', icon: Settings }
+    ];
 
     return (
         <div className="flex h-screen bg-bg-main text-text-primary overflow-hidden font-sans">
@@ -121,14 +126,33 @@ export default function Layout() {
                             </div>
                         )}
                         
-                        {/* System Section (Mock for visual completeness matching reference) */}
+                        {/* System Section */}
                         <div>
                             {!isCollapsed && <p className="px-3 mb-3 text-[11px] font-semibold text-text-muted uppercase tracking-wider">System</p>}
                             <div className="space-y-1">
-                                <button className={`w-full group relative flex items-center px-3 py-2.5 text-sm font-medium rounded-xl text-text-secondary hover:bg-bg-hover hover:text-text-primary transition-all duration-200 ${isCollapsed ? 'justify-center px-2' : ''}`} title={isCollapsed ? 'Settings' : undefined}>
-                                    <Settings className={`w-5 h-5 flex-shrink-0 ${!isCollapsed && 'mr-3'} text-text-muted group-hover:text-text-primary transition-colors`} />
-                                    {!isCollapsed && <span>Settings</span>}
-                                </button>
+                                {systemItems.map((item) => {
+                                    const Icon = item.icon;
+                                    const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
+                                    return (
+                                        <Link
+                                            key={item.name}
+                                            to={item.path}
+                                            onClick={() => setIsSidebarOpen(false)}
+                                            className={`group relative flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
+                                                isActive 
+                                                    ? 'bg-[#E6F5F2] text-[#102A43] dark:bg-[#0D9488]/10 dark:text-[#2DD4BF]' 
+                                                    : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
+                                            } ${isCollapsed ? 'justify-center px-2' : ''}`}
+                                            title={isCollapsed ? item.name : undefined}
+                                        >
+                                            {isActive && !isCollapsed && (
+                                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-[#0D9488] rounded-r-full" />
+                                            )}
+                                            <Icon className={`w-5 h-5 flex-shrink-0 ${!isCollapsed && 'mr-3'} ${isActive ? 'text-[#0D9488] dark:text-[#2DD4BF]' : 'text-text-muted group-hover:text-text-primary transition-colors'}`} />
+                                            {!isCollapsed && <span>{item.name}</span>}
+                                        </Link>
+                                    );
+                                })}
                             </div>
                         </div>
                     </nav>

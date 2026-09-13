@@ -35,21 +35,41 @@ public class QuotationController {
     public ResponseEntity<Page<java.util.Map<String, Object>>> getAllQuotations(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        Page<Quotation> quotations = quotationRepository.findAll(PageRequest.of(page, size, Sort.by("createdAt").descending()));
-        
-        Page<java.util.Map<String, Object>> dtoPage = quotations.map(q -> {
-            java.util.Map<String, Object> map = new java.util.HashMap<>();
-            map.put("id", q.getId());
-            map.put("quotationNumber", q.getQuotationNumber());
-            map.put("clientName", q.getClientName());
-            map.put("clientCompany", q.getClientCompany());
-            map.put("grandTotal", q.getGrandTotal());
-            map.put("status", q.getStatus());
-            map.put("createdAt", q.getCreatedAt());
+        Page<Quotation> quotations = quotationRepository.findByDeletedAtIsNull(PageRequest.of(page, size, Sort.by("createdAt").descending()));
+        Page<java.util.Map<String, Object>> dtoPage = quotations.map(this::mapToDto);
+        return ResponseEntity.ok(dtoPage);
+    }
+
+    @GetMapping("/trash")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    public ResponseEntity<Page<java.util.Map<String, Object>>> getTrashQuotations(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @AuthenticationPrincipal AdminUser admin) {
+        Page<Quotation> trash = quotationService.getTrashQuotations(PageRequest.of(page, size, Sort.by("deletedAt").descending()), admin);
+        Page<java.util.Map<String, Object>> dtoPage = trash.map(q -> {
+            java.util.Map<String, Object> map = mapToDto(q);
+            map.put("deletedAt", q.getDeletedAt());
             return map;
         });
-        
         return ResponseEntity.ok(dtoPage);
+    }
+
+    @GetMapping("/trash/count")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    public ResponseEntity<java.util.Map<String, Object>> getTrashCount() {
+        long count = quotationRepository.countByDeletedAtIsNotNullAndStatus("DRAFT");
+        java.util.Map<String, Object> response = new java.util.HashMap<>();
+        response.put("count", count);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    public ResponseEntity<Quotation> getQuotationById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AdminUser admin) {
+        return ResponseEntity.ok(quotationService.getQuotationById(id, admin));
     }
 
     @PostMapping("/enquiry/{enquiryId}")
@@ -67,6 +87,31 @@ public class QuotationController {
             @Valid @RequestBody QuotationRequest request,
             @AuthenticationPrincipal AdminUser admin) {
         return ResponseEntity.ok(quotationService.saveQuotationDraft(id, request, admin));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    public ResponseEntity<Quotation> moveToTrash(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AdminUser admin) {
+        return ResponseEntity.ok(quotationService.moveToTrash(id, admin));
+    }
+
+    @PatchMapping("/{id}/restore")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    public ResponseEntity<Quotation> restoreFromTrash(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AdminUser admin) {
+        return ResponseEntity.ok(quotationService.restoreFromTrash(id, admin));
+    }
+
+    @DeleteMapping("/{id}/permanent")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<Void> permanentlyDelete(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AdminUser admin) {
+        quotationService.permanentlyDelete(id, admin);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{id}/pdf")
@@ -95,5 +140,17 @@ public class QuotationController {
         emailService.sendQuotationEmail(quotation);
         quotationService.markAsSent(id, admin);
         return ResponseEntity.ok().build();
+    }
+
+    private java.util.Map<String, Object> mapToDto(Quotation q) {
+        java.util.Map<String, Object> map = new java.util.HashMap<>();
+        map.put("id", q.getId());
+        map.put("quotationNumber", q.getQuotationNumber());
+        map.put("clientName", q.getClientName());
+        map.put("clientCompany", q.getClientCompany());
+        map.put("grandTotal", q.getGrandTotal());
+        map.put("status", q.getStatus());
+        map.put("createdAt", q.getCreatedAt());
+        return map;
     }
 }

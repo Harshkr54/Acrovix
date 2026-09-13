@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { fetchApi } from '../services/api';
-import { FileText, Plus, AlertCircle, ChevronLeft, ChevronRight, File } from 'lucide-react';
+import { FileText, Plus, AlertCircle, ChevronLeft, ChevronRight, File, Trash2 } from 'lucide-react';
 
 export default function QuotationList() {
     const [quotations, setQuotations] = useState([]);
@@ -13,6 +13,8 @@ export default function QuotationList() {
     const [totalPages, setTotalPages] = useState(0);
     const [totalElements, setTotalElements] = useState(0);
     const [downloadingPdfId, setDownloadingPdfId] = useState(null);
+    const [trashModalQuotation, setTrashModalQuotation] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
     const itemsPerPage = 10;
 
     const fetchQuotations = React.useCallback(() => {
@@ -31,6 +33,21 @@ export default function QuotationList() {
                 setIsLoading(false);
             });
     }, [currentPage]);
+
+    const handleMoveToTrash = async () => {
+        if (!trashModalQuotation || isDeleting) return;
+        setIsDeleting(true);
+        try {
+            await fetchApi(`/quotations/${trashModalQuotation.id}`, { method: 'DELETE' });
+            setTrashModalQuotation(null);
+            fetchQuotations();
+        } catch (err) {
+            console.error("Error moving draft to trash", err);
+            alert(err.message || "Failed to move draft to trash.");
+        } finally {
+            setIsDeleting(false);
+        }
+    };
 
     useEffect(() => {
         fetchQuotations();
@@ -180,12 +197,22 @@ export default function QuotationList() {
                                     <td className="px-6 py-4 whitespace-nowrap text-center align-top">
                                         <div className="flex items-center justify-center space-x-3">
                                             {q.status === 'DRAFT' ? (
-                                                <Link
-                                                    to={`/quotations/edit/${q.id}`}
-                                                    className="inline-flex items-center text-[#4F46E5] hover:text-[#4338CA] font-semibold text-[12px] transition-colors"
-                                                >
-                                                    Edit draft
-                                                </Link>
+                                                <div className="flex items-center space-x-3">
+                                                    <Link
+                                                        to={`/quotations/edit/${q.id}`}
+                                                        className="inline-flex items-center text-[#4F46E5] hover:text-[#4338CA] font-semibold text-[12px] transition-colors"
+                                                    >
+                                                        Edit draft
+                                                    </Link>
+                                                    <button
+                                                        onClick={() => setTrashModalQuotation(q)}
+                                                        className="inline-flex items-center text-[#DC2626] hover:text-[#B91C1C] font-semibold text-[12px] transition-colors"
+                                                        title="Move to Trash"
+                                                    >
+                                                        <Trash2 className="w-3.5 h-3.5 mr-1" />
+                                                        Delete
+                                                    </button>
+                                                </div>
                                             ) : (
                                                 <button
                                                     onClick={() => handleViewPdf(q.id)}
@@ -232,6 +259,41 @@ export default function QuotationList() {
                     </div>
                 </div>
             </div>
+
+            {/* Trash Confirmation Modal */}
+            {trashModalQuotation && (
+                <div className="fixed inset-0 bg-text-primary/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="card p-6 md:p-8 max-w-md w-full border border-border-subtle shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+                        <div className="w-12 h-12 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 rounded-2xl flex items-center justify-center mb-5 text-amber-600 dark:text-amber-400">
+                            <Trash2 className="w-6 h-6" />
+                        </div>
+                        <h3 className="text-[18px] font-bold text-text-primary mb-2 tracking-tight">Move this draft to Trash?</h3>
+                        <p className="text-[13px] text-text-secondary leading-relaxed mb-6">
+                            Draft <span className="font-mono font-bold text-text-primary">{trashModalQuotation.quotationNumber}</span> for <span className="font-semibold text-text-primary">{trashModalQuotation.clientName}</span> will be moved to Trash. You can restore it anytime from the Trash page.
+                        </p>
+                        <div className="flex items-center justify-end space-x-3">
+                            <button
+                                onClick={() => setTrashModalQuotation(null)}
+                                disabled={isDeleting}
+                                className="px-4 py-2.5 bg-bg-card hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleMoveToTrash}
+                                disabled={isDeleting}
+                                className="px-4 py-2.5 bg-[#DC2626] hover:bg-[#B91C1C] text-white rounded-xl text-[13px] font-semibold transition-colors shadow-sm disabled:opacity-50 flex items-center"
+                            >
+                                {isDeleting ? (
+                                    <><span className="animate-spin w-3.5 h-3.5 border-b-2 border-white rounded-full mr-2"></span> Moving...</>
+                                ) : (
+                                    'Move to Trash'
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

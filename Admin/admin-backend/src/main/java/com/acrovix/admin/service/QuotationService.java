@@ -71,6 +71,10 @@ public class QuotationService {
         Quotation quotation = quotationRepository.findById(quotationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Quotation not found"));
 
+        if (quotation.getDeletedAt() != null) {
+            throw new ResourceNotFoundException("Quotation not found");
+        }
+
         authorizationService.checkQuotationAccess(admin, quotation);
 
         if (!"DRAFT".equals(quotation.getStatus())) {
@@ -144,6 +148,10 @@ public class QuotationService {
     public void markAsSent(Long quotationId, AdminUser admin) {
         Quotation quotation = quotationRepository.findById(quotationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Quotation not found"));
+
+        if (quotation.getDeletedAt() != null) {
+            throw new ResourceNotFoundException("Quotation not found");
+        }
         
         authorizationService.checkQuotationAccess(admin, quotation);
 
@@ -170,6 +178,78 @@ public class QuotationService {
         AdminUser admin = userRepository.findById(adminId)
                 .orElseThrow(() -> new ResourceNotFoundException("Admin not found"));
         markAsSent(quotationId, admin);
+    }
+
+    @Transactional(readOnly = true)
+    public Quotation getQuotationById(Long id, AdminUser admin) {
+        Quotation quotation = quotationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Quotation not found"));
+        if (quotation.getDeletedAt() != null) {
+            throw new ResourceNotFoundException("Quotation not found");
+        }
+        authorizationService.checkQuotationAccess(admin, quotation);
+        return quotation;
+    }
+
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<Quotation> getTrashQuotations(org.springframework.data.domain.Pageable pageable, AdminUser admin) {
+        return quotationRepository.findByDeletedAtIsNotNullAndStatus("DRAFT", pageable);
+    }
+
+    @Transactional
+    public Quotation moveToTrash(Long id, AdminUser admin) {
+        Quotation quotation = quotationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Quotation not found"));
+
+        authorizationService.checkQuotationAccess(admin, quotation);
+
+        if (!"DRAFT".equals(quotation.getStatus())) {
+            throw new IllegalArgumentException("Only DRAFT quotations can be moved to trash");
+        }
+
+        if (quotation.getDeletedAt() != null) {
+            throw new IllegalStateException("Quotation is already in trash");
+        }
+
+        quotation.setDeletedAt(java.time.LocalDateTime.now());
+        Quotation saved = quotationRepository.save(quotation);
+        logActivity(admin.getId(), "Moved Quotation DRAFT to Trash: " + saved.getQuotationNumber(), "Quotation", saved.getId());
+        return saved;
+    }
+
+    @Transactional
+    public Quotation restoreFromTrash(Long id, AdminUser admin) {
+        Quotation quotation = quotationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Quotation not found"));
+
+        authorizationService.checkQuotationAccess(admin, quotation);
+
+        if (quotation.getDeletedAt() == null) {
+            throw new IllegalArgumentException("Quotation is not in trash");
+        }
+
+        quotation.setDeletedAt(null);
+        Quotation saved = quotationRepository.save(quotation);
+        logActivity(admin.getId(), "Restored Quotation DRAFT from Trash: " + saved.getQuotationNumber(), "Quotation", saved.getId());
+        return saved;
+    }
+
+    @Transactional
+    public void permanentlyDelete(Long id, AdminUser admin) {
+        if (admin == null || admin.getRole() != Role.SUPER_ADMIN) {
+            throw new org.springframework.security.access.AccessDeniedException("Only Super Admin can permanently delete quotations");
+        }
+
+        Quotation quotation = quotationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Quotation not found"));
+
+        if (quotation.getDeletedAt() == null) {
+            throw new IllegalArgumentException("Quotation must be in trash before permanent deletion");
+        }
+
+        String quotationNumber = quotation.getQuotationNumber();
+        logActivity(admin.getId(), "Permanently deleted Quotation: " + quotationNumber, "Quotation", quotation.getId());
+        quotationRepository.delete(quotation);
     }
 
     private void logActivity(Long adminId, String action, String entityType, Long entityId) {

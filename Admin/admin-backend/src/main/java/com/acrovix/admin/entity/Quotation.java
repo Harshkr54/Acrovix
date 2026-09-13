@@ -72,6 +72,9 @@ public class Quotation {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
     @OneToMany(mappedBy = "quotation", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("sortOrder ASC")
     private List<QuotationItem> items = new ArrayList<>();

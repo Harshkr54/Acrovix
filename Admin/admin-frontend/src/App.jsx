@@ -9,6 +9,7 @@ import QuotationBuilder from './pages/QuotationBuilder';
 import QuotationList from './pages/QuotationList';
 import UserList from './pages/UserList';
 import Settings from './pages/Settings';
+import TrashList from './pages/TrashList';
 
 const ProtectedRoute = ({ children }) => {
     const { user } = useAuth();
@@ -30,6 +31,7 @@ function App() {
                 <Route path="quotations/new/:enquiryId" element={<QuotationBuilder />} />
                 <Route path="quotations/edit/:quotationId" element={<QuotationBuilder />} />
                 <Route path="users" element={<UserList />} />
+                <Route path="trash" element={<TrashList />} />
                 <Route path="settings" element={<Settings />} />
             </Route>
         </Routes>
