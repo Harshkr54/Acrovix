@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { fetchApi } from '../services/api';
 import { Link } from 'react-router-dom';
-import { Search, Filter, Calendar, ChevronLeft, ChevronRight, Plus, Inbox, MoreHorizontal, AlertCircle, RefreshCw } from 'lucide-react';
+import { Search, Filter, Calendar, ChevronLeft, ChevronRight, Plus, Inbox, MoreHorizontal, AlertCircle, RefreshCw, Eye, Check } from 'lucide-react';
 
 export default function EnquiryList() {
     const [enquiries, setEnquiries] = useState([]);
@@ -20,6 +20,10 @@ export default function EnquiryList() {
     const itemsPerPage = 10;
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    // Action menu state for enquiry row actions
+    const [activeActionMenuId, setActiveActionMenuId] = useState(null);
+    const actionMenuRef = useRef(null);
 
     // Debounce search input to prevent firing API calls on every keystroke
     useEffect(() => {
@@ -66,6 +70,27 @@ export default function EnquiryList() {
     useEffect(() => {
         fetchEnquiries();
     }, [fetchEnquiries]);
+
+    // Click outside and Escape key listener for row action menu
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (actionMenuRef.current && !actionMenuRef.current.contains(event.target)) {
+                setActiveActionMenuId(null);
+            }
+        };
+        const handleEscape = (event) => {
+            if (event.key === 'Escape') {
+                setActiveActionMenuId(null);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('keydown', handleEscape);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('keydown', handleEscape);
+        };
+    }, []);
 
     const updateStatus = async (id, status) => {
         try {
@@ -290,14 +315,73 @@ export default function EnquiryList() {
                                         <td className="px-6 py-4 whitespace-nowrap text-[12px] text-text-muted font-medium align-top">
                                             {new Date(enq.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-center align-top">
-                                            <Link
-                                                to={`/quotations/new/${enq.id}`}
-                                                className="inline-flex items-center justify-center w-8 h-8 bg-bg-card hover:bg-bg-hover border border-border-subtle rounded-xl text-text-secondary hover:text-[#0D9488] transition-colors shadow-sm"
-                                                title="Create Quotation"
+                                        <td className="px-6 py-4 whitespace-nowrap text-center align-top relative">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setActiveActionMenuId(activeActionMenuId === enq.id ? null : enq.id);
+                                                }}
+                                                className={`p-1.5 rounded-lg border transition-all ${
+                                                    activeActionMenuId === enq.id
+                                                        ? 'bg-[#EEF2FF] border-[#818CF8] text-[#4F46E5] dark:bg-[#312E81]/30 dark:border-[#6366F1] dark:text-[#818CF8] shadow-sm'
+                                                        : 'bg-bg-card border-border-subtle text-text-secondary hover:text-text-primary hover:shadow-sm'
+                                                }`}
+                                                title="More actions"
+                                                aria-label="More actions"
                                             >
-                                                <Plus className="w-4 h-4" />
-                                            </Link>
+                                                <MoreHorizontal className="w-4 h-4" />
+                                            </button>
+
+                                            {activeActionMenuId === enq.id && (
+                                                <div
+                                                    ref={actionMenuRef}
+                                                    className="absolute right-6 top-12 w-48 bg-bg-card rounded-2xl shadow-xl border border-border-subtle p-2 z-50 animate-in fade-in-50 zoom-in-95 duration-150 text-left"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <div className="px-3 py-1.5 border-b border-border-subtle text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
+                                                        Actions ({enq.referenceId || `ENQ-${enq.id}`})
+                                                    </div>
+
+                                                    <Link
+                                                        to={`/quotations/new/${enq.id}`}
+                                                        onClick={() => setActiveActionMenuId(null)}
+                                                        className="flex items-center w-full px-3 py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover rounded-xl transition-colors"
+                                                    >
+                                                        <Plus className="w-3.5 h-3.5 mr-2 text-[#059669]" />
+                                                        Create Quotation
+                                                    </Link>
+
+                                                    <div className="my-1 border-t border-border-subtle"></div>
+
+                                                    <div className="px-3 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
+                                                        Update Status
+                                                    </div>
+
+                                                    {['NEW', 'CONTACTED', 'QUOTED', 'CONVERTED', 'CLOSED'].map((st) => (
+                                                        <button
+                                                            key={st}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setActiveActionMenuId(null);
+                                                                updateStatus(enq.id, st);
+                                                            }}
+                                                            className={`flex items-center justify-between w-full px-3 py-1.5 text-xs rounded-lg transition-colors ${
+                                                                normalizeStatus(enq.status) === st
+                                                                    ? 'bg-[#EEF2FF] text-[#4F46E5] font-bold dark:bg-[#312E81]/30'
+                                                                    : 'text-text-secondary hover:bg-bg-hover font-medium'
+                                                            }`}
+                                                        >
+                                                            <span className="flex items-center">
+                                                                <span className={`w-1.5 h-1.5 rounded-full mr-2 ${getStatusStyle(st).replace('text-', 'bg-')}`} />
+                                                                {getStatusLabel(st)}
+                                                            </span>
+                                                            {normalizeStatus(enq.status) === st && (
+                                                                <Check className="w-3.5 h-3.5 text-[#4F46E5]" />
+                                                            )}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </td>
                                     </tr>
                                 ))
