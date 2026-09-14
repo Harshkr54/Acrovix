@@ -109,6 +109,9 @@ public class QuotationService {
                 .build();
 
         Quotation saved = quotationRepository.save(quotation);
+        saved.setColumnConfigs(createDefaultColumnConfigs(saved));
+        saved = quotationRepository.save(saved);
+        
         if (saved.getItems() != null) {
             saved.getItems().size();
         }
@@ -151,6 +154,9 @@ public class QuotationService {
                 .build();
 
         Quotation saved = quotationRepository.save(quotation);
+        saved.setColumnConfigs(createDefaultColumnConfigs(saved));
+        saved = quotationRepository.save(saved);
+
         if (saved.getItems() != null) {
             saved.getItems().size();
         }
@@ -182,6 +188,8 @@ public class QuotationService {
         }
         quotation.setSourceNotes(request.getSourceNotes());
         quotation.setTermsAndConditions(request.getTermsAndConditions());
+        
+        validateAndSetColumnConfigs(quotation, request.getColumnConfigs());
 
         quotation.getItems().clear(); // Clear existing
 
@@ -220,6 +228,7 @@ public class QuotationService {
                         .taxPercent(taxPct)
                         .lineTotal(lineTotal)
                         .sortOrder(itemReq.getSortOrder())
+                        .customValues(itemReq.getCustomValues() != null ? new java.util.HashMap<>(itemReq.getCustomValues()) : new java.util.HashMap<>())
                         .build();
                 quotation.getItems().add(item);
             }
@@ -391,5 +400,94 @@ public class QuotationService {
                 .entityId(entityId)
                 .build();
         activityRepository.save(activity);
+    }
+
+    private List<QuotationColumnConfig> createDefaultColumnConfigs(Quotation quotation) {
+        List<QuotationColumnConfig> configs = new ArrayList<>();
+        String[] keys = {"rowNumber", "sku", "description", "hsnSac", "quantity", "listPrice", "discountPercent", "unitPrice", "taxPercent", "taxAmount", "total"};
+        String[] displayNames = {"#", "SKU", "DESCRIPTION", "HSN / SAC", "QTY", "LIST PRICE", "DISC %", "UNIT PRICE", "TAX %", "TAX AMOUNT", "TOTAL"};
+        String[] types = {"TEXT", "TEXT", "TEXT", "TEXT", "NUMBER", "CURRENCY", "NUMBER", "CURRENCY", "NUMBER", "CURRENCY", "CURRENCY"};
+        for (int i = 0; i < keys.length; i++) {
+            configs.add(QuotationColumnConfig.builder()
+                    .quotation(quotation)
+                    .columnKey(keys[i])
+                    .displayName(displayNames[i])
+                    .columnType(types[i])
+                    .visible(true)
+                    .sortOrder(i)
+                    .isCustom(false)
+                    .build());
+        }
+        return configs;
+    }
+
+    private void validateAndSetColumnConfigs(Quotation quotation, List<com.acrovix.admin.dto.QuotationColumnConfigRequest> configRequests) {
+        if (configRequests == null || configRequests.isEmpty()) {
+            return;
+        }
+
+        java.util.Set<String> builtInKeys = java.util.Set.of("rowNumber", "sku", "description", "hsnSac", "quantity", "listPrice", "discountPercent", "unitPrice", "taxPercent", "taxAmount", "total");
+        java.util.Set<String> validTypes = java.util.Set.of("TEXT", "NUMBER", "CURRENCY");
+
+        java.util.Set<String> seenKeys = new java.util.HashSet<>();
+        java.util.Set<Integer> seenSortOrders = new java.util.HashSet<>();
+        
+        quotation.getColumnConfigs().clear();
+
+        for (com.acrovix.admin.dto.QuotationColumnConfigRequest req : configRequests) {
+            String key = req.getColumnKey();
+            if (key == null || key.trim().isEmpty()) {
+                throw new IllegalArgumentException("Column key cannot be empty");
+            }
+            key = key.trim();
+
+            String displayName = req.getDisplayName();
+            if (displayName == null || displayName.trim().isEmpty()) {
+                throw new IllegalArgumentException("Column display name cannot be empty for key: " + key);
+            }
+
+            String type = req.getColumnType();
+            if (type == null || !validTypes.contains(type.toUpperCase())) {
+                throw new IllegalArgumentException("Invalid column type for key: " + key);
+            }
+
+            if (req.getSortOrder() == null) {
+                throw new IllegalArgumentException("Sort order cannot be null for key: " + key);
+            }
+            if (req.getVisible() == null) {
+                throw new IllegalArgumentException("Visible flag cannot be null for key: " + key);
+            }
+            if (req.getIsCustom() == null) {
+                throw new IllegalArgumentException("isCustom flag cannot be null for key: " + key);
+            }
+
+            if (!seenKeys.add(key)) {
+                throw new IllegalArgumentException("Duplicate column key found: " + key);
+            }
+            if (!seenSortOrders.add(req.getSortOrder())) {
+                throw new IllegalArgumentException("Duplicate sort order found: " + req.getSortOrder());
+            }
+
+            if (req.getIsCustom()) {
+                if (builtInKeys.contains(key)) {
+                    throw new IllegalArgumentException("Reserved built-in key cannot be used as a custom column: " + key);
+                }
+            } else {
+                if (!builtInKeys.contains(key)) {
+                    throw new IllegalArgumentException("Unknown built-in column key: " + key);
+                }
+            }
+
+            QuotationColumnConfig config = QuotationColumnConfig.builder()
+                    .quotation(quotation)
+                    .columnKey(key)
+                    .displayName(displayName.trim())
+                    .columnType(type.toUpperCase())
+                    .visible(req.getVisible())
+                    .sortOrder(req.getSortOrder())
+                    .isCustom(req.getIsCustom())
+                    .build();
+            quotation.getColumnConfigs().add(config);
+        }
     }
 }

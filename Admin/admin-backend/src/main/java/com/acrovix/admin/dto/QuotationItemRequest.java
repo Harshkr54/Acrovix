@@ -42,4 +42,6 @@ public class QuotationItemRequest {
     private BigDecimal taxPercent;
     
     private Integer sortOrder;
+
+    private java.util.Map<String, String> customValues;
 }

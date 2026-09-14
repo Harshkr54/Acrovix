@@ -88,6 +88,10 @@ public class Quotation {
     @OrderBy("sortOrder ASC")
     private List<QuotationItem> items = new ArrayList<>();
 
+    @OneToMany(mappedBy = "quotation", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("sortOrder ASC")
+    private List<QuotationColumnConfig> columnConfigs = new ArrayList<>();
+
     @PrePersist
     protected void onCreate() {
         if (this.createdAt == null) {

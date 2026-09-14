@@ -245,10 +245,27 @@ public class QuotationController {
                 itemMap.put("taxPercent", item.getTaxPercent());
                 itemMap.put("lineTotal", item.getLineTotal());
                 itemMap.put("sortOrder", item.getSortOrder());
+                itemMap.put("customValues", item.getCustomValues());
                 itemDtos.add(itemMap);
             }
         }
         map.put("items", itemDtos);
+
+        java.util.List<java.util.Map<String, Object>> configDtos = new java.util.ArrayList<>();
+        if (q.getColumnConfigs() != null) {
+            for (com.acrovix.admin.entity.QuotationColumnConfig config : q.getColumnConfigs()) {
+                java.util.Map<String, Object> configMap = new java.util.HashMap<>();
+                configMap.put("id", config.getId());
+                configMap.put("columnKey", config.getColumnKey());
+                configMap.put("displayName", config.getDisplayName());
+                configMap.put("columnType", config.getColumnType());
+                configMap.put("visible", config.getVisible());
+                configMap.put("sortOrder", config.getSortOrder());
+                configMap.put("isCustom", config.getIsCustom());
+                configDtos.add(configMap);
+            }
+        }
+        map.put("columnConfigs", configDtos);
 
         return map;
     }

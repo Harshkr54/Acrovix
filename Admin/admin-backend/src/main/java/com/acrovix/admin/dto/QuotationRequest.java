@@ -32,4 +32,7 @@ public class QuotationRequest {
     
     @Valid
     private List<QuotationItemRequest> items;
+
+    @Valid
+    private List<QuotationColumnConfigRequest> columnConfigs;
 }

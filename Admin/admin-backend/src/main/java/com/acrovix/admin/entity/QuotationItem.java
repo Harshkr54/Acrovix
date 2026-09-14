@@ -58,4 +58,9 @@ public class QuotationItem {
 
     @Column(name = "sort_order")
     private Integer sortOrder;
+
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    @Column(name = "custom_values", columnDefinition = "jsonb")
+    @Builder.Default
+    private java.util.Map<String, String> customValues = new java.util.HashMap<>();
 }

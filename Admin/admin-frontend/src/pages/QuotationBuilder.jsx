@@ -1,8 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { fetchApi } from '../services/api';
-import { Plus, Trash2, Send, Save, Wand2, ArrowUp, ArrowDown, Calculator, User, Hash, AlertCircle, RefreshCw, Download } from 'lucide-react';
+import { Plus, Trash2, Send, Save, Wand2, ArrowUp, ArrowDown, Calculator, User, Hash, AlertCircle, RefreshCw, Download, Settings } from 'lucide-react';
 import SendQuotationModal from '../components/SendQuotationModal';
+import QuotationColumnConfigModal from '../components/QuotationColumnConfigModal';
+
+const defaultConfigs = [
+    { columnKey: "rowNumber", displayName: "#", columnType: "TEXT", visible: true, sortOrder: 0, isCustom: false },
+    { columnKey: "sku", displayName: "SKU", columnType: "TEXT", visible: true, sortOrder: 1, isCustom: false },
+    { columnKey: "description", displayName: "Description", columnType: "TEXT", visible: true, sortOrder: 2, isCustom: false },
+    { columnKey: "hsnSac", displayName: "HSN/SAC", columnType: "TEXT", visible: true, sortOrder: 3, isCustom: false },
+    { columnKey: "quantity", displayName: "Qty", columnType: "NUMBER", visible: true, sortOrder: 4, isCustom: false },
+    { columnKey: "listPrice", displayName: "List Price (₹)", columnType: "CURRENCY", visible: true, sortOrder: 5, isCustom: false },
+    { columnKey: "discountPercent", displayName: "Disc %", columnType: "NUMBER", visible: true, sortOrder: 6, isCustom: false },
+    { columnKey: "unitPrice", displayName: "Unit Price (₹)", columnType: "CURRENCY", visible: true, sortOrder: 7, isCustom: false },
+    { columnKey: "taxPercent", displayName: "Tax %", columnType: "NUMBER", visible: true, sortOrder: 8, isCustom: false },
+    { columnKey: "taxAmount", displayName: "Tax Amount (₹)", columnType: "CURRENCY", visible: true, sortOrder: 9, isCustom: false },
+    { columnKey: "total", displayName: "Total (₹)", columnType: "CURRENCY", visible: true, sortOrder: 10, isCustom: false }
+];
 
 export default function QuotationBuilder() {
     const { enquiryId, quotationId } = useParams();
@@ -28,6 +43,8 @@ export default function QuotationBuilder() {
     const [isSaving, setIsSaving] = useState(false);
     const [isSending, setIsSending] = useState(false);
     const [isSendModalOpen, setIsSendModalOpen] = useState(false);
+    const [columnConfigs, setColumnConfigs] = useState(defaultConfigs);
+    const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
     const [error, setError] = useState(null);
     const [isInitializing, setIsInitializing] = useState(true);
 
@@ -58,6 +75,12 @@ export default function QuotationBuilder() {
                     projectRequirement: q.enquiry.projectRequirement || '—'
                 } : null);
                 
+                if (q.columnConfigs && q.columnConfigs.length > 0) {
+                    setColumnConfigs(q.columnConfigs);
+                } else {
+                    setColumnConfigs(defaultConfigs);
+                }
+
                 if (q.items && q.items.length > 0) {
                     setItems(q.items.map(item => ({
                         id: item.id || Date.now() + Math.random(),
@@ -69,10 +92,11 @@ export default function QuotationBuilder() {
                         unitPrice: item.unitPrice || 0,
                         discountPercent: item.discountPercent || 0,
                         taxPercent: item.taxPercent || 18,
-                        sourceText: ''
+                        sourceText: '',
+                        customValues: item.customValues || {}
                     })));
                 } else {
-                    setItems([{ id: Date.now(), sku: '', description: '', hsnSac: '', quantity: 1, listPrice: 0, discountPercent: 0, unitPrice: 0, taxPercent: 18 }]);
+                    setItems([{ id: Date.now(), sku: '', description: '', hsnSac: '', quantity: 1, listPrice: 0, discountPercent: 0, unitPrice: 0, taxPercent: 18, customValues: {} }]);
                 }
 
             } else if (!isEditMode && enquiryId) {
@@ -84,7 +108,8 @@ export default function QuotationBuilder() {
                 setClientEmail(enqData.businessEmail || '');
                 setClientPhone(enqData.phoneNumber || '');
                 setQuotationSource('ENQUIRY');
-                setItems([{ id: Date.now(), sku: '', description: '', hsnSac: '', quantity: 1, listPrice: 0, discountPercent: 0, unitPrice: 0, taxPercent: 18 }]);
+                setColumnConfigs(defaultConfigs);
+                setItems([{ id: Date.now(), sku: '', description: '', hsnSac: '', quantity: 1, listPrice: 0, discountPercent: 0, unitPrice: 0, taxPercent: 18, customValues: {} }]);
                 setCurrentQuotationId(null);
                 setQuotationNumber('');
             } else {
@@ -122,7 +147,8 @@ export default function QuotationBuilder() {
                 unitPrice: item.unitPrice || 0,
                 discountPercent: item.discountPercent || 0,
                 taxPercent: item.taxPercent || 18, // default tax
-                sourceText: item.sourceText
+                sourceText: item.sourceText,
+                customValues: item.customValues || {}
             }));
             
             setItems([...items, ...newItems]);
@@ -138,22 +164,27 @@ export default function QuotationBuilder() {
     const updateItem = (id, field, value) => {
         setItems(items.map(item => {
             if (item.id === id) {
-                const newItem = { ...item, [field]: value };
-                if (field === 'listPrice' || field === 'unitPrice') {
-                    const lp = parseFloat(newItem.listPrice) || 0;
-                    const up = parseFloat(newItem.unitPrice) || 0;
-                    if (lp > 0 && up >= 0 && up <= lp) {
-                        newItem.discountPercent = parseFloat((((lp - up) / lp) * 100).toFixed(2));
-                    } else if (lp > 0 && up > lp) {
-                        // Edge case: unit price > list price -> no discount or negative, standard UI prevents negative discount
-                        newItem.discountPercent = 0; 
-                    } else {
-                        newItem.discountPercent = 0;
+                const newItem = { ...item };
+                if (field.startsWith('custom_')) {
+                    const customKey = field.replace('custom_', '');
+                    newItem.customValues = { ...newItem.customValues, [customKey]: value };
+                } else {
+                    newItem[field] = value;
+                    if (field === 'listPrice' || field === 'unitPrice') {
+                        const lp = parseFloat(newItem.listPrice) || 0;
+                        const up = parseFloat(newItem.unitPrice) || 0;
+                        if (lp > 0 && up >= 0 && up <= lp) {
+                            newItem.discountPercent = parseFloat((((lp - up) / lp) * 100).toFixed(2));
+                        } else if (lp > 0 && up > lp) {
+                            newItem.discountPercent = 0; 
+                        } else {
+                            newItem.discountPercent = 0;
+                        }
+                    } else if (field === 'discountPercent') {
+                        const lp = parseFloat(newItem.listPrice) || 0;
+                        const dp = parseFloat(newItem.discountPercent) || 0;
+                        newItem.unitPrice = parseFloat((lp * (1 - dp / 100)).toFixed(2));
                     }
-                } else if (field === 'discountPercent') {
-                    const lp = parseFloat(newItem.listPrice) || 0;
-                    const dp = parseFloat(newItem.discountPercent) || 0;
-                    newItem.unitPrice = parseFloat((lp * (1 - dp / 100)).toFixed(2));
                 }
                 return newItem;
             }
@@ -183,7 +214,7 @@ export default function QuotationBuilder() {
     };
 
     const addItem = () => {
-        setItems([...items, { id: Date.now(), sku: '', description: '', hsnSac: '', quantity: 1, listPrice: 0, discountPercent: 0, unitPrice: 0, taxPercent: 18 }]);
+        setItems([...items, { id: Date.now(), sku: '', description: '', hsnSac: '', quantity: 1, listPrice: 0, discountPercent: 0, unitPrice: 0, taxPercent: 18, customValues: {} }]);
     };
 
     const handleDownloadTemplate = () => {
@@ -266,15 +297,18 @@ export default function QuotationBuilder() {
                 clientPhone: clientPhone,
                 quotationSource: quotationSource,
                 sourceNotes: sourceNotes,
+                columnConfigs: columnConfigs,
                 items: items.map((item, index) => ({
+                    sku: item.sku,
+                    hsnSac: item.hsnSac,
                     description: item.description,
-                    category: item.category,
                     quantity: item.quantity,
-                    unit: item.unit,
+                    listPrice: item.listPrice,
                     unitPrice: item.unitPrice,
                     discountPercent: item.discountPercent,
                     taxPercent: item.taxPercent,
-                    sortOrder: index
+                    sortOrder: index,
+                    customValues: item.customValues || {}
                 }))
             };
 
@@ -324,15 +358,18 @@ export default function QuotationBuilder() {
                 clientPhone: clientPhone,
                 quotationSource: quotationSource,
                 sourceNotes: sourceNotes,
+                columnConfigs: columnConfigs,
                 items: items.map((item, index) => ({
+                    sku: item.sku,
+                    hsnSac: item.hsnSac,
                     description: item.description,
-                    category: item.category,
                     quantity: item.quantity,
-                    unit: item.unit,
+                    listPrice: item.listPrice,
                     unitPrice: item.unitPrice,
                     discountPercent: item.discountPercent,
                     taxPercent: item.taxPercent,
-                    sortOrder: index
+                    sortOrder: index,
+                    customValues: item.customValues || {}
                 }))
             };
 
@@ -552,26 +589,25 @@ export default function QuotationBuilder() {
                         </h2>
                         <p className="text-[12px] text-text-muted mt-1">Add products or services to this quotation</p>
                     </div>
-                    <button onClick={handleDownloadTemplate} className="inline-flex items-center px-4 py-2 border border-[#4F46E5]/30 bg-[#4F46E5]/5 hover:bg-[#4F46E5]/10 rounded-xl text-[12px] font-semibold text-[#4F46E5] transition-colors shadow-sm">
-                        <Download className="w-4 h-4 mr-2" /> Download Template
-                    </button>
+                    <div className="flex space-x-2">
+                        <button onClick={() => setIsConfigModalOpen(true)} className="inline-flex items-center px-4 py-2 border border-border-subtle hover:bg-bg-hover rounded-xl text-[12px] font-semibold text-text-primary transition-colors shadow-sm">
+                            <Settings className="w-4 h-4 mr-2" /> Configure Columns
+                        </button>
+                        <button onClick={handleDownloadTemplate} className="inline-flex items-center px-4 py-2 border border-[#4F46E5]/30 bg-[#4F46E5]/5 hover:bg-[#4F46E5]/10 rounded-xl text-[12px] font-semibold text-[#4F46E5] transition-colors shadow-sm">
+                            <Download className="w-4 h-4 mr-2" /> Download Template
+                        </button>
+                    </div>
                 </div>
                 
                 <div className="overflow-x-auto">
                     <table className="min-w-[900px] w-full">
                         <thead>
                             <tr>
-                                <th className="px-2 py-4 text-center text-[11px] font-bold text-text-muted uppercase tracking-wider w-[3%] bg-bg-card">#</th>
-                                <th className="px-3 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider w-[10%] bg-bg-card">SKU</th>
-                                <th className="px-4 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider w-[22%] bg-bg-card">Description</th>
-                                <th className="px-3 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider w-[8%] bg-bg-card">HSN / SAC</th>
-                                <th className="px-3 py-4 text-center text-[11px] font-bold text-text-muted uppercase tracking-wider w-[5%] bg-bg-card">Qty</th>
-                                <th className="px-3 py-4 text-right text-[11px] font-bold text-text-muted uppercase tracking-wider w-[9%] bg-bg-card">List Price (₹)</th>
-                                <th className="px-3 py-4 text-center text-[11px] font-bold text-text-muted uppercase tracking-wider w-[6%] bg-bg-card">Disc %</th>
-                                <th className="px-3 py-4 text-right text-[11px] font-bold text-text-muted uppercase tracking-wider w-[9%] bg-bg-card">Unit Price (₹)</th>
-                                <th className="px-3 py-4 text-center text-[11px] font-bold text-text-muted uppercase tracking-wider w-[5%] bg-bg-card">Tax %</th>
-                                <th className="px-3 py-4 text-right text-[11px] font-bold text-text-muted uppercase tracking-wider w-[8%] bg-bg-card">Tax Amount (₹)</th>
-                                <th className="px-4 py-4 text-right text-[11px] font-bold text-text-muted uppercase tracking-wider w-[10%] bg-bg-card">Total (₹)</th>
+                                {columnConfigs.filter(c => c.visible).sort((a,b) => a.sortOrder - b.sortOrder).map(config => (
+                                    <th key={config.columnKey} className={`px-3 py-4 text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card ${config.columnType === 'CURRENCY' || config.columnKey === 'rowNumber' ? 'text-right' : 'text-left'}`}>
+                                        {config.displayName}
+                                    </th>
+                                ))}
                                 <th className="px-2 py-4 text-center text-[11px] font-bold text-text-muted uppercase tracking-wider w-[5%] bg-bg-card">Actions</th>
                             </tr>
                         </thead>
@@ -586,98 +622,105 @@ export default function QuotationBuilder() {
                                 const taxAmt = net * (taxPct / 100);
                                 const lineTotal = net + taxAmt;
 
+                                const activeConfigs = columnConfigs.filter(c => c.visible).sort((a,b) => a.sortOrder - b.sortOrder);
+
                                 return (
                                     <tr key={item.id} className="group hover:bg-bg-hover transition-colors">
-                                        <td className="px-2 py-3 align-top text-center text-[12px] font-medium text-text-muted mt-2">
-                                            {index + 1}
-                                        </td>
-                                        <td className="px-3 py-3 align-top">
-                                            <input 
-                                                type="text" 
-                                                value={item.sku} 
-                                                onChange={(e) => updateItem(item.id, 'sku', e.target.value)} 
-                                                className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary transition-all outline-none uppercase font-mono tracking-tight" 
-                                                placeholder="SKU"
-                                            />
-                                        </td>
-                                        <td className="px-4 py-3 align-top">
-                                            <input 
-                                                type="text" 
-                                                value={item.description} 
-                                                onChange={(e) => updateItem(item.id, 'description', e.target.value)} 
-                                                className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-3 text-[13px] font-semibold text-text-primary transition-all outline-none" 
-                                                placeholder="Item description"
-                                            />
-                                            {item.sourceText && (
-                                                <p className="text-[11px] text-text-secondary mt-1 italic pl-3 border-l-2 border-[#7C3AED]/40 leading-tight">
-                                                    "{item.sourceText}"
-                                                </p>
-                                            )}
-                                        </td>
-                                        <td className="px-3 py-3 align-top">
-                                            <input 
-                                                type="text" 
-                                                value={item.hsnSac} 
-                                                onChange={(e) => updateItem(item.id, 'hsnSac', e.target.value)} 
-                                                className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary transition-all outline-none font-mono tracking-tight" 
-                                                placeholder="HSN/SAC"
-                                            />
-                                        </td>
-                                        <td className="px-3 py-3 align-top text-center">
-                                            <input 
-                                                type="number" step="any" min="0" 
-                                                value={item.quantity} 
-                                                onChange={(e) => updateItem(item.id, 'quantity', e.target.value)} 
-                                                className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary text-center transition-all outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
-                                            />
-                                        </td>
-                                        <td className="px-3 py-3 align-top text-right">
-                                            <input 
-                                                type="number" step="any" min="0" 
-                                                value={item.listPrice} 
-                                                onChange={(e) => updateItem(item.id, 'listPrice', e.target.value)} 
-                                                className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary text-right transition-all outline-none font-mono tracking-tight [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
-                                            />
-                                        </td>
-                                        <td className="px-3 py-3 align-top text-center">
-                                            <input 
-                                                type="number" step="any" min="0" max="100" 
-                                                value={item.discountPercent} 
-                                                onChange={(e) => updateItem(item.id, 'discountPercent', e.target.value)} 
-                                                className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-1 text-[13px] font-medium text-text-primary text-center transition-all outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
-                                            />
-                                        </td>
-                                        <td className="px-3 py-3 align-top text-right">
-                                            <input 
-                                                type="number" step="any" min="0" 
-                                                value={item.unitPrice} 
-                                                onChange={(e) => updateItem(item.id, 'unitPrice', e.target.value)} 
-                                                className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-bold text-text-primary text-right transition-all outline-none font-mono tracking-tight [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
-                                            />
-                                        </td>
-                                        <td className="px-3 py-3 align-top text-center">
-                                            <input 
-                                                type="number" step="any" min="0" max="100" 
-                                                value={item.taxPercent} 
-                                                onChange={(e) => updateItem(item.id, 'taxPercent', e.target.value)} 
-                                                className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-1 text-[13px] font-medium text-text-primary text-center transition-all outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
-                                            />
-                                        </td>
-                                        <td className="px-3 py-3 align-top text-right">
-                                            <div className="font-medium text-text-secondary mt-2 font-mono text-[13px] tracking-tight">
-                                                {taxAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-3 align-top text-right">
-                                            <div className="font-bold text-text-primary mt-2 font-mono text-[14px] tracking-tight">
-                                                {lineTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                            </div>
-                                        </td>
+                                        {activeConfigs.map(config => {
+                                            if (config.isCustom) {
+                                                return (
+                                                    <td key={config.columnKey} className="px-3 py-3 align-top">
+                                                        <input 
+                                                            type={config.columnType === 'NUMBER' || config.columnType === 'CURRENCY' ? 'number' : 'text'}
+                                                            step="any"
+                                                            value={(item.customValues && item.customValues[config.columnKey]) || ''} 
+                                                            onChange={(e) => updateItem(item.id, `custom_${config.columnKey}`, e.target.value)} 
+                                                            className={`w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary transition-all outline-none ${config.columnType === 'CURRENCY' || config.columnType === 'NUMBER' ? 'text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none' : ''}`}
+                                                            placeholder={config.displayName}
+                                                        />
+                                                    </td>
+                                                );
+                                            }
+
+                                            switch (config.columnKey) {
+                                                case "rowNumber":
+                                                    return (
+                                                        <td key={config.columnKey} className="px-2 py-3 align-top text-right text-[12px] font-medium text-text-muted mt-2">
+                                                            {index + 1}
+                                                        </td>
+                                                    );
+                                                case "sku":
+                                                    return (
+                                                        <td key={config.columnKey} className="px-3 py-3 align-top">
+                                                            <input type="text" value={item.sku} onChange={(e) => updateItem(item.id, 'sku', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary transition-all outline-none uppercase font-mono tracking-tight" placeholder="SKU" />
+                                                        </td>
+                                                    );
+                                                case "description":
+                                                    return (
+                                                        <td key={config.columnKey} className="px-4 py-3 align-top">
+                                                            <input type="text" value={item.description} onChange={(e) => updateItem(item.id, 'description', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-3 text-[13px] font-semibold text-text-primary transition-all outline-none" placeholder="Item description" />
+                                                            {item.sourceText && <p className="text-[11px] text-text-secondary mt-1 italic pl-3 border-l-2 border-[#7C3AED]/40 leading-tight">"{item.sourceText}"</p>}
+                                                        </td>
+                                                    );
+                                                case "hsnSac":
+                                                    return (
+                                                        <td key={config.columnKey} className="px-3 py-3 align-top">
+                                                            <input type="text" value={item.hsnSac} onChange={(e) => updateItem(item.id, 'hsnSac', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary transition-all outline-none font-mono tracking-tight" placeholder="HSN/SAC" />
+                                                        </td>
+                                                    );
+                                                case "quantity":
+                                                    return (
+                                                        <td key={config.columnKey} className="px-3 py-3 align-top text-right">
+                                                            <input type="number" step="any" min="0" value={item.quantity} onChange={(e) => updateItem(item.id, 'quantity', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary text-right transition-all outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                                                        </td>
+                                                    );
+                                                case "listPrice":
+                                                    return (
+                                                        <td key={config.columnKey} className="px-3 py-3 align-top text-right">
+                                                            <input type="number" step="any" min="0" value={item.listPrice} onChange={(e) => updateItem(item.id, 'listPrice', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary text-right transition-all outline-none font-mono tracking-tight [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                                                        </td>
+                                                    );
+                                                case "discountPercent":
+                                                    return (
+                                                        <td key={config.columnKey} className="px-3 py-3 align-top text-right">
+                                                            <input type="number" step="any" min="0" max="100" value={item.discountPercent} onChange={(e) => updateItem(item.id, 'discountPercent', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-1 text-[13px] font-medium text-text-primary text-right transition-all outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                                                        </td>
+                                                    );
+                                                case "unitPrice":
+                                                    return (
+                                                        <td key={config.columnKey} className="px-3 py-3 align-top text-right">
+                                                            <input type="number" step="any" min="0" value={item.unitPrice} onChange={(e) => updateItem(item.id, 'unitPrice', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-bold text-text-primary text-right transition-all outline-none font-mono tracking-tight [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                                                        </td>
+                                                    );
+                                                case "taxPercent":
+                                                    return (
+                                                        <td key={config.columnKey} className="px-3 py-3 align-top text-right">
+                                                            <input type="number" step="any" min="0" max="100" value={item.taxPercent} onChange={(e) => updateItem(item.id, 'taxPercent', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-1 text-[13px] font-medium text-text-primary text-right transition-all outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                                                        </td>
+                                                    );
+                                                case "taxAmount":
+                                                    return (
+                                                        <td key={config.columnKey} className="px-3 py-3 align-top text-right">
+                                                            <div className="font-medium text-text-secondary mt-2 font-mono text-[13px] tracking-tight">
+                                                                {taxAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                            </div>
+                                                        </td>
+                                                    );
+                                                case "total":
+                                                    return (
+                                                        <td key={config.columnKey} className="px-4 py-3 align-top text-right">
+                                                            <div className="font-bold text-text-primary mt-2 font-mono text-[14px] tracking-tight">
+                                                                {lineTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                            </div>
+                                                        </td>
+                                                    );
+                                                default:
+                                                    return <td key={config.columnKey}></td>;
+                                            }
+                                        })}
                                         <td className="px-2 py-3 align-top text-center">
                                             <div className="flex flex-col items-center justify-center space-y-1.5 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <div className="flex space-x-1.5">
-                                                    <button onClick={() => removeItem(item.id)} className="p-1 text-[#DC2626] hover:bg-[#DC2626]/10 rounded" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
-                                                </div>
+                                                <button onClick={() => removeItem(item.id)} className="p-1 text-[#DC2626] hover:bg-[#DC2626]/10 rounded" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
                                             </div>
                                         </td>
                                     </tr>
@@ -740,6 +783,16 @@ export default function QuotationBuilder() {
                 initialEmail={clientEmail} 
                 onSend={executeSendQuotation}
                 isSending={isSending}
+            />
+
+            <QuotationColumnConfigModal
+                isOpen={isConfigModalOpen}
+                onClose={() => setIsConfigModalOpen(false)}
+                activeConfigs={columnConfigs}
+                onApply={(newConfigs) => {
+                    setColumnConfigs(newConfigs);
+                    setIsConfigModalOpen(false);
+                }}
             />
         </div>
     );

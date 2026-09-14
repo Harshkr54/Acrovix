@@ -62,25 +62,36 @@ public class PdfService {
             }
             document.add(new Paragraph(" "));
 
-            // Items Table
-            PdfPTable table = new PdfPTable(11);
+            // Dynamic Items Table based on configurations
+            java.util.List<com.acrovix.admin.entity.QuotationColumnConfig> configs = new java.util.ArrayList<>();
+            if (quotation.getColumnConfigs() != null && !quotation.getColumnConfigs().isEmpty()) {
+                configs.addAll(quotation.getColumnConfigs().stream()
+                        .filter(com.acrovix.admin.entity.QuotationColumnConfig::getVisible)
+                        .sorted(java.util.Comparator.comparing(com.acrovix.admin.entity.QuotationColumnConfig::getSortOrder))
+                        .collect(java.util.stream.Collectors.toList()));
+            } else {
+                // Fallback for legacy quotations
+                String[] keys = {"rowNumber", "sku", "description", "hsnSac", "quantity", "listPrice", "discountPercent", "unitPrice", "taxPercent", "taxAmount", "total"};
+                String[] displayNames = {"#", "SKU", "Description", "HSN/SAC", "Qty", "List Price", "Disc %", "Unit Price", "Tax %", "Tax Amount", "Total"};
+                for (int i = 0; i < keys.length; i++) {
+                    com.acrovix.admin.entity.QuotationColumnConfig c = new com.acrovix.admin.entity.QuotationColumnConfig();
+                    c.setColumnKey(keys[i]);
+                    c.setDisplayName(displayNames[i]);
+                    c.setVisible(true);
+                    c.setIsCustom(false);
+                    configs.add(c);
+                }
+            }
+
+            int colCount = configs.size();
+            PdfPTable table = new PdfPTable(colCount);
             table.setWidthPercentage(100);
             
-            try {
-                table.setWidths(new float[]{4f, 10f, 22f, 10f, 6f, 10f, 7f, 10f, 6f, 10f, 12f});
-            } catch (Exception ignored) {}
-            
-            table.addCell("#");
-            table.addCell("SKU");
-            table.addCell("Description");
-            table.addCell("HSN/SAC");
-            table.addCell("Qty");
-            table.addCell("List Price");
-            table.addCell("Disc %");
-            table.addCell("Unit Price");
-            table.addCell("Tax %");
-            table.addCell("Tax Amount");
-            table.addCell("Total");
+            // Header
+            for (com.acrovix.admin.entity.QuotationColumnConfig c : configs) {
+                PdfPCell headerCell = new PdfPCell(new Phrase(c.getDisplayName(), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10)));
+                table.addCell(headerCell);
+            }
 
             if (quotation.getItems() != null) {
                 int index = 1;
@@ -93,17 +104,32 @@ public class PdfService {
                     BigDecimal netLine = qty.multiply(unitPrice);
                     BigDecimal taxAmt = netLine.multiply(taxPct).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
                     
-                    table.addCell(String.valueOf(index++));
-                    table.addCell(item.getSku() != null ? item.getSku() : "");
-                    table.addCell(item.getDescription() != null ? item.getDescription() : "");
-                    table.addCell(item.getHsnSac() != null ? item.getHsnSac() : "");
-                    table.addCell(qty.toString());
-                    table.addCell(listPrice.toString());
-                    table.addCell(item.getDiscountPercent() != null ? item.getDiscountPercent().toString() : "0");
-                    table.addCell(unitPrice.toString());
-                    table.addCell(taxPct.toString());
-                    table.addCell(taxAmt.toString());
-                    table.addCell(item.getLineTotal() != null ? item.getLineTotal().toString() : "0.00");
+                    for (com.acrovix.admin.entity.QuotationColumnConfig c : configs) {
+                        String val = "";
+                        if (c.getIsCustom() != null && c.getIsCustom()) {
+                            if (item.getCustomValues() != null && item.getCustomValues().containsKey(c.getColumnKey())) {
+                                val = item.getCustomValues().get(c.getColumnKey());
+                            }
+                        } else {
+                            switch (c.getColumnKey()) {
+                                case "rowNumber": val = String.valueOf(index); break;
+                                case "sku": val = item.getSku() != null ? item.getSku() : ""; break;
+                                case "description": val = item.getDescription() != null ? item.getDescription() : ""; break;
+                                case "hsnSac": val = item.getHsnSac() != null ? item.getHsnSac() : ""; break;
+                                case "quantity": val = qty.toString(); break;
+                                case "listPrice": val = listPrice.toString(); break;
+                                case "discountPercent": val = item.getDiscountPercent() != null ? item.getDiscountPercent().toString() : "0"; break;
+                                case "unitPrice": val = unitPrice.toString(); break;
+                                case "taxPercent": val = taxPct.toString(); break;
+                                case "taxAmount": val = taxAmt.toString(); break;
+                                case "total": val = item.getLineTotal() != null ? item.getLineTotal().toString() : "0.00"; break;
+                                default: val = "";
+                            }
+                        }
+                        PdfPCell cell = new PdfPCell(new Phrase(val, FontFactory.getFont(FontFactory.HELVETICA, 10)));
+                        table.addCell(cell);
+                    }
+                    index++;
                 }
             }
             document.add(table);
