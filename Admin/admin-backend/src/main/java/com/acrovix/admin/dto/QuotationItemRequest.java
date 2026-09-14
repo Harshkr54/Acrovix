@@ -20,13 +20,16 @@ public class QuotationItemRequest {
     @NotBlank(message = "Description is required")
     private String description;
     
-    private String category;
+    private String sku;
+    
+    private String hsnSac;
     
     @NotNull(message = "Quantity is required")
     @DecimalMin(value = "0.0", inclusive = false, message = "Quantity must be greater than 0")
     private BigDecimal quantity;
     
-    private String unit;
+    @DecimalMin(value = "0.0", inclusive = true, message = "List price cannot be negative")
+    private BigDecimal listPrice;
     
     @NotNull(message = "Unit price is required")
     @DecimalMin(value = "0.0", inclusive = true, message = "Unit price cannot be negative")

@@ -27,6 +27,12 @@ public class QuotationItem {
     private String description;
 
     @Column(length = 100)
+    private String sku;
+
+    @Column(name = "hsn_sac", length = 50)
+    private String hsnSac;
+
+    @Column(length = 100)
     private String category;
 
     @Column(precision = 12, scale = 2, nullable = false)
@@ -34,6 +40,9 @@ public class QuotationItem {
 
     @Column(length = 50)
     private String unit;
+
+    @Column(name = "list_price", precision = 12, scale = 2)
+    private BigDecimal listPrice;
 
     @Column(name = "unit_price", precision = 12, scale = 2, nullable = false)
     private BigDecimal unitPrice;

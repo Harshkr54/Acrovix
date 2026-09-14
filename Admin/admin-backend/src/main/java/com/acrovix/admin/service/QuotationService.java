@@ -149,13 +149,14 @@ public class QuotationService {
             for (QuotationItemRequest itemReq : request.getItems()) {
                 BigDecimal qty = itemReq.getQuantity() != null ? itemReq.getQuantity() : BigDecimal.ZERO;
                 BigDecimal unitPrice = itemReq.getUnitPrice() != null ? itemReq.getUnitPrice() : BigDecimal.ZERO;
+                BigDecimal listPrice = itemReq.getListPrice() != null ? itemReq.getListPrice() : unitPrice;
                 BigDecimal discountPct = itemReq.getDiscountPercent() != null ? itemReq.getDiscountPercent() : BigDecimal.ZERO;
                 BigDecimal taxPct = itemReq.getTaxPercent() != null ? itemReq.getTaxPercent() : BigDecimal.ZERO;
 
-                // Exact approved formulas
-                BigDecimal grossLineAmount = qty.multiply(unitPrice).setScale(2, RoundingMode.HALF_UP);
-                BigDecimal lineDiscount = grossLineAmount.multiply(discountPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-                BigDecimal netLineAmount = grossLineAmount.subtract(lineDiscount);
+                // Exact approved formulas (new pricing model)
+                BigDecimal netLineAmount = qty.multiply(unitPrice).setScale(2, RoundingMode.HALF_UP);
+                BigDecimal grossLineAmount = qty.multiply(listPrice).setScale(2, RoundingMode.HALF_UP);
+                BigDecimal lineDiscount = grossLineAmount.subtract(netLineAmount);
                 BigDecimal lineTax = netLineAmount.multiply(taxPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
                 BigDecimal lineTotal = netLineAmount.add(lineTax);
 
@@ -165,10 +166,11 @@ public class QuotationService {
 
                 QuotationItem item = QuotationItem.builder()
                         .quotation(quotation)
+                        .sku(itemReq.getSku())
+                        .hsnSac(itemReq.getHsnSac())
                         .description(itemReq.getDescription())
-                        .category(itemReq.getCategory())
                         .quantity(qty)
-                        .unit(itemReq.getUnit())
+                        .listPrice(listPrice)
                         .unitPrice(unitPrice)
                         .discountPercent(discountPct)
                         .taxPercent(taxPct)

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { fetchApi } from '../services/api';
-import { Plus, Trash2, Send, Save, Wand2, Copy, ArrowUp, ArrowDown, Calculator, User, Hash, AlertCircle, RefreshCw } from 'lucide-react';
+import { Plus, Trash2, Send, Save, Wand2, Copy, ArrowUp, ArrowDown, Calculator, User, Hash, AlertCircle, RefreshCw, Download } from 'lucide-react';
 
 export default function QuotationBuilder() {
     const { enquiryId, quotationId } = useParams();
@@ -59,17 +59,18 @@ export default function QuotationBuilder() {
                 if (q.items && q.items.length > 0) {
                     setItems(q.items.map(item => ({
                         id: item.id || Date.now() + Math.random(),
+                        sku: item.sku || '',
                         description: item.description || '',
-                        category: item.category || '',
+                        hsnSac: item.hsnSac || '',
                         quantity: item.quantity || 1,
-                        unit: item.unit || 'unit',
+                        listPrice: item.listPrice !== null && item.listPrice !== undefined ? item.listPrice : (item.unitPrice || 0),
                         unitPrice: item.unitPrice || 0,
                         discountPercent: item.discountPercent || 0,
                         taxPercent: item.taxPercent || 18,
                         sourceText: ''
                     })));
                 } else {
-                    setItems([{ id: Date.now(), description: '', category: '', quantity: 1, unit: 'unit', unitPrice: 0, discountPercent: 0, taxPercent: 18 }]);
+                    setItems([{ id: Date.now(), sku: '', description: '', hsnSac: '', quantity: 1, listPrice: 0, discountPercent: 0, unitPrice: 0, taxPercent: 18 }]);
                 }
 
             } else if (!isEditMode && enquiryId) {
@@ -81,7 +82,7 @@ export default function QuotationBuilder() {
                 setClientEmail(enqData.businessEmail || '');
                 setClientPhone(enqData.phoneNumber || '');
                 setQuotationSource('ENQUIRY');
-                setItems([{ id: Date.now(), description: '', category: '', quantity: 1, unit: 'unit', unitPrice: 0, discountPercent: 0, taxPercent: 18 }]);
+                setItems([{ id: Date.now(), sku: '', description: '', hsnSac: '', quantity: 1, listPrice: 0, discountPercent: 0, unitPrice: 0, taxPercent: 18 }]);
                 setCurrentQuotationId(null);
                 setQuotationNumber('');
             } else {
@@ -111,10 +112,11 @@ export default function QuotationBuilder() {
             // Format imported data and append to grid
             const newItems = data.map(item => ({
                 id: Date.now() + Math.random(),
+                sku: item.sku || '',
                 description: item.description || '',
-                category: item.category || '',
+                hsnSac: item.hsnSac || '',
                 quantity: item.quantity || 1,
-                unit: item.unit || 'unit',
+                listPrice: item.listPrice !== null && item.listPrice !== undefined ? item.listPrice : (item.unitPrice || 0),
                 unitPrice: item.unitPrice || 0,
                 discountPercent: item.discountPercent || 0,
                 taxPercent: item.taxPercent || 18, // default tax
@@ -132,7 +134,29 @@ export default function QuotationBuilder() {
     };
 
     const updateItem = (id, field, value) => {
-        setItems(items.map(item => item.id === id ? { ...item, [field]: value } : item));
+        setItems(items.map(item => {
+            if (item.id === id) {
+                const newItem = { ...item, [field]: value };
+                if (field === 'listPrice' || field === 'unitPrice') {
+                    const lp = parseFloat(newItem.listPrice) || 0;
+                    const up = parseFloat(newItem.unitPrice) || 0;
+                    if (lp > 0 && up >= 0 && up <= lp) {
+                        newItem.discountPercent = parseFloat((((lp - up) / lp) * 100).toFixed(2));
+                    } else if (lp > 0 && up > lp) {
+                        // Edge case: unit price > list price -> no discount or negative, standard UI prevents negative discount
+                        newItem.discountPercent = 0; 
+                    } else {
+                        newItem.discountPercent = 0;
+                    }
+                } else if (field === 'discountPercent') {
+                    const lp = parseFloat(newItem.listPrice) || 0;
+                    const dp = parseFloat(newItem.discountPercent) || 0;
+                    newItem.unitPrice = parseFloat((lp * (1 - dp / 100)).toFixed(2));
+                }
+                return newItem;
+            }
+            return item;
+        }));
     };
 
     const removeItem = (id) => {
@@ -167,32 +191,57 @@ export default function QuotationBuilder() {
     };
 
     const addItem = () => {
-        setItems([...items, { id: Date.now(), description: '', category: '', quantity: 1, unit: 'unit', unitPrice: 0, discountPercent: 0, taxPercent: 18 }]);
+        setItems([...items, { id: Date.now(), sku: '', description: '', hsnSac: '', quantity: 1, listPrice: 0, discountPercent: 0, unitPrice: 0, taxPercent: 18 }]);
+    };
+
+    const handleDownloadTemplate = () => {
+        const headers = ['SKU', 'Description', 'HSN/SAC', 'Qty', 'List Price', 'Disc%', 'Unit Price', 'Tax%'];
+        const rows = [
+            ['ACX-DB-001', 'MySQL Enterprise Database', '997331', '1', '10000', '15', '8500', '18'],
+            ['', 'Custom Development', '998313', '1', '5000', '0', '5000', '18']
+        ];
+        
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(r => r.map(c => `"${c}"`).join(','))
+        ].join('\n');
+        
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'quotation_items_template.csv');
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     // Frontend calculation (Preview only)
     const calculateTotals = () => {
-        let subtotal = 0;
+        let subtotalBeforeTax = 0;
+        let taxableAmount = 0;
         let tax = 0;
         let discount = 0;
 
         items.forEach(item => {
             const qty = parseFloat(item.quantity) || 0;
-            const price = parseFloat(item.unitPrice) || 0;
-            const discPct = parseFloat(item.discountPercent) || 0;
+            const lp = parseFloat(item.listPrice) || 0;
+            const up = parseFloat(item.unitPrice) || 0;
             const taxPct = parseFloat(item.taxPercent) || 0;
 
-            const gross = qty * price;
-            const lineDisc = gross * (discPct / 100);
-            const net = gross - lineDisc;
-            const lineTax = net * (taxPct / 100);
+            const lineGross = qty * lp;
+            const lineNet = qty * up;
+            const lineDisc = lineGross - lineNet;
+            const lineTax = lineNet * (taxPct / 100);
 
-            subtotal += net;
+            subtotalBeforeTax += lineGross;
+            taxableAmount += lineNet;
             tax += lineTax;
             discount += lineDisc;
         });
 
-        return { subtotal, tax, discount, grandTotal: subtotal + tax };
+        return { subtotalBeforeTax, taxableAmount, tax, discount, grandTotal: taxableAmount + tax };
     };
 
     const totals = calculateTotals();
@@ -501,37 +550,60 @@ export default function QuotationBuilder() {
             {/* Item Editor */}
             <div className="card overflow-hidden flex flex-col">
                 <div className="px-6 py-5 border-b border-border-subtle flex justify-between items-center bg-bg-card">
-                    <h2 className="text-base font-bold text-text-primary tracking-tight flex items-center">
-                        <Hash className="w-4 h-4 mr-2 text-text-secondary" /> Line Items
-                    </h2>
+                    <div>
+                        <h2 className="text-base font-bold text-text-primary tracking-tight flex items-center">
+                            <Hash className="w-4 h-4 mr-2 text-text-secondary" /> Line Items
+                        </h2>
+                        <p className="text-[12px] text-text-muted mt-1">Add products or services to this quotation</p>
+                    </div>
+                    <button onClick={handleDownloadTemplate} className="inline-flex items-center px-4 py-2 border border-[#4F46E5]/30 bg-[#4F46E5]/5 hover:bg-[#4F46E5]/10 rounded-xl text-[12px] font-semibold text-[#4F46E5] transition-colors shadow-sm">
+                        <Download className="w-4 h-4 mr-2" /> Download Template
+                    </button>
                 </div>
                 
                 <div className="overflow-x-auto">
                     <table className="min-w-[900px] w-full">
                         <thead>
                             <tr>
-                                <th className="px-4 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider w-[25%] bg-bg-card">Description</th>
-                                <th className="px-3 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider w-[15%] bg-bg-card">Category</th>
-                                <th className="px-3 py-4 text-center text-[11px] font-bold text-text-muted uppercase tracking-wider w-[10%] bg-bg-card">Qty</th>
-                                <th className="px-3 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider w-[10%] bg-bg-card">Unit</th>
-                                <th className="px-3 py-4 text-right text-[11px] font-bold text-text-muted uppercase tracking-wider w-[12%] bg-bg-card">Price (₹)</th>
-                                <th className="px-3 py-4 text-center text-[11px] font-bold text-text-muted uppercase tracking-wider w-[8%] bg-bg-card">Disc %</th>
-                                <th className="px-3 py-4 text-center text-[11px] font-bold text-text-muted uppercase tracking-wider w-[8%] bg-bg-card">Tax %</th>
-                                <th className="px-4 py-4 text-right text-[11px] font-bold text-text-muted uppercase tracking-wider w-[12%] bg-bg-card">Total</th>
-                                <th className="px-2 py-4 text-center text-[11px] font-bold text-text-muted uppercase tracking-wider w-[6%] bg-bg-card"></th>
+                                <th className="px-2 py-4 text-center text-[11px] font-bold text-text-muted uppercase tracking-wider w-[3%] bg-bg-card">#</th>
+                                <th className="px-3 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider w-[10%] bg-bg-card">SKU</th>
+                                <th className="px-4 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider w-[22%] bg-bg-card">Description</th>
+                                <th className="px-3 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider w-[8%] bg-bg-card">HSN / SAC</th>
+                                <th className="px-3 py-4 text-center text-[11px] font-bold text-text-muted uppercase tracking-wider w-[5%] bg-bg-card">Qty</th>
+                                <th className="px-3 py-4 text-right text-[11px] font-bold text-text-muted uppercase tracking-wider w-[9%] bg-bg-card">List Price (₹)</th>
+                                <th className="px-3 py-4 text-center text-[11px] font-bold text-text-muted uppercase tracking-wider w-[6%] bg-bg-card">Disc %</th>
+                                <th className="px-3 py-4 text-right text-[11px] font-bold text-text-muted uppercase tracking-wider w-[9%] bg-bg-card">Unit Price (₹)</th>
+                                <th className="px-3 py-4 text-center text-[11px] font-bold text-text-muted uppercase tracking-wider w-[5%] bg-bg-card">Tax %</th>
+                                <th className="px-3 py-4 text-right text-[11px] font-bold text-text-muted uppercase tracking-wider w-[8%] bg-bg-card">Tax Amount (₹)</th>
+                                <th className="px-4 py-4 text-right text-[11px] font-bold text-text-muted uppercase tracking-wider w-[10%] bg-bg-card">Total (₹)</th>
+                                <th className="px-2 py-4 text-center text-[11px] font-bold text-text-muted uppercase tracking-wider w-[5%] bg-bg-card">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border-subtle/40 bg-bg-card">
                             {items.map((item, index) => {
                                 const qty = parseFloat(item.quantity) || 0;
-                                const price = parseFloat(item.unitPrice) || 0;
-                                const disc = parseFloat(item.discountPercent) || 0;
-                                const tax = parseFloat(item.taxPercent) || 0;
-                                const net = (qty * price) * (1 - disc/100);
-                                const lineTotal = net * (1 + tax/100);
+                                const lp = parseFloat(item.listPrice) || 0;
+                                const up = parseFloat(item.unitPrice) || 0;
+                                const taxPct = parseFloat(item.taxPercent) || 0;
+                                
+                                const net = qty * up;
+                                const taxAmt = net * (taxPct / 100);
+                                const lineTotal = net + taxAmt;
 
                                 return (
                                     <tr key={item.id} className="group hover:bg-bg-hover transition-colors">
+                                        <td className="px-2 py-3 align-top text-center text-[12px] font-medium text-text-muted mt-2">
+                                            {index + 1}
+                                        </td>
+                                        <td className="px-3 py-3 align-top">
+                                            <input 
+                                                type="text" 
+                                                value={item.sku} 
+                                                onChange={(e) => updateItem(item.id, 'sku', e.target.value)} 
+                                                className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary transition-all outline-none uppercase font-mono tracking-tight" 
+                                                placeholder="SKU"
+                                            />
+                                        </td>
                                         <td className="px-4 py-3 align-top">
                                             <input 
                                                 type="text" 
@@ -549,10 +621,10 @@ export default function QuotationBuilder() {
                                         <td className="px-3 py-3 align-top">
                                             <input 
                                                 type="text" 
-                                                value={item.category} 
-                                                onChange={(e) => updateItem(item.id, 'category', e.target.value)} 
-                                                className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-3 text-[13px] font-medium text-text-primary transition-all outline-none" 
-                                                placeholder="Category"
+                                                value={item.hsnSac} 
+                                                onChange={(e) => updateItem(item.id, 'hsnSac', e.target.value)} 
+                                                className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary transition-all outline-none font-mono tracking-tight" 
+                                                placeholder="HSN/SAC"
                                             />
                                         </td>
                                         <td className="px-3 py-3 align-top text-center">
@@ -563,20 +635,12 @@ export default function QuotationBuilder() {
                                                 className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary text-center transition-all outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
                                             />
                                         </td>
-                                        <td className="px-3 py-3 align-top">
-                                            <input 
-                                                type="text" 
-                                                value={item.unit} 
-                                                onChange={(e) => updateItem(item.id, 'unit', e.target.value)} 
-                                                className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-3 text-[13px] font-medium text-text-primary transition-all outline-none" 
-                                            />
-                                        </td>
                                         <td className="px-3 py-3 align-top text-right">
                                             <input 
                                                 type="number" step="any" min="0" 
-                                                value={item.unitPrice} 
-                                                onChange={(e) => updateItem(item.id, 'unitPrice', e.target.value)} 
-                                                className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-3 text-[13px] font-medium text-text-primary text-right transition-all outline-none font-mono tracking-tight" 
+                                                value={item.listPrice} 
+                                                onChange={(e) => updateItem(item.id, 'listPrice', e.target.value)} 
+                                                className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary text-right transition-all outline-none font-mono tracking-tight [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
                                             />
                                         </td>
                                         <td className="px-3 py-3 align-top text-center">
@@ -584,7 +648,15 @@ export default function QuotationBuilder() {
                                                 type="number" step="any" min="0" max="100" 
                                                 value={item.discountPercent} 
                                                 onChange={(e) => updateItem(item.id, 'discountPercent', e.target.value)} 
-                                                className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary text-center transition-all outline-none" 
+                                                className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-1 text-[13px] font-medium text-text-primary text-center transition-all outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                                            />
+                                        </td>
+                                        <td className="px-3 py-3 align-top text-right">
+                                            <input 
+                                                type="number" step="any" min="0" 
+                                                value={item.unitPrice} 
+                                                onChange={(e) => updateItem(item.id, 'unitPrice', e.target.value)} 
+                                                className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-bold text-text-primary text-right transition-all outline-none font-mono tracking-tight [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
                                             />
                                         </td>
                                         <td className="px-3 py-3 align-top text-center">
@@ -592,8 +664,13 @@ export default function QuotationBuilder() {
                                                 type="number" step="any" min="0" max="100" 
                                                 value={item.taxPercent} 
                                                 onChange={(e) => updateItem(item.id, 'taxPercent', e.target.value)} 
-                                                className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary text-center transition-all outline-none" 
+                                                className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-1 text-[13px] font-medium text-text-primary text-center transition-all outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
                                             />
+                                        </td>
+                                        <td className="px-3 py-3 align-top text-right">
+                                            <div className="font-medium text-text-secondary mt-2 font-mono text-[13px] tracking-tight">
+                                                {taxAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </div>
                                         </td>
                                         <td className="px-4 py-3 align-top text-right">
                                             <div className="font-bold text-text-primary mt-2 font-mono text-[14px] tracking-tight">
@@ -602,10 +679,6 @@ export default function QuotationBuilder() {
                                         </td>
                                         <td className="px-2 py-3 align-top text-center">
                                             <div className="flex flex-col items-center justify-center space-y-1.5 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <div className="flex space-x-1.5">
-                                                    <button onClick={() => moveItemUp(index)} disabled={index === 0} className="p-1 text-text-muted hover:text-text-primary hover:bg-bg-main rounded disabled:opacity-30" title="Move Up"><ArrowUp className="w-3.5 h-3.5" /></button>
-                                                    <button onClick={() => moveItemDown(index)} disabled={index === items.length - 1} className="p-1 text-text-muted hover:text-text-primary hover:bg-bg-main rounded disabled:opacity-30" title="Move Down"><ArrowDown className="w-3.5 h-3.5" /></button>
-                                                </div>
                                                 <div className="flex space-x-1.5">
                                                     <button onClick={() => duplicateItem(item.id)} className="p-1 text-[#4F46E5] hover:bg-[#4F46E5]/10 rounded" title="Duplicate"><Copy className="w-3.5 h-3.5" /></button>
                                                     <button onClick={() => removeItem(item.id)} className="p-1 text-[#DC2626] hover:bg-[#DC2626]/10 rounded" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
@@ -620,10 +693,14 @@ export default function QuotationBuilder() {
                 </div>
                 
                 {/* Add Item Row */}
-                <div className="p-5 border-t border-border-subtle/50 bg-bg-card rounded-b-[24px]">
+                <div className="p-5 border-t border-border-subtle/50 bg-bg-card rounded-b-[24px] flex justify-between items-center">
                     <button onClick={addItem} className="inline-flex items-center px-4 py-2.5 bg-bg-main hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors shadow-sm">
                         <Plus className="w-4 h-4 mr-2 text-[#4F46E5]" />
                         Add Item
+                    </button>
+                    <button onClick={() => setItems([])} className="inline-flex items-center px-4 py-2 text-[13px] font-semibold text-[#DC2626] hover:bg-[#DC2626]/5 rounded-xl transition-colors">
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Clear All
                     </button>
                 </div>
             </div>
@@ -639,12 +716,16 @@ export default function QuotationBuilder() {
                     </h3>
                     <div className="space-y-4 relative z-10">
                         <div className="flex justify-between text-[13px] text-text-secondary">
-                            <span className="font-medium">Subtotal</span>
-                            <span className="font-mono font-semibold text-text-primary tracking-tight">₹{totals.subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span className="font-medium">Subtotal (Before Tax)</span>
+                            <span className="font-mono font-semibold text-text-primary tracking-tight">₹{totals.subtotalBeforeTax.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                         <div className="flex justify-between text-[13px]">
                             <span className="font-medium text-text-secondary">Total Discount</span>
                             <span className="text-[#DC2626] font-mono font-semibold tracking-tight">-₹{totals.discount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
+                        <div className="flex justify-between text-[13px] text-text-secondary">
+                            <span className="font-medium">Taxable Amount</span>
+                            <span className="font-mono font-semibold text-text-primary tracking-tight">₹{totals.taxableAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                         <div className="flex justify-between text-[13px] text-text-secondary pb-5 border-b border-border-subtle">
                             <span className="font-medium">Total Tax</span>
@@ -652,7 +733,7 @@ export default function QuotationBuilder() {
                         </div>
                         <div className="flex justify-between items-end pt-3">
                             <span className="text-[15px] font-bold text-text-primary">Grand Total</span>
-                            <span className="text-[32px] font-bold text-[#4F46E5] font-mono tracking-tight leading-none">₹{totals.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span className="text-[32px] font-bold text-[#14B8A6] font-mono tracking-tight leading-none">₹{totals.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                     </div>
                 </div>

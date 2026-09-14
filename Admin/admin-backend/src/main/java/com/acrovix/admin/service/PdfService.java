@@ -63,24 +63,46 @@ public class PdfService {
             document.add(new Paragraph(" "));
 
             // Items Table
-            PdfPTable table = new PdfPTable(7);
+            PdfPTable table = new PdfPTable(11);
             table.setWidthPercentage(100);
+            
+            try {
+                table.setWidths(new float[]{4f, 10f, 22f, 10f, 6f, 10f, 7f, 10f, 6f, 10f, 12f});
+            } catch (Exception ignored) {}
+            
+            table.addCell("#");
+            table.addCell("SKU");
             table.addCell("Description");
+            table.addCell("HSN/SAC");
             table.addCell("Qty");
-            table.addCell("Unit");
-            table.addCell("Price");
+            table.addCell("List Price");
             table.addCell("Disc %");
+            table.addCell("Unit Price");
             table.addCell("Tax %");
-            table.addCell("Line Total");
+            table.addCell("Tax Amount");
+            table.addCell("Total");
 
             if (quotation.getItems() != null) {
+                int index = 1;
                 for (QuotationItem item : quotation.getItems()) {
+                    BigDecimal qty = item.getQuantity() != null ? item.getQuantity() : BigDecimal.ZERO;
+                    BigDecimal unitPrice = item.getUnitPrice() != null ? item.getUnitPrice() : BigDecimal.ZERO;
+                    BigDecimal listPrice = item.getListPrice() != null ? item.getListPrice() : unitPrice;
+                    BigDecimal taxPct = item.getTaxPercent() != null ? item.getTaxPercent() : BigDecimal.ZERO;
+                    
+                    BigDecimal netLine = qty.multiply(unitPrice);
+                    BigDecimal taxAmt = netLine.multiply(taxPct).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+                    
+                    table.addCell(String.valueOf(index++));
+                    table.addCell(item.getSku() != null ? item.getSku() : "");
                     table.addCell(item.getDescription() != null ? item.getDescription() : "");
-                    table.addCell(item.getQuantity() != null ? item.getQuantity().toString() : "0");
-                    table.addCell(item.getUnit() != null ? item.getUnit() : "");
-                    table.addCell(item.getUnitPrice() != null ? item.getUnitPrice().toString() : "0.00");
+                    table.addCell(item.getHsnSac() != null ? item.getHsnSac() : "");
+                    table.addCell(qty.toString());
+                    table.addCell(listPrice.toString());
                     table.addCell(item.getDiscountPercent() != null ? item.getDiscountPercent().toString() : "0");
-                    table.addCell(item.getTaxPercent() != null ? item.getTaxPercent().toString() : "0");
+                    table.addCell(unitPrice.toString());
+                    table.addCell(taxPct.toString());
+                    table.addCell(taxAmt.toString());
                     table.addCell(item.getLineTotal() != null ? item.getLineTotal().toString() : "0.00");
                 }
             }
@@ -90,11 +112,19 @@ public class PdfService {
             // Totals
             PdfPTable totalsTable = new PdfPTable(2);
             totalsTable.setHorizontalAlignment(Element.ALIGN_RIGHT);
-            totalsTable.addCell("Subtotal:");
+            
+            BigDecimal subtotalBeforeTax = BigDecimal.ZERO;
+            if (quotation.getSubtotal() != null && quotation.getDiscountAmount() != null) {
+                subtotalBeforeTax = quotation.getSubtotal().add(quotation.getDiscountAmount());
+            }
+            
+            totalsTable.addCell("Subtotal (Before Tax):");
+            totalsTable.addCell(subtotalBeforeTax.toString());
+            totalsTable.addCell("Total Discount:");
+            totalsTable.addCell(quotation.getDiscountAmount() != null ? "-" + quotation.getDiscountAmount().toString() : "0.00");
+            totalsTable.addCell("Taxable Amount:");
             totalsTable.addCell(quotation.getSubtotal() != null ? quotation.getSubtotal().toString() : "0.00");
-            totalsTable.addCell("Discount:");
-            totalsTable.addCell(quotation.getDiscountAmount() != null ? quotation.getDiscountAmount().toString() : "0.00");
-            totalsTable.addCell("Tax:");
+            totalsTable.addCell("Total Tax:");
             totalsTable.addCell(quotation.getTaxAmount() != null ? quotation.getTaxAmount().toString() : "0.00");
             totalsTable.addCell(new Phrase("Grand Total:", FontFactory.getFont(FontFactory.HELVETICA_BOLD)));
             totalsTable.addCell(new Phrase(quotation.getGrandTotal() != null ? quotation.getGrandTotal().toString() : "0.00", FontFactory.getFont(FontFactory.HELVETICA_BOLD)));

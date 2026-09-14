@@ -28,16 +28,18 @@ public class GeminiExtractionService {
 
         String prompt = "You are a pure data extractor. Extract quotation items from the following rough text. " +
                 "NEVER invent prices, quantities, products, or services. If a value is missing, return null. " +
+                "If source text contains list price and discount, derive unit price. If it contains list price and selling price, derive discount. " +
                 "Return strictly valid JSON matching this schema exactly:\n" +
                 "{\n" +
                 "  \"type\": \"array\",\n" +
                 "  \"items\": {\n" +
                 "    \"type\": \"object\",\n" +
                 "    \"properties\": {\n" +
+                "      \"sku\": { \"type\": \"string\" },\n" +
                 "      \"description\": { \"type\": \"string\" },\n" +
-                "      \"category\": { \"type\": \"string\" },\n" +
+                "      \"hsnSac\": { \"type\": \"string\" },\n" +
                 "      \"quantity\": { \"type\": \"number\" },\n" +
-                "      \"unit\": { \"type\": \"string\" },\n" +
+                "      \"listPrice\": { \"type\": \"number\" },\n" +
                 "      \"unitPrice\": { \"type\": \"number\" },\n" +
                 "      \"discountPercent\": { \"type\": \"number\" },\n" +
                 "      \"taxPercent\": { \"type\": \"number\" },\n" +
