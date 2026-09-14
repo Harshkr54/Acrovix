@@ -2,7 +2,7 @@ export const COMPANY_INFO = {
   name: "ACROVIX INNOVATIONS PRIVATE LIMITED",
   shortName: "ACROVIX",
   tagline: "SYNC | SCALE | SUCCEED",
-  positioning: "Engineering Growth Through Technology & Infrastructure",
+  positioning: "From Architecture to Security: Complete Enterprise IT Solutions",
   description: "Acrovix Innovations Private Limited is a modern enterprise technology, cybersecurity, and infrastructure solutions partner. We empower organizations to build, secure, and scale resilient operations across IT and physical environments.",
   vision: "To be a trusted global engineering and technology leader recognized for precision, security, and transformational infrastructure solutions.",
   mission: [

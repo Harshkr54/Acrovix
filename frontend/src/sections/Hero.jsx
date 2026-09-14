@@ -11,7 +11,7 @@ const Hero = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           {/* Left Hero Content */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7 }}
@@ -22,9 +22,10 @@ const Hero = () => {
               <span>Enterprise IT • Cybersecurity • Cloud Solutions</span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-[44px] font-semibold text-acrovix-heading tracking-tight [word-spacing:0.18em] leading-[1.14] max-w-xl mx-auto lg:mx-0">
-              Engineering Growth Through <span className="text-acrovix-teal-primary">Technology</span> <br />
-              <span className="text-acrovix-teal-primary">& Infrastructure</span>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-[40px] font-semibold text-acrovix-heading tracking-tight [word-spacing:0.18em] leading-[1.5] max-w-2xl mx-auto lg:mx-0">
+              From Architecture to <br />
+              <span className="text-acrovix-teal-primary">Security:</span> Complete <br />
+              <span className="text-acrovix-teal-primary">Enterprise IT Solutions</span>
             </h1>
 
             <p className="text-base sm:text-lg text-acrovix-body max-w-2xl mx-auto lg:mx-0 leading-relaxed font-normal">
@@ -59,7 +60,7 @@ const Hero = () => {
           </motion.div>
 
           {/* Right Hero Graphic Visual */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.7, delay: 0.2 }}
@@ -148,7 +149,7 @@ const Hero = () => {
               </GlassCard>
 
               {/* Floating Element 1 */}
-              <div className="absolute -top-6 -left-6 z-30 hidden sm:block p-3 rounded-xl bg-acrovix-bg/95 dark:bg-[#142F3D]/95 backdrop-blur-md border border-acrovix-teal-primary/20 shadow-lg text-xs font-bold text-acrovix-heading animate-bounce">
+              <div className="absolute -top-6 -left-6 z-30 hidden sm:block p-3 rounded-xl bg-acrovix-bg/95 dark:bg-[#142F3D]/95 backdrop-blur-md border border-acrovix-teal-primary/20 shadow-lg text-xs font-bold text-acrovix-heading">
                 <div className="flex items-center gap-2">
                   <Lock className="w-4 h-4 text-acrovix-teal-primary" />
                   <span>Zero-Trust Data Protection</span>
