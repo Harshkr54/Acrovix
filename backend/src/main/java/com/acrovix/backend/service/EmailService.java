@@ -1,26 +1,21 @@
 package com.acrovix.backend.service;
 
 import com.acrovix.backend.entity.Enquiry;
+import com.resend.Resend;
+import com.resend.core.exception.ResendException;
+import com.resend.services.emails.model.CreateEmailOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.Map;
 
 @Service
 public class EmailService {
 
     private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
-    private final RestTemplate restTemplate = new RestTemplate();
 
     @Value("${acrovix.mail.from-email:sales@acrovix.com}")
     private String fromEmail;
@@ -31,8 +26,8 @@ public class EmailService {
     @Value("${acrovix.mail.notification-email:sales@acrovix.com}")
     private String notificationEmail;
 
-    @Value("${brevo.api-key}")
-    private String brevoApiKey;
+    @Value("${resend.api-key:}")
+    private String resendApiKey;
 
     public void sendCustomerAcknowledgement(Enquiry enquiry) {
         String subject = "Thank You for Contacting ACROVIX - " + enquiry.getReferenceId();
@@ -47,22 +42,30 @@ public class EmailService {
     }
 
     private void sendHtmlEmail(String to, String subject, String htmlBody) {
+        if (resendApiKey == null || resendApiKey.trim().isEmpty()) {
+            logger.error("Resend API key is missing or not configured (RESEND_API_KEY environment variable)");
+            throw new IllegalStateException("Email service configuration is incomplete. Please configure RESEND_API_KEY.");
+        }
+
         try {
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("api-key", brevoApiKey);
+            String activeFromEmail = (fromEmail != null && !fromEmail.trim().isEmpty()) ? fromEmail.trim() : "sales@acrovix.com";
+            String activeFromName = (fromName != null && !fromName.trim().isEmpty()) ? fromName.trim() : "ACROVIX";
+            String from = activeFromName + " <" + activeFromEmail + ">";
 
-            Map<String, Object> body = Map.of(
-                "sender", Map.of("email", fromEmail, "name", fromName),
-                "to", List.of(Map.of("email", to)),
-                "subject", subject,
-                "htmlContent", htmlBody
-            );
+            CreateEmailOptions sendEmailRequest = CreateEmailOptions.builder()
+                    .from(from)
+                    .to(to)
+                    .subject(subject)
+                    .html(htmlBody)
+                    .build();
 
-            HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
-            restTemplate.postForEntity("https://api.brevo.com/v3/smtp/email", request, String.class);
+            Resend resend = new Resend(resendApiKey.trim());
+            resend.emails().send(sendEmailRequest);
 
             logger.info("Successfully sent email to: {}", to);
+        } catch (ResendException e) {
+            logger.error("Resend API Error while sending email to {}: {}", to, e.getMessage());
+            throw new RuntimeException("Failed to send email", e);
         } catch (Exception e) {
             logger.error("Failed to send email to: {}", to, e);
             throw new RuntimeException("Failed to send email", e);
@@ -446,4 +449,3 @@ public class EmailService {
         """.formatted(label, value);
     }
 }
-

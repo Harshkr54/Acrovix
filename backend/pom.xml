@@ -62,6 +62,13 @@
 			<scope>test</scope>
 		</dependency>
 
+		<!-- Resend Email SDK -->
+		<dependency>
+			<groupId>com.resend</groupId>
+			<artifactId>resend-java</artifactId>
+			<version>3.1.0</version>
+		</dependency>
+
 		<!-- Dotenv for loading .env files automatically -->
 		<dependency>
 			<groupId>me.paulschwarz</groupId>

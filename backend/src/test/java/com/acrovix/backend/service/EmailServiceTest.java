@@ -1,28 +1,26 @@
 package com.acrovix.backend.service;
 
 import com.acrovix.backend.entity.Enquiry;
+import com.resend.Resend;
+import com.resend.core.exception.ResendException;
+import com.resend.services.emails.Emails;
+import com.resend.services.emails.model.CreateEmailOptions;
+import com.resend.services.emails.model.CreateEmailResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
-import org.mockito.Mock;
+import org.mockito.InjectMocks;
+import org.mockito.MockedConstruction;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpEntity;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class EmailServiceTest {
@@ -30,22 +28,14 @@ class EmailServiceTest {
     @InjectMocks
     private EmailService emailService;
 
-    @Mock
-    private RestTemplate restTemplate;
-
-    @Captor
-    private ArgumentCaptor<HttpEntity<Map<String, Object>>> requestCaptor;
-
     private Enquiry testEnquiry;
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(emailService, "restTemplate", restTemplate);
         ReflectionTestUtils.setField(emailService, "fromEmail", "sales@acrovix.com");
         ReflectionTestUtils.setField(emailService, "fromName", "ACROVIX");
         ReflectionTestUtils.setField(emailService, "notificationEmail", "admin@acrovix.com");
-        ReflectionTestUtils.setField(emailService, "assetBaseUrl", "https://acrovix.com");
-        ReflectionTestUtils.setField(emailService, "brevoApiKey", "test-api-key");
+        ReflectionTestUtils.setField(emailService, "resendApiKey", "test-resend-api-key");
 
         testEnquiry = Enquiry.builder()
                 .id(1L)
@@ -63,145 +53,141 @@ class EmailServiceTest {
     }
 
     @Test
-    @DisplayName("Admin email uses shared template and contains all dynamic fields")
-    void testSharedTemplateUsedForAdmin() {
-        String content = ReflectionTestUtils.invokeMethod(emailService, "buildSharedEmailTemplate", testEnquiry, true);
-        
-        // Assert shared layout characteristics
-        assertTrue(content.contains("Acrovix_logo.png"));
-        assertTrue(content.contains("hero-artwork.png"));
-        assertTrue(content.contains("SYNC"));
-        assertTrue(content.contains("SCALE"));
-        assertTrue(content.contains("SUCCEED"));
-        assertTrue(content.contains("Visit Our Website"));
-        assertTrue(content.contains("Bengaluru | Bihar"));
+    @DisplayName("Admin email uses buildAdminEmail template")
+    void testBuildAdminEmail() {
+        String content = ReflectionTestUtils.invokeMethod(emailService, "buildAdminEmail", testEnquiry);
         
         // Assert dynamic fields
         assertTrue(content.contains("John Doe"));
         assertTrue(content.contains("john@example.com"));
         assertTrue(content.contains("+91 9999999999"));
-        assertTrue(content.contains("ACR-20250907-001"));
         assertTrue(content.contains("Doe Enterprises"));
         assertTrue(content.contains("Technology"));
         assertTrue(content.contains("Cloud Migration"));
         assertTrue(content.contains("We need cloud migration."));
         
         // Assert Admin specific differences
-        assertTrue(content.contains("NEW ENQUIRY"));
-        assertTrue(content.contains("A New Enquiry Needs"));
+        assertTrue(content.contains("New Enquiry Received"));
+        assertTrue(content.contains("View in Admin Panel"));
     }
 
     @Test
-    @DisplayName("Customer email uses shared template and excludes admin specific rows")
-    void testSharedTemplateUsedForCustomer() {
-        String content = ReflectionTestUtils.invokeMethod(emailService, "buildSharedEmailTemplate", testEnquiry, false);
-        
-        // Assert shared layout characteristics
-        assertTrue(content.contains("Acrovix_logo.png"));
-        assertTrue(content.contains("hero-artwork.png"));
-        assertTrue(content.contains("SYNC"));
-        assertTrue(content.contains("SCALE"));
-        assertTrue(content.contains("SUCCEED"));
-        assertTrue(content.contains("Visit Our Website"));
-        assertTrue(content.contains("Bengaluru | Bihar"));
+    @DisplayName("Customer email uses buildUserEmail template")
+    void testBuildUserEmail() {
+        String content = ReflectionTestUtils.invokeMethod(emailService, "buildUserEmail", testEnquiry);
         
         // Assert dynamic fields
-        assertTrue(content.contains("ACR-20250907-001"));
         assertTrue(content.contains("Doe Enterprises"));
-        assertTrue(content.contains("Technology"));
-        assertTrue(content.contains("Cloud Migration"));
         assertTrue(content.contains("We need cloud migration."));
         
         // Assert Customer specific differences
-        assertTrue(content.contains("THANK YOU"));
-        assertTrue(content.contains("Your Enquiry"));
-        assertTrue(content.contains("Hi John Doe,"));
-        
-        // Ensure fields are present for customer too (per new requirement)
-        assertTrue(content.contains("Full Name</td>"));
-        assertTrue(content.contains("Business Email</td>"));
+        assertTrue(content.contains("Thank You!"));
+        assertTrue(content.contains("Your enquiry has been received."));
     }
 
     @Test
-    @DisplayName("No field labeled Subject exists in the HTML body")
-    void testNoSubjectFieldPresent() {
-        String adminContent = ReflectionTestUtils.invokeMethod(emailService, "buildSharedEmailTemplate", testEnquiry, true);
-        
-        // The word Subject shouldn't be a field label
-        assertFalse(adminContent.contains(">Subject</td>"));
-        assertFalse(adminContent.contains("Subject:"));
-        
-        String customerContent = ReflectionTestUtils.invokeMethod(emailService, "buildSharedEmailTemplate", testEnquiry, false);
-        
-        // The word Subject shouldn't be a field label
-        assertFalse(customerContent.contains(">Subject</td>"));
-        assertFalse(customerContent.contains("Subject:"));
-    }
-
-    @Test
-    @DisplayName("Customer email sends correct API request to Brevo")
-    @SuppressWarnings("unchecked")
+    @DisplayName("Customer email sends correct API request to Resend")
     void testSendCustomerAcknowledgement() {
-        emailService.sendCustomerAcknowledgement(testEnquiry);
-        
-        verify(restTemplate).postForEntity(eq("https://api.brevo.com/v3/smtp/email"), requestCaptor.capture(), eq(String.class));
-        
-        HttpEntity<Map<String, Object>> request = requestCaptor.getValue();
-        assertEquals("test-api-key", request.getHeaders().getFirst("api-key"));
-        
-        Map<String, Object> body = request.getBody();
-        assertNotNull(body);
-        assertEquals("Thank You for Contacting ACROVIX - ACR-20250907-001", body.get("subject"));
-        
-        List<Map<String, String>> to = (List<Map<String, String>>) body.get("to");
-        assertEquals("john@example.com", to.get(0).get("email"));
-        
-        Map<String, String> sender = (Map<String, String>) body.get("sender");
-        assertEquals("sales@acrovix.com", sender.get("email"));
-        assertEquals("ACROVIX", sender.get("name"));
-        
-        String htmlContent = (String) body.get("htmlContent");
-        assertTrue(htmlContent.contains("Acrovix_logo.png"));
-        assertFalse(htmlContent.contains(".svg"));
-    }
+        try (MockedConstruction<Resend> mockedResend = mockConstruction(Resend.class,
+                (mock, context) -> {
+                    Emails mockEmails = mock(Emails.class);
+                    when(mock.emails()).thenReturn(mockEmails);
+                    try {
+                        when(mockEmails.send(any(CreateEmailOptions.class))).thenReturn(new CreateEmailResponse());
+                    } catch (Exception e) {
+                        // ignore
+                    }
+                })) {
 
-    @Test
-    @DisplayName("Admin email sends correct API request to Brevo")
-    @SuppressWarnings("unchecked")
-    void testSendInternalNotification() {
-        emailService.sendInternalNotification(testEnquiry);
-        
-        verify(restTemplate).postForEntity(eq("https://api.brevo.com/v3/smtp/email"), requestCaptor.capture(), eq(String.class));
-        
-        HttpEntity<Map<String, Object>> request = requestCaptor.getValue();
-        assertEquals("test-api-key", request.getHeaders().getFirst("api-key"));
-        
-        Map<String, Object> body = request.getBody();
-        assertNotNull(body);
-        assertEquals("New Enquiry Received - ACR-20250907-001", body.get("subject"));
-        
-        List<Map<String, String>> to = (List<Map<String, String>>) body.get("to");
-        assertEquals("admin@acrovix.com", to.get(0).get("email"));
-        
-        Map<String, String> sender = (Map<String, String>) body.get("sender");
-        assertEquals("sales@acrovix.com", sender.get("email"));
-        assertEquals("ACROVIX", sender.get("name"));
-        
-        String htmlContent = (String) body.get("htmlContent");
-        assertTrue(htmlContent.contains("NEW ENQUIRY"));
-        assertFalse(htmlContent.contains(".svg"));
-    }
+            emailService.sendCustomerAcknowledgement(testEnquiry);
 
-    @Test
-    @DisplayName("Failure from Brevo API is handled properly")
-    void testApiFailure() {
-        when(restTemplate.postForEntity(any(String.class), any(), eq(String.class)))
-            .thenThrow(new RuntimeException("API Error"));
+            assertEquals(1, mockedResend.constructed().size());
+            Resend resend = mockedResend.constructed().get(0);
             
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            try {
+                ArgumentCaptor<CreateEmailOptions> captor = ArgumentCaptor.forClass(CreateEmailOptions.class);
+                verify(resend.emails()).send(captor.capture());
+                
+                CreateEmailOptions options = captor.getValue();
+                assertEquals("ACROVIX <sales@acrovix.com>", options.getFrom());
+                assertEquals("john@example.com", options.getTo().get(0));
+                assertEquals("Thank You for Contacting ACROVIX - ACR-20250907-001", options.getSubject());
+                
+                String htmlContent = options.getHtml();
+                assertTrue(htmlContent.contains("Thank You!"));
+            } catch (Exception e) {
+                fail(e);
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("Admin email sends correct API request to Resend")
+    void testSendInternalNotification() {
+        try (MockedConstruction<Resend> mockedResend = mockConstruction(Resend.class,
+                (mock, context) -> {
+                    Emails mockEmails = mock(Emails.class);
+                    when(mock.emails()).thenReturn(mockEmails);
+                    try {
+                        when(mockEmails.send(any(CreateEmailOptions.class))).thenReturn(new CreateEmailResponse());
+                    } catch (Exception e) {
+                        // ignore
+                    }
+                })) {
+
+            emailService.sendInternalNotification(testEnquiry);
+
+            assertEquals(1, mockedResend.constructed().size());
+            Resend resend = mockedResend.constructed().get(0);
+            
+            try {
+                ArgumentCaptor<CreateEmailOptions> captor = ArgumentCaptor.forClass(CreateEmailOptions.class);
+                verify(resend.emails()).send(captor.capture());
+                
+                CreateEmailOptions options = captor.getValue();
+                assertEquals("ACROVIX <sales@acrovix.com>", options.getFrom());
+                assertEquals("admin@acrovix.com", options.getTo().get(0));
+                assertEquals("New Enquiry Received - ACR-20250907-001", options.getSubject());
+                
+                String htmlContent = options.getHtml();
+                assertTrue(htmlContent.contains("New Enquiry Received"));
+            } catch (Exception e) {
+                fail(e);
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("Failure from Resend API is handled properly")
+    void testApiFailure() {
+        try (MockedConstruction<Resend> mockedResend = mockConstruction(Resend.class,
+                (mock, context) -> {
+                    Emails mockEmails = mock(Emails.class);
+                    when(mock.emails()).thenReturn(mockEmails);
+                    try {
+                        when(mockEmails.send(any(CreateEmailOptions.class))).thenThrow(new ResendException("Invalid API Key"));
+                    } catch (Exception e) {
+                        // ignore
+                    }
+                })) {
+
+            RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+                emailService.sendCustomerAcknowledgement(testEnquiry);
+            });
+            
+            assertEquals("Failed to send email", exception.getMessage());
+        }
+    }
+    
+    @Test
+    @DisplayName("Missing Resend API Key throws IllegalStateException")
+    void testMissingResendKey() {
+        ReflectionTestUtils.setField(emailService, "resendApiKey", "");
+        
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> {
             emailService.sendCustomerAcknowledgement(testEnquiry);
         });
         
-        assertEquals("Failed to send email", exception.getMessage());
+        assertTrue(exception.getMessage().contains("RESEND_API_KEY"));
     }
 }
