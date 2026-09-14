@@ -18,7 +18,7 @@ Supply these variables in your hosting platform (e.g., Render Web Service Enviro
 - `INITIAL_ADMIN_PASSWORD`: `<your_secure_password>` (It will be BCrypt hashed on first boot)
 - `CORS_ALLOWED_ORIGINS`: `https://admin.acrovix.com`
 - `GEMINI_API_KEY`: Your Google Gemini API Key
-- `BREVO_API_KEY`: Your Brevo SMTP API Key
+- `RESEND_API_KEY`: Your Resend API Key
 - `MAIL_FROM_EMAIL`: `sales@acrovix.com`
 - `MAIL_FROM_NAME`: `ACROVIX Sales`
 - `ENQUIRY_NOTIFICATION_EMAIL`: `admin@acrovix.com`

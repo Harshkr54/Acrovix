@@ -34,6 +34,7 @@ public class QuotationService {
     private final AdminActivityRepository activityRepository;
     private final NotificationService notificationService;
     private final AuthorizationService authorizationService;
+    private final EmailService emailService;
 
     public List<Quotation> getQuotationsByEnquiryId(Long enquiryId, AdminUser currentUser) {
         AdminEnquiry enquiry = enquiryRepository.findById(enquiryId)
@@ -245,6 +246,26 @@ public class QuotationService {
         AdminUser admin = userRepository.findById(adminId)
                 .orElseThrow(() -> new ResourceNotFoundException("Admin not found"));
         return saveQuotationDraft(quotationId, request, admin);
+    }
+    
+    @Transactional
+    public void sendQuotation(Long id, String overrideRecipientEmail, AdminUser admin) {
+        Quotation quotation = getQuotationById(id, admin);
+        
+        String finalRecipient = null;
+        if (overrideRecipientEmail != null) {
+            String trimmed = overrideRecipientEmail.trim();
+            if (trimmed.isEmpty()) {
+                throw new IllegalArgumentException("Recipient email cannot be blank");
+            }
+            if (!trimmed.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
+                throw new IllegalArgumentException("Invalid recipient email format");
+            }
+            finalRecipient = trimmed;
+        }
+        
+        emailService.sendQuotationEmail(quotation, finalRecipient);
+        markAsSent(id, admin);
     }
     
     @Transactional

@@ -150,10 +150,9 @@ public class QuotationController {
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
     public ResponseEntity<?> sendQuotation(
             @PathVariable Long id,
+            @RequestBody(required = false) com.acrovix.admin.dto.SendQuotationRequest request,
             @AuthenticationPrincipal AdminUser admin) {
-        Quotation quotation = quotationService.getQuotationById(id, admin);
-        emailService.sendQuotationEmail(quotation);
-        quotationService.markAsSent(id, admin);
+        quotationService.sendQuotation(id, request != null ? request.getRecipientEmail() : null, admin);
         return ResponseEntity.ok().build();
     }
 

@@ -35,10 +35,19 @@ public class EmailService {
     }
 
     public void sendQuotationEmail(Quotation quotation) {
+        sendQuotationEmail(quotation, null);
+    }
+
+    public void sendQuotationEmail(Quotation quotation, String overrideEmail) {
         if (quotation == null) {
             throw new IllegalArgumentException("Quotation cannot be null");
         }
-        if (quotation.getClientEmail() == null || quotation.getClientEmail().trim().isEmpty()) {
+
+        String targetEmail = (overrideEmail != null && !overrideEmail.trim().isEmpty()) 
+                ? overrideEmail.trim() 
+                : quotation.getClientEmail();
+
+        if (targetEmail == null || targetEmail.trim().isEmpty()) {
             throw new IllegalArgumentException("Client email is required to send quotation");
         }
         if (resendApiKey == null || resendApiKey.trim().isEmpty()) {
@@ -58,7 +67,7 @@ public class EmailService {
             String activeFromName = (fromName != null && !fromName.trim().isEmpty()) ? fromName.trim() : "ACROVIX";
             String from = activeFromName + " <" + activeFromEmail + ">";
 
-            String to = quotation.getClientEmail().trim();
+            String to = targetEmail;
             if (quotation.getClientName() != null && !quotation.getClientName().trim().isEmpty()) {
                 to = quotation.getClientName().trim() + " <" + to + ">";
             }
@@ -83,7 +92,7 @@ public class EmailService {
             Resend resend = new Resend(resendApiKey.trim());
             CreateEmailResponse data = resend.emails().send(sendEmailRequest);
             
-            logger.info("Successfully sent quotation email #{} to {}", quotation.getId(), quotation.getClientEmail());
+            logger.info("Successfully sent quotation email #{} to {}", quotation.getId(), targetEmail);
         } catch (IllegalArgumentException | IllegalStateException e) {
             logger.error("Quotation email failed validation/configuration check [quotationId={}]: {}",
                     quotation != null ? quotation.getId() : null, e.getMessage());
@@ -95,7 +104,7 @@ public class EmailService {
         } catch (Exception e) {
             logger.error("Failed to send quotation email via Resend [quotationId={}, clientEmail={}, exception={}]: {}",
                     quotation != null ? quotation.getId() : null,
-                    quotation != null ? quotation.getClientEmail() : null,
+                    targetEmail,
                     e.getClass().getSimpleName(), e.getMessage(), e);
             throw new IllegalStateException("Unable to send quotation email. Please try again later.", e);
         }

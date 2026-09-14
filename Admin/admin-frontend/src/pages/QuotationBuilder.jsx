@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { fetchApi } from '../services/api';
 import { Plus, Trash2, Send, Save, Wand2, ArrowUp, ArrowDown, Calculator, User, Hash, AlertCircle, RefreshCw, Download } from 'lucide-react';
+import SendQuotationModal from '../components/SendQuotationModal';
 
 export default function QuotationBuilder() {
     const { enquiryId, quotationId } = useParams();
@@ -26,6 +27,7 @@ export default function QuotationBuilder() {
     const [quotationNumber, setQuotationNumber] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [isSending, setIsSending] = useState(false);
+    const [isSendModalOpen, setIsSendModalOpen] = useState(false);
     const [error, setError] = useState(null);
     const [isInitializing, setIsInitializing] = useState(true);
 
@@ -290,10 +292,12 @@ export default function QuotationBuilder() {
         }
     };
 
-    const handleSend = async () => {
+    const handleSend = () => {
         if (isSending || isSaving) return;
-        if (!window.confirm("Are you sure you want to send this quotation?")) return;
-        
+        setIsSendModalOpen(true);
+    };
+
+    const executeSendQuotation = async (confirmedEmail) => {
         setIsSending(true);
         setError(null);
 
@@ -340,11 +344,13 @@ export default function QuotationBuilder() {
 
             // Send email
             await fetchApi(`/quotations/${activeQuotationId}/send`, {
-                method: 'POST'
+                method: 'POST',
+                body: JSON.stringify({ recipientEmail: confirmedEmail })
             });
 
+            setIsSendModalOpen(false);
             window.dispatchEvent(new Event('notification-update'));
-            alert("Quotation sent successfully!");
+            alert(`Quotation sent successfully to ${confirmedEmail}`);
             navigate('/enquiries');
         } catch (error) {
             console.error("Send Quotation Error:", error);
@@ -727,6 +733,14 @@ export default function QuotationBuilder() {
                     </div>
                 </div>
             </div>
+
+            <SendQuotationModal 
+                isOpen={isSendModalOpen} 
+                onClose={() => setIsSendModalOpen(false)} 
+                initialEmail={clientEmail} 
+                onSend={executeSendQuotation}
+                isSending={isSending}
+            />
         </div>
     );
 }

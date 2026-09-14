@@ -5,7 +5,7 @@ Enterprise technology, cybersecurity, and infrastructure solutions website for
 
 - **Frontend:** React 19 + Vite + Tailwind CSS (`/frontend`)
 - **Backend:** Java 21 + Spring Boot (`/backend`) — powers the Enquiry form (saves to
-  PostgreSQL and sends a notification email via Brevo)
+  PostgreSQL and sends a notification email via Resend)
 - **Live site:** https://acrovix.com
 
 ---
@@ -108,7 +108,7 @@ mvn spring-boot:run
 ```
 The backend needs these environment variables (see
 `backend/src/main/resources/application.properties`):
-`DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `BREVO_API_KEY`, and optionally
+`DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `RESEND_API_KEY`, and optionally
 `MAIL_FROM_EMAIL`, `MAIL_FROM_NAME`, `ENQUIRY_NOTIFICATION_EMAIL`,
 `CORS_ALLOWED_ORIGINS`, `PORT`.
 
