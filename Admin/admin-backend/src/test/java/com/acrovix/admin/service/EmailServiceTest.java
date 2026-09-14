@@ -1,24 +1,22 @@
 package com.acrovix.admin.service;
 
 import com.acrovix.admin.entity.Quotation;
+import com.resend.Resend;
+import com.resend.core.exception.ResendException;
+import com.resend.services.emails.Emails;
+import com.resend.services.emails.model.CreateEmailOptions;
+import com.resend.services.emails.model.CreateEmailResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.MockedConstruction;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
-
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -27,16 +25,13 @@ class EmailServiceTest {
     @Mock
     private PdfService pdfService;
 
-    @Mock
-    private RestTemplate restTemplate;
-
     private EmailService emailService;
     private Quotation testQuotation;
 
     @BeforeEach
     void setUp() {
-        emailService = new EmailService(pdfService, restTemplate);
-        ReflectionTestUtils.setField(emailService, "brevoApiKey", "test-brevo-api-key");
+        emailService = new EmailService(pdfService);
+        ReflectionTestUtils.setField(emailService, "resendApiKey", "test-resend-api-key");
         ReflectionTestUtils.setField(emailService, "fromEmail", "sales@acrovix.com");
         ReflectionTestUtils.setField(emailService, "fromName", "ACROVIX");
 
@@ -53,23 +48,38 @@ class EmailServiceTest {
     void testSendQuotationEmailSuccess() {
         byte[] fakePdfBytes = "PDF_CONTENT".getBytes();
         when(pdfService.generateQuotationPdf(testQuotation)).thenReturn(fakePdfBytes);
-        when(restTemplate.postForObject(eq("https://api.brevo.com/v3/smtp/email"), any(HttpEntity.class), eq(String.class)))
-                .thenReturn("{\"messageId\":\"<12345>\"}");
 
-        assertDoesNotThrow(() -> emailService.sendQuotationEmail(testQuotation));
+        try (MockedConstruction<Resend> mockedResend = mockConstruction(Resend.class,
+                (mock, context) -> {
+                    Emails mockEmails = mock(Emails.class);
+                    when(mock.emails()).thenReturn(mockEmails);
+                    try {
+                        when(mockEmails.send(any(CreateEmailOptions.class))).thenReturn(new CreateEmailResponse());
+                    } catch (Exception e) {
+                        // ignore in test setup
+                    }
+                })) {
 
-        ArgumentCaptor<HttpEntity> captor = ArgumentCaptor.forClass(HttpEntity.class);
-        verify(restTemplate).postForObject(eq("https://api.brevo.com/v3/smtp/email"), captor.capture(), eq(String.class));
+            assertDoesNotThrow(() -> emailService.sendQuotationEmail(testQuotation));
 
-        HttpEntity entity = captor.getValue();
-        HttpHeaders headers = entity.getHeaders();
-        assertEquals("test-brevo-api-key", headers.getFirst("api-key"));
-
-        Map<String, Object> body = (Map<String, Object>) entity.getBody();
-        assertNotNull(body);
-        Map<String, Object> sender = (Map<String, Object>) body.get("sender");
-        assertEquals("sales@acrovix.com", sender.get("email"));
-        assertEquals("ACROVIX", sender.get("name"));
+            assertEquals(1, mockedResend.constructed().size());
+            Resend resend = mockedResend.constructed().get(0);
+            
+            try {
+                ArgumentCaptor<CreateEmailOptions> captor = ArgumentCaptor.forClass(CreateEmailOptions.class);
+                verify(resend.emails()).send(captor.capture());
+                
+                CreateEmailOptions options = captor.getValue();
+                assertEquals("ACROVIX <sales@acrovix.com>", options.getFrom());
+                assertEquals("John Doe <john.doe@example.com>", options.getTo().get(0));
+                assertTrue(options.getSubject().contains("ACX-QT-1011"));
+                assertNotNull(options.getAttachments());
+                assertEquals(1, options.getAttachments().size());
+                assertEquals("ACX-QT-1011.pdf", options.getAttachments().get(0).getFileName());
+            } catch (Exception e) {
+                fail(e);
+            }
+        }
     }
 
     @Test
@@ -81,19 +91,17 @@ class EmailServiceTest {
 
         assertEquals("Client email is required to send quotation", ex.getMessage());
         verifyNoInteractions(pdfService);
-        verifyNoInteractions(restTemplate);
     }
 
     @Test
-    void testSendQuotationEmailMissingBrevoKeyThrowsIllegalStateException() {
-        ReflectionTestUtils.setField(emailService, "brevoApiKey", "");
+    void testSendQuotationEmailMissingResendKeyThrowsIllegalStateException() {
+        ReflectionTestUtils.setField(emailService, "resendApiKey", "");
 
         IllegalStateException ex = assertThrows(IllegalStateException.class,
                 () -> emailService.sendQuotationEmail(testQuotation));
 
-        assertTrue(ex.getMessage().contains("BREVO_API_KEY"));
+        assertTrue(ex.getMessage().contains("RESEND_API_KEY"));
         verifyNoInteractions(pdfService);
-        verifyNoInteractions(restTemplate);
     }
 
     @Test
@@ -104,23 +112,28 @@ class EmailServiceTest {
                 () -> emailService.sendQuotationEmail(testQuotation));
 
         assertTrue(ex.getMessage().contains("empty"));
-        verifyNoInteractions(restTemplate);
     }
 
     @Test
-    void testSendQuotationEmailBrevoApiErrorHandledSafely() {
+    void testSendQuotationEmailResendApiErrorHandledSafely() {
         byte[] fakePdfBytes = "PDF_CONTENT".getBytes();
         when(pdfService.generateQuotationPdf(testQuotation)).thenReturn(fakePdfBytes);
 
-        HttpClientErrorException brevoError = HttpClientErrorException.create(
-                HttpStatus.UNAUTHORIZED, "Unauthorized", new HttpHeaders(), "{\"message\":\"Invalid API Key\"}".getBytes(), null);
+        try (MockedConstruction<Resend> mockedResend = mockConstruction(Resend.class,
+                (mock, context) -> {
+                    Emails mockEmails = mock(Emails.class);
+                    when(mock.emails()).thenReturn(mockEmails);
+                    try {
+                        when(mockEmails.send(any(CreateEmailOptions.class))).thenThrow(new ResendException("Invalid API Key"));
+                    } catch (Exception e) {
+                        // ignore
+                    }
+                })) {
 
-        when(restTemplate.postForObject(eq("https://api.brevo.com/v3/smtp/email"), any(HttpEntity.class), eq(String.class)))
-                .thenThrow(brevoError);
+            IllegalStateException ex = assertThrows(IllegalStateException.class,
+                    () -> emailService.sendQuotationEmail(testQuotation));
 
-        IllegalStateException ex = assertThrows(IllegalStateException.class,
-                () -> emailService.sendQuotationEmail(testQuotation));
-
-        assertTrue(ex.getMessage().contains("Failed to send email via Brevo"));
+            assertTrue(ex.getMessage().contains("Failed to send email via Resend"));
+        }
     }
 }
