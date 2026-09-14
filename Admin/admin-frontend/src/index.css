@@ -68,6 +68,18 @@
     @apply bg-bg-main text-text-primary antialiased selection:bg-acx-teal/30 selection:text-acx-deep-teal;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
+
+  /* Global Scrollbar Hiding */
+  * {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+
+  *::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
 }
 
 @layer components {

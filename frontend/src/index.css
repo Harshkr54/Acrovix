@@ -61,6 +61,18 @@
   h6 {
     color: rgb(var(--acrovix-heading-rgb));
   }
+
+  /* Global Scrollbar Hiding */
+  * {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none !important; /* Firefox */
+  }
+
+  *::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
 }
 
 @layer utilities {
@@ -131,54 +143,14 @@
   .custom-scrollbar-x {
     overflow-x: auto;
     overflow-y: hidden;
-    scrollbar-width: thin;
-    scrollbar-color: rgb(var(--acrovix-teal-primary-rgb)) rgb(var(--acrovix-teal-primary-rgb) / 0.12);
     -webkit-overflow-scrolling: touch;
-  }
-
-  .custom-scrollbar-x::-webkit-scrollbar {
-    height: 6px;
-  }
-
-  .custom-scrollbar-x::-webkit-scrollbar-track {
-    background: rgb(var(--acrovix-teal-primary-rgb) / 0.12);
-    border-radius: 9999px;
-  }
-
-  .custom-scrollbar-x::-webkit-scrollbar-thumb {
-    background: rgb(var(--acrovix-teal-primary-rgb));
-    border-radius: 9999px;
-  }
-
-  .custom-scrollbar-x::-webkit-scrollbar-thumb:hover {
-    background: rgb(var(--acrovix-teal-bright-rgb));
   }
 
   /* Vertical Product Card Capability List Scrollbar */
   .custom-scrollbar-y {
     overflow-y: auto;
     overflow-x: hidden;
-    scrollbar-width: thin;
-    scrollbar-color: rgb(var(--acrovix-teal-primary-rgb)) rgb(var(--acrovix-teal-primary-rgb) / 0.12);
     -webkit-overflow-scrolling: touch;
-  }
-
-  .custom-scrollbar-y::-webkit-scrollbar {
-    width: 5px;
-  }
-
-  .custom-scrollbar-y::-webkit-scrollbar-track {
-    background: rgb(var(--acrovix-teal-primary-rgb) / 0.12);
-    border-radius: 9999px;
-  }
-
-  .custom-scrollbar-y::-webkit-scrollbar-thumb {
-    background: rgb(var(--acrovix-teal-primary-rgb));
-    border-radius: 9999px;
-  }
-
-  .custom-scrollbar-y::-webkit-scrollbar-thumb:hover {
-    background: rgb(var(--acrovix-teal-bright-rgb));
   }
 }
 
