@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { LayoutDashboard, MessageSquare, LogOut, FileText, Shield, Menu, X, ChevronLeft, ChevronRight, Sun, Moon, Search, Bell, Settings, Trash2 } from 'lucide-react';
 import HeaderControls from './HeaderControls';
 import { getInitials } from '../utils/userUtils';
+import { fetchApi } from '../services/api';
 
 export default function Layout() {
     const { user, logout } = useAuth();
@@ -13,6 +14,71 @@ export default function Layout() {
     const location = useLocation();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(false);
+
+    // Global Search State
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState({ enquiries: [], quotations: [] });
+    const [isSearching, setIsSearching] = useState(false);
+    const [searchDropdownOpen, setSearchDropdownOpen] = useState(false);
+    const searchRef = useRef(null);
+
+    useEffect(() => {
+        let active = true;
+        if (!searchQuery.trim()) {
+            setSearchResults({ enquiries: [], quotations: [] });
+            setSearchDropdownOpen(false);
+            setIsSearching(false);
+            return;
+        }
+
+        const delayDebounceFn = setTimeout(async () => {
+            setIsSearching(true);
+            try {
+                const [enqRes, quotRes] = await Promise.all([
+                    fetchApi(`/admin/enquiries?search=${encodeURIComponent(searchQuery)}&size=5`),
+                    fetchApi(`/admin/quotations?search=${encodeURIComponent(searchQuery)}&size=5`)
+                ]);
+                if (active) {
+                    setSearchResults({
+                        enquiries: enqRes.content || [],
+                        quotations: quotRes.content || []
+                    });
+                    setSearchDropdownOpen(true);
+                }
+            } catch (error) {
+                if (active) console.error("Global search error", error);
+            } finally {
+                if (active) setIsSearching(false);
+            }
+        }, 300);
+
+        return () => {
+            active = false;
+            clearTimeout(delayDebounceFn);
+        };
+    }, [searchQuery]);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (searchRef.current && !searchRef.current.contains(event.target)) {
+                setSearchDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const handleClearSearch = () => {
+        setSearchQuery('');
+        setSearchResults({ enquiries: [], quotations: [] });
+        setSearchDropdownOpen(false);
+    };
+
+    const handleSearchNavigate = (path) => {
+        navigate(path);
+        setSearchDropdownOpen(false);
+        setSearchQuery('');
+    };
 
     const handleLogout = () => {
         logout();
@@ -206,15 +272,98 @@ export default function Layout() {
                         </button>
                         
                         {/* Search Bar matching reference */}
-                        <div className="relative w-full max-w-md hidden sm:block">
+                        <div ref={searchRef} className="relative w-full max-w-md hidden sm:block">
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <Search className="h-4 w-4 text-text-muted" />
+                                {isSearching ? (
+                                    <div className="animate-spin w-4 h-4 border-2 border-[#14B8A6] border-t-transparent rounded-full" />
+                                ) : (
+                                    <Search className="h-4 w-4 text-text-muted" />
+                                )}
                             </div>
                             <input
                                 type="text"
-                                className="w-full pl-10 pr-4 py-2.5 bg-bg-card border border-border-subtle rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-acx-teal/20 transition-shadow shadow-sm text-text-primary placeholder-text-muted"
+                                className="w-full pl-10 pr-10 py-2.5 bg-bg-card border border-border-subtle rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-[#14B8A6]/20 focus:border-[#14B8A6]/30 transition-all shadow-sm text-text-primary placeholder-text-muted"
                                 placeholder="Search enquiries, quotations..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onFocus={() => { if (searchQuery.trim() && (searchResults.enquiries.length > 0 || searchResults.quotations.length > 0)) setSearchDropdownOpen(true) }}
                             />
+                            {searchQuery && (
+                                <button
+                                    onClick={handleClearSearch}
+                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-text-muted hover:text-text-primary focus:outline-none"
+                                >
+                                    <X className="h-4 w-4" />
+                                </button>
+                            )}
+
+                            {/* Dropdown Overlay */}
+                            {searchDropdownOpen && (
+                                <div className="absolute top-full left-0 right-0 mt-2 bg-bg-card border border-border-subtle rounded-xl shadow-lg overflow-hidden z-50 max-h-[70vh] overflow-y-auto">
+                                    {(searchResults.quotations.length === 0 && searchResults.enquiries.length === 0) ? (
+                                        <div className="p-4 text-center text-text-muted text-sm">
+                                            No results found for "{searchQuery}"
+                                        </div>
+                                    ) : (
+                                        <div className="py-2">
+                                            {searchResults.quotations.length > 0 && (
+                                                <div>
+                                                    <div className="px-4 py-1.5 text-[10px] font-bold text-text-muted uppercase tracking-wider bg-bg-main/50">
+                                                        Quotations
+                                                    </div>
+                                                    {searchResults.quotations.map(q => (
+                                                        <div 
+                                                            key={q.id}
+                                                            onClick={() => handleSearchNavigate(`/quotations/edit/${q.id}`)}
+                                                            className="px-4 py-3 hover:bg-bg-hover cursor-pointer transition-colors border-l-2 border-transparent hover:border-[#14B8A6]"
+                                                        >
+                                                            <div className="flex justify-between items-start mb-0.5">
+                                                                <span className="text-sm font-semibold text-text-primary">{q.quotationNumber}</span>
+                                                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
+                                                                    q.status === 'SENT' ? 'bg-[#ECFDF5] text-[#059669]' : 
+                                                                    q.status === 'ACCEPTED' ? 'bg-[#EFF6FF] text-[#2563EB]' : 
+                                                                    q.status === 'REJECTED' ? 'bg-[#FEF2F2] text-[#DC2626]' : 
+                                                                    'bg-[#F3F4F6] text-[#4B5563]'
+                                                                }`}>{q.status}</span>
+                                                            </div>
+                                                            <div className="text-[12px] text-text-secondary truncate">
+                                                                {q.clientCompany || q.clientName}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            
+                                            {searchResults.enquiries.length > 0 && (
+                                                <div>
+                                                    <div className="px-4 py-1.5 text-[10px] font-bold text-text-muted uppercase tracking-wider bg-bg-main/50 mt-1">
+                                                        Enquiries
+                                                    </div>
+                                                    {searchResults.enquiries.map(e => (
+                                                        <div 
+                                                            key={e.id}
+                                                            onClick={() => handleSearchNavigate(`/enquiries?id=${e.id}`)}
+                                                            className="px-4 py-3 hover:bg-bg-hover cursor-pointer transition-colors border-l-2 border-transparent hover:border-[#14B8A6]"
+                                                        >
+                                                            <div className="flex justify-between items-start mb-0.5">
+                                                                <span className="text-sm font-semibold text-text-primary">{e.referenceId || 'New Enquiry'}</span>
+                                                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
+                                                                    e.status === 'NEW' ? 'bg-[#EEF2FF] text-[#4F46E5]' :
+                                                                    e.status === 'QUOTED' ? 'bg-[#ECFDF5] text-[#059669]' :
+                                                                    'bg-[#F3F4F6] text-[#4B5563]'
+                                                                }`}>{e.status}</span>
+                                                            </div>
+                                                            <div className="text-[12px] text-text-secondary truncate">
+                                                                {e.companyName || e.fullName}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                     

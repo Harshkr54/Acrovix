@@ -10,6 +10,10 @@ import com.acrovix.admin.repository.QuotationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import jakarta.persistence.criteria.Predicate;
 
 import com.acrovix.admin.exception.ResourceNotFoundException;
 
@@ -38,6 +42,45 @@ public class QuotationService {
             authorizationService.checkEnquiryAccess(currentUser, enquiry);
         }
         return quotationRepository.findByEnquiryIdAndDeletedAtIsNull(enquiryId);
+    }
+
+    public Page<Quotation> getAllQuotations(Pageable pageable, String search, AdminUser currentUser) {
+        Specification<Quotation> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            
+            // Authorization logic for SALES
+            if (currentUser != null && currentUser.getRole() == Role.SALES) {
+                Predicate createdByMe = cb.equal(root.get("createdBy").get("id"), currentUser.getId());
+                
+                // For enquiry access
+                jakarta.persistence.criteria.Join<Object, Object> enquiryJoin = root.join("enquiry", jakarta.persistence.criteria.JoinType.LEFT);
+                Predicate enquiryIsNull = cb.isNull(root.get("enquiry"));
+                Predicate enquiryAssignedToNull = cb.isNull(enquiryJoin.get("assignedTo"));
+                Predicate enquiryAssignedToMe = cb.equal(enquiryJoin.get("assignedTo").get("id"), currentUser.getId());
+                
+                Predicate validEnquiry = cb.or(enquiryIsNull, enquiryAssignedToNull, enquiryAssignedToMe);
+                
+                predicates.add(cb.or(createdByMe, validEnquiry));
+            }
+            
+            // Only non-deleted
+            predicates.add(cb.isNull(root.get("deletedAt")));
+            
+            // Search logic
+            if (search != null && !search.isEmpty()) {
+                String likePattern = "%" + search.toLowerCase() + "%";
+                predicates.add(cb.or(
+                    cb.like(cb.lower(root.get("quotationNumber")), likePattern),
+                    cb.like(cb.lower(root.get("clientName")), likePattern),
+                    cb.like(cb.lower(root.get("clientCompany")), likePattern),
+                    cb.like(cb.lower(root.get("clientEmail")), likePattern)
+                ));
+            }
+            
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+        
+        return quotationRepository.findAll(spec, pageable);
     }
 
     @Transactional

@@ -1,6 +1,6 @@
 package com.acrovix.admin.service;
-
 import com.acrovix.admin.entity.*;
+import com.acrovix.admin.exception.ResourceNotFoundException;
 import com.acrovix.admin.repository.AdminActivityRepository;
 import com.acrovix.admin.repository.AdminEnquiryRepository;
 import com.acrovix.admin.repository.AdminUserRepository;
@@ -264,8 +264,8 @@ class QuotationTrashTest {
         draftQuotation1.setDeletedAt(LocalDateTime.now());
         when(quotationRepository.findById(201L)).thenReturn(Optional.of(draftQuotation1));
 
-        com.acrovix.admin.exception.ResourceNotFoundException ex = assertThrows(
-                com.acrovix.admin.exception.ResourceNotFoundException.class,
+        ResourceNotFoundException ex = assertThrows(
+                ResourceNotFoundException.class,
                 () -> quotationService.getQuotationById(201L, superAdmin)
         );
         assertEquals("Quotation not found", ex.getMessage());

@@ -34,8 +34,10 @@ public class QuotationController {
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
     public ResponseEntity<Page<java.util.Map<String, Object>>> getAllQuotations(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        Page<Quotation> quotations = quotationRepository.findByDeletedAtIsNull(PageRequest.of(page, size, Sort.by("createdAt").descending()));
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String search,
+            @AuthenticationPrincipal AdminUser admin) {
+        Page<Quotation> quotations = quotationService.getAllQuotations(PageRequest.of(page, size, Sort.by("createdAt").descending()), search, admin);
         Page<java.util.Map<String, Object>> dtoPage = quotations.map(this::mapToDto);
         return ResponseEntity.ok(dtoPage);
     }
