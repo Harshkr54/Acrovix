@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { fetchApi } from '../services/api';
-import { Plus, Trash2, Send, Save, Wand2, Copy, ArrowUp, ArrowDown, Calculator, User, Hash, AlertCircle, RefreshCw, Download } from 'lucide-react';
+import { Plus, Trash2, Send, Save, Wand2, ArrowUp, ArrowDown, Calculator, User, Hash, AlertCircle, RefreshCw, Download } from 'lucide-react';
 
 export default function QuotationBuilder() {
     const { enquiryId, quotationId } = useParams();
@@ -163,16 +163,6 @@ export default function QuotationBuilder() {
         setItems(items.filter(item => item.id !== id));
     };
 
-    const duplicateItem = (id) => {
-        const itemToDuplicate = items.find(item => item.id === id);
-        if (itemToDuplicate) {
-            const newItem = { ...itemToDuplicate, id: Date.now() + Math.random() };
-            const index = items.findIndex(item => item.id === id);
-            const newItems = [...items];
-            newItems.splice(index + 1, 0, newItem);
-            setItems(newItems);
-        }
-    };
 
     const moveItemUp = (index) => {
         if (index > 0) {
@@ -680,7 +670,6 @@ export default function QuotationBuilder() {
                                         <td className="px-2 py-3 align-top text-center">
                                             <div className="flex flex-col items-center justify-center space-y-1.5 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <div className="flex space-x-1.5">
-                                                    <button onClick={() => duplicateItem(item.id)} className="p-1 text-[#4F46E5] hover:bg-[#4F46E5]/10 rounded" title="Duplicate"><Copy className="w-3.5 h-3.5" /></button>
                                                     <button onClick={() => removeItem(item.id)} className="p-1 text-[#DC2626] hover:bg-[#DC2626]/10 rounded" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
                                                 </div>
                                             </div>
