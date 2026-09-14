@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { fetchApi } from '../services/api';
-import { Plus, Trash2, Send, Save, Wand2, ArrowUp, ArrowDown, Calculator, User, Hash, AlertCircle, RefreshCw, Download, ArrowLeft } from 'lucide-react';
+import { Plus, Trash2, Send, Save, Wand2, ArrowUp, ArrowDown, Calculator, User, Hash, AlertCircle, RefreshCw, Download } from 'lucide-react';
 
 export default function QuotationBuilder() {
     const { enquiryId, quotationId } = useParams();
@@ -404,13 +404,6 @@ export default function QuotationBuilder() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
                 <div>
                     <div className="flex items-center space-x-3 mb-1">
-                        <button 
-                            onClick={() => navigate(-1)} 
-                            className="mr-2 p-1.5 rounded-full hover:bg-bg-card border border-transparent hover:border-border-subtle text-text-muted hover:text-text-primary transition-all shadow-sm"
-                            title="Go Back"
-                        >
-                            <ArrowLeft className="w-5 h-5" />
-                        </button>
                         <h1 className="text-[28px] font-bold text-text-primary tracking-tight leading-tight">
                             {quotationNumber || 'Create Quotation'}
                         </h1>

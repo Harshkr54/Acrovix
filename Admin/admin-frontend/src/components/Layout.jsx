@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { LayoutDashboard, MessageSquare, LogOut, FileText, Shield, Menu, X, ChevronLeft, ChevronRight, Sun, Moon, Search, Bell, Settings, Trash2 } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, LogOut, FileText, Shield, Menu, X, ChevronLeft, ChevronRight, Sun, Moon, Search, Bell, Settings, Trash2, PanelLeftClose, PanelLeftOpen, ArrowLeft } from 'lucide-react';
 import HeaderControls from './HeaderControls';
 import { getInitials } from '../utils/userUtils';
 import { fetchApi } from '../services/api';
@@ -13,7 +13,16 @@ export default function Layout() {
     const navigate = useNavigate();
     const location = useLocation();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [isCollapsed, setIsCollapsed] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(() => {
+        const saved = localStorage.getItem('admin_sidebar_collapsed');
+        return saved === 'true';
+    });
+
+    const toggleSidebar = () => {
+        const newState = !isCollapsed;
+        setIsCollapsed(newState);
+        localStorage.setItem('admin_sidebar_collapsed', newState);
+    };
 
     // Global Search State
     const [searchQuery, setSearchQuery] = useState('');
@@ -148,13 +157,19 @@ export default function Layout() {
                                                     ? 'bg-[#E6F5F2] text-[#102A43] dark:bg-[#0D9488]/10 dark:text-[#2DD4BF]' 
                                                     : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
                                             } ${isCollapsed ? 'justify-center px-2' : ''}`}
-                                            title={isCollapsed ? item.name : undefined}
                                         >
                                             {isActive && !isCollapsed && (
                                                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-[#0D9488] rounded-r-full" />
                                             )}
                                             <Icon className={`w-5 h-5 flex-shrink-0 ${!isCollapsed && 'mr-3'} ${isActive ? 'text-[#0D9488] dark:text-[#2DD4BF]' : 'text-text-muted group-hover:text-text-primary transition-colors'}`} />
                                             {!isCollapsed && <span>{item.name}</span>}
+                                            
+                                            {/* CSS Tooltip */}
+                                            {isCollapsed && (
+                                                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-[#102A43] text-white text-[11px] font-semibold rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-md">
+                                                    {item.name}
+                                                </div>
+                                            )}
                                         </Link>
                                     );
                                 })}
@@ -179,13 +194,19 @@ export default function Layout() {
                                                         ? 'bg-[#E6F5F2] text-[#102A43] dark:bg-[#0D9488]/10 dark:text-[#2DD4BF]' 
                                                         : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
                                                 } ${isCollapsed ? 'justify-center px-2' : ''}`}
-                                                title={isCollapsed ? item.name : undefined}
                                             >
                                                 {isActive && !isCollapsed && (
                                                     <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-[#0D9488] rounded-r-full" />
                                                 )}
                                                 <Icon className={`w-5 h-5 flex-shrink-0 ${!isCollapsed && 'mr-3'} ${isActive ? 'text-[#0D9488] dark:text-[#2DD4BF]' : 'text-text-muted group-hover:text-text-primary transition-colors'}`} />
                                                 {!isCollapsed && <span>{item.name}</span>}
+                                                
+                                                {/* CSS Tooltip */}
+                                                {isCollapsed && (
+                                                    <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-[#102A43] text-white text-[11px] font-semibold rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-md">
+                                                        {item.name}
+                                                    </div>
+                                                )}
                                             </Link>
                                         );
                                     })}
@@ -210,17 +231,41 @@ export default function Layout() {
                                                     ? 'bg-[#E6F5F2] text-[#102A43] dark:bg-[#0D9488]/10 dark:text-[#2DD4BF]' 
                                                     : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
                                             } ${isCollapsed ? 'justify-center px-2' : ''}`}
-                                            title={isCollapsed ? item.name : undefined}
                                         >
                                             {isActive && !isCollapsed && (
                                                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-[#0D9488] rounded-r-full" />
                                             )}
                                             <Icon className={`w-5 h-5 flex-shrink-0 ${!isCollapsed && 'mr-3'} ${isActive ? 'text-[#0D9488] dark:text-[#2DD4BF]' : 'text-text-muted group-hover:text-text-primary transition-colors'}`} />
                                             {!isCollapsed && <span>{item.name}</span>}
+                                            
+                                            {/* CSS Tooltip */}
+                                            {isCollapsed && (
+                                                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-[#102A43] text-white text-[11px] font-semibold rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-md">
+                                                    {item.name}
+                                                </div>
+                                            )}
                                         </Link>
                                     );
                                 })}
                             </div>
+                        </div>
+
+                        {/* Sidebar Toggle */}
+                        <div className="pt-4 border-t border-border-subtle/50 mt-4">
+                            <button
+                                onClick={toggleSidebar}
+                                className={`hidden lg:flex group relative items-center w-full px-3 py-2.5 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-bg-hover rounded-xl transition-colors ${isCollapsed ? 'justify-center px-2' : ''}`}
+                            >
+                                {isCollapsed ? <PanelLeftOpen className={`w-5 h-5 flex-shrink-0 ${!isCollapsed && 'mr-3'}`} /> : <PanelLeftClose className={`w-5 h-5 flex-shrink-0 mr-3`} />}
+                                {!isCollapsed && <span>Collapse Sidebar</span>}
+                                
+                                {/* CSS Tooltip */}
+                                {isCollapsed && (
+                                    <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-[#102A43] text-white text-[11px] font-semibold rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-md">
+                                        Expand Sidebar
+                                    </div>
+                                )}
+                            </button>
                         </div>
                     </nav>
                 </div>
@@ -239,11 +284,17 @@ export default function Layout() {
                     )}
                     <button
                         onClick={handleLogout}
-                        className={`flex items-center w-full px-3 py-2.5 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-bg-hover rounded-xl transition-colors ${isCollapsed ? 'justify-center px-2' : ''}`}
-                        title={isCollapsed ? 'Sign out' : undefined}
+                        className={`group relative flex items-center w-full px-3 py-2.5 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-bg-hover rounded-xl transition-colors ${isCollapsed ? 'justify-center px-2' : ''}`}
                     >
                         <LogOut className={`w-5 h-5 flex-shrink-0 ${!isCollapsed && 'mr-3'}`} />
                         {!isCollapsed && 'Sign out'}
+                        
+                        {/* CSS Tooltip */}
+                        {isCollapsed && (
+                            <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-[#102A43] text-white text-[11px] font-semibold rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-md">
+                                Sign out
+                            </div>
+                        )}
                     </button>
                 </div>
             </div>
@@ -263,12 +314,20 @@ export default function Layout() {
                         >
                             <Menu className="w-6 h-6" />
                         </button>
+                        
+                        {/* Global Back Button */}
                         <button 
-                            onClick={() => setIsCollapsed(!isCollapsed)}
-                            className="hidden lg:flex items-center justify-center w-9 h-9 mr-6 rounded-xl text-text-muted hover:bg-bg-card hover:shadow-sm hover:text-text-primary transition-all border border-transparent hover:border-border-subtle bg-bg-main"
-                            aria-label="Toggle Sidebar"
+                            onClick={() => {
+                                if (window.history.state && window.history.state.idx > 0) {
+                                    navigate(-1);
+                                } else {
+                                    navigate('/');
+                                }
+                            }}
+                            className="hidden sm:flex items-center justify-center w-9 h-9 mr-4 rounded-xl text-text-muted hover:bg-bg-card hover:shadow-sm hover:text-text-primary transition-all border border-transparent hover:border-border-subtle bg-bg-main"
+                            title="Go Back"
                         >
-                            {isCollapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+                            <ArrowLeft className="w-5 h-5" />
                         </button>
                         
                         {/* Search Bar matching reference */}
