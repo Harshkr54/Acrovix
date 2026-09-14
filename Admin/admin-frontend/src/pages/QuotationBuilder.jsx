@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { fetchApi } from '../services/api';
-import { Plus, Trash2, Send, Save, Wand2, ArrowUp, ArrowDown, Calculator, User, Hash, AlertCircle, RefreshCw, Download, Settings } from 'lucide-react';
+import { Plus, Trash2, Send, Save, Wand2, ArrowUp, ArrowDown, Calculator, User, Hash, AlertCircle, RefreshCw, Download, Settings, Eye } from 'lucide-react';
 import SendQuotationModal from '../components/SendQuotationModal';
 import QuotationColumnConfigModal from '../components/QuotationColumnConfigModal';
+import QuotationPreviewModal from '../components/QuotationPreviewModal';
 
 const defaultConfigs = [
     { columnKey: "rowNumber", displayName: "#", columnType: "TEXT", visible: true, sortOrder: 0, isCustom: false },
@@ -45,6 +46,14 @@ export default function QuotationBuilder() {
     const [isSendModalOpen, setIsSendModalOpen] = useState(false);
     const [columnConfigs, setColumnConfigs] = useState(defaultConfigs);
     const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
+    
+    // Preview State
+    const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+    const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+    const [previewPdfUrl, setPreviewPdfUrl] = useState(null);
+    const [previewEmailDetails, setPreviewEmailDetails] = useState(null);
+    const [previewError, setPreviewError] = useState(null);
+
     const [error, setError] = useState(null);
     const [isInitializing, setIsInitializing] = useState(true);
 
@@ -268,6 +277,58 @@ export default function QuotationBuilder() {
     };
 
     const totals = calculateTotals();
+
+    const handlePreview = async () => {
+        setIsPreviewLoading(true);
+        setPreviewError(null);
+        setIsPreviewModalOpen(true);
+
+        try {
+            const payload = {
+                quotationId: currentQuotationId,
+                enquiryId: enquiryId,
+                clientName: clientName,
+                clientCompany: clientCompany,
+                clientEmail: clientEmail,
+                clientPhone: clientPhone,
+                quotationSource: quotationSource,
+                sourceNotes: sourceNotes,
+                columnConfigs: columnConfigs,
+                items: items.map((item, index) => ({
+                    sku: item.sku,
+                    hsnSac: item.hsnSac,
+                    description: item.description,
+                    quantity: item.quantity,
+                    listPrice: item.listPrice,
+                    unitPrice: item.unitPrice,
+                    discountPercent: item.discountPercent,
+                    taxPercent: item.taxPercent,
+                    sortOrder: index,
+                    customValues: item.customValues || {}
+                }))
+            };
+
+            const pdfResponse = await fetchApi('/quotations/preview/pdf', {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+            const pdfBlob = await pdfResponse.blob();
+            const pdfUrl = URL.createObjectURL(pdfBlob);
+            setPreviewPdfUrl(pdfUrl);
+
+            const emailResponse = await fetchApi('/quotations/preview/email', {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+            setPreviewEmailDetails(emailResponse);
+
+        } catch (err) {
+            console.error("Preview Generation Error:", err);
+            setPreviewError(err.message || "Failed to generate preview.");
+        } finally {
+            setIsPreviewLoading(false);
+        }
+    };
 
     const handleSaveDraft = async () => {
         if (isSaving || isSending) return;
@@ -590,6 +651,9 @@ export default function QuotationBuilder() {
                         <p className="text-[12px] text-text-muted mt-1">Add products or services to this quotation</p>
                     </div>
                     <div className="flex space-x-2">
+                        <button onClick={handlePreview} className="inline-flex items-center px-4 py-2 border border-border-subtle hover:bg-bg-hover rounded-xl text-[12px] font-semibold text-text-primary transition-colors shadow-sm">
+                            <Eye className="w-4 h-4 mr-2" /> Preview
+                        </button>
                         <button onClick={() => setIsConfigModalOpen(true)} className="inline-flex items-center px-4 py-2 border border-border-subtle hover:bg-bg-hover rounded-xl text-[12px] font-semibold text-text-primary transition-colors shadow-sm">
                             <Settings className="w-4 h-4 mr-2" /> Configure Columns
                         </button>
@@ -793,6 +857,16 @@ export default function QuotationBuilder() {
                     setColumnConfigs(newConfigs);
                     setIsConfigModalOpen(false);
                 }}
+            />
+
+            <QuotationPreviewModal
+                isOpen={isPreviewModalOpen}
+                onClose={() => setIsPreviewModalOpen(false)}
+                pdfBlobUrl={previewPdfUrl}
+                emailDetails={previewEmailDetails}
+                isLoading={isPreviewLoading}
+                error={previewError}
+                onRetry={handlePreview}
             />
         </div>
     );

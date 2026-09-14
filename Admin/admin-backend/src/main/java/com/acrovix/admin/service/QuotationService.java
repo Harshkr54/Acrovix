@@ -421,6 +421,87 @@ public class QuotationService {
         return configs;
     }
 
+    public Quotation buildTransientPreviewQuotation(com.acrovix.admin.dto.QuotationPreviewRequest request, AdminUser admin) {
+        Quotation transientQ = new Quotation();
+        transientQ.setClientName(request.getClientName());
+        transientQ.setClientCompany(request.getClientCompany());
+        transientQ.setClientEmail(request.getClientEmail());
+        transientQ.setClientPhone(request.getClientPhone());
+        transientQ.setQuotationSource(request.getQuotationSource() != null ? request.getQuotationSource() : QuotationSource.OTHER);
+        transientQ.setSourceNotes(request.getSourceNotes());
+        transientQ.setTermsAndConditions(request.getTermsAndConditions());
+        
+        // Always safe to initialize these for transient processing
+        transientQ.setColumnConfigs(new ArrayList<>());
+        transientQ.setItems(new ArrayList<>());
+
+        if (request.getQuotationId() != null) {
+            Quotation existing = getQuotationById(request.getQuotationId(), admin);
+            transientQ.setId(existing.getId());
+            transientQ.setQuotationNumber(existing.getQuotationNumber());
+            transientQ.setCreatedAt(existing.getCreatedAt());
+            transientQ.setValidUntil(existing.getValidUntil());
+            transientQ.setEnquiry(existing.getEnquiry());
+        } else {
+            transientQ.setQuotationNumber("PREVIEW-DRAFT");
+            transientQ.setCreatedAt(java.time.LocalDateTime.now());
+            transientQ.setValidUntil(java.time.LocalDate.now().plusDays(30));
+            if (request.getEnquiryId() != null) {
+                transientQ.setEnquiry(enquiryRepository.findById(request.getEnquiryId()).orElse(null));
+            }
+        }
+        
+        // Reuse exact same logic for parsing and validaton (throws exceptions on invalid config safely)
+        validateAndSetColumnConfigs(transientQ, request.getColumnConfigs());
+
+        BigDecimal totalDiscountAmount = BigDecimal.ZERO;
+        BigDecimal totalTaxAmount = BigDecimal.ZERO;
+        BigDecimal subtotal = BigDecimal.ZERO;
+
+        if (request.getItems() != null) {
+            for (QuotationItemRequest itemReq : request.getItems()) {
+                BigDecimal qty = itemReq.getQuantity() != null ? itemReq.getQuantity() : BigDecimal.ZERO;
+                BigDecimal unitPrice = itemReq.getUnitPrice() != null ? itemReq.getUnitPrice() : BigDecimal.ZERO;
+                BigDecimal listPrice = itemReq.getListPrice() != null ? itemReq.getListPrice() : unitPrice;
+                BigDecimal discountPct = itemReq.getDiscountPercent() != null ? itemReq.getDiscountPercent() : BigDecimal.ZERO;
+                BigDecimal taxPct = itemReq.getTaxPercent() != null ? itemReq.getTaxPercent() : BigDecimal.ZERO;
+
+                BigDecimal netLineAmount = qty.multiply(unitPrice).setScale(2, RoundingMode.HALF_UP);
+                BigDecimal grossLineAmount = qty.multiply(listPrice).setScale(2, RoundingMode.HALF_UP);
+                BigDecimal lineDiscount = grossLineAmount.subtract(netLineAmount);
+                BigDecimal lineTax = netLineAmount.multiply(taxPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+                BigDecimal lineTotal = netLineAmount.add(lineTax);
+
+                totalDiscountAmount = totalDiscountAmount.add(lineDiscount);
+                totalTaxAmount = totalTaxAmount.add(lineTax);
+                subtotal = subtotal.add(netLineAmount);
+
+                QuotationItem item = QuotationItem.builder()
+                        .quotation(transientQ)
+                        .sku(itemReq.getSku())
+                        .hsnSac(itemReq.getHsnSac())
+                        .description(itemReq.getDescription())
+                        .quantity(qty)
+                        .listPrice(listPrice)
+                        .unitPrice(unitPrice)
+                        .discountPercent(discountPct)
+                        .taxPercent(taxPct)
+                        .lineTotal(lineTotal)
+                        .sortOrder(itemReq.getSortOrder())
+                        .customValues(itemReq.getCustomValues() != null ? new java.util.HashMap<>(itemReq.getCustomValues()) : new java.util.HashMap<>())
+                        .build();
+                transientQ.getItems().add(item);
+            }
+        }
+
+        transientQ.setDiscountAmount(totalDiscountAmount);
+        transientQ.setTaxAmount(totalTaxAmount);
+        transientQ.setSubtotal(subtotal);
+        transientQ.setGrandTotal(subtotal.add(totalTaxAmount));
+
+        return transientQ;
+    }
+
     private void validateAndSetColumnConfigs(Quotation quotation, List<com.acrovix.admin.dto.QuotationColumnConfigRequest> configRequests) {
         if (configRequests == null || configRequests.isEmpty()) {
             return;

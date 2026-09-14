@@ -109,4 +109,45 @@ public class EmailService {
             throw new IllegalStateException("Unable to send quotation email. Please try again later.", e);
         }
     }
+
+    public java.util.Map<String, String> generatePreviewEmailDetails(Quotation quotation) {
+        if (quotation == null) {
+            throw new IllegalArgumentException("Quotation cannot be null for email preview");
+        }
+        
+        String targetEmail = quotation.getClientEmail();
+        if (targetEmail == null || targetEmail.trim().isEmpty()) {
+            targetEmail = "[Client Email Pending]";
+        }
+
+        String activeFromEmail = (fromEmail != null && !fromEmail.trim().isEmpty()) ? fromEmail.trim() : "sales@acrovix.com";
+        String activeFromName = (fromName != null && !fromName.trim().isEmpty()) ? fromName.trim() : "ACROVIX";
+        String from = activeFromName + " <" + activeFromEmail + ">";
+
+        String to = targetEmail;
+        if (quotation.getClientName() != null && !quotation.getClientName().trim().isEmpty()) {
+            to = quotation.getClientName().trim() + " <" + to + ">";
+        }
+
+        String quotationNumber = (quotation.getQuotationNumber() != null && !quotation.getQuotationNumber().isEmpty()) 
+                ? quotation.getQuotationNumber() 
+                : "PREVIEW-DRAFT";
+                
+        String subject = "Acrovix Quotation: " + quotationNumber;
+        String clientNameDisplay = (quotation.getClientName() != null && !quotation.getClientName().trim().isEmpty()) 
+                ? quotation.getClientName() 
+                : "Client";
+                
+        String htmlContent = "<p>Dear " + clientNameDisplay + ",</p><p>Please find attached your requested quotation.</p><p>Best regards,<br/>ACROVIX</p>";
+        String filename = quotationNumber + ".pdf";
+
+        java.util.Map<String, String> details = new java.util.HashMap<>();
+        details.put("from", from);
+        details.put("to", to);
+        details.put("subject", subject);
+        details.put("htmlContent", htmlContent);
+        details.put("filename", filename);
+        
+        return details;
+    }
 }

@@ -165,6 +165,29 @@ public class QuotationController {
         return ResponseEntity.ok(mapToDetailDto(q));
     }
 
+    @PostMapping("/preview/pdf")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    public ResponseEntity<byte[]> generatePreviewPdf(
+            @Valid @RequestBody com.acrovix.admin.dto.QuotationPreviewRequest request,
+            @AuthenticationPrincipal AdminUser admin) {
+        Quotation transientQ = quotationService.buildTransientPreviewQuotation(request, admin);
+        byte[] pdf = pdfService.generateQuotationPdf(transientQ);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=" + transientQ.getQuotationNumber() + ".pdf")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdf);
+    }
+
+    @PostMapping("/preview/email")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    public ResponseEntity<java.util.Map<String, String>> generatePreviewEmail(
+            @Valid @RequestBody com.acrovix.admin.dto.QuotationPreviewRequest request,
+            @AuthenticationPrincipal AdminUser admin) {
+        Quotation transientQ = quotationService.buildTransientPreviewQuotation(request, admin);
+        java.util.Map<String, String> emailDetails = emailService.generatePreviewEmailDetails(transientQ);
+        return ResponseEntity.ok(emailDetails);
+    }
+
     private java.util.Map<String, Object> mapToDto(Quotation q) {
         java.util.Map<String, Object> map = new java.util.HashMap<>();
         map.put("id", q.getId());
