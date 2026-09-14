@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Mail, FileText, Download, AlertCircle, RefreshCw } from 'lucide-react';
 
 export default function QuotationPreviewModal({ 
@@ -14,7 +15,7 @@ export default function QuotationPreviewModal({
 
     if (!isOpen) return null;
 
-    return (
+    const modalContent = (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={onClose}></div>
             
@@ -183,4 +184,6 @@ export default function QuotationPreviewModal({
             </div>
         </div>
     );
+
+    return createPortal(modalContent, document.body);
 }

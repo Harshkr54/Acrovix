@@ -279,6 +279,21 @@ export default function QuotationBuilder() {
     const totals = calculateTotals();
 
     const handlePreview = async () => {
+        if (!clientName?.trim()) {
+            setPreviewError("Please enter a Client Name before previewing.");
+            setIsPreviewLoading(false);
+            setIsPreviewModalOpen(true);
+            return;
+        }
+
+        const missingDescIndex = items.findIndex(item => !item.description?.trim());
+        if (missingDescIndex !== -1) {
+            setPreviewError(`Please enter a description for line item ${missingDescIndex + 1} before previewing.`);
+            setIsPreviewLoading(false);
+            setIsPreviewModalOpen(true);
+            return;
+        }
+
         setIsPreviewLoading(true);
         setPreviewError(null);
         setIsPreviewModalOpen(true);
