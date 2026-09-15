@@ -72,4 +72,14 @@ class CustomerServiceTest {
         verify(customerRepository).save(customer);
         verify(activityRepository).save(any());
     }
+    @Test
+    void getCustomers_Pagination() {
+        when(customerRepository.searchCustomers(any(), any(), any()))
+                .thenReturn(new org.springframework.data.domain.PageImpl<>(java.util.List.of(Customer.builder().id(1L).active(true).build())));
+        
+        org.springframework.data.domain.Page<CustomerResponse> result = customerService.getCustomers(null, null, 0, 100);
+        
+        assertNotNull(result);
+        assertEquals(1, result.getContent().size());
+    }
 }

@@ -63,4 +63,14 @@ class ProductServiceServiceTest {
 
         assertThrows(ResourceConflictException.class, () -> catalogService.createCatalogItem(request, 100L));
     }
+    @Test
+    void getCatalog_Pagination() {
+        when(catalogRepository.searchCatalog(any(), any(), any(), any()))
+                .thenReturn(new org.springframework.data.domain.PageImpl<>(java.util.List.of(ProductService.builder().id(1L).active(true).build())));
+        
+        org.springframework.data.domain.Page<ProductServiceResponse> result = catalogService.getCatalog(null, null, null, 0, 100);
+        
+        assertNotNull(result);
+        assertEquals(1, result.getContent().size());
+    }
 }

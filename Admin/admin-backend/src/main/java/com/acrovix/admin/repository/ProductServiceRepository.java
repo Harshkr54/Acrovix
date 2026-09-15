@@ -14,8 +14,9 @@ public interface ProductServiceRepository extends JpaRepository<ProductService, 
     Optional<ProductService> findBySku(String sku);
 
     @Query("SELECT p FROM ProductService p WHERE " +
-           "(:search IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :search, '%'))) " +
-           "AND (:active IS NULL OR p.active = :active) " +
-           "AND (:type IS NULL OR p.type = :type)")
+           "(LOWER(p.name) LIKE LOWER(CONCAT('%', coalesce(:search, ''), '%')) OR " +
+           " LOWER(p.sku) LIKE LOWER(CONCAT('%', coalesce(:search, ''), '%'))) " +
+           "AND (p.active = coalesce(:active, p.active)) " +
+           "AND (p.type = coalesce(:type, p.type))")
     Page<ProductService> searchCatalog(@Param("search") String search, @Param("active") Boolean active, @Param("type") ProductServiceType type, Pageable pageable);
 }
