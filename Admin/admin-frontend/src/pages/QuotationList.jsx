@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { fetchApi } from '../services/api';
-import { FileText, Plus, AlertCircle, ChevronLeft, ChevronRight, File, Trash2 } from 'lucide-react';
+import { FileText, Plus, AlertCircle, ChevronLeft, ChevronRight, File, Trash2, ShoppingCart } from 'lucide-react';
 import CreateQuotationModal from '../components/CreateQuotationModal';
+import CreatePurchaseOrderModal from '../components/CreatePurchaseOrderModal';
 
 export default function QuotationList() {
     const [quotations, setQuotations] = useState([]);
@@ -16,6 +17,7 @@ export default function QuotationList() {
     const [totalElements, setTotalElements] = useState(0);
     const [downloadingPdfId, setDownloadingPdfId] = useState(null);
     const [trashModalQuotation, setTrashModalQuotation] = useState(null);
+    const [poModalQuotation, setPoModalQuotation] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const itemsPerPage = 10;
 
@@ -237,17 +239,28 @@ export default function QuotationList() {
                                                     </button>
                                                 </div>
                                             ) : (
-                                                <button
-                                                    onClick={() => handleViewPdf(q.id)}
-                                                    disabled={downloadingPdfId === q.id}
-                                                    className="inline-flex items-center justify-center px-3 py-1.5 bg-bg-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-lg text-[12px] font-semibold text-text-primary transition-colors shadow-sm"
-                                                >
-                                                    {downloadingPdfId === q.id ? (
-                                                        <><span className="animate-spin w-3 h-3 border-b-2 border-text-primary rounded-full mr-2"></span> Loading</>
-                                                    ) : (
-                                                        'View PDF'
+                                                <>
+                                                    <button
+                                                        onClick={() => handleViewPdf(q.id)}
+                                                        disabled={downloadingPdfId === q.id}
+                                                        className="inline-flex items-center justify-center px-3 py-1.5 bg-bg-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-lg text-[12px] font-semibold text-text-primary transition-colors shadow-sm"
+                                                    >
+                                                        {downloadingPdfId === q.id ? (
+                                                            <><span className="animate-spin w-3 h-3 border-b-2 border-text-primary rounded-full mr-2"></span> Loading</>
+                                                        ) : (
+                                                            'View PDF'
+                                                        )}
+                                                    </button>
+                                                    {q.status === 'ACCEPTED' && (
+                                                        <button
+                                                            onClick={() => setPoModalQuotation(q)}
+                                                            className="inline-flex items-center justify-center px-3 py-1.5 bg-brand-primary/10 hover:bg-brand-primary/20 border border-brand-primary/20 rounded-lg text-[12px] font-semibold text-brand-primary transition-colors shadow-sm ml-2"
+                                                        >
+                                                            <ShoppingCart className="w-3.5 h-3.5 mr-1" />
+                                                            Convert to PO
+                                                        </button>
                                                     )}
-                                                </button>
+                                                </>
                                             )}
                                         </div>
                                     </td>
@@ -317,6 +330,13 @@ export default function QuotationList() {
                     </div>
                 </div>
             )}
+
+            <CreatePurchaseOrderModal 
+                isOpen={!!poModalQuotation} 
+                onClose={() => setPoModalQuotation(null)} 
+                quotation={poModalQuotation}
+                onSuccess={fetchQuotations}
+            />
         </div>
     );
 }

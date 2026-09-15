@@ -13,6 +13,8 @@ import TrashList from './pages/TrashList';
 import Activity from './pages/Activity';
 import CustomerMaster from './pages/CustomerMaster';
 import CatalogMaster from './pages/CatalogMaster';
+import PurchaseOrderList from './pages/PurchaseOrderList';
+import PurchaseOrderDetail from './pages/PurchaseOrderDetail';
 
 const ProtectedRoute = ({ children }) => {
     const { user } = useAuth();
@@ -35,6 +37,8 @@ function App() {
                 <Route path="quotations/edit/:quotationId" element={<QuotationBuilder />} />
                 <Route path="customers" element={<CustomerMaster />} />
                 <Route path="catalog" element={<CatalogMaster />} />
+                <Route path="purchase-orders" element={<PurchaseOrderList />} />
+                <Route path="purchase-orders/:id" element={<PurchaseOrderDetail />} />
                 <Route path="users" element={<UserList />} />
                 <Route path="trash" element={<TrashList />} />
                 <Route path="activity" element={<Activity />} />

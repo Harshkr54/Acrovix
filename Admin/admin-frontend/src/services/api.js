@@ -139,6 +139,28 @@ export const getCatalog = (params) => {
     return fetchApi(`/catalog?${query.toString()}`);
 };
 
+// --- PURCHASE ORDERS ---
+export const getPurchaseOrders = (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return fetchApi(`/purchase-orders${qs ? `?${qs}` : ''}`);
+};
+
+export const getPurchaseOrderById = (id) => fetchApi(`/purchase-orders/${id}`);
+
+export const createPurchaseOrder = (data) => fetchApi('/purchase-orders', {
+    method: 'POST',
+    body: JSON.stringify(data)
+});
+
+export const updatePurchaseOrderStatus = (id, data) => fetchApi(`/purchase-orders/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify(data)
+});
+
+export const verifyPurchaseOrder = (id) => fetchApi(`/purchase-orders/${id}/verify`, {
+    method: 'POST'
+});
+
 export const getCatalogItemById = (id) => fetchApi(`/catalog/${id}`);
 
 export const createCatalogItem = (data) => fetchApi('/catalog', {

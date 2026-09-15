@@ -169,4 +169,55 @@ public class PdfService {
             throw new RuntimeException("Failed to generate PDF", e);
         }
     }
+
+    public byte[] generatePurchaseOrderPdf(com.acrovix.admin.entity.PurchaseOrder po) {
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Document document = new Document();
+            PdfWriter.getInstance(document, out);
+            document.open();
+
+            // Header
+            Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 24);
+            Paragraph title = new Paragraph("ACROVIX INNOVATIONS PRIVATE LIMITED", titleFont);
+            title.setAlignment(Element.ALIGN_CENTER);
+            document.add(title);
+            
+            document.add(new Paragraph("PURCHASE ORDER", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16)));
+            document.add(new Paragraph("PO Number: " + (po.getPoNumber() != null ? po.getPoNumber() : "")));
+            String createdDateStr = po.getPoDate() != null ? po.getPoDate().format(DateTimeFormatter.ofPattern("dd-MMM-yyyy")) : "";
+            document.add(new Paragraph("PO Date: " + createdDateStr));
+            document.add(new Paragraph("Client PO Number: " + (po.getClientPoNumber() != null ? po.getClientPoNumber() : "N/A")));
+            document.add(new Paragraph(" "));
+
+            // Client Info (from Quotation)
+            if (po.getQuotation() != null) {
+                document.add(new Paragraph("To: " + (po.getQuotation().getClientName() != null ? po.getQuotation().getClientName() : "")));
+                if (po.getQuotation().getClientCompany() != null && !po.getQuotation().getClientCompany().isBlank()) {
+                    document.add(new Paragraph(po.getQuotation().getClientCompany()));
+                }
+                document.add(new Paragraph("Email: " + (po.getQuotation().getClientEmail() != null ? po.getQuotation().getClientEmail() : "")));
+                if (po.getQuotation().getClientPhone() != null && !po.getQuotation().getClientPhone().isBlank()) {
+                    document.add(new Paragraph("Phone: " + po.getQuotation().getClientPhone()));
+                }
+                document.add(new Paragraph("Source Quotation: " + po.getQuotation().getQuotationNumber()));
+            }
+            document.add(new Paragraph(" "));
+
+            // PO Details
+            document.add(new Paragraph("PO Value: Rs. " + (po.getPoValue() != null ? po.getPoValue().toString() : "0.00"), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12)));
+            document.add(new Paragraph("Status: " + po.getStatus().name()));
+            document.add(new Paragraph("Received Via: " + (po.getReceivedVia() != null ? po.getReceivedVia().name() : "N/A")));
+            
+            if (po.getRemarks() != null && !po.getRemarks().isBlank()) {
+                document.add(new Paragraph(" "));
+                document.add(new Paragraph("Remarks:", FontFactory.getFont(FontFactory.HELVETICA_BOLD)));
+                document.add(new Paragraph(po.getRemarks()));
+            }
+
+            document.close();
+            return out.toByteArray();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate Purchase Order PDF", e);
+        }
+    }
 }
