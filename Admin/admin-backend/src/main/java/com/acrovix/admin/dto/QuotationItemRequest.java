@@ -16,6 +16,7 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 public class QuotationItemRequest {
     private Long id; // Null for new items
+    private Long productServiceId;
     
     @NotBlank(message = "Description is required")
     private String description;

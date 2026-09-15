@@ -23,6 +23,11 @@ public class QuotationItem {
     @JoinColumn(name = "quotation_id", nullable = false)
     private Quotation quotation;
 
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_service_id")
+    private ProductService productService;
+
     @Column(columnDefinition = "TEXT", nullable = false)
     private String description;
 

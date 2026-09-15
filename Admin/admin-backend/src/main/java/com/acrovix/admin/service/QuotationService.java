@@ -35,6 +35,8 @@ public class QuotationService {
     private final NotificationService notificationService;
     private final AuthorizationService authorizationService;
     private final EmailService emailService;
+    private final com.acrovix.admin.repository.CustomerRepository customerRepository;
+    private final com.acrovix.admin.repository.ProductServiceRepository productServiceRepository;
 
     public List<Quotation> getQuotationsByEnquiryId(Long enquiryId, AdminUser currentUser) {
         AdminEnquiry enquiry = enquiryRepository.findById(enquiryId)
@@ -110,6 +112,7 @@ public class QuotationService {
 
         Quotation saved = quotationRepository.save(quotation);
         saved.setColumnConfigs(createDefaultColumnConfigs(saved));
+        saved.setBaseQuotationId(saved.getId());
         saved = quotationRepository.save(saved);
         
         if (saved.getItems() != null) {
@@ -155,6 +158,7 @@ public class QuotationService {
 
         Quotation saved = quotationRepository.save(quotation);
         saved.setColumnConfigs(createDefaultColumnConfigs(saved));
+        saved.setBaseQuotationId(saved.getId());
         saved = quotationRepository.save(saved);
 
         if (saved.getItems() != null) {
@@ -189,6 +193,12 @@ public class QuotationService {
         quotation.setSourceNotes(request.getSourceNotes());
         quotation.setTermsAndConditions(request.getTermsAndConditions());
         
+        if (request.getCustomerId() != null) {
+            quotation.setCustomer(customerRepository.findById(request.getCustomerId()).orElse(null));
+        } else {
+            quotation.setCustomer(null);
+        }
+        
         validateAndSetColumnConfigs(quotation, request.getColumnConfigs());
 
         quotation.getItems().clear(); // Clear existing
@@ -216,8 +226,14 @@ public class QuotationService {
                 totalTaxAmount = totalTaxAmount.add(lineTax);
                 subtotal = subtotal.add(netLineAmount);
 
+                ProductService productService = null;
+                if (itemReq.getProductServiceId() != null) {
+                    productService = productServiceRepository.findById(itemReq.getProductServiceId()).orElse(null);
+                }
+
                 QuotationItem item = QuotationItem.builder()
                         .quotation(quotation)
+                        .productService(productService)
                         .sku(itemReq.getSku())
                         .hsnSac(itemReq.getHsnSac())
                         .description(itemReq.getDescription())
@@ -431,6 +447,10 @@ public class QuotationService {
         transientQ.setSourceNotes(request.getSourceNotes());
         transientQ.setTermsAndConditions(request.getTermsAndConditions());
         
+        if (request.getCustomerId() != null) {
+            transientQ.setCustomer(customerRepository.findById(request.getCustomerId()).orElse(null));
+        }
+        
         // Always safe to initialize these for transient processing
         transientQ.setColumnConfigs(new ArrayList<>());
         transientQ.setItems(new ArrayList<>());
@@ -476,8 +496,14 @@ public class QuotationService {
                 totalTaxAmount = totalTaxAmount.add(lineTax);
                 subtotal = subtotal.add(netLineAmount);
 
+                ProductService productService = null;
+                if (itemReq.getProductServiceId() != null) {
+                    productService = productServiceRepository.findById(itemReq.getProductServiceId()).orElse(null);
+                }
+
                 QuotationItem item = QuotationItem.builder()
                         .quotation(transientQ)
+                        .productService(productService)
                         .sku(itemReq.getSku())
                         .hsnSac(itemReq.getHsnSac())
                         .description(itemReq.getDescription())
@@ -570,5 +596,149 @@ public class QuotationService {
                     .build();
             quotation.getColumnConfigs().add(config);
         }
+    }
+
+    @Transactional
+    public Quotation createRevision(Long quotationId, AdminUser admin) {
+        Quotation original = getQuotationById(quotationId, admin);
+        
+        if (original.getDeletedAt() != null) {
+            throw new IllegalArgumentException("Cannot revise a deleted quotation");
+        }
+        
+        if ("DRAFT".equals(original.getStatus())) {
+            throw new com.acrovix.admin.exception.ResourceConflictException("Cannot create revision from a DRAFT quotation. Send it first.");
+        }
+
+        Long baseId = original.getBaseQuotationId() != null ? original.getBaseQuotationId() : original.getId();
+
+        // Transaction safe increment
+        Quotation baseForLock = quotationRepository.findBaseQuotationForUpdate(baseId)
+                .orElseThrow(() -> new IllegalStateException("Base quotation not found for lock"));
+        
+        Integer maxVersion = quotationRepository.findMaxVersionByBaseQuotationId(baseId);
+        int nextVersion = (maxVersion != null ? maxVersion : 0) + 1;
+
+        Quotation revision = Quotation.builder()
+                .quotationNumber(baseForLock.getQuotationNumber() + "-R" + nextVersion)
+                .version(nextVersion)
+                .baseQuotationId(baseId)
+                .parentQuotationId(original.getId())
+                .enquiry(original.getEnquiry())
+                .customer(original.getCustomer())
+                .clientName(original.getClientName())
+                .clientCompany(original.getClientCompany())
+                .clientEmail(original.getClientEmail())
+                .clientPhone(original.getClientPhone())
+                .quotationSource(original.getQuotationSource())
+                .sourceNotes(original.getSourceNotes())
+                .status("DRAFT")
+                .subtotal(original.getSubtotal())
+                .discountAmount(original.getDiscountAmount())
+                .taxAmount(original.getTaxAmount())
+                .grandTotal(original.getGrandTotal())
+                .validUntil(LocalDate.now().plusDays(30))
+                .termsAndConditions(original.getTermsAndConditions())
+                .createdBy(admin)
+                .build();
+
+        Quotation saved = quotationRepository.save(revision);
+
+        for (QuotationItem originalItem : original.getItems()) {
+            QuotationItem newItem = QuotationItem.builder()
+                    .quotation(saved)
+                    .productService(originalItem.getProductService())
+                    .description(originalItem.getDescription())
+                    .sku(originalItem.getSku())
+                    .hsnSac(originalItem.getHsnSac())
+                    .category(originalItem.getCategory())
+                    .quantity(originalItem.getQuantity())
+                    .unit(originalItem.getUnit())
+                    .listPrice(originalItem.getListPrice())
+                    .unitPrice(originalItem.getUnitPrice())
+                    .discountPercent(originalItem.getDiscountPercent())
+                    .taxPercent(originalItem.getTaxPercent())
+                    .lineTotal(originalItem.getLineTotal())
+                    .sortOrder(originalItem.getSortOrder())
+                    .customValues(new java.util.HashMap<>(originalItem.getCustomValues()))
+                    .build();
+            saved.getItems().add(newItem);
+        }
+
+        for (QuotationColumnConfig originalConfig : original.getColumnConfigs()) {
+            QuotationColumnConfig newConfig = QuotationColumnConfig.builder()
+                    .quotation(saved)
+                    .columnKey(originalConfig.getColumnKey())
+                    .displayName(originalConfig.getDisplayName())
+                    .columnType(originalConfig.getColumnType())
+                    .visible(originalConfig.getVisible())
+                    .sortOrder(originalConfig.getSortOrder())
+                    .isCustom(originalConfig.getIsCustom())
+                    .build();
+            saved.getColumnConfigs().add(newConfig);
+        }
+
+        saved = quotationRepository.save(saved);
+        logActivity(admin.getId(), "Created revision R" + nextVersion + " from " + original.getQuotationNumber(), "Quotation", saved.getId());
+        return saved;
+    }
+
+    @Transactional
+    public Quotation updateStatus(Long quotationId, String newStatus, AdminUser admin) {
+        Quotation quotation = quotationRepository.findById(quotationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Quotation not found"));
+
+        if (quotation.getDeletedAt() != null) {
+            throw new IllegalArgumentException("Cannot update status of a deleted quotation");
+        }
+
+        authorizationService.checkQuotationAccess(admin, quotation);
+        
+        String currentStatus = quotation.getStatus();
+        
+        if (currentStatus.equals(newStatus)) {
+            return quotation; // No-op
+        }
+
+        boolean validTransition = false;
+
+        switch (currentStatus) {
+            case "DRAFT":
+                // DRAFT to SENT is handled by sendQuotation. But technically permitted if they just mark it manually.
+                // However user requested: "DRAFT -> SENT when actually sent... Do NOT mark it SENT during revision creation"
+                // We'll allow DRAFT -> SENT here if needed, but not ACCEPTED/REJECTED.
+                if ("SENT".equals(newStatus)) validTransition = true;
+                break;
+            case "SENT":
+            case "REVISED":
+                if ("ACCEPTED".equals(newStatus) || "REJECTED".equals(newStatus) || "EXPIRED".equals(newStatus) || "REVISED".equals(newStatus) || "SENT".equals(newStatus)) {
+                    validTransition = true;
+                }
+                break;
+            case "ACCEPTED":
+                if ("CONVERTED".equals(newStatus)) {
+                    validTransition = true;
+                }
+                break;
+            default:
+                break;
+        }
+
+        if (!validTransition) {
+            throw new com.acrovix.admin.exception.ResourceConflictException("Invalid status transition from " + currentStatus + " to " + newStatus);
+        }
+
+        quotation.setStatus(newStatus);
+        Quotation saved = quotationRepository.save(quotation);
+        
+        logActivity(admin.getId(), "Quotation status updated to " + newStatus + ": " + quotation.getQuotationNumber(), "Quotation", saved.getId());
+        return saved;
+    }
+
+    @Transactional(readOnly = true)
+    public List<Quotation> getQuotationVersions(Long quotationId, AdminUser admin) {
+        Quotation quotation = getQuotationById(quotationId, admin);
+        Long baseId = quotation.getBaseQuotationId() != null ? quotation.getBaseQuotationId() : quotation.getId();
+        return quotationRepository.findByBaseQuotationIdOrderByVersionAsc(baseId);
     }
 }

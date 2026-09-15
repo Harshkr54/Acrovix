@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { fetchApi } from '../services/api';
+import { fetchApi, getCustomers, getCatalog } from '../services/api';
 import { Plus, Trash2, Send, Save, Wand2, ArrowUp, ArrowDown, Calculator, User, Hash, AlertCircle, RefreshCw, Download, Settings, Eye } from 'lucide-react';
 import SendQuotationModal from '../components/SendQuotationModal';
 import QuotationColumnConfigModal from '../components/QuotationColumnConfigModal';
@@ -46,6 +46,19 @@ export default function QuotationBuilder() {
     const [isSendModalOpen, setIsSendModalOpen] = useState(false);
     const [columnConfigs, setColumnConfigs] = useState(defaultConfigs);
     const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
+
+    // Customer Selector State
+    const [customerId, setCustomerId] = useState(null);
+    const [customerSearch, setCustomerSearch] = useState('');
+    const [customers, setCustomers] = useState([]);
+    const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
+    const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
+
+    // Catalog Selector State
+    const [catalogSearch, setCatalogSearch] = useState('');
+    const [catalogItems, setCatalogItems] = useState([]);
+    const [isCatalogDropdownOpen, setIsCatalogDropdownOpen] = useState(false);
+    const [isLoadingCatalog, setIsLoadingCatalog] = useState(false);
     
     // Preview State
     const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
@@ -72,6 +85,7 @@ export default function QuotationBuilder() {
                 setClientCompany(q.clientCompany || '');
                 setClientEmail(q.clientEmail || '');
                 setClientPhone(q.clientPhone || '');
+                setCustomerId(q.customerId || null);
                 setQuotationSource(q.quotationSource || (q.enquiry ? 'ENQUIRY' : 'DIRECT'));
                 setSourceNotes(q.sourceNotes || '');
 
@@ -93,6 +107,7 @@ export default function QuotationBuilder() {
                 if (q.items && q.items.length > 0) {
                     setItems(q.items.map(item => ({
                         id: item.id || Date.now() + Math.random(),
+                        productServiceId: item.productServiceId || null,
                         sku: item.sku || '',
                         description: item.description || '',
                         hsnSac: item.hsnSac || '',
@@ -105,7 +120,7 @@ export default function QuotationBuilder() {
                         customValues: item.customValues || {}
                     })));
                 } else {
-                    setItems([{ id: Date.now(), sku: '', description: '', hsnSac: '', quantity: 1, listPrice: 0, discountPercent: 0, unitPrice: 0, taxPercent: 18, customValues: {} }]);
+                    setItems([{ id: Date.now(), productServiceId: null, sku: '', description: '', hsnSac: '', quantity: 1, listPrice: 0, discountPercent: 0, unitPrice: 0, taxPercent: 18, customValues: {} }]);
                 }
 
             } else if (!isEditMode && enquiryId) {
@@ -118,7 +133,8 @@ export default function QuotationBuilder() {
                 setClientPhone(enqData.phoneNumber || '');
                 setQuotationSource('ENQUIRY');
                 setColumnConfigs(defaultConfigs);
-                setItems([{ id: Date.now(), sku: '', description: '', hsnSac: '', quantity: 1, listPrice: 0, discountPercent: 0, unitPrice: 0, taxPercent: 18, customValues: {} }]);
+                setCustomerId(null);
+                setItems([{ id: Date.now(), productServiceId: null, sku: '', description: '', hsnSac: '', quantity: 1, listPrice: 0, discountPercent: 0, unitPrice: 0, taxPercent: 18, customValues: {} }]);
                 setCurrentQuotationId(null);
                 setQuotationNumber('');
             } else {
@@ -136,6 +152,54 @@ export default function QuotationBuilder() {
         initializeBuilder();
     }, [initializeBuilder]);
 
+    useEffect(() => {
+        if (isCustomerDropdownOpen) {
+            setIsLoadingCustomers(true);
+            getCustomers({ search: customerSearch, active: true, size: 50 })
+                .then(data => setCustomers(data.content || []))
+                .catch(err => console.error(err))
+                .finally(() => setIsLoadingCustomers(false));
+        }
+    }, [customerSearch, isCustomerDropdownOpen]);
+
+    useEffect(() => {
+        if (isCatalogDropdownOpen) {
+            setIsLoadingCatalog(true);
+            getCatalog({ search: catalogSearch, active: true, size: 50 })
+                .then(data => setCatalogItems(data.content || []))
+                .catch(err => console.error(err))
+                .finally(() => setIsLoadingCatalog(false));
+        }
+    }, [catalogSearch, isCatalogDropdownOpen]);
+
+    const selectCustomer = (c) => {
+        setCustomerId(c.id);
+        setClientName(c.name || '');
+        setClientCompany(c.companyName || '');
+        setClientEmail(c.email || '');
+        setClientPhone(c.phone || '');
+        setCustomerSearch('');
+        setIsCustomerDropdownOpen(false);
+    };
+
+    const addCatalogItem = (c) => {
+        setItems([...items, { 
+            id: Date.now(), 
+            productServiceId: c.id,
+            sku: c.sku || '', 
+            description: c.name || '', 
+            hsnSac: c.hsnSac || '', 
+            quantity: 1, 
+            listPrice: c.listPrice || 0, 
+            discountPercent: 0, 
+            unitPrice: c.listPrice || 0, 
+            taxPercent: c.taxPercentage || 18, 
+            customValues: {} 
+        }]);
+        setCatalogSearch('');
+        setIsCatalogDropdownOpen(false);
+    };
+
     const handleParseText = async () => {
         if (!roughText.trim()) return;
         setIsParsing(true);
@@ -148,6 +212,7 @@ export default function QuotationBuilder() {
             // Format imported data and append to grid
             const newItems = data.map(item => ({
                 id: Date.now() + Math.random(),
+                productServiceId: null,
                 sku: item.sku || '',
                 description: item.description || '',
                 hsnSac: item.hsnSac || '',
@@ -223,7 +288,7 @@ export default function QuotationBuilder() {
     };
 
     const addItem = () => {
-        setItems([...items, { id: Date.now(), sku: '', description: '', hsnSac: '', quantity: 1, listPrice: 0, discountPercent: 0, unitPrice: 0, taxPercent: 18, customValues: {} }]);
+        setItems([...items, { id: Date.now(), productServiceId: null, sku: '', description: '', hsnSac: '', quantity: 1, listPrice: 0, discountPercent: 0, unitPrice: 0, taxPercent: 18, customValues: {} }]);
     };
 
     const handleDownloadTemplate = () => {
@@ -302,6 +367,7 @@ export default function QuotationBuilder() {
             const payload = {
                 quotationId: currentQuotationId,
                 enquiryId: enquiryId,
+                customerId: customerId,
                 clientName: clientName,
                 clientCompany: clientCompany,
                 clientEmail: clientEmail,
@@ -310,6 +376,7 @@ export default function QuotationBuilder() {
                 sourceNotes: sourceNotes,
                 columnConfigs: columnConfigs,
                 items: items.map((item, index) => ({
+                    productServiceId: item.productServiceId,
                     sku: item.sku,
                     hsnSac: item.hsnSac,
                     description: item.description,
@@ -367,6 +434,7 @@ export default function QuotationBuilder() {
             }
 
             const payload = {
+                customerId: customerId,
                 clientName: clientName,
                 clientCompany: clientCompany,
                 clientEmail: clientEmail,
@@ -375,6 +443,7 @@ export default function QuotationBuilder() {
                 sourceNotes: sourceNotes,
                 columnConfigs: columnConfigs,
                 items: items.map((item, index) => ({
+                    productServiceId: item.productServiceId,
                     sku: item.sku,
                     hsnSac: item.hsnSac,
                     description: item.description,
@@ -428,6 +497,7 @@ export default function QuotationBuilder() {
             }
 
             const payload = {
+                customerId: customerId,
                 clientName: clientName,
                 clientCompany: clientCompany,
                 clientEmail: clientEmail,
@@ -436,6 +506,7 @@ export default function QuotationBuilder() {
                 sourceNotes: sourceNotes,
                 columnConfigs: columnConfigs,
                 items: items.map((item, index) => ({
+                    productServiceId: item.productServiceId,
                     sku: item.sku,
                     hsnSac: item.hsnSac,
                     description: item.description,
@@ -573,6 +644,43 @@ export default function QuotationBuilder() {
                         </span>
                     )}
                 </div>
+                <div className="mb-6 relative">
+                    <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Load from Customer Master</p>
+                    <div className="relative">
+                        <input
+                            type="text"
+                            placeholder="Search existing customer..."
+                            value={customerSearch}
+                            onChange={(e) => {
+                                setCustomerSearch(e.target.value);
+                                setIsCustomerDropdownOpen(true);
+                            }}
+                            onFocus={() => setIsCustomerDropdownOpen(true)}
+                            onBlur={() => setTimeout(() => setIsCustomerDropdownOpen(false), 200)}
+                            className="w-full bg-bg-main border border-border-subtle focus:border-[#14B8A6] rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
+                        />
+                        {isCustomerDropdownOpen && (
+                            <div className="absolute z-50 w-full mt-1 bg-bg-card border border-border-subtle rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                                {isLoadingCustomers ? (
+                                    <div className="p-3 text-[12px] text-text-muted text-center">Loading...</div>
+                                ) : customers.length === 0 ? (
+                                    <div className="p-3 text-[12px] text-text-muted text-center">No customers found</div>
+                                ) : (
+                                    customers.map(c => (
+                                        <div 
+                                            key={c.id}
+                                            onClick={() => selectCustomer(c)}
+                                            className="px-4 py-2 hover:bg-bg-hover cursor-pointer border-b border-border-subtle/40 last:border-0"
+                                        >
+                                            <div className="text-[13px] font-bold text-text-primary">{c.name} {c.companyName ? `(${c.companyName})` : ''}</div>
+                                            <div className="text-[11px] text-text-muted">{c.email} | {c.phone}</div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div>
                         <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Client Name</p>
@@ -675,6 +783,49 @@ export default function QuotationBuilder() {
                         <button onClick={handleDownloadTemplate} className="inline-flex items-center px-4 py-2 border border-[#4F46E5]/30 bg-[#4F46E5]/5 hover:bg-[#4F46E5]/10 rounded-xl text-[12px] font-semibold text-[#4F46E5] transition-colors shadow-sm">
                             <Download className="w-4 h-4 mr-2" /> Download Template
                         </button>
+                    </div>
+                </div>
+
+                <div className="px-6 py-4 border-b border-border-subtle bg-bg-main relative">
+                    <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Quick Add from Catalog</p>
+                    <div className="relative w-full sm:w-96">
+                        <input
+                            type="text"
+                            placeholder="Search product/service..."
+                            value={catalogSearch}
+                            onChange={(e) => {
+                                setCatalogSearch(e.target.value);
+                                setIsCatalogDropdownOpen(true);
+                            }}
+                            onFocus={() => setIsCatalogDropdownOpen(true)}
+                            onBlur={() => setTimeout(() => setIsCatalogDropdownOpen(false), 200)}
+                            className="w-full bg-bg-card border border-border-subtle focus:border-[#14B8A6] rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
+                        />
+                        {isCatalogDropdownOpen && (
+                            <div className="absolute z-50 w-full mt-1 bg-bg-card border border-border-subtle rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                                {isLoadingCatalog ? (
+                                    <div className="p-3 text-[12px] text-text-muted text-center">Loading...</div>
+                                ) : catalogItems.length === 0 ? (
+                                    <div className="p-3 text-[12px] text-text-muted text-center">No catalog items found</div>
+                                ) : (
+                                    catalogItems.map(item => (
+                                        <div 
+                                            key={item.id}
+                                            onClick={() => addCatalogItem(item)}
+                                            className="px-4 py-2 hover:bg-bg-hover cursor-pointer border-b border-border-subtle/40 last:border-0 flex justify-between items-center"
+                                        >
+                                            <div>
+                                                <div className="text-[13px] font-bold text-text-primary">{item.name}</div>
+                                                <div className="text-[11px] text-text-muted">{item.sku} | HSN: {item.hsnSac}</div>
+                                            </div>
+                                            <div className="text-[12px] font-mono font-semibold text-[#14B8A6]">
+                                                ₹{item.listPrice}
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
                 

@@ -17,6 +17,15 @@ public interface QuotationRepository extends JpaRepository<Quotation, Long>, Jpa
     List<Quotation> findByEnquiryIdAndDeletedAtIsNull(Long enquiryId);
     long countByStatus(String status);
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT q FROM Quotation q WHERE q.id = :baseId")
+    java.util.Optional<Quotation> findBaseQuotationForUpdate(@org.springframework.data.repository.query.Param("baseId") Long baseId);
+
+    @Query("SELECT MAX(q.version) FROM Quotation q WHERE q.baseQuotationId = :baseId")
+    Integer findMaxVersionByBaseQuotationId(@org.springframework.data.repository.query.Param("baseId") Long baseId);
+
+    List<Quotation> findByBaseQuotationIdOrderByVersionAsc(Long baseQuotationId);
+
     @Query("SELECT DISTINCT q FROM Quotation q LEFT JOIN FETCH q.enquiry LEFT JOIN FETCH q.items WHERE q.id = :id")
     java.util.Optional<Quotation> findWithDetailsById(@org.springframework.data.repository.query.Param("id") Long id);
 

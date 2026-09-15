@@ -165,6 +165,35 @@ public class QuotationController {
         return ResponseEntity.ok(mapToDetailDto(q));
     }
 
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    public ResponseEntity<java.util.Map<String, Object>> updateStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody com.acrovix.admin.dto.QuotationStatusUpdateRequest request,
+            @AuthenticationPrincipal AdminUser admin) {
+        Quotation q = quotationService.updateStatus(id, request.getStatus(), admin);
+        return ResponseEntity.ok(mapToDetailDto(q));
+    }
+
+    @PostMapping("/{id}/revisions")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    public ResponseEntity<java.util.Map<String, Object>> createRevision(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AdminUser admin) {
+        Quotation q = quotationService.createRevision(id, admin);
+        return ResponseEntity.ok(mapToDetailDto(q));
+    }
+
+    @GetMapping("/{id}/versions")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    public ResponseEntity<java.util.List<java.util.Map<String, Object>>> getQuotationVersions(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AdminUser admin) {
+        java.util.List<Quotation> list = quotationService.getQuotationVersions(id, admin);
+        java.util.List<java.util.Map<String, Object>> dtos = list.stream().map(this::mapToDto).collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(dtos);
+    }
+
     @PostMapping("/preview/pdf")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
     public ResponseEntity<byte[]> generatePreviewPdf(
@@ -196,6 +225,9 @@ public class QuotationController {
         map.put("clientCompany", q.getClientCompany());
         map.put("grandTotal", q.getGrandTotal());
         map.put("status", q.getStatus());
+        map.put("version", q.getVersion());
+        map.put("baseQuotationId", q.getBaseQuotationId());
+        map.put("parentQuotationId", q.getParentQuotationId());
         map.put("createdAt", q.getCreatedAt());
 
         String sourceStr = null;
@@ -221,6 +253,12 @@ public class QuotationController {
         map.put("clientEmail", q.getClientEmail());
         map.put("clientPhone", q.getClientPhone());
         map.put("status", q.getStatus());
+        map.put("version", q.getVersion());
+        map.put("baseQuotationId", q.getBaseQuotationId());
+        map.put("parentQuotationId", q.getParentQuotationId());
+        if (q.getCustomer() != null) {
+            map.put("customerId", q.getCustomer().getId());
+        }
         map.put("subtotal", q.getSubtotal());
         map.put("discountAmount", q.getDiscountAmount());
         map.put("taxAmount", q.getTaxAmount());
@@ -260,6 +298,9 @@ public class QuotationController {
                 java.util.Map<String, Object> itemMap = new java.util.HashMap<>();
                 itemMap.put("id", item.getId());
                 itemMap.put("description", item.getDescription());
+                if (item.getProductService() != null) {
+                    itemMap.put("productServiceId", item.getProductService().getId());
+                }
                 itemMap.put("category", item.getCategory());
                 itemMap.put("quantity", item.getQuantity());
                 itemMap.put("unit", item.getUnit());

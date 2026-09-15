@@ -10,7 +10,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "quotations")
+@Table(name = "quotations", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"base_quotation_id", "version"})
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -24,6 +26,21 @@ public class Quotation {
 
     @Column(name = "quotation_number", unique = true, nullable = false, length = 50)
     private String quotationNumber;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer version = 0;
+
+    @Column(name = "base_quotation_id")
+    private Long baseQuotationId;
+
+    @Column(name = "parent_quotation_id")
+    private Long parentQuotationId;
+
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "customer_id")
+    private Customer customer;
 
     @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     @ManyToOne(fetch = FetchType.LAZY)

@@ -16,6 +16,7 @@ import java.util.List;
 @NoArgsConstructor
 public class QuotationRequest {
     private Long enquiryId;
+    private Long customerId;
     
     @NotBlank(message = "Client name is required")
     private String clientName;
