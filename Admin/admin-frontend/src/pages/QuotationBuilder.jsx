@@ -66,6 +66,7 @@ export default function QuotationBuilder() {
     const [previewPdfUrl, setPreviewPdfUrl] = useState(null);
     const [previewEmailDetails, setPreviewEmailDetails] = useState(null);
     const [previewError, setPreviewError] = useState(null);
+    const [validationError, setValidationError] = useState(null);
 
     const [error, setError] = useState(null);
     const [isInitializing, setIsInitializing] = useState(true);
@@ -344,18 +345,38 @@ export default function QuotationBuilder() {
     const totals = calculateTotals();
 
     const handlePreview = async () => {
+        setValidationError(null);
+        
         if (!clientName?.trim()) {
-            setPreviewError("Please enter a Client Name before previewing.");
-            setIsPreviewLoading(false);
-            setIsPreviewModalOpen(true);
+            setValidationError("Please enter a Client Name before previewing.");
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+        }
+
+        if (!items || items.length === 0) {
+            setValidationError("Add at least one line item before previewing the quotation.");
+            window.scrollTo({ top: 0, behavior: 'smooth' });
             return;
         }
 
         const missingDescIndex = items.findIndex(item => !item.description?.trim());
         if (missingDescIndex !== -1) {
-            setPreviewError(`Please enter a description for line item ${missingDescIndex + 1} before previewing.`);
-            setIsPreviewLoading(false);
-            setIsPreviewModalOpen(true);
+            setValidationError(`Please enter a description for line item ${missingDescIndex + 1} before previewing.`);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+        }
+
+        const invalidQtyIndex = items.findIndex(item => parseFloat(item.quantity) <= 0 || isNaN(parseFloat(item.quantity)));
+        if (invalidQtyIndex !== -1) {
+            setValidationError(`Quantity for line item ${invalidQtyIndex + 1} must be greater than 0.`);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+        }
+
+        const invalidPriceIndex = items.findIndex(item => parseFloat(item.unitPrice) < 0 || isNaN(parseFloat(item.unitPrice)));
+        if (invalidPriceIndex !== -1) {
+            setValidationError(`Unit Price for line item ${invalidPriceIndex + 1} cannot be negative or invalid.`);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
             return;
         }
 
@@ -627,7 +648,15 @@ export default function QuotationBuilder() {
                 </div>
             </div>
 
-            {/* Client Info */}
+            {/* Validation Error Banner */}
+            {validationError && (
+                <div className="p-4 bg-[#FEF2F2] border border-[#FCA5A5] rounded-2xl flex items-center gap-3 shadow-sm animate-in fade-in duration-200">
+                    <AlertCircle className="w-5 h-5 text-[#DC2626] shrink-0" />
+                    <p className="text-[14px] font-semibold text-[#DC2626]">{validationError}</p>
+                </div>
+            )}
+
+            {/* Client Details Card */}
             <div className="card p-6 md:p-8">
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center text-[11px] font-bold text-text-secondary uppercase tracking-wider">
