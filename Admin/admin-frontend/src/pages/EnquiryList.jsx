@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { fetchApi } from '../services/api';
 import { Link } from 'react-router-dom';
 import { Search, Filter, Calendar, ChevronLeft, ChevronRight, Plus, Inbox, MoreHorizontal, AlertCircle, RefreshCw, Eye, Check, FileText } from 'lucide-react';
@@ -24,6 +25,7 @@ export default function EnquiryList() {
 
     // Action menu state for enquiry row actions
     const [activeActionMenuId, setActiveActionMenuId] = useState(null);
+    const [actionMenuPosition, setActionMenuPosition] = useState({});
     const actionMenuRef = useRef(null);
 
     // Enquiry detail modal state
@@ -83,7 +85,10 @@ export default function EnquiryList() {
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (actionMenuRef.current && !actionMenuRef.current.contains(event.target)) {
-                setActiveActionMenuId(null);
+                // Ignore clicks on the trigger button itself, which has the class 'action-menu-trigger'
+                if (!event.target.closest('.action-menu-trigger')) {
+                    setActiveActionMenuId(null);
+                }
             }
         };
         const handleEscape = (event) => {
@@ -91,14 +96,22 @@ export default function EnquiryList() {
                 setActiveActionMenuId(null);
             }
         };
+        
+        const handleScroll = () => {
+            if (activeActionMenuId) {
+                setActiveActionMenuId(null);
+            }
+        };
 
         document.addEventListener('mousedown', handleClickOutside);
         document.addEventListener('keydown', handleEscape);
+        window.addEventListener('scroll', handleScroll, true); // Use capture to catch scrolling inside divs
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
             document.removeEventListener('keydown', handleEscape);
+            window.removeEventListener('scroll', handleScroll, true);
         };
-    }, []);
+    }, [activeActionMenuId]);
 
     const updateStatus = async (id, status) => {
         try {
@@ -124,7 +137,28 @@ export default function EnquiryList() {
         if (activeActionMenuId === enqId) {
             setActiveActionMenuId(null);
         } else {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const dropdownWidth = 208; // 13rem (w-52)
+            const spaceBelow = window.innerHeight - rect.bottom;
+            const spaceAbove = rect.top;
+            
+            const position = {
+                position: 'fixed',
+                zIndex: 9999,
+                left: Math.max(16, rect.right - dropdownWidth)
+            };
+            
+            if (spaceBelow < 280 && spaceAbove > spaceBelow) {
+                // Open upwards
+                position.bottom = window.innerHeight - rect.top + 8;
+            } else {
+                // Open downwards
+                position.top = rect.bottom + 8;
+            }
+            
+            setActionMenuPosition(position);
             setActiveActionMenuId(enqId);
+            
             if (!rowQuotationsMap[enqId]) {
                 fetchApi(`/quotations/enquiry/${enqId}`)
                     .then(data => {
@@ -358,7 +392,7 @@ export default function EnquiryList() {
                                         <td className="px-6 py-4 whitespace-nowrap text-center align-top relative" onClick={(e) => e.stopPropagation()}>
                                             <button
                                                 onClick={(e) => handleToggleActionMenu(e, enq.id)}
-                                                className={`p-1.5 rounded-lg border transition-all ${
+                                                className={`action-menu-trigger p-1.5 rounded-lg border transition-all ${
                                                     activeActionMenuId === enq.id
                                                         ? 'bg-[#EEF2FF] border-[#818CF8] text-[#4F46E5] dark:bg-[#312E81]/30 dark:border-[#6366F1] dark:text-[#818CF8] shadow-sm'
                                                         : 'bg-bg-card border-border-subtle text-text-secondary hover:text-text-primary hover:shadow-sm'
@@ -366,13 +400,14 @@ export default function EnquiryList() {
                                                 title="More actions"
                                                 aria-label="More actions"
                                             >
-                                                <MoreHorizontal className="w-4 h-4" />
+                                                <MoreHorizontal className="w-4 h-4 pointer-events-none" />
                                             </button>
 
-                                            {activeActionMenuId === enq.id && (
+                                            {activeActionMenuId === enq.id && createPortal(
                                                 <div
                                                     ref={actionMenuRef}
-                                                    className="absolute right-6 top-12 w-52 bg-bg-card rounded-2xl shadow-xl border border-border-subtle p-2 z-50 animate-in fade-in-50 zoom-in-95 duration-150 text-left"
+                                                    style={actionMenuPosition}
+                                                    className="w-52 bg-bg-card rounded-2xl shadow-xl border border-border-subtle p-2 animate-in fade-in-50 zoom-in-95 duration-150 text-left"
                                                     onClick={(e) => e.stopPropagation()}
                                                 >
                                                     {/* OPEN SECTION */}
@@ -466,7 +501,8 @@ export default function EnquiryList() {
                                                             )}
                                                         </button>
                                                     ))}
-                                                </div>
+                                                </div>,
+                                                document.body
                                             )}
                                         </td>
                                     </tr>
