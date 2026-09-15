@@ -97,3 +97,94 @@ export const fetchApi = async (endpoint, options = {}) => {
         throw error;
     }
 };
+
+// --- CUSTOMERS ---
+export const getCustomers = (params) => {
+    const query = new URLSearchParams();
+    if (params?.search) query.append('search', params.search);
+    if (params?.active !== undefined) query.append('active', params.active);
+    if (params?.page !== undefined) query.append('page', params.page);
+    if (params?.size !== undefined) query.append('size', params.size);
+    return fetchApi(`/customers?${query.toString()}`);
+};
+
+export const getCustomerById = (id) => fetchApi(`/customers/${id}`);
+
+export const createCustomer = (data) => fetchApi('/customers', {
+    method: 'POST',
+    body: JSON.stringify(data)
+});
+
+export const updateCustomer = (id, data) => fetchApi(`/customers/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data)
+});
+
+export const deleteCustomer = (id) => fetchApi(`/customers/${id}`, {
+    method: 'DELETE'
+});
+
+export const activateCustomer = (id) => fetchApi(`/customers/${id}/activate`, {
+    method: 'PATCH'
+});
+
+// --- CATALOG ---
+export const getCatalog = (params) => {
+    const query = new URLSearchParams();
+    if (params?.search) query.append('search', params.search);
+    if (params?.active !== undefined) query.append('active', params.active);
+    if (params?.type) query.append('type', params.type);
+    if (params?.page !== undefined) query.append('page', params.page);
+    if (params?.size !== undefined) query.append('size', params.size);
+    return fetchApi(`/catalog?${query.toString()}`);
+};
+
+export const getCatalogItemById = (id) => fetchApi(`/catalog/${id}`);
+
+export const createCatalogItem = (data) => fetchApi('/catalog', {
+    method: 'POST',
+    body: JSON.stringify(data)
+});
+
+export const updateCatalogItem = (id, data) => fetchApi(`/catalog/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data)
+});
+
+export const deleteCatalogItem = (id) => fetchApi(`/catalog/${id}`, {
+    method: 'DELETE'
+});
+
+export const activateCatalogItem = (id) => fetchApi(`/catalog/${id}/activate`, {
+    method: 'PATCH'
+});
+
+// --- TAXES ---
+export const getTaxes = () => fetchApi('/taxes');
+
+export const createTax = (data) => fetchApi('/taxes', {
+    method: 'POST',
+    body: JSON.stringify(data)
+});
+
+export const updateTax = (id, data) => fetchApi(`/taxes/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data)
+});
+
+export const deleteTax = (id) => fetchApi(`/taxes/${id}`, {
+    method: 'DELETE'
+});
+
+export const activateTax = (id) => fetchApi(`/taxes/${id}/activate`, {
+    method: 'PATCH'
+});
+
+// --- COMPANY SETTINGS ---
+export const getCompanySettings = () => fetchApi('/company-settings');
+
+export const updateCompanySettings = (data) => fetchApi('/company-settings', {
+    method: 'PATCH',
+    body: JSON.stringify(data)
+});
+

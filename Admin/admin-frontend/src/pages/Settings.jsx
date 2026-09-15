@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { User, Moon, Sun, Shield, Settings as SettingsIcon, Save, Lock, Loader2, CheckCircle, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { User, Moon, Sun, Shield, Settings as SettingsIcon, Save, Lock, Loader2, CheckCircle, AlertCircle, Eye, EyeOff, Building, Landmark, FileText, Image } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { fetchApi } from '../services/api';
+import { fetchApi, getCompanySettings, updateCompanySettings } from '../services/api';
 
 export default function Settings() {
     const { user: authUser, setUser: setAuthUser } = useAuth();
     const { theme, toggleTheme } = useTheme();
 
+    const [activeTab, setActiveTab] = useState('profile'); // profile, company
     const [isLoading, setIsLoading] = useState(true);
     const [profile, setProfile] = useState(null);
 
@@ -27,21 +28,73 @@ export default function Settings() {
     const [isSavingPassword, setIsSavingPassword] = useState(false);
     const [passwordMessage, setPasswordMessage] = useState(null);
 
+    // Company Settings form state
+    const [companySettings, setCompanySettings] = useState({
+        companyName: '',
+        legalName: '',
+        gstin: '',
+        pan: '',
+        email: '',
+        phone: '',
+        website: '',
+        registeredAddress: '',
+        billingAddress: '',
+        bankName: '',
+        bankAccountNumber: '',
+        bankIfsc: '',
+        bankBranch: '',
+        defaultPaymentTerms: '',
+        defaultTermsAndConditions: '',
+        logoUrl: '',
+        signatureUrl: ''
+    });
+    const [isSavingCompany, setIsSavingCompany] = useState(false);
+    const [companyMessage, setCompanyMessage] = useState(null);
+
     useEffect(() => {
-        const loadProfile = async () => {
+        const loadData = async () => {
             try {
-                const data = await fetchApi('/profile');
-                setProfile(data);
-                setName(data.name);
-                setEmail(data.email);
+                const profileData = await fetchApi('/profile');
+                setProfile(profileData);
+                setName(profileData.name);
+                setEmail(profileData.email);
+
+                if (authUser?.role === 'SUPER_ADMIN') {
+                    try {
+                        const companyData = await getCompanySettings();
+                        if (companyData) {
+                            setCompanySettings({
+                                companyName: companyData.companyName || '',
+                                legalName: companyData.legalName || '',
+                                gstin: companyData.gstin || '',
+                                pan: companyData.pan || '',
+                                email: companyData.email || '',
+                                phone: companyData.phone || '',
+                                website: companyData.website || '',
+                                registeredAddress: companyData.registeredAddress || '',
+                                billingAddress: companyData.billingAddress || '',
+                                bankName: companyData.bankName || '',
+                                bankAccountNumber: companyData.bankAccountNumber || '',
+                                bankIfsc: companyData.bankIfsc || '',
+                                bankBranch: companyData.bankBranch || '',
+                                defaultPaymentTerms: companyData.defaultPaymentTerms || '',
+                                defaultTermsAndConditions: companyData.defaultTermsAndConditions || '',
+                                logoUrl: companyData.logoUrl || '',
+                                signatureUrl: companyData.signatureUrl || ''
+                            });
+                        }
+                    } catch (e) {
+                        console.error("Failed to load company settings", e);
+                    }
+                }
             } catch (error) {
                 console.error("Failed to load profile", error);
             } finally {
                 setIsLoading(false);
             }
         };
-        loadProfile();
-    }, []);
+        loadData();
+    }, [authUser]);
 
     const handleProfileSubmit = async (e) => {
         e.preventDefault();
@@ -88,10 +141,23 @@ export default function Settings() {
             setNewPassword('');
             setConfirmPassword('');
         } catch (error) {
-            // Because of the api.js update, a 401 on /profile/password throws an error but doesn't logout
             setPasswordMessage({ type: 'error', text: error.status === 401 ? 'Current password is incorrect.' : error.message });
         } finally {
             setIsSavingPassword(false);
+        }
+    };
+
+    const handleCompanySubmit = async (e) => {
+        e.preventDefault();
+        setCompanyMessage(null);
+        setIsSavingCompany(true);
+        try {
+            await updateCompanySettings(companySettings);
+            setCompanyMessage({ type: 'success', text: 'Company settings updated successfully' });
+        } catch (error) {
+            setCompanyMessage({ type: 'error', text: error.message || 'Failed to update company settings' });
+        } finally {
+            setIsSavingCompany(false);
         }
     };
 
@@ -106,200 +172,353 @@ export default function Settings() {
     return (
         <div className="max-w-4xl mx-auto space-y-6 pb-12 pt-2">
             <div>
-                <h1 className="text-[28px] font-bold text-text-primary tracking-tight leading-tight">Settings</h1>
+                <h1 className="text-[28px] font-bold text-text-primary tracking-tight leading-tight flex items-center">
+                    <SettingsIcon className="w-7 h-7 mr-3 text-[#4F46E5]" />
+                    Settings
+                </h1>
                 <p className="text-[13px] text-text-secondary mt-1">Manage your account preferences and application settings.</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-                {/* Main Settings Column */}
+            <div className="flex gap-4 border-b border-border-subtle pt-4">
+                <button
+                    onClick={() => setActiveTab('profile')}
+                    className={`pb-3 px-1 text-[13px] font-bold transition-colors border-b-2 ${activeTab === 'profile' ? 'text-text-primary border-[#4F46E5]' : 'text-text-muted border-transparent hover:text-text-primary'}`}
+                >
+                    Personal Settings
+                </button>
+                {authUser?.role === 'SUPER_ADMIN' && (
+                    <button
+                        onClick={() => setActiveTab('company')}
+                        className={`pb-3 px-1 text-[13px] font-bold transition-colors border-b-2 ${activeTab === 'company' ? 'text-text-primary border-[#4F46E5]' : 'text-text-muted border-transparent hover:text-text-primary'}`}
+                    >
+                        Company Settings
+                    </button>
+                )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
                 <div className="md:col-span-2 space-y-6">
-                    
-                    {/* Profile Preferences */}
-                    <div className="card p-6">
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="w-10 h-10 rounded-full bg-[#EFF6FF] flex items-center justify-center">
-                                <User className="w-5 h-5 text-[#2563EB]" />
-                            </div>
-                            <div>
-                                <h2 className="text-base font-bold text-text-primary tracking-tight">Profile Preferences</h2>
-                                <p className="text-[12px] text-text-muted">Your personal account information</p>
-                            </div>
-                        </div>
-                        
-                        {profileMessage && (
-                            <div className={`mb-6 p-3 rounded-xl flex items-center gap-2 text-[13px] font-medium ${profileMessage.type === 'success' ? 'bg-[#ECFDF5] text-[#059669]' : 'bg-[#FEF2F2] text-[#DC2626]'}`}>
-                                {profileMessage.type === 'success' ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-                                {profileMessage.text}
-                            </div>
-                        )}
-
-                        <form onSubmit={handleProfileSubmit} className="space-y-4">
-                            <div>
-                                <label className="block text-[12px] font-semibold text-text-secondary mb-1.5">Full Name</label>
-                                <input 
-                                    type="text" 
-                                    value={name} 
-                                    onChange={e => setName(e.target.value)}
-                                    required
-                                    className="w-full px-4 py-2 bg-bg-main focus:bg-bg-card border border-border-subtle focus:border-[#4F46E5] rounded-lg text-sm text-text-primary outline-none transition-all"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-[12px] font-semibold text-text-secondary mb-1.5">Email Address</label>
-                                <input 
-                                    type="email" 
-                                    value={email} 
-                                    onChange={e => setEmail(e.target.value)}
-                                    required
-                                    className="w-full px-4 py-2 bg-bg-main focus:bg-bg-card border border-border-subtle focus:border-[#4F46E5] rounded-lg text-sm text-text-primary outline-none transition-all"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-[12px] font-semibold text-text-secondary mb-1.5">Role</label>
-                                <div className="flex items-center gap-2 px-4 py-2 bg-bg-muted border border-border-subtle rounded-lg text-sm text-text-muted cursor-not-allowed">
-                                    <Shield className="w-4 h-4 text-text-muted" />
-                                    <span>{profile?.role?.replace('_', ' ')}</span>
+                    {activeTab === 'profile' && (
+                        <>
+                            {/* Profile Preferences */}
+                            <div className="card p-6">
+                                <div className="flex items-center gap-3 mb-6">
+                                    <div className="w-10 h-10 rounded-full bg-[#EFF6FF] flex items-center justify-center">
+                                        <User className="w-5 h-5 text-[#2563EB]" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-base font-bold text-text-primary tracking-tight">Profile Preferences</h2>
+                                        <p className="text-[12px] text-text-muted">Your personal account information</p>
+                                    </div>
                                 </div>
-                            </div>
-                            
-                            <div className="pt-2">
-                                <button 
-                                    type="submit" 
-                                    disabled={isSavingProfile || (name === profile?.name && email === profile?.email)}
-                                    className="btn-primary px-6 py-2 shadow-sm disabled:opacity-50"
-                                >
-                                    {isSavingProfile ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-                                    Save Profile
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-
-                    {/* Change Password */}
-                    <div className="card p-6">
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="w-10 h-10 rounded-full bg-[#FEF2F2] flex items-center justify-center">
-                                <Lock className="w-5 h-5 text-[#DC2626]" />
-                            </div>
-                            <div>
-                                <h2 className="text-base font-bold text-text-primary tracking-tight">Security</h2>
-                                <p className="text-[12px] text-text-muted">Update your password</p>
-                            </div>
-                        </div>
-
-                        {passwordMessage && (
-                            <div className={`mb-6 p-3 rounded-xl flex items-center gap-2 text-[13px] font-medium ${passwordMessage.type === 'success' ? 'bg-[#ECFDF5] text-[#059669]' : 'bg-[#FEF2F2] text-[#DC2626]'}`}>
-                                {passwordMessage.type === 'success' ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-                                {passwordMessage.text}
-                            </div>
-                        )}
-
-                        <form onSubmit={handlePasswordSubmit} className="space-y-4">
-                            <div>
-                                <label className="block text-[12px] font-semibold text-text-secondary mb-1.5">Current Password</label>
-                                <div className="relative">
-                                    <input 
-                                        type={showCurrentPassword ? "text" : "password"} 
-                                        value={currentPassword} 
-                                        onChange={e => setCurrentPassword(e.target.value)}
-                                        required
-                                        className="w-full pl-4 pr-11 py-2 bg-bg-main focus:bg-bg-card border border-border-subtle focus:border-[#4F46E5] rounded-lg text-sm text-text-primary outline-none transition-all"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                                        aria-label={showCurrentPassword ? "Hide password" : "Show password"}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-1 rounded-md transition-colors focus:outline-none"
-                                    >
-                                        {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                    </button>
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-[12px] font-semibold text-text-secondary mb-1.5">New Password</label>
-                                <div className="relative">
-                                    <input 
-                                        type={showNewPassword ? "text" : "password"} 
-                                        value={newPassword} 
-                                        onChange={e => setNewPassword(e.target.value)}
-                                        required
-                                        minLength={8}
-                                        className="w-full pl-4 pr-11 py-2 bg-bg-main focus:bg-bg-card border border-border-subtle focus:border-[#4F46E5] rounded-lg text-sm text-text-primary outline-none transition-all"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowNewPassword(!showNewPassword)}
-                                        aria-label={showNewPassword ? "Hide password" : "Show password"}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-1 rounded-md transition-colors focus:outline-none"
-                                    >
-                                        {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                    </button>
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-[12px] font-semibold text-text-secondary mb-1.5">Confirm New Password</label>
-                                <div className="relative">
-                                    <input 
-                                        type={showConfirmPassword ? "text" : "password"} 
-                                        value={confirmPassword} 
-                                        onChange={e => setConfirmPassword(e.target.value)}
-                                        required
-                                        minLength={8}
-                                        className="w-full pl-4 pr-11 py-2 bg-bg-main focus:bg-bg-card border border-border-subtle focus:border-[#4F46E5] rounded-lg text-sm text-text-primary outline-none transition-all"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                        aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-1 rounded-md transition-colors focus:outline-none"
-                                    >
-                                        {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <div className="pt-2">
-                                <button 
-                                    type="submit" 
-                                    disabled={isSavingPassword || !currentPassword || !newPassword || !confirmPassword}
-                                    className="btn-primary px-6 py-2 shadow-sm disabled:opacity-50"
-                                >
-                                    {isSavingPassword ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Lock className="w-4 h-4 mr-2" />}
-                                    Change Password
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                    
-                    {/* Appearance */}
-                    <div className="card p-6">
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="w-10 h-10 rounded-full bg-[#F5F3FF] flex items-center justify-center">
-                                <Sun className="w-5 h-5 text-[#7C3AED]" />
-                            </div>
-                            <div>
-                                <h2 className="text-base font-bold text-text-primary tracking-tight">Appearance</h2>
-                                <p className="text-[12px] text-text-muted">Customize how ACROVIX looks on your device</p>
-                            </div>
-                        </div>
-                        
-                        <div className="flex items-center justify-between p-4 border border-border-subtle rounded-xl">
-                            <div>
-                                <p className="text-sm font-semibold text-text-primary">Theme</p>
-                                <p className="text-[12px] text-text-muted">Switch between light and dark modes.</p>
-                            </div>
-                            <button 
-                                onClick={toggleTheme}
-                                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-bg-muted hover:bg-bg-hover transition-colors border border-border-subtle text-sm font-medium text-text-primary cursor-pointer"
-                            >
-                                {theme === 'dark' ? (
-                                    <><Moon className="w-4 h-4" /> Dark Mode</>
-                                ) : (
-                                    <><Sun className="w-4 h-4" /> Light Mode</>
+                                
+                                {profileMessage && (
+                                    <div className={`mb-6 p-3 rounded-xl flex items-center gap-2 text-[13px] font-medium ${profileMessage.type === 'success' ? 'bg-[#ECFDF5] text-[#059669]' : 'bg-[#FEF2F2] text-[#DC2626]'}`}>
+                                        {profileMessage.type === 'success' ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                                        {profileMessage.text}
+                                    </div>
                                 )}
-                            </button>
+
+                                <form onSubmit={handleProfileSubmit} className="space-y-4">
+                                    <div>
+                                        <label className="block text-[12px] font-semibold text-text-secondary mb-1.5">Full Name</label>
+                                        <input 
+                                            type="text" 
+                                            value={name} 
+                                            onChange={e => setName(e.target.value)}
+                                            required
+                                            className="w-full px-4 py-2 bg-bg-main focus:bg-bg-card border border-border-subtle focus:border-[#4F46E5] rounded-lg text-sm text-text-primary outline-none transition-all"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[12px] font-semibold text-text-secondary mb-1.5">Email Address</label>
+                                        <input 
+                                            type="email" 
+                                            value={email} 
+                                            onChange={e => setEmail(e.target.value)}
+                                            required
+                                            className="w-full px-4 py-2 bg-bg-main focus:bg-bg-card border border-border-subtle focus:border-[#4F46E5] rounded-lg text-sm text-text-primary outline-none transition-all"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[12px] font-semibold text-text-secondary mb-1.5">Role</label>
+                                        <div className="flex items-center gap-2 px-4 py-2 bg-bg-muted border border-border-subtle rounded-lg text-sm text-text-muted cursor-not-allowed">
+                                            <Shield className="w-4 h-4 text-text-muted" />
+                                            <span>{profile?.role?.replace('_', ' ')}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="pt-2">
+                                        <button 
+                                            type="submit" 
+                                            disabled={isSavingProfile || (name === profile?.name && email === profile?.email)}
+                                            className="btn-primary px-6 py-2 shadow-sm disabled:opacity-50"
+                                        >
+                                            {isSavingProfile ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                                            Save Profile
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+
+                            {/* Change Password */}
+                            <div className="card p-6">
+                                <div className="flex items-center gap-3 mb-6">
+                                    <div className="w-10 h-10 rounded-full bg-[#FEF2F2] flex items-center justify-center">
+                                        <Lock className="w-5 h-5 text-[#DC2626]" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-base font-bold text-text-primary tracking-tight">Security</h2>
+                                        <p className="text-[12px] text-text-muted">Update your password</p>
+                                    </div>
+                                </div>
+
+                                {passwordMessage && (
+                                    <div className={`mb-6 p-3 rounded-xl flex items-center gap-2 text-[13px] font-medium ${passwordMessage.type === 'success' ? 'bg-[#ECFDF5] text-[#059669]' : 'bg-[#FEF2F2] text-[#DC2626]'}`}>
+                                        {passwordMessage.type === 'success' ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                                        {passwordMessage.text}
+                                    </div>
+                                )}
+
+                                <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                                    <div>
+                                        <label className="block text-[12px] font-semibold text-text-secondary mb-1.5">Current Password</label>
+                                        <div className="relative">
+                                            <input 
+                                                type={showCurrentPassword ? "text" : "password"} 
+                                                value={currentPassword} 
+                                                onChange={e => setCurrentPassword(e.target.value)}
+                                                required
+                                                className="w-full pl-4 pr-11 py-2 bg-bg-main focus:bg-bg-card border border-border-subtle focus:border-[#4F46E5] rounded-lg text-sm text-text-primary outline-none transition-all"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-1 rounded-md transition-colors focus:outline-none"
+                                            >
+                                                {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-[12px] font-semibold text-text-secondary mb-1.5">New Password</label>
+                                        <div className="relative">
+                                            <input 
+                                                type={showNewPassword ? "text" : "password"} 
+                                                value={newPassword} 
+                                                onChange={e => setNewPassword(e.target.value)}
+                                                required
+                                                minLength={8}
+                                                className="w-full pl-4 pr-11 py-2 bg-bg-main focus:bg-bg-card border border-border-subtle focus:border-[#4F46E5] rounded-lg text-sm text-text-primary outline-none transition-all"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowNewPassword(!showNewPassword)}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-1 rounded-md transition-colors focus:outline-none"
+                                            >
+                                                {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-[12px] font-semibold text-text-secondary mb-1.5">Confirm New Password</label>
+                                        <div className="relative">
+                                            <input 
+                                                type={showConfirmPassword ? "text" : "password"} 
+                                                value={confirmPassword} 
+                                                onChange={e => setConfirmPassword(e.target.value)}
+                                                required
+                                                minLength={8}
+                                                className="w-full pl-4 pr-11 py-2 bg-bg-main focus:bg-bg-card border border-border-subtle focus:border-[#4F46E5] rounded-lg text-sm text-text-primary outline-none transition-all"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-1 rounded-md transition-colors focus:outline-none"
+                                            >
+                                                {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="pt-2">
+                                        <button 
+                                            type="submit" 
+                                            disabled={isSavingPassword || !currentPassword || !newPassword || !confirmPassword}
+                                            className="btn-primary px-6 py-2 shadow-sm disabled:opacity-50"
+                                        >
+                                            {isSavingPassword ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Lock className="w-4 h-4 mr-2" />}
+                                            Change Password
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                            
+                            {/* Appearance */}
+                            <div className="card p-6">
+                                <div className="flex items-center gap-3 mb-6">
+                                    <div className="w-10 h-10 rounded-full bg-[#F5F3FF] flex items-center justify-center">
+                                        <Sun className="w-5 h-5 text-[#7C3AED]" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-base font-bold text-text-primary tracking-tight">Appearance</h2>
+                                        <p className="text-[12px] text-text-muted">Customize how ACROVIX looks on your device</p>
+                                    </div>
+                                </div>
+                                
+                                <div className="flex items-center justify-between p-4 border border-border-subtle rounded-xl">
+                                    <div>
+                                        <p className="text-sm font-semibold text-text-primary">Theme</p>
+                                        <p className="text-[12px] text-text-muted">Switch between light and dark modes.</p>
+                                    </div>
+                                    <button 
+                                        onClick={toggleTheme}
+                                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-bg-muted hover:bg-bg-hover transition-colors border border-border-subtle text-sm font-medium text-text-primary cursor-pointer"
+                                    >
+                                        {theme === 'dark' ? (
+                                            <><Moon className="w-4 h-4" /> Dark Mode</>
+                                        ) : (
+                                            <><Sun className="w-4 h-4" /> Light Mode</>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+                    {activeTab === 'company' && authUser?.role === 'SUPER_ADMIN' && (
+                        <div className="card p-6">
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="w-10 h-10 rounded-full bg-[#E0F2FE] flex items-center justify-center">
+                                    <Building className="w-5 h-5 text-[#0284C7]" />
+                                </div>
+                                <div>
+                                    <h2 className="text-base font-bold text-text-primary tracking-tight">Master Settings</h2>
+                                    <p className="text-[12px] text-text-muted">Configure company identity and defaults</p>
+                                </div>
+                            </div>
+
+                            {companyMessage && (
+                                <div className={`mb-6 p-3 rounded-xl flex items-center gap-2 text-[13px] font-medium ${companyMessage.type === 'success' ? 'bg-[#ECFDF5] text-[#059669]' : 'bg-[#FEF2F2] text-[#DC2626]'}`}>
+                                    {companyMessage.type === 'success' ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                                    {companyMessage.text}
+                                </div>
+                            )}
+
+                            <form onSubmit={handleCompanySubmit} className="space-y-8">
+                                {/* Company Info */}
+                                <div>
+                                    <h3 className="text-[13px] font-bold text-text-primary mb-4 flex items-center border-b border-border-subtle pb-2">
+                                        <Building className="w-4 h-4 mr-2 text-text-muted" /> Company Information
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-text-muted uppercase mb-1">Company Name *</label>
+                                            <input required type="text" value={companySettings.companyName} onChange={e => setCompanySettings({...companySettings, companyName: e.target.value})} className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-[13px]" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-text-muted uppercase mb-1">Legal Name *</label>
+                                            <input required type="text" value={companySettings.legalName} onChange={e => setCompanySettings({...companySettings, legalName: e.target.value})} className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-[13px]" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-text-muted uppercase mb-1">Email Address *</label>
+                                            <input required type="email" value={companySettings.email} onChange={e => setCompanySettings({...companySettings, email: e.target.value})} className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-[13px]" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-text-muted uppercase mb-1">Phone Number *</label>
+                                            <input required type="text" value={companySettings.phone} onChange={e => setCompanySettings({...companySettings, phone: e.target.value})} className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-[13px]" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-text-muted uppercase mb-1">GSTIN</label>
+                                            <input type="text" value={companySettings.gstin} onChange={e => setCompanySettings({...companySettings, gstin: e.target.value})} className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-[13px]" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-text-muted uppercase mb-1">PAN</label>
+                                            <input type="text" value={companySettings.pan} onChange={e => setCompanySettings({...companySettings, pan: e.target.value})} className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-[13px]" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-text-muted uppercase mb-1">Website URL</label>
+                                            <input type="url" value={companySettings.website} onChange={e => setCompanySettings({...companySettings, website: e.target.value})} className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-[13px]" />
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <label className="block text-[11px] font-bold text-text-muted uppercase mb-1">Registered Address</label>
+                                            <textarea value={companySettings.registeredAddress} onChange={e => setCompanySettings({...companySettings, registeredAddress: e.target.value})} className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-[13px] min-h-[60px]" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Bank Details */}
+                                <div>
+                                    <h3 className="text-[13px] font-bold text-text-primary mb-4 flex items-center border-b border-border-subtle pb-2">
+                                        <Landmark className="w-4 h-4 mr-2 text-text-muted" /> Bank Details
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-text-muted uppercase mb-1">Bank Name</label>
+                                            <input type="text" value={companySettings.bankName} onChange={e => setCompanySettings({...companySettings, bankName: e.target.value})} className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-[13px]" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-text-muted uppercase mb-1">Account Number</label>
+                                            <input type="text" value={companySettings.bankAccountNumber} onChange={e => setCompanySettings({...companySettings, bankAccountNumber: e.target.value})} className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-[13px]" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-text-muted uppercase mb-1">IFSC Code</label>
+                                            <input type="text" value={companySettings.bankIfsc} onChange={e => setCompanySettings({...companySettings, bankIfsc: e.target.value})} className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-[13px]" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-text-muted uppercase mb-1">Branch Name</label>
+                                            <input type="text" value={companySettings.bankBranch} onChange={e => setCompanySettings({...companySettings, bankBranch: e.target.value})} className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-[13px]" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Document Defaults */}
+                                <div>
+                                    <h3 className="text-[13px] font-bold text-text-primary mb-4 flex items-center border-b border-border-subtle pb-2">
+                                        <FileText className="w-4 h-4 mr-2 text-text-muted" /> Document Defaults
+                                    </h3>
+                                    <div className="grid grid-cols-1 gap-4">
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-text-muted uppercase mb-1">Default Payment Terms</label>
+                                            <textarea value={companySettings.defaultPaymentTerms} onChange={e => setCompanySettings({...companySettings, defaultPaymentTerms: e.target.value})} className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-[13px] min-h-[80px]" placeholder="e.g. 50% advance, 50% on completion" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-text-muted uppercase mb-1">Default Terms & Conditions</label>
+                                            <textarea value={companySettings.defaultTermsAndConditions} onChange={e => setCompanySettings({...companySettings, defaultTermsAndConditions: e.target.value})} className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-[13px] min-h-[80px]" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Branding */}
+                                <div>
+                                    <h3 className="text-[13px] font-bold text-text-primary mb-4 flex items-center border-b border-border-subtle pb-2">
+                                        <Image className="w-4 h-4 mr-2 text-text-muted" /> Branding
+                                    </h3>
+                                    <div className="grid grid-cols-1 gap-4">
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-text-muted uppercase mb-1">Logo URL (for PDFs)</label>
+                                            <input type="text" value={companySettings.logoUrl} onChange={e => setCompanySettings({...companySettings, logoUrl: e.target.value})} className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-[13px]" placeholder="https://..." />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-text-muted uppercase mb-1">Signature Image URL</label>
+                                            <input type="text" value={companySettings.signatureUrl} onChange={e => setCompanySettings({...companySettings, signatureUrl: e.target.value})} className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-[13px]" placeholder="https://..." />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="pt-2 border-t border-border-subtle">
+                                    <button 
+                                        type="submit" 
+                                        disabled={isSavingCompany}
+                                        className="btn-primary px-6 py-2.5 mt-4 shadow-sm disabled:opacity-50"
+                                    >
+                                        {isSavingCompany ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                                        Save Company Settings
+                                    </button>
+                                </div>
+                            </form>
                         </div>
-                    </div>
+                    )}
                 </div>
 
                 {/* Sidebar (System Info) */}

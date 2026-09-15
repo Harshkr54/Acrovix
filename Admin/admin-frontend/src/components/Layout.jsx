@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { LayoutDashboard, MessageSquare, LogOut, FileText, Shield, Menu, X, ChevronLeft, ChevronRight, Sun, Moon, Search, Bell, Settings, Trash2, PanelLeftClose, PanelLeftOpen, ArrowLeft } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, LogOut, FileText, Shield, Menu, X, ChevronLeft, ChevronRight, Sun, Moon, Search, Bell, Settings, Trash2, PanelLeftClose, PanelLeftOpen, ArrowLeft, UsersRound, Package } from 'lucide-react';
 import HeaderControls from './HeaderControls';
 import { getInitials } from '../utils/userUtils';
 import { fetchApi } from '../services/api';
@@ -96,6 +96,8 @@ export default function Layout() {
 
     const workspaceItems = [
         { path: '/', name: 'Overview', icon: LayoutDashboard },
+        { path: '/customers', name: 'Customers', icon: UsersRound },
+        { path: '/catalog', name: 'Catalog', icon: Package },
         { path: '/enquiries', name: 'Enquiries', icon: MessageSquare },
         { path: '/quotations', name: 'Quotations', icon: FileText }
     ];

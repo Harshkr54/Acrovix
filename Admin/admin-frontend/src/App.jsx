@@ -11,6 +11,8 @@ import UserList from './pages/UserList';
 import Settings from './pages/Settings';
 import TrashList from './pages/TrashList';
 import Activity from './pages/Activity';
+import CustomerMaster from './pages/CustomerMaster';
+import CatalogMaster from './pages/CatalogMaster';
 
 const ProtectedRoute = ({ children }) => {
     const { user } = useAuth();
@@ -31,6 +33,8 @@ function App() {
                 <Route path="quotations" element={<QuotationList />} />
                 <Route path="quotations/new/:enquiryId" element={<QuotationBuilder />} />
                 <Route path="quotations/edit/:quotationId" element={<QuotationBuilder />} />
+                <Route path="customers" element={<CustomerMaster />} />
+                <Route path="catalog" element={<CatalogMaster />} />
                 <Route path="users" element={<UserList />} />
                 <Route path="trash" element={<TrashList />} />
                 <Route path="activity" element={<Activity />} />
