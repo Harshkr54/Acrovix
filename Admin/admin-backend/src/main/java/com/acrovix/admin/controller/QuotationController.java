@@ -14,6 +14,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -32,6 +33,7 @@ public class QuotationController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @Transactional(readOnly = true)
     public ResponseEntity<Page<java.util.Map<String, Object>>> getAllQuotations(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -44,6 +46,7 @@ public class QuotationController {
 
     @GetMapping("/trash")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @Transactional(readOnly = true)
     public ResponseEntity<Page<java.util.Map<String, Object>>> getTrashQuotations(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -59,6 +62,7 @@ public class QuotationController {
 
     @GetMapping("/trash/count")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @Transactional(readOnly = true)
     public ResponseEntity<java.util.Map<String, Object>> getTrashCount() {
         long count = quotationRepository.countByDeletedAtIsNotNullAndStatus("DRAFT");
         java.util.Map<String, Object> response = new java.util.HashMap<>();
@@ -68,6 +72,7 @@ public class QuotationController {
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @Transactional(readOnly = true)
     public ResponseEntity<java.util.Map<String, Object>> getQuotationById(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser admin) {
@@ -77,6 +82,7 @@ public class QuotationController {
 
     @GetMapping("/enquiry/{enquiryId}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @Transactional(readOnly = true)
     public ResponseEntity<java.util.List<java.util.Map<String, Object>>> getQuotationsByEnquiryId(
             @PathVariable Long enquiryId,
             @AuthenticationPrincipal AdminUser admin) {
@@ -87,6 +93,7 @@ public class QuotationController {
 
     @PostMapping("/enquiry/{enquiryId}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @Transactional
     public ResponseEntity<java.util.Map<String, Object>> createDraftQuotation(
             @PathVariable Long enquiryId,
             @AuthenticationPrincipal AdminUser admin) {
@@ -96,6 +103,7 @@ public class QuotationController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @Transactional
     public ResponseEntity<java.util.Map<String, Object>> saveQuotationDraft(
             @PathVariable Long id,
             @Valid @RequestBody QuotationRequest request,
@@ -106,6 +114,7 @@ public class QuotationController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @Transactional
     public ResponseEntity<java.util.Map<String, Object>> moveToTrash(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser admin) {
@@ -117,6 +126,7 @@ public class QuotationController {
 
     @PatchMapping("/{id}/restore")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @Transactional
     public ResponseEntity<java.util.Map<String, Object>> restoreFromTrash(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser admin) {
@@ -126,6 +136,7 @@ public class QuotationController {
 
     @DeleteMapping("/{id}/permanent")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @Transactional
     public ResponseEntity<Void> permanentlyDelete(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser admin) {
@@ -135,6 +146,7 @@ public class QuotationController {
 
     @GetMapping("/{id}/pdf")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @Transactional(readOnly = true)
     public ResponseEntity<byte[]> previewPdf(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser admin) {
@@ -148,6 +160,7 @@ public class QuotationController {
 
     @PostMapping("/{id}/send")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @Transactional
     public ResponseEntity<?> sendQuotation(
             @PathVariable Long id,
             @RequestBody(required = false) com.acrovix.admin.dto.SendQuotationRequest request,
@@ -158,6 +171,7 @@ public class QuotationController {
 
     @PostMapping("/direct")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @Transactional
     public ResponseEntity<java.util.Map<String, Object>> createDirectDraftQuotation(
             @Valid @RequestBody com.acrovix.admin.dto.CreateDirectQuotationRequest request,
             @AuthenticationPrincipal AdminUser admin) {
@@ -167,6 +181,7 @@ public class QuotationController {
 
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @Transactional
     public ResponseEntity<java.util.Map<String, Object>> updateStatus(
             @PathVariable Long id,
             @Valid @RequestBody com.acrovix.admin.dto.QuotationStatusUpdateRequest request,
@@ -177,6 +192,7 @@ public class QuotationController {
 
     @PostMapping("/{id}/revisions")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @Transactional
     public ResponseEntity<java.util.Map<String, Object>> createRevision(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser admin) {
@@ -186,6 +202,7 @@ public class QuotationController {
 
     @GetMapping("/{id}/versions")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @Transactional(readOnly = true)
     public ResponseEntity<java.util.List<java.util.Map<String, Object>>> getQuotationVersions(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser admin) {
@@ -196,6 +213,7 @@ public class QuotationController {
 
     @PostMapping("/preview/pdf")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @Transactional(readOnly = true)
     public ResponseEntity<byte[]> generatePreviewPdf(
             @Valid @RequestBody com.acrovix.admin.dto.QuotationPreviewRequest request,
             @AuthenticationPrincipal AdminUser admin) {
@@ -209,6 +227,7 @@ public class QuotationController {
 
     @PostMapping("/preview/email")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @Transactional(readOnly = true)
     public ResponseEntity<java.util.Map<String, String>> generatePreviewEmail(
             @Valid @RequestBody com.acrovix.admin.dto.QuotationPreviewRequest request,
             @AuthenticationPrincipal AdminUser admin) {
