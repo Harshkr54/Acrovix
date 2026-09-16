@@ -7,6 +7,9 @@ import HeaderControls from './HeaderControls';
 import { getInitials } from '../utils/userUtils';
 import { fetchApi } from '../services/api';
 
+import logoLight from '../assets/acrovix-logo-transparent.png';
+import logoDark from '../assets/acrovix-logo-dark.png';
+
 export default function Layout() {
     const { user, logout } = useAuth();
     const { theme, toggleTheme } = useTheme();
@@ -126,17 +129,24 @@ export default function Layout() {
 
             {/* Sidebar */}
             <div className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-bg-card border-r border-border-subtle transition-all duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isCollapsed ? 'w-20' : 'w-64'} lg:relative lg:translate-x-0`}>
-                <div className="flex items-center justify-between h-[72px] px-6 border-b border-border-subtle/50">
-                    {!isCollapsed && (
-                        <div className="flex items-center gap-3">
-                            <span className="text-3xl font-extrabold text-[#14B8A6] tracking-tighter leading-none select-none">A</span>
-                            <div className="flex flex-col justify-center">
-                                <span className="text-sm font-bold tracking-tight text-text-primary leading-tight">ACROVIX</span>
-                                <span className="text-[10px] font-semibold text-text-muted tracking-widest uppercase leading-tight">Admin Portal</span>
-                            </div>
+                <div className="flex items-center justify-between h-[72px] px-5 border-b border-border-subtle/50">
+                    {!isCollapsed ? (
+                        <div className="flex items-center py-1">
+                            <img 
+                                src={theme === 'dark' ? logoDark : logoLight} 
+                                alt="ACROVIX Innovations Private Limited" 
+                                className="h-10 w-auto max-w-[185px] object-contain transition-opacity duration-200" 
+                            />
+                        </div>
+                    ) : (
+                        <div className="flex items-center justify-center w-full">
+                            <img 
+                                src={theme === 'dark' ? logoDark : logoLight} 
+                                alt="ACROVIX" 
+                                className="h-7 w-auto object-contain transition-opacity duration-200" 
+                            />
                         </div>
                     )}
-                    {isCollapsed && <span className="text-3xl font-extrabold text-[#14B8A6] mx-auto tracking-tighter select-none">A</span>}
                     <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden text-text-muted hover:text-text-primary transition-colors">
                         <X className="w-5 h-5" />
                     </button>

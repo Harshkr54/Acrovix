@@ -652,115 +652,120 @@ export default function Dashboard() {
                                                     {new Date(enq.createdAt).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
                                                 </td>
                                                 <td className="px-6 py-3.5 whitespace-nowrap text-center relative" onClick={(e) => e.stopPropagation()}>
-                                                    <button
-                                                        onClick={(e) => handleToggleActionMenu(e, enq.id)}
-                                                        className={`p-1.5 rounded-lg border transition-all ${
-                                                            activeActionMenuId === enq.id
-                                                                ? 'bg-[#EEF2FF] border-[#818CF8] text-[#4F46E5] dark:bg-[#312E81]/30 dark:border-[#6366F1] dark:text-[#818CF8] shadow-sm'
-                                                                : 'bg-bg-card border-border-subtle text-text-secondary hover:text-text-primary hover:shadow-sm'
-                                                        }`}
-                                                        title="More actions"
-                                                        aria-label="More actions"
-                                                    >
-                                                        <MoreHorizontal className="w-4 h-4" />
-                                                    </button>
+                                                    <ActionMenu
+                                                        ariaLabel="More enquiry actions"
+                                                        icon={MoreHorizontal}
+                                                        onOpen={() => {
+                                                            if (!rowQuotationsMap[enq.id]) {
+                                                                fetchApi(`/quotations/enquiry/${enq.id}`)
+                                                                    .then(data => {
+                                                                        setRowQuotationsMap(prev => ({
+                                                                            ...prev,
+                                                                            [enq.id]: Array.isArray(data) ? data : []
+                                                                        }));
+                                                                    })
+                                                                    .catch(err => {
+                                                                        console.error("Failed to fetch quotations for enquiry", err);
+                                                                        setRowQuotationsMap(prev => ({ ...prev, [enq.id]: [] }));
+                                                                    });
+                                                            }
+                                                        }}
+                                                        renderContent={(close) => (
+                                                            <div>
+                                                                {/* OPEN SECTION */}
+                                                                <div className="px-3 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
+                                                                    Open
+                                                                </div>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        close();
+                                                                        handleOpenEnquiry(enq);
+                                                                    }}
+                                                                    className="flex items-center w-full px-3 py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover rounded-xl transition-colors"
+                                                                >
+                                                                    <Eye className="w-3.5 h-3.5 mr-2 text-[#4F46E5]" />
+                                                                    Open Enquiry
+                                                                </button>
 
-                                                    {activeActionMenuId === enq.id && (
-                                                        <div
-                                                            ref={actionMenuRef}
-                                                            className="absolute right-6 top-10 w-52 bg-bg-card rounded-2xl shadow-xl border border-border-subtle p-2 z-50 animate-in fade-in-50 zoom-in-95 duration-150 text-left"
-                                                            onClick={(e) => e.stopPropagation()}
-                                                        >
-                                                            {/* OPEN SECTION */}
-                                                            <div className="px-3 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
-                                                                Open
-                                                            </div>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    setActiveActionMenuId(null);
-                                                                    handleOpenEnquiry(enq);
-                                                                }}
-                                                                className="flex items-center w-full px-3 py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover rounded-xl transition-colors"
-                                                            >
-                                                                <Eye className="w-3.5 h-3.5 mr-2 text-[#4F46E5]" />
-                                                                Open Enquiry
-                                                            </button>
+                                                                <div className="my-1 border-t border-border-subtle"></div>
 
-                                                            <div className="my-1 border-t border-border-subtle"></div>
+                                                                {/* QUOTATION SECTION */}
+                                                                <div className="px-3 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
+                                                                    Quotation
+                                                                </div>
+                                                                <Link
+                                                                    to={`/quotations/new/${enq.id}`}
+                                                                    onClick={close}
+                                                                    className="flex items-center w-full px-3 py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover rounded-xl transition-colors"
+                                                                >
+                                                                    <Plus className="w-3.5 h-3.5 mr-2 text-[#059669]" />
+                                                                    Create Quotation
+                                                                </Link>
 
-                                                            {/* QUOTATION SECTION */}
-                                                            <div className="px-3 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
-                                                                Quotation
-                                                            </div>
-                                                            <Link
-                                                                to={`/quotations/new/${enq.id}`}
-                                                                onClick={() => setActiveActionMenuId(null)}
-                                                                className="flex items-center w-full px-3 py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover rounded-xl transition-colors"
-                                                            >
-                                                                <Plus className="w-3.5 h-3.5 mr-2 text-[#059669]" />
-                                                                Create Quotation
-                                                            </Link>
-
-                                                            {rowQuotationsMap[enq.id] && rowQuotationsMap[enq.id].length > 0 && (
-                                                                rowQuotationsMap[enq.id].length === 1 ? (
-                                                                    <Link
-                                                                        to={`/quotations/edit/${rowQuotationsMap[enq.id][0].id}`}
-                                                                        onClick={() => setActiveActionMenuId(null)}
-                                                                        className="flex items-center w-full px-3 py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover rounded-xl transition-colors"
-                                                                    >
-                                                                        <FileText className="w-3.5 h-3.5 mr-2 text-[#7C3AED]" />
-                                                                        Open Quotation
-                                                                    </Link>
-                                                                ) : (
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            setActiveActionMenuId(null);
-                                                                            handleOpenEnquiry(enq);
-                                                                        }}
-                                                                        className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover rounded-xl transition-colors"
-                                                                    >
-                                                                        <span className="flex items-center">
+                                                                {rowQuotationsMap[enq.id] && rowQuotationsMap[enq.id].length > 0 && (
+                                                                    rowQuotationsMap[enq.id].length === 1 ? (
+                                                                        <Link
+                                                                            to={`/quotations/edit/${rowQuotationsMap[enq.id][0].id}`}
+                                                                            onClick={close}
+                                                                            className="flex items-center w-full px-3 py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover rounded-xl transition-colors"
+                                                                        >
                                                                             <FileText className="w-3.5 h-3.5 mr-2 text-[#7C3AED]" />
                                                                             Open Quotation
+                                                                        </Link>
+                                                                    ) : (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                close();
+                                                                                handleOpenEnquiry(enq);
+                                                                            }}
+                                                                            className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover rounded-xl transition-colors"
+                                                                        >
+                                                                            <span className="flex items-center">
+                                                                                <FileText className="w-3.5 h-3.5 mr-2 text-[#7C3AED]" />
+                                                                                Open Quotation
+                                                                            </span>
+                                                                            <span className="text-[10px] bg-[#F5F3FF] text-[#7C3AED] px-1.5 py-0.5 rounded-full font-bold">
+                                                                                {rowQuotationsMap[enq.id].length}
+                                                                            </span>
+                                                                        </button>
+                                                                    )
+                                                                )}
+
+                                                                <div className="my-1 border-t border-border-subtle"></div>
+
+                                                                {/* UPDATE STATUS SECTION */}
+                                                                <div className="px-3 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
+                                                                    Update Status
+                                                                </div>
+
+                                                                {['NEW', 'CONTACTED', 'QUOTED', 'CONVERTED', 'CLOSED'].map((st) => (
+                                                                    <button
+                                                                        key={st}
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            close();
+                                                                            handleUpdateEnquiryStatus(enq.id, st);
+                                                                        }}
+                                                                        className={`flex items-center justify-between w-full px-3 py-1.5 text-xs rounded-lg transition-colors ${
+                                                                            normalizeStatus(enq.status) === st
+                                                                                ? 'bg-[#EEF2FF] text-[#4F46E5] font-bold dark:bg-[#312E81]/30'
+                                                                                : 'text-text-secondary hover:bg-bg-hover font-medium'
+                                                                        }`}
+                                                                    >
+                                                                        <span className="flex items-center">
+                                                                            <span className={`w-1.5 h-1.5 rounded-full mr-2 ${getStatusStyle(st).replace('text-', 'bg-')}`} />
+                                                                            {getStatusLabel(st)}
                                                                         </span>
-                                                                        <span className="text-[10px] bg-[#F5F3FF] text-[#7C3AED] px-1.5 py-0.5 rounded-full font-bold">
-                                                                            {rowQuotationsMap[enq.id].length}
-                                                                        </span>
+                                                                        {normalizeStatus(enq.status) === st && (
+                                                                            <Check className="w-3.5 h-3.5 text-[#4F46E5]" />
+                                                                        )}
                                                                     </button>
-                                                                )
-                                                            )}
-
-                                                            <div className="my-1 border-t border-border-subtle"></div>
-
-                                                            {/* UPDATE STATUS SECTION */}
-                                                            <div className="px-3 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
-                                                                Update Status
+                                                                ))}
                                                             </div>
-
-                                                            {['NEW', 'CONTACTED', 'QUOTED', 'CONVERTED', 'CLOSED'].map((st) => (
-                                                                <button
-                                                                    key={st}
-                                                                    type="button"
-                                                                    onClick={() => handleUpdateEnquiryStatus(enq.id, st)}
-                                                                    className={`flex items-center justify-between w-full px-3 py-1.5 text-xs rounded-lg transition-colors ${
-                                                                        normalizeStatus(enq.status) === st
-                                                                            ? 'bg-[#EEF2FF] text-[#4F46E5] font-bold dark:bg-[#312E81]/30'
-                                                                            : 'text-text-secondary hover:bg-bg-hover font-medium'
-                                                                    }`}
-                                                                >
-                                                                    <span className="flex items-center">
-                                                                        <span className={`w-1.5 h-1.5 rounded-full mr-2 ${getStatusStyle(st).replace('text-', 'bg-')}`} />
-                                                                        {getStatusLabel(st)}
-                                                                    </span>
-                                                                    {normalizeStatus(enq.status) === st && (
-                                                                        <Check className="w-3.5 h-3.5 text-[#4F46E5]" />
-                                                                    )}
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                    )}
+                                                        )}
+                                                    />
                                                 </td>
                                             </tr>
                                         ))}
