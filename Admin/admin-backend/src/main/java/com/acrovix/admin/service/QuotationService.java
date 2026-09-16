@@ -288,6 +288,16 @@ public class QuotationService {
             }
             finalRecipient = trimmed;
         }
+
+        // Generate a secure unique client token if not already set
+        if (quotation.getClientToken() == null) {
+            String token = java.util.UUID.randomUUID().toString().replace("-", "") +
+                           java.util.UUID.randomUUID().toString().replace("-", "");
+            // Trim to 64 chars
+            token = token.substring(0, 64);
+            quotation.setClientToken(token);
+            quotationRepository.save(quotation);
+        }
         
         emailService.sendQuotationEmail(quotation, finalRecipient);
         markAsSent(id, admin);
@@ -679,12 +689,17 @@ public class QuotationService {
         }
 
         saved = quotationRepository.save(saved);
+        
+        // Mark original as REVISED
+        original.setStatus("REVISED");
+        quotationRepository.save(original);
+        
         logActivity(admin.getId(), "Created revision R" + nextVersion + " from " + original.getQuotationNumber(), "Quotation", saved.getId());
         return saved;
     }
 
     @Transactional
-    public Quotation updateStatus(Long quotationId, String newStatus, AdminUser admin) {
+    public Quotation updateStatus(Long quotationId, com.acrovix.admin.dto.QuotationStatusUpdateRequest request, AdminUser admin) {
         Quotation quotation = quotationRepository.findById(quotationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Quotation not found"));
 
@@ -694,6 +709,7 @@ public class QuotationService {
 
         authorizationService.checkQuotationAccess(admin, quotation);
         
+        String newStatus = request.getStatus();
         String currentStatus = quotation.getStatus();
         
         if (currentStatus.equals(newStatus)) {
@@ -704,14 +720,10 @@ public class QuotationService {
 
         switch (currentStatus) {
             case "DRAFT":
-                // DRAFT to SENT is handled by sendQuotation. But technically permitted if they just mark it manually.
-                // However user requested: "DRAFT -> SENT when actually sent... Do NOT mark it SENT during revision creation"
-                // We'll allow DRAFT -> SENT here if needed, but not ACCEPTED/REJECTED.
                 if ("SENT".equals(newStatus)) validTransition = true;
                 break;
             case "SENT":
-            case "REVISED":
-                if ("ACCEPTED".equals(newStatus) || "REJECTED".equals(newStatus) || "EXPIRED".equals(newStatus) || "REVISED".equals(newStatus) || "SENT".equals(newStatus)) {
+                if ("ACCEPTED".equals(newStatus) || "REJECTED".equals(newStatus) || "EXPIRED".equals(newStatus)) {
                     validTransition = true;
                 }
                 break;
@@ -719,6 +731,10 @@ public class QuotationService {
                 if ("CONVERTED".equals(newStatus)) {
                     validTransition = true;
                 }
+                break;
+            case "REVISED":
+                // REVISED is a terminal historical state — cannot be modified via this endpoint.
+                // Changes must be made on the revision (R1, R2...) quotation.
                 break;
             default:
                 break;
@@ -728,10 +744,23 @@ public class QuotationService {
             throw new com.acrovix.admin.exception.ResourceConflictException("Invalid status transition from " + currentStatus + " to " + newStatus);
         }
 
+        if ("ACCEPTED".equals(newStatus) || "REJECTED".equals(newStatus)) {
+            if (request.getResponseSource() == null) {
+                throw new IllegalArgumentException("responseSource is required when manually accepting or rejecting a quotation.");
+            }
+            quotation.setResponseSource(request.getResponseSource());
+            quotation.setResponseNotes(request.getResponseNotes());
+        }
+
         quotation.setStatus(newStatus);
         Quotation saved = quotationRepository.save(quotation);
         
-        logActivity(admin.getId(), "Quotation status updated to " + newStatus + ": " + quotation.getQuotationNumber(), "Quotation", saved.getId());
+        String activityMessage = "Quotation status updated to " + newStatus + ": " + quotation.getQuotationNumber();
+        if ("ACCEPTED".equals(newStatus) || "REJECTED".equals(newStatus)) {
+            activityMessage = "QUOTATION_" + newStatus + " via " + request.getResponseSource();
+        }
+        
+        logActivity(admin.getId(), activityMessage, "Quotation", saved.getId());
         return saved;
     }
 

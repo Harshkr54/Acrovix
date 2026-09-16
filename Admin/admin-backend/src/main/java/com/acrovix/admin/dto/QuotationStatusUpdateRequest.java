@@ -13,4 +13,7 @@ import jakarta.validation.constraints.NotBlank;
 public class QuotationStatusUpdateRequest {
     @NotBlank(message = "Status is required")
     private String status;
+
+    private com.acrovix.admin.entity.QuotationResponseSource responseSource;
+    private String responseNotes;
 }

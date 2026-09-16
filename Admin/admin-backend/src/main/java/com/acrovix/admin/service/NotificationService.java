@@ -49,6 +49,21 @@ public class NotificationService {
         notificationRepository.save(notification);
     }
 
+    @Transactional
+    public void createQuotationRespondedNotification(AdminUser recipient, Long quotationId, String quotationNumber, String status) {
+        String verb = "ACCEPTED".equals(status) ? "accepted" : "rejected";
+        Notification notification = Notification.builder()
+                .recipient(recipient)
+                .type(NotificationType.QUOTATION_RESPONDED)
+                .title("Client Response Received")
+                .message("Client has " + verb + " quotation " + quotationNumber + " via the client portal.")
+                .relatedEntityType("QUOTATION")
+                .relatedEntityId(quotationId)
+                .read(false)
+                .build();
+        notificationRepository.save(notification);
+    }
+
     public Page<NotificationResponse> getNotifications(Long adminId, Pageable pageable) {
         return notificationRepository.findByRecipientIdOrderByCreatedAtDesc(adminId, pageable)
                 .map(this::mapToResponse);

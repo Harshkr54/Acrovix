@@ -66,6 +66,16 @@ public class Quotation {
     @Column(name = "source_notes", columnDefinition = "TEXT")
     private String sourceNotes;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "response_source", length = 50)
+    private QuotationResponseSource responseSource;
+
+    @Column(name = "response_notes", columnDefinition = "TEXT")
+    private String responseNotes;
+
+    @Column(name = "client_token", unique = true, length = 64)
+    private String clientToken;
+
     @Column(nullable = false, length = 50)
     private String status = "DRAFT"; // DRAFT, SENT, ACCEPTED, REJECTED, EXPIRED
 

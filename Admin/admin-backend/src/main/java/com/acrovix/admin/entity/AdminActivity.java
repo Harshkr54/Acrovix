@@ -18,7 +18,7 @@ public class AdminActivity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "admin_user_id", nullable = false)
+    @Column(name = "admin_user_id")
     private Long adminUserId;
 
     @Column(nullable = false, length = 100)

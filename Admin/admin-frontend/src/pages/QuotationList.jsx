@@ -4,6 +4,8 @@ import { fetchApi } from '../services/api';
 import { FileText, Plus, AlertCircle, ChevronLeft, ChevronRight, File, Trash2, ShoppingCart } from 'lucide-react';
 import CreateQuotationModal from '../components/CreateQuotationModal';
 import CreatePurchaseOrderModal from '../components/CreatePurchaseOrderModal';
+import AcceptRejectQuotationModal from '../components/AcceptRejectQuotationModal';
+import QuotationHistoryModal from '../components/QuotationHistoryModal';
 import { createInvoiceFromQuotation } from '../services/api';
 
 export default function QuotationList() {
@@ -19,6 +21,9 @@ export default function QuotationList() {
     const [downloadingPdfId, setDownloadingPdfId] = useState(null);
     const [trashModalQuotation, setTrashModalQuotation] = useState(null);
     const [poModalQuotation, setPoModalQuotation] = useState(null);
+    const [acceptRejectModalInfo, setAcceptRejectModalInfo] = useState(null); // { quotation, type: 'ACCEPT' | 'REJECT' }
+    const [historyModalQuotation, setHistoryModalQuotation] = useState(null);
+    
     const [isDeleting, setIsDeleting] = useState(false);
     const [isConverting, setIsConverting] = useState(false);
     const itemsPerPage = 10;
@@ -69,6 +74,17 @@ export default function QuotationList() {
         }
     };
 
+    const handleCreateRevision = async (id) => {
+        if (!window.confirm("Create a new revision from this quotation? This will lock the current one as REVISED.")) return;
+        try {
+            const revision = await fetchApi(`/quotations/${id}/revisions`, { method: 'POST' });
+            navigate(`/quotations/edit/${revision.id}`);
+        } catch (err) {
+            console.error("Create Revision Error:", err);
+            alert(err.message || "Failed to create revision.");
+        }
+    };
+
     useEffect(() => {
         fetchQuotations();
     }, [fetchQuotations]);
@@ -111,6 +127,7 @@ export default function QuotationList() {
             case 'ACCEPTED': return 'text-[#059669]';
             case 'REJECTED': return 'text-[#DC2626]';
             case 'EXPIRED': return 'text-[#EA580C]';
+            case 'REVISED': return 'text-[#6D28D9]';
             default: return 'text-text-secondary';
         }
     };
@@ -255,20 +272,52 @@ export default function QuotationList() {
                                                     </button>
                                                 </div>
                                             ) : (
-                                                <>
-                                                    <button
-                                                        onClick={() => handleViewPdf(q.id)}
-                                                        disabled={downloadingPdfId === q.id}
-                                                        className="inline-flex items-center justify-center px-3 py-1.5 bg-bg-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-lg text-[12px] font-semibold text-text-primary transition-colors shadow-sm"
-                                                    >
-                                                        {downloadingPdfId === q.id ? (
-                                                            <><span className="animate-spin w-3 h-3 border-b-2 border-text-primary rounded-full mr-2"></span> Loading</>
-                                                        ) : (
-                                                            'View PDF'
-                                                        )}
-                                                    </button>
+                                                <div className="flex flex-col items-end space-y-2">
+                                                    <div className="flex items-center space-x-2">
+                                                        <button
+                                                            onClick={() => handleViewPdf(q.id)}
+                                                            disabled={downloadingPdfId === q.id}
+                                                            className="inline-flex items-center justify-center px-3 py-1.5 bg-bg-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-lg text-[12px] font-semibold text-text-primary transition-colors shadow-sm"
+                                                        >
+                                                            {downloadingPdfId === q.id ? (
+                                                                <><span className="animate-spin w-3 h-3 border-b-2 border-text-primary rounded-full mr-1"></span> Loading</>
+                                                            ) : (
+                                                                'View PDF'
+                                                            )}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setHistoryModalQuotation(q)}
+                                                            className="inline-flex items-center justify-center px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg text-[12px] font-semibold text-indigo-700 transition-colors shadow-sm"
+                                                        >
+                                                            History
+                                                        </button>
+                                                    </div>
+                                                    
+                                                    {q.status === 'SENT' && (
+                                                        <div className="flex items-center space-x-2">
+                                                            <button
+                                                                onClick={() => setAcceptRejectModalInfo({ quotation: q, type: 'ACCEPT' })}
+                                                                className="inline-flex items-center justify-center px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg text-[12px] font-semibold text-emerald-700 transition-colors shadow-sm"
+                                                            >
+                                                                Accept
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setAcceptRejectModalInfo({ quotation: q, type: 'REJECT' })}
+                                                                className="inline-flex items-center justify-center px-3 py-1.5 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg text-[12px] font-semibold text-red-700 transition-colors shadow-sm"
+                                                            >
+                                                                Reject
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleCreateRevision(q.id)}
+                                                                className="inline-flex items-center justify-center px-3 py-1.5 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg text-[12px] font-semibold text-purple-700 transition-colors shadow-sm"
+                                                            >
+                                                                Revise
+                                                            </button>
+                                                        </div>
+                                                    )}
+
                                                     {q.status === 'ACCEPTED' && (
-                                                        <>
+                                                        <div className="flex items-center space-x-2">
                                                             <button
                                                                 onClick={() => setPoModalQuotation(q)}
                                                                 className="inline-flex items-center justify-center px-3 py-1.5 bg-brand-primary/10 hover:bg-brand-primary/20 border border-brand-primary/20 rounded-lg text-[12px] font-semibold text-brand-primary transition-colors shadow-sm ml-2"
@@ -284,9 +333,9 @@ export default function QuotationList() {
                                                                 <FileText className="w-3.5 h-3.5 mr-1" />
                                                                 Proforma
                                                             </button>
-                                                        </>
+                                                        </div>
                                                     )}
-                                                </>
+                                                </div>
                                             )}
                                         </div>
                                     </td>
@@ -362,6 +411,21 @@ export default function QuotationList() {
                 onClose={() => setPoModalQuotation(null)} 
                 quotation={poModalQuotation}
                 onSuccess={fetchQuotations}
+            />
+
+            <AcceptRejectQuotationModal
+                isOpen={!!acceptRejectModalInfo}
+                onClose={() => setAcceptRejectModalInfo(null)}
+                quotation={acceptRejectModalInfo?.quotation}
+                type={acceptRejectModalInfo?.type}
+                onSuccess={fetchQuotations}
+            />
+
+            <QuotationHistoryModal
+                isOpen={!!historyModalQuotation}
+                onClose={() => setHistoryModalQuotation(null)}
+                quotation={historyModalQuotation}
+                onViewPdf={handleViewPdf}
             />
         </div>
     );

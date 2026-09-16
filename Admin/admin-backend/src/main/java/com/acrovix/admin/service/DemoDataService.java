@@ -136,15 +136,21 @@ public class DemoDataService {
         track(batchId, "QUOTATION", quoteDraft.getId());
 
         // Send Quotation
-        quotationService.updateStatus(quoteDraft.getId(), "SENT", admin);
+        QuotationStatusUpdateRequest sentReq = new QuotationStatusUpdateRequest();
+        sentReq.setStatus("SENT");
+        quotationService.updateStatus(quoteDraft.getId(), sentReq, admin);
 
         // Revise Quotation
         Quotation quoteRevised = quotationService.createRevision(quoteDraft.getId(), admin);
         track(batchId, "QUOTATION", quoteRevised.getId());
         
         // Accept Revised (Must transition through SENT first)
-        quotationService.updateStatus(quoteRevised.getId(), "SENT", admin);
-        quotationService.updateStatus(quoteRevised.getId(), "ACCEPTED", admin);
+        quotationService.updateStatus(quoteRevised.getId(), sentReq, admin);
+        QuotationStatusUpdateRequest acceptReq = new QuotationStatusUpdateRequest();
+        acceptReq.setStatus("ACCEPTED");
+        acceptReq.setResponseSource(QuotationResponseSource.OTHER);
+        acceptReq.setResponseNotes(batchId);
+        quotationService.updateStatus(quoteRevised.getId(), acceptReq, admin);
 
         // Convert to PO
         PurchaseOrderRequest por = new PurchaseOrderRequest();

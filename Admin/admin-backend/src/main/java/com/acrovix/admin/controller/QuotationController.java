@@ -171,7 +171,7 @@ public class QuotationController {
             @PathVariable Long id,
             @Valid @RequestBody com.acrovix.admin.dto.QuotationStatusUpdateRequest request,
             @AuthenticationPrincipal AdminUser admin) {
-        Quotation q = quotationService.updateStatus(id, request.getStatus(), admin);
+        Quotation q = quotationService.updateStatus(id, request, admin);
         return ResponseEntity.ok(mapToDetailDto(q));
     }
 
@@ -240,6 +240,10 @@ public class QuotationController {
         }
         map.put("quotationSource", sourceStr);
         map.put("sourceNotes", q.getSourceNotes());
+        
+        map.put("responseSource", q.getResponseSource() != null ? q.getResponseSource().name() : null);
+        map.put("responseNotes", q.getResponseNotes());
+        map.put("clientToken", q.getClientToken());
         return map;
     }
 
@@ -279,6 +283,8 @@ public class QuotationController {
         }
         map.put("quotationSource", sourceStr);
         map.put("sourceNotes", q.getSourceNotes());
+        map.put("responseSource", q.getResponseSource() != null ? q.getResponseSource().name() : null);
+        map.put("responseNotes", q.getResponseNotes());
 
         if (q.getEnquiry() != null) {
             java.util.Map<String, Object> enqMap = new java.util.HashMap<>();
