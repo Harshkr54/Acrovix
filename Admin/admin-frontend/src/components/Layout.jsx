@@ -129,25 +129,25 @@ export default function Layout() {
 
             {/* Sidebar */}
             <div className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-bg-card border-r border-border-subtle transition-all duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isCollapsed ? 'w-20' : 'w-64'} lg:relative lg:translate-x-0`}>
-                <div className="flex items-center justify-between h-[72px] px-5 border-b border-border-subtle/50">
+                <div className="flex items-center justify-between h-[72px] px-4 border-b border-border-subtle/50">
                     {!isCollapsed ? (
-                        <div className="flex items-center py-1">
+                        <div className="flex items-center h-full flex-1 min-w-0 pr-2">
                             <img 
                                 src={theme === 'dark' ? logoDark : logoLight} 
                                 alt="ACROVIX Innovations Private Limited" 
-                                className="h-10 w-auto max-w-[185px] object-contain transition-opacity duration-200" 
+                                className="h-12 w-full max-w-[190px] object-contain object-left transition-opacity duration-200" 
                             />
                         </div>
                     ) : (
-                        <div className="flex items-center justify-center w-full">
+                        <div className="flex items-center justify-center w-full h-full">
                             <img 
                                 src={theme === 'dark' ? logoDark : logoLight} 
                                 alt="ACROVIX" 
-                                className="h-7 w-auto object-contain transition-opacity duration-200" 
+                                className="h-9 w-full max-w-[56px] object-contain transition-opacity duration-200" 
                             />
                         </div>
                     )}
-                    <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden text-text-muted hover:text-text-primary transition-colors">
+                    <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden text-text-muted hover:text-text-primary transition-colors p-1 rounded-lg">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
