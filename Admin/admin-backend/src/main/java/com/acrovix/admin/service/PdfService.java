@@ -220,4 +220,152 @@ public class PdfService {
             throw new RuntimeException("Failed to generate Purchase Order PDF", e);
         }
     }
+
+    public byte[] generateInvoicePdf(com.acrovix.admin.entity.Invoice invoice) {
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Document document = new Document();
+            PdfWriter.getInstance(document, out);
+            document.open();
+
+            // Header
+            Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 20);
+            Paragraph title = new Paragraph(invoice.getSupplierCompany() != null ? invoice.getSupplierCompany() : "ACROVIX INNOVATIONS PRIVATE LIMITED", titleFont);
+            title.setAlignment(Element.ALIGN_CENTER);
+            document.add(title);
+            
+            String invoiceTypeName = invoice.getInvoiceType() == com.acrovix.admin.entity.InvoiceType.PROFORMA ? "PROFORMA INVOICE" : "TAX INVOICE";
+            Paragraph subtitle = new Paragraph(invoiceTypeName, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16));
+            subtitle.setAlignment(Element.ALIGN_CENTER);
+            document.add(subtitle);
+            
+            document.add(new Paragraph(" "));
+
+            // Details Table (2 columns: Left for Supplier/Invoice details, Right for Client details)
+            PdfPTable headerTable = new PdfPTable(2);
+            headerTable.setWidthPercentage(100);
+            
+            // Left Column (Supplier & Invoice Info)
+            PdfPCell leftCell = new PdfPCell();
+            leftCell.setBorder(Rectangle.NO_BORDER);
+            leftCell.addElement(new Paragraph("Supplier Details:", FontFactory.getFont(FontFactory.HELVETICA_BOLD)));
+            leftCell.addElement(new Paragraph(invoice.getSupplierAddress() != null ? invoice.getSupplierAddress() : ""));
+            leftCell.addElement(new Paragraph("GSTIN: " + (invoice.getSupplierGstin() != null ? invoice.getSupplierGstin() : "")));
+            leftCell.addElement(new Paragraph("State: " + (invoice.getSupplierState() != null ? invoice.getSupplierState() : "")));
+            leftCell.addElement(new Paragraph(" "));
+            leftCell.addElement(new Paragraph("Invoice No: " + (invoice.getInvoiceNumber() != null ? invoice.getInvoiceNumber() : "DRAFT"), FontFactory.getFont(FontFactory.HELVETICA_BOLD)));
+            leftCell.addElement(new Paragraph("Invoice Date: " + (invoice.getInvoiceDate() != null ? invoice.getInvoiceDate().format(DateTimeFormatter.ofPattern("dd-MMM-yyyy")) : "")));
+            leftCell.addElement(new Paragraph("Due Date: " + (invoice.getDueDate() != null ? invoice.getDueDate().format(DateTimeFormatter.ofPattern("dd-MMM-yyyy")) : "")));
+            if (invoice.getPurchaseOrder() != null && invoice.getPurchaseOrder().getPoNumber() != null) {
+                leftCell.addElement(new Paragraph("PO Ref: " + invoice.getPurchaseOrder().getPoNumber()));
+            }
+            if (invoice.getQuotation() != null && invoice.getQuotation().getQuotationNumber() != null) {
+                leftCell.addElement(new Paragraph("Quote Ref: " + invoice.getQuotation().getQuotationNumber()));
+            }
+            headerTable.addCell(leftCell);
+            
+            // Right Column (Client Info)
+            PdfPCell rightCell = new PdfPCell();
+            rightCell.setBorder(Rectangle.NO_BORDER);
+            rightCell.addElement(new Paragraph("Billed To:", FontFactory.getFont(FontFactory.HELVETICA_BOLD)));
+            rightCell.addElement(new Paragraph(invoice.getClientName() != null ? invoice.getClientName() : ""));
+            if (invoice.getClientCompany() != null && !invoice.getClientCompany().isBlank()) {
+                rightCell.addElement(new Paragraph(invoice.getClientCompany()));
+            }
+            rightCell.addElement(new Paragraph(invoice.getClientAddress() != null ? invoice.getClientAddress() : ""));
+            rightCell.addElement(new Paragraph("Email: " + (invoice.getClientEmail() != null ? invoice.getClientEmail() : "")));
+            if (invoice.getClientPhone() != null && !invoice.getClientPhone().isBlank()) {
+                rightCell.addElement(new Paragraph("Phone: " + invoice.getClientPhone()));
+            }
+            rightCell.addElement(new Paragraph("GSTIN: " + (invoice.getClientGstin() != null ? invoice.getClientGstin() : "")));
+            rightCell.addElement(new Paragraph("Place of Supply: " + (invoice.getPlaceOfSupply() != null ? invoice.getPlaceOfSupply() : "")));
+            headerTable.addCell(rightCell);
+            
+            document.add(headerTable);
+            document.add(new Paragraph(" "));
+
+            // Items Table
+            boolean showIgst = invoice.getIgstAmount() != null && invoice.getIgstAmount().compareTo(BigDecimal.ZERO) > 0;
+            
+            int numCols = showIgst ? 9 : 10;
+            PdfPTable table = new PdfPTable(numCols);
+            table.setWidthPercentage(100);
+            
+            String[] headers = showIgst ? 
+                new String[]{"S.No", "Description", "HSN/SAC", "Qty", "Price", "Discount", "Taxable", "IGST", "Total"} :
+                new String[]{"S.No", "Description", "HSN/SAC", "Qty", "Price", "Discount", "Taxable", "CGST", "SGST", "Total"};
+                
+            for (String header : headers) {
+                PdfPCell headerCell = new PdfPCell(new Phrase(header, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10)));
+                headerCell.setBackgroundColor(new java.awt.Color(240, 240, 240));
+                table.addCell(headerCell);
+            }
+
+            if (invoice.getItems() != null) {
+                int index = 1;
+                for (com.acrovix.admin.entity.InvoiceItem item : invoice.getItems()) {
+                    table.addCell(new Phrase(String.valueOf(index++), FontFactory.getFont(FontFactory.HELVETICA, 9)));
+                    table.addCell(new Phrase(item.getDescription() != null ? item.getDescription() : "", FontFactory.getFont(FontFactory.HELVETICA, 9)));
+                    table.addCell(new Phrase(item.getHsnSac() != null ? item.getHsnSac() : "", FontFactory.getFont(FontFactory.HELVETICA, 9)));
+                    table.addCell(new Phrase(item.getQuantity() != null ? item.getQuantity().toString() : "0", FontFactory.getFont(FontFactory.HELVETICA, 9)));
+                    table.addCell(new Phrase(item.getListPrice() != null ? item.getListPrice().toString() : "0.00", FontFactory.getFont(FontFactory.HELVETICA, 9)));
+                    table.addCell(new Phrase(item.getDiscountPercent() != null ? item.getDiscountPercent().toString() + "%" : "0%", FontFactory.getFont(FontFactory.HELVETICA, 9)));
+                    table.addCell(new Phrase(item.getTaxableAmount() != null ? item.getTaxableAmount().toString() : "0.00", FontFactory.getFont(FontFactory.HELVETICA, 9)));
+                    
+                    if (showIgst) {
+                        table.addCell(new Phrase(item.getIgstAmount() != null ? item.getIgstAmount().toString() : "0.00", FontFactory.getFont(FontFactory.HELVETICA, 9)));
+                    } else {
+                        table.addCell(new Phrase(item.getCgstAmount() != null ? item.getCgstAmount().toString() : "0.00", FontFactory.getFont(FontFactory.HELVETICA, 9)));
+                        table.addCell(new Phrase(item.getSgstAmount() != null ? item.getSgstAmount().toString() : "0.00", FontFactory.getFont(FontFactory.HELVETICA, 9)));
+                    }
+                    
+                    table.addCell(new Phrase(item.getLineTotal() != null ? item.getLineTotal().toString() : "0.00", FontFactory.getFont(FontFactory.HELVETICA, 9)));
+                }
+            }
+            document.add(table);
+            document.add(new Paragraph(" "));
+
+            // Totals
+            PdfPTable totalsTable = new PdfPTable(2);
+            totalsTable.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            
+            totalsTable.addCell("Taxable Amount:");
+            totalsTable.addCell(invoice.getTaxableAmount() != null ? invoice.getTaxableAmount().toString() : "0.00");
+            if (showIgst) {
+                totalsTable.addCell("IGST:");
+                totalsTable.addCell(invoice.getIgstAmount() != null ? invoice.getIgstAmount().toString() : "0.00");
+            } else {
+                totalsTable.addCell("CGST:");
+                totalsTable.addCell(invoice.getCgstAmount() != null ? invoice.getCgstAmount().toString() : "0.00");
+                totalsTable.addCell("SGST:");
+                totalsTable.addCell(invoice.getSgstAmount() != null ? invoice.getSgstAmount().toString() : "0.00");
+            }
+            totalsTable.addCell(new Phrase("Grand Total:", FontFactory.getFont(FontFactory.HELVETICA_BOLD)));
+            totalsTable.addCell(new Phrase(invoice.getGrandTotal() != null ? invoice.getGrandTotal().toString() : "0.00", FontFactory.getFont(FontFactory.HELVETICA_BOLD)));
+            
+            document.add(totalsTable);
+            document.add(new Paragraph(" "));
+            
+            if (invoice.getAmountInWords() != null && !invoice.getAmountInWords().isBlank()) {
+                document.add(new Paragraph("Amount in Words:", FontFactory.getFont(FontFactory.HELVETICA_BOLD)));
+                document.add(new Paragraph(invoice.getAmountInWords()));
+                document.add(new Paragraph(" "));
+            }
+            
+            if (invoice.getPaymentTerms() != null && !invoice.getPaymentTerms().isBlank()) {
+                document.add(new Paragraph("Payment Terms:", FontFactory.getFont(FontFactory.HELVETICA_BOLD)));
+                document.add(new Paragraph(invoice.getPaymentTerms()));
+                document.add(new Paragraph(" "));
+            }
+            
+            if (invoice.getTermsAndConditions() != null && !invoice.getTermsAndConditions().isBlank()) {
+                document.add(new Paragraph("Terms & Conditions:", FontFactory.getFont(FontFactory.HELVETICA_BOLD)));
+                document.add(new Paragraph(invoice.getTermsAndConditions()));
+            }
+
+            document.close();
+            return out.toByteArray();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate Invoice PDF", e);
+        }
+    }
 }

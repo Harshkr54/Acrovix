@@ -27,7 +27,7 @@ public class Quotation {
     @Column(name = "quotation_number", unique = true, nullable = false, length = 50)
     private String quotationNumber;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "INTEGER DEFAULT 0")
     @Builder.Default
     private Integer version = 0;
 
@@ -103,10 +103,12 @@ public class Quotation {
 
     @OneToMany(mappedBy = "quotation", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("sortOrder ASC")
+    @Builder.Default
     private List<QuotationItem> items = new ArrayList<>();
 
     @OneToMany(mappedBy = "quotation", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("sortOrder ASC")
+    @Builder.Default
     private List<QuotationColumnConfig> columnConfigs = new ArrayList<>();
 
     @PrePersist

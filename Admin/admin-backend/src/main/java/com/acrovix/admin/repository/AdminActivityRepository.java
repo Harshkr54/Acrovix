@@ -11,4 +11,5 @@ import java.util.List;
 public interface AdminActivityRepository extends JpaRepository<AdminActivity, Long> {
     List<AdminActivity> findTop50ByOrderByCreatedAtDesc();
     List<AdminActivity> findTop50ByCreatedAtGreaterThanEqualAndCreatedAtLessThanOrderByCreatedAtDesc(LocalDateTime start, LocalDateTime end);
+    void deleteByEntityTypeAndEntityIdIn(String entityType, List<Long> entityIds);
 }

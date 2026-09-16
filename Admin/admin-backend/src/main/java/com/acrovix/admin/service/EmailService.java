@@ -30,6 +30,9 @@ public class EmailService {
     @Value("${acrovix.mail.from-name:ACROVIX}")
     private String fromName;
 
+    @Value("${app.demo-mode:false}")
+    private boolean demoMode;
+
     public EmailService(PdfService pdfService) {
         this.pdfService = pdfService;
     }
@@ -53,6 +56,11 @@ public class EmailService {
         if (resendApiKey == null || resendApiKey.trim().isEmpty()) {
             logger.error("Resend API key is missing or not configured (RESEND_API_KEY environment variable)");
             throw new IllegalStateException("Email service configuration is incomplete. Please configure RESEND_API_KEY.");
+        }
+
+        if (demoMode) {
+            logger.info("DEMO MODE: Suppressed actual email sending to {} for quotation #{}", targetEmail, quotation.getId());
+            return;
         }
 
         try {

@@ -100,7 +100,8 @@ export default function Layout() {
         { path: '/catalog', name: 'Catalog', icon: Package },
         { path: '/enquiries', name: 'Enquiries', icon: MessageSquare },
         { path: '/quotations', name: 'Quotations', icon: FileText },
-        { path: '/purchase-orders', name: 'Purchase Orders', icon: ShoppingCart }
+        { path: '/purchase-orders', name: 'Purchase Orders', icon: ShoppingCart },
+        { path: '/invoices', name: 'Invoices', icon: FileText }
     ];
     
     const managementItems = [];

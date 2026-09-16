@@ -42,6 +42,9 @@ public class CompanySettings {
     @Column(name = "registered_address", columnDefinition = "TEXT")
     private String registeredAddress;
 
+    @Column(length = 100)
+    private String state;
+
     @Column(name = "billing_address", columnDefinition = "TEXT")
     private String billingAddress;
 

@@ -210,3 +210,40 @@ export const updateCompanySettings = (data) => fetchApi('/company-settings', {
     body: JSON.stringify(data)
 });
 
+// --- INVOICES ---
+export const getInvoices = (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return fetchApi(`/invoices${qs ? `?${qs}` : ''}`);
+};
+
+export const getInvoiceById = (id) => fetchApi(`/invoices/${id}`);
+
+export const createInvoiceFromQuotation = (quotationId, type) => fetchApi(`/invoices/from-quotation/${quotationId}?type=${type}`, {
+    method: 'POST'
+});
+
+export const createInvoiceFromPurchaseOrder = (poId, type) => fetchApi(`/invoices/from-po/${poId}?type=${type}`, {
+    method: 'POST'
+});
+
+export const updateDraftInvoice = (id, data) => fetchApi(`/invoices/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data)
+});
+
+export const deleteDraftInvoice = (id) => fetchApi(`/invoices/${id}`, {
+    method: 'DELETE'
+});
+
+export const issueInvoice = (id) => fetchApi(`/invoices/${id}/issue`, {
+    method: 'POST'
+});
+
+export const cancelInvoice = (id) => fetchApi(`/invoices/${id}/cancel`, {
+    method: 'POST'
+});
+
+export const convertProformaToTaxInvoice = (id) => fetchApi(`/invoices/proforma/${id}/convert-to-tax-invoice`, {
+    method: 'POST'
+});
+

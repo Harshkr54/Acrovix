@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getPurchaseOrderById, verifyPurchaseOrder, updatePurchaseOrderStatus } from '../services/api';
+import { getPurchaseOrderById, verifyPurchaseOrder, updatePurchaseOrderStatus, createInvoiceFromPurchaseOrder } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { ArrowLeft, Clock, CheckCircle, Package, XCircle, FileText, Download, AlertTriangle } from 'lucide-react';
 import { API_BASE_URL } from '../services/api';
@@ -42,6 +42,20 @@ export default function PurchaseOrderDetail() {
         } catch (error) {
             console.error('Failed to verify PO', error);
             alert(error.message || 'Failed to verify PO');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleCreateTaxInvoice = async () => {
+        if (!window.confirm('Create a Tax Invoice from this Purchase Order?')) return;
+        try {
+            setActionLoading(true);
+            const invoice = await createInvoiceFromPurchaseOrder(id, 'TAX_INVOICE');
+            navigate(`/invoices/${invoice.id}`);
+        } catch (error) {
+            console.error('Failed to create Tax Invoice', error);
+            alert(error.message || 'Failed to create Tax Invoice');
         } finally {
             setActionLoading(false);
         }
@@ -137,6 +151,15 @@ export default function PurchaseOrderDetail() {
                             className="px-4 py-2 bg-brand-primary hover:bg-brand-secondary text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
                         >
                             <CheckCircle className="w-4 h-4" /> Verify
+                        </button>
+                    )}
+                    {['VERIFIED', 'PARTIALLY_FULFILLED'].includes(order.status) && (
+                        <button 
+                            onClick={handleCreateTaxInvoice}
+                            disabled={actionLoading}
+                            className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+                        >
+                            <FileText className="w-4 h-4" /> Create Tax Invoice
                         </button>
                     )}
                     {['VERIFIED', 'PARTIALLY_FULFILLED'].includes(order.status) && (

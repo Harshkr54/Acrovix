@@ -4,6 +4,7 @@ import { fetchApi } from '../services/api';
 import { FileText, Plus, AlertCircle, ChevronLeft, ChevronRight, File, Trash2, ShoppingCart } from 'lucide-react';
 import CreateQuotationModal from '../components/CreateQuotationModal';
 import CreatePurchaseOrderModal from '../components/CreatePurchaseOrderModal';
+import { createInvoiceFromQuotation } from '../services/api';
 
 export default function QuotationList() {
     const [quotations, setQuotations] = useState([]);
@@ -19,7 +20,22 @@ export default function QuotationList() {
     const [trashModalQuotation, setTrashModalQuotation] = useState(null);
     const [poModalQuotation, setPoModalQuotation] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [isConverting, setIsConverting] = useState(false);
     const itemsPerPage = 10;
+
+    const handleCreateProforma = async (quotationId) => {
+        if (!window.confirm('Create a Proforma Invoice from this Quotation?')) return;
+        setIsConverting(true);
+        try {
+            const invoice = await createInvoiceFromQuotation(quotationId, 'PROFORMA');
+            navigate(`/invoices/${invoice.id}`);
+        } catch (err) {
+            console.error(err);
+            alert(err.message || 'Failed to create Proforma Invoice');
+        } finally {
+            setIsConverting(false);
+        }
+    };
 
     const fetchQuotations = React.useCallback(() => {
         setIsLoading(true);
@@ -252,13 +268,23 @@ export default function QuotationList() {
                                                         )}
                                                     </button>
                                                     {q.status === 'ACCEPTED' && (
-                                                        <button
-                                                            onClick={() => setPoModalQuotation(q)}
-                                                            className="inline-flex items-center justify-center px-3 py-1.5 bg-brand-primary/10 hover:bg-brand-primary/20 border border-brand-primary/20 rounded-lg text-[12px] font-semibold text-brand-primary transition-colors shadow-sm ml-2"
-                                                        >
-                                                            <ShoppingCart className="w-3.5 h-3.5 mr-1" />
-                                                            Convert to PO
-                                                        </button>
+                                                        <>
+                                                            <button
+                                                                onClick={() => setPoModalQuotation(q)}
+                                                                className="inline-flex items-center justify-center px-3 py-1.5 bg-brand-primary/10 hover:bg-brand-primary/20 border border-brand-primary/20 rounded-lg text-[12px] font-semibold text-brand-primary transition-colors shadow-sm ml-2"
+                                                            >
+                                                                <ShoppingCart className="w-3.5 h-3.5 mr-1" />
+                                                                Convert to PO
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleCreateProforma(q.id)}
+                                                                disabled={isConverting}
+                                                                className="inline-flex items-center justify-center px-3 py-1.5 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 rounded-lg text-[12px] font-semibold text-purple-600 transition-colors shadow-sm ml-2"
+                                                            >
+                                                                <FileText className="w-3.5 h-3.5 mr-1" />
+                                                                Proforma
+                                                            </button>
+                                                        </>
                                                     )}
                                                 </>
                                             )}

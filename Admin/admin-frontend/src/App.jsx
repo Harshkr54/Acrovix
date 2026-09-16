@@ -15,6 +15,8 @@ import CustomerMaster from './pages/CustomerMaster';
 import CatalogMaster from './pages/CatalogMaster';
 import PurchaseOrderList from './pages/PurchaseOrderList';
 import PurchaseOrderDetail from './pages/PurchaseOrderDetail';
+import InvoiceList from './pages/InvoiceList';
+import InvoiceDetail from './pages/InvoiceDetail';
 
 const ProtectedRoute = ({ children }) => {
     const { user } = useAuth();
@@ -39,6 +41,8 @@ function App() {
                 <Route path="catalog" element={<CatalogMaster />} />
                 <Route path="purchase-orders" element={<PurchaseOrderList />} />
                 <Route path="purchase-orders/:id" element={<PurchaseOrderDetail />} />
+                <Route path="invoices" element={<InvoiceList />} />
+                <Route path="invoices/:id" element={<InvoiceDetail />} />
                 <Route path="users" element={<UserList />} />
                 <Route path="trash" element={<TrashList />} />
                 <Route path="activity" element={<Activity />} />
