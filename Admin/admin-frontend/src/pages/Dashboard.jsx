@@ -566,6 +566,10 @@ export default function Dashboard() {
                                                     Icon = User;
                                                 }
 
+                                                const entityLabel = activity.entityType 
+                                                    ? `${activity.entityType.toLowerCase()}${activity.entityId ? ` #${activity.entityId}` : ''}`
+                                                    : (activity.entityId ? `#${activity.entityId}` : '');
+
                                                 return (
                                                     <div key={activity.id} className="relative flex gap-4">
                                                         <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 z-10 ${iconStyle} shadow-sm ring-4 ring-bg-card -ml-[11px]`}>
@@ -574,10 +578,12 @@ export default function Dashboard() {
                                                         <div className="flex-1 min-w-0 pt-0.5 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1">
                                                             <div>
                                                                 <p className="text-[13px] font-bold text-text-primary leading-snug">{activity.action}</p>
-                                                                <p className="text-[12px] text-text-muted mt-0.5 truncate max-w-[160px]">{activity.entityType.toLowerCase()} #{activity.entityId}</p>
+                                                                {entityLabel && (
+                                                                    <p className="text-[12px] text-text-muted mt-0.5 truncate max-w-[160px]">{entityLabel}</p>
+                                                                )}
                                                             </div>
                                                             <div className="text-[11px] text-text-muted font-medium whitespace-nowrap pt-0.5">
-                                                                {new Date(activity.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                                                {activity.createdAt ? new Date(activity.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''}
                                                             </div>
                                                         </div>
                                                     </div>

@@ -7,7 +7,7 @@ import HeaderControls from './HeaderControls';
 import { getInitials } from '../utils/userUtils';
 import { fetchApi } from '../services/api';
 
-import logoLight from '../assets/acrovix-logo-transparent.png';
+import logoLight from '../assets/acrovix-logo-light.png';
 import logoDark from '../assets/acrovix-logo-dark.png';
 
 export default function Layout() {

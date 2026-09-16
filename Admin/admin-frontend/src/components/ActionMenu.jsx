@@ -114,7 +114,7 @@ export default function ActionMenu({
                 <CustomIcon className="w-4 h-4 pointer-events-none" />
             </button>
 
-            {isOpen && createPortal(
+            {isOpen && typeof document !== 'undefined' && document.body && createPortal(
                 <div
                     ref={menuRef}
                     style={position}
