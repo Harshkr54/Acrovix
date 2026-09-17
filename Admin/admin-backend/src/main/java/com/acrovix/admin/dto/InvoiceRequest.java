@@ -24,6 +24,13 @@ public class InvoiceRequest {
 
     private LocalDate dueDate;
     
+    private String clientName;
+    private String clientCompany;
+    private String clientEmail;
+    private String clientPhone;
+    private String clientAddress;
+    private String clientGstin;
+
     private String placeOfSupply;
     private String paymentTerms;
     private String termsAndConditions;

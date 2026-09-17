@@ -176,4 +176,89 @@ public class InvoiceServiceTest {
 
         assertTrue(ex.getCause().getMessage().contains("Over-invoicing is not allowed"));
     }
+
+    @Test
+    void testUpdateDraftInvoice_Success() {
+        Invoice invoice = new Invoice();
+        invoice.setId(10L);
+        invoice.setStatus(InvoiceStatus.DRAFT);
+        invoice.setLocked(false);
+        invoice.setClientName("Old Name");
+        invoice.setClientGstin("27AAAAA0000A1Z5");
+        invoice.setPlaceOfSupply("Maharashtra");
+
+        when(invoiceRepository.findById(10L)).thenReturn(Optional.of(invoice));
+        when(invoiceRepository.save(any(Invoice.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        InvoiceRequest request = new InvoiceRequest();
+        request.setClientName("New Name Corp");
+        request.setClientCompany("New Company LLC");
+        request.setClientEmail("new@company.com");
+        request.setClientPhone("9876543210");
+        request.setClientAddress("456 New Street, Mumbai");
+        request.setClientGstin("27XYZ9999Z1Z0");
+        request.setPlaceOfSupply("Gujarat");
+        request.setPaymentTerms("Net 30");
+        request.setDueDate(LocalDate.now().plusDays(30));
+
+        Invoice updated = invoiceService.updateDraftInvoice(10L, request, adminUser);
+
+        assertNotNull(updated);
+        assertEquals("New Name Corp", updated.getClientName());
+        assertEquals("New Company LLC", updated.getClientCompany());
+        assertEquals("new@company.com", updated.getClientEmail());
+        assertEquals("9876543210", updated.getClientPhone());
+        assertEquals("456 New Street, Mumbai", updated.getClientAddress());
+        assertEquals("27XYZ9999Z1Z0", updated.getClientGstin());
+        assertEquals("Gujarat", updated.getPlaceOfSupply());
+        assertEquals("Net 30", updated.getPaymentTerms());
+        assertEquals(LocalDate.now().plusDays(30), updated.getDueDate());
+
+        // Verify customerRepository was NEVER called (Customer Master remains isolated)
+        verifyNoInteractions(customerRepository);
+    }
+
+    @Test
+    void testUpdateDraftInvoice_IssuedOrLockedFails() {
+        Invoice issuedInvoice = new Invoice();
+        issuedInvoice.setId(10L);
+        issuedInvoice.setStatus(InvoiceStatus.ISSUED);
+        issuedInvoice.setLocked(true);
+
+        when(invoiceRepository.findById(10L)).thenReturn(Optional.of(issuedInvoice));
+
+        InvoiceRequest request = new InvoiceRequest();
+        request.setClientName("Should Not Update");
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
+            invoiceService.updateDraftInvoice(10L, request, adminUser);
+        });
+
+        assertTrue(ex.getMessage().contains("Cannot update an issued or locked invoice"));
+    }
+
+    @Test
+    void testConvertProformaToTaxInvoice_CarriesForwardManualSnapshotFields() {
+        Invoice proforma = new Invoice();
+        proforma.setId(50L);
+        proforma.setInvoiceType(InvoiceType.PROFORMA);
+        proforma.setStatus(InvoiceStatus.ISSUED);
+        proforma.setClientName("Manual Client Name");
+        proforma.setClientGstin("27MANUALGSTIN");
+        proforma.setPlaceOfSupply("Karnataka");
+        proforma.setPaymentTerms("50% Advance");
+        proforma.setGrandTotal(new BigDecimal("5000.00"));
+
+        when(invoiceRepository.findById(50L)).thenReturn(Optional.of(proforma));
+        when(invoiceRepository.save(any(Invoice.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Invoice taxInvoice = invoiceService.convertProformaToTaxInvoice(50L, adminUser);
+
+        assertNotNull(taxInvoice);
+        assertEquals(InvoiceType.TAX_INVOICE, taxInvoice.getInvoiceType());
+        assertEquals("Manual Client Name", taxInvoice.getClientName());
+        assertEquals("27MANUALGSTIN", taxInvoice.getClientGstin());
+        assertEquals("Karnataka", taxInvoice.getPlaceOfSupply());
+        assertEquals("50% Advance", taxInvoice.getPaymentTerms());
+    }
 }

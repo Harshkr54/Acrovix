@@ -74,6 +74,14 @@ public class InvoiceService {
             }
         }
 
+        // Allow explicit request fields to set/override client snapshot fields
+        if (request.getClientName() != null) invoice.setClientName(request.getClientName());
+        if (request.getClientCompany() != null) invoice.setClientCompany(request.getClientCompany());
+        if (request.getClientEmail() != null) invoice.setClientEmail(request.getClientEmail());
+        if (request.getClientPhone() != null) invoice.setClientPhone(request.getClientPhone());
+        if (request.getClientAddress() != null) invoice.setClientAddress(request.getClientAddress());
+        if (request.getClientGstin() != null) invoice.setClientGstin(request.getClientGstin());
+
         // Snapshot Supplier
         CompanySettings settings = companySettingsRepository.findAll().stream().findFirst()
                 .orElseThrow(() -> new IllegalStateException("Company settings not configured"));
@@ -114,16 +122,27 @@ public class InvoiceService {
     @Transactional
     public Invoice updateDraftInvoice(Long id, InvoiceRequest request, AdminUser admin) {
         Invoice invoice = getInvoiceById(id, admin);
-        if (invoice.isLocked()) {
+        if (invoice.isLocked() || invoice.getStatus() != InvoiceStatus.DRAFT) {
             throw new IllegalStateException("Cannot update an issued or locked invoice");
         }
 
-        invoice.setInvoiceType(request.getInvoiceType());
-        invoice.setInvoiceDate(request.getInvoiceDate());
+        if (request.getInvoiceType() != null) {
+            invoice.setInvoiceType(request.getInvoiceType());
+        }
+        if (request.getInvoiceDate() != null) {
+            invoice.setInvoiceDate(request.getInvoiceDate());
+        }
         invoice.setDueDate(request.getDueDate());
         invoice.setPaymentTerms(request.getPaymentTerms());
         invoice.setTermsAndConditions(request.getTermsAndConditions());
         invoice.setPlaceOfSupply(request.getPlaceOfSupply());
+
+        if (request.getClientName() != null) invoice.setClientName(request.getClientName());
+        if (request.getClientCompany() != null) invoice.setClientCompany(request.getClientCompany());
+        if (request.getClientEmail() != null) invoice.setClientEmail(request.getClientEmail());
+        if (request.getClientPhone() != null) invoice.setClientPhone(request.getClientPhone());
+        if (request.getClientAddress() != null) invoice.setClientAddress(request.getClientAddress());
+        if (request.getClientGstin() != null) invoice.setClientGstin(request.getClientGstin());
 
         calculateAndSetTotals(invoice, request.getItems());
 
@@ -132,7 +151,7 @@ public class InvoiceService {
         }
 
         Invoice saved = invoiceRepository.save(invoice);
-        logActivity(admin.getId(), "Updated Draft Invoice", "Invoice", saved.getId());
+        logActivity(admin.getId(), "Updated Draft Invoice details", "Invoice", saved.getId());
         return saved;
     }
 
@@ -186,19 +205,19 @@ public class InvoiceService {
     }
 
     private void calculateAndSetTotals(Invoice invoice, List<InvoiceItemRequest> itemRequests) {
-        invoice.getItems().clear();
-
-        BigDecimal subtotal = BigDecimal.ZERO;
-        BigDecimal totalDiscount = BigDecimal.ZERO;
-        BigDecimal totalTaxable = BigDecimal.ZERO;
-        BigDecimal totalCgst = BigDecimal.ZERO;
-        BigDecimal totalSgst = BigDecimal.ZERO;
-        BigDecimal totalIgst = BigDecimal.ZERO;
-        BigDecimal totalTax = BigDecimal.ZERO;
-
         boolean isIntraState = isIntraState(invoice.getSupplierGstin(), invoice.getSupplierState(), invoice.getClientGstin(), invoice.getPlaceOfSupply());
 
         if (itemRequests != null) {
+            invoice.getItems().clear();
+
+            BigDecimal subtotal = BigDecimal.ZERO;
+            BigDecimal totalDiscount = BigDecimal.ZERO;
+            BigDecimal totalTaxable = BigDecimal.ZERO;
+            BigDecimal totalCgst = BigDecimal.ZERO;
+            BigDecimal totalSgst = BigDecimal.ZERO;
+            BigDecimal totalIgst = BigDecimal.ZERO;
+            BigDecimal totalTax = BigDecimal.ZERO;
+
             int sortOrder = 0;
             for (InvoiceItemRequest req : itemRequests) {
                 InvoiceItem item = new InvoiceItem();
@@ -250,7 +269,7 @@ public class InvoiceService {
                 item.setLineTotal(taxable.add(lineTax));
                 invoice.getItems().add(item);
 
-                subtotal = subtotal.add(taxable); // subtotal represents total taxable amount in some systems, or total gross. We align with Quote which uses net. Let's use total taxable for subtotal.
+                subtotal = subtotal.add(taxable);
                 totalDiscount = totalDiscount.add(lineDiscount);
                 totalTaxable = totalTaxable.add(taxable);
                 totalCgst = totalCgst.add(item.getCgstAmount());
@@ -258,20 +277,52 @@ public class InvoiceService {
                 totalIgst = totalIgst.add(item.getIgstAmount());
                 totalTax = totalTax.add(item.getTaxAmount());
             }
-        }
 
-        invoice.setSubtotal(totalTaxable);
-        invoice.setDiscountAmount(totalDiscount);
-        invoice.setTaxableAmount(totalTaxable);
-        invoice.setCgstAmount(totalCgst);
-        invoice.setSgstAmount(totalSgst);
-        invoice.setIgstAmount(totalIgst);
-        invoice.setTaxAmount(totalTax);
-        
-        BigDecimal grandTotal = totalTaxable.add(totalTax);
-        invoice.setGrandTotal(grandTotal);
-        invoice.setBalanceDue(grandTotal);
-        invoice.setAmountInWords(AmountToWordsConverter.convert(grandTotal));
+            invoice.setSubtotal(totalTaxable);
+            invoice.setDiscountAmount(totalDiscount);
+            invoice.setTaxableAmount(totalTaxable);
+            invoice.setCgstAmount(totalCgst);
+            invoice.setSgstAmount(totalSgst);
+            invoice.setIgstAmount(totalIgst);
+            invoice.setTaxAmount(totalTax);
+            
+            BigDecimal grandTotal = totalTaxable.add(totalTax);
+            invoice.setGrandTotal(grandTotal);
+            invoice.setBalanceDue(grandTotal);
+            invoice.setAmountInWords(AmountToWordsConverter.convert(grandTotal));
+        } else if (invoice.getItems() != null && !invoice.getItems().isEmpty()) {
+            // Recalculate CGST/SGST vs IGST split for existing items if client GSTIN/State changed
+            BigDecimal totalCgst = BigDecimal.ZERO;
+            BigDecimal totalSgst = BigDecimal.ZERO;
+            BigDecimal totalIgst = BigDecimal.ZERO;
+
+            for (InvoiceItem item : invoice.getItems()) {
+                BigDecimal lineTax = item.getTaxAmount() != null ? item.getTaxAmount() : BigDecimal.ZERO;
+                if (lineTax.compareTo(BigDecimal.ZERO) > 0) {
+                    if (isIntraState) {
+                        BigDecimal halfTax = lineTax.divide(new BigDecimal("2"), 2, RoundingMode.HALF_UP);
+                        item.setCgstAmount(halfTax);
+                        item.setSgstAmount(halfTax);
+                        item.setIgstAmount(BigDecimal.ZERO);
+                    } else {
+                        item.setCgstAmount(BigDecimal.ZERO);
+                        item.setSgstAmount(BigDecimal.ZERO);
+                        item.setIgstAmount(lineTax);
+                    }
+                } else {
+                    item.setCgstAmount(BigDecimal.ZERO);
+                    item.setSgstAmount(BigDecimal.ZERO);
+                    item.setIgstAmount(BigDecimal.ZERO);
+                }
+                totalCgst = totalCgst.add(item.getCgstAmount());
+                totalSgst = totalSgst.add(item.getSgstAmount());
+                totalIgst = totalIgst.add(item.getIgstAmount());
+            }
+
+            invoice.setCgstAmount(totalCgst);
+            invoice.setSgstAmount(totalSgst);
+            invoice.setIgstAmount(totalIgst);
+        }
     }
 
     private boolean isIntraState(String supplierGstin, String supplierState, String clientGstin, String placeOfSupply) {
