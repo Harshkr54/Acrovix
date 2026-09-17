@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
     getPayments, 
     cancelPayment, 
+    getPaymentReceiptPdf, 
     getEligibleInvoicesForPayment, 
     recordPayment 
 } from '../services/api';
@@ -11,7 +12,9 @@ import { API_BASE_URL } from '../services/api';
 import { 
     CreditCard, 
     Search, 
+    Filter, 
     Download, 
+    XCircle, 
     Eye, 
     ChevronLeft, 
     ChevronRight, 
@@ -20,13 +23,12 @@ import {
     AlertCircle, 
     X,
     Building2,
+    FileText,
     ArrowUpRight,
     Plus,
+    Check,
     Loader2
 } from 'lucide-react';
-import PageHeader from '../components/ui/PageHeader';
-import StatusBadge from '../components/ui/StatusBadge';
-import EmptyState from '../components/ui/EmptyState';
 
 export default function Payments() {
     const navigate = useNavigate();
@@ -75,34 +77,6 @@ export default function Payments() {
     const [cancelError, setCancelError] = useState(null);
     const [submittingCancel, setSubmittingCancel] = useState(false);
 
-    const formatDate = (dateStr) => {
-        if (!dateStr) return '—';
-        try {
-            const d = new Date(dateStr);
-            if (isNaN(d.getTime())) return '—';
-            return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-        } catch (e) {
-            return '—';
-        }
-    };
-
-    const formatDateTime = (dateStr) => {
-        if (!dateStr) return '—';
-        try {
-            const d = new Date(dateStr);
-            if (isNaN(d.getTime())) return '—';
-            return d.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-        } catch (e) {
-            return '—';
-        }
-    };
-
-    const formatMoney = (val) => {
-        const num = Number(val);
-        if (isNaN(num)) return '0.00';
-        return num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    };
-
     const fetchPaymentsList = async () => {
         try {
             setLoading(true);
@@ -117,23 +91,18 @@ export default function Payments() {
                 size: 10
             });
 
-            if (data && data.content && Array.isArray(data.content)) {
+            if (data.content) {
                 setPayments(data.content);
                 setTotalPages(data.totalPages || 0);
                 setTotalElements(data.totalElements || 0);
-            } else if (Array.isArray(data)) {
-                setPayments(data);
-                setTotalPages(1);
-                setTotalElements(data.length);
             } else {
-                setPayments([]);
-                setTotalPages(0);
-                setTotalElements(0);
+                setPayments(Array.isArray(data) ? data : []);
+                setTotalPages(1);
+                setTotalElements(Array.isArray(data) ? data.length : 0);
             }
         } catch (err) {
             console.error('Failed to fetch payments', err);
             setError(err.message || 'Failed to load payments ledger');
-            setPayments([]);
         } finally {
             setLoading(false);
         }
@@ -147,10 +116,9 @@ export default function Payments() {
         try {
             setLoadingInvoices(true);
             const list = await getEligibleInvoicesForPayment(query);
-            setEligibleInvoices(Array.isArray(list) ? list : []);
+            setEligibleInvoices(list || []);
         } catch (err) {
             console.error('Failed to fetch eligible invoices', err);
-            setEligibleInvoices([]);
         } finally {
             setLoadingInvoices(false);
         }
@@ -174,7 +142,6 @@ export default function Payments() {
     };
 
     const handleSelectInvoice = (inv) => {
-        if (!inv) return;
         setSelectedInvoice(inv);
         setPaymentError(null);
         const bal = inv.balanceDue !== undefined && inv.balanceDue !== null ? inv.balanceDue : inv.grandTotal;
@@ -237,7 +204,7 @@ export default function Payments() {
             });
 
             setIsRecordModalOpen(false);
-            setSuccessToast(`Payment ${result.paymentNumber || 'record'} of Rs. ${formatMoney(numAmount)} recorded successfully!`);
+            setSuccessToast(`Payment ${result.paymentNumber || 'record'} of Rs. ${numAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} recorded successfully!`);
             setTimeout(() => setSuccessToast(null), 5000);
             await fetchPaymentsList();
         } catch (err) {
@@ -249,7 +216,6 @@ export default function Payments() {
     };
 
     const handleDownloadReceipt = (paymentId, paymentNumber) => {
-        if (!paymentId) return;
         const token = localStorage.getItem('adminToken');
         fetch(`${API_BASE_URL}/payments/${paymentId}/pdf`, {
             headers: {
@@ -277,7 +243,6 @@ export default function Payments() {
     };
 
     const handleOpenCancelModal = (payment) => {
-        if (!payment) return;
         setCancellingPayment(payment);
         setCancelReason('');
         setCancelError(null);
@@ -285,7 +250,6 @@ export default function Payments() {
 
     const handleCancelSubmit = async (e) => {
         e.preventDefault();
-        if (!cancellingPayment) return;
         if (!cancelReason.trim()) {
             setCancelError('Cancellation reason is required.');
             return;
@@ -307,14 +271,14 @@ export default function Payments() {
         }
     };
 
-    // Calculate dynamic UI previews for payment modal safely
+    // Calculate dynamic UI previews for payment modal
     const currentInvoiceBalance = selectedInvoice ? Number(selectedInvoice.balanceDue || 0) : 0;
     const currentPaymentNumAmount = parseFloat(paymentForm.amount) || 0;
     const previewNewBalance = selectedInvoice ? Math.max(0, currentInvoiceBalance - currentPaymentNumAmount) : 0;
     const isOverpayment = selectedInvoice && currentPaymentNumAmount > currentInvoiceBalance + 0.001;
 
     return (
-        <div className="space-y-6 max-w-[1600px] mx-auto pb-24">
+        <div className="p-8 max-w-7xl mx-auto space-y-6 pb-24">
             {/* Success Toast */}
             {successToast && (
                 <div className="fixed top-20 right-8 z-50 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top duration-300">
@@ -327,22 +291,25 @@ export default function Payments() {
             )}
 
             {/* Header */}
-            <PageHeader
-                title="Payment Ledger"
-                subtitle="Track, inspect, and manually record customer payment transactions and receipts."
-                icon={CreditCard}
-                action={
-                    <button 
-                        onClick={handleOpenRecordPaymentModal}
-                        className="btn-primary text-xs px-4 py-2.5 rounded-xl font-medium flex items-center gap-2"
-                    >
-                        <Plus className="w-4 h-4" /> Record Payment
-                    </button>
-                }
-            />
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2.5">
+                        <CreditCard className="w-7 h-7 text-brand-primary" /> Payment Ledger
+                    </h1>
+                    <p className="text-xs text-text-muted mt-1">
+                        Track, inspect, and manually record customer payments for money received externally.
+                    </p>
+                </div>
+                <button 
+                    onClick={handleOpenRecordPaymentModal}
+                    className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition-colors flex items-center gap-2 shadow-sm self-start md:self-auto"
+                >
+                    <Plus className="w-4 h-4" /> Record Payment
+                </button>
+            </div>
 
             {/* Filter Bar */}
-            <div className="bg-bg-card border border-border-subtle rounded-2xl p-4 shadow-sm space-y-4">
+            <div className="bg-bg-card border border-border-subtle rounded-2xl p-5 shadow-sm space-y-4">
                 <form onSubmit={handleSearchSubmit} className="flex flex-wrap items-center gap-3">
                     {/* Search Input */}
                     <div className="relative flex-1 min-w-[240px]">
@@ -352,7 +319,7 @@ export default function Payments() {
                             placeholder="Search by Payment #, Invoice #, Customer..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="w-full pl-9 pr-4 py-2.5 bg-bg-main border border-border-subtle rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-primary"
+                            className="w-full pl-9 pr-4 py-2 bg-bg-main border border-border-subtle rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-primary"
                         />
                     </div>
 
@@ -360,7 +327,7 @@ export default function Payments() {
                     <select
                         value={methodFilter}
                         onChange={(e) => { setMethodFilter(e.target.value); setPage(0); }}
-                        className="px-3 py-2.5 bg-bg-main border border-border-subtle rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-primary cursor-pointer"
+                        className="px-3 py-2 bg-bg-main border border-border-subtle rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-primary"
                     >
                         <option value="">All Payment Methods</option>
                         <option value="BANK_TRANSFER">Bank Transfer</option>
@@ -375,7 +342,7 @@ export default function Payments() {
                     <select
                         value={statusFilter}
                         onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
-                        className="px-3 py-2.5 bg-bg-main border border-border-subtle rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-primary cursor-pointer"
+                        className="px-3 py-2 bg-bg-main border border-border-subtle rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-primary"
                     >
                         <option value="">All Statuses</option>
                         <option value="RECORDED">RECORDED</option>
@@ -383,7 +350,7 @@ export default function Payments() {
                     </select>
 
                     {/* Date Range */}
-                    <div className="flex items-center gap-1.5 bg-bg-main border border-border-subtle rounded-xl px-3 py-2">
+                    <div className="flex items-center gap-1.5 bg-bg-main border border-border-subtle rounded-xl px-3 py-1.5">
                         <Calendar className="w-3.5 h-3.5 text-text-muted" />
                         <input
                             type="date"
@@ -404,7 +371,7 @@ export default function Payments() {
 
                     <button
                         type="submit"
-                        className="btn-primary text-xs px-4 py-2.5 rounded-xl font-semibold"
+                        className="px-4 py-2 bg-brand-primary text-white rounded-xl text-xs font-semibold hover:bg-brand-secondary transition-colors"
                     >
                         Search
                     </button>
@@ -423,123 +390,115 @@ export default function Payments() {
 
             {/* Table */}
             <div className="bg-bg-card border border-border-subtle rounded-2xl overflow-hidden shadow-sm">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs">
-                        <thead className="bg-bg-main/50 text-text-muted uppercase font-semibold">
-                            <tr>
-                                <th className="p-4">Payment #</th>
-                                <th className="p-4">Date</th>
-                                <th className="p-4">Invoice #</th>
-                                <th className="p-4">Customer</th>
-                                <th className="p-4">Method</th>
-                                <th className="p-4">Ref / Cheque</th>
-                                <th className="p-4 text-right">Amount</th>
-                                <th className="p-4">Status</th>
-                                <th className="p-4 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border-subtle">
-                            {loading ? (
-                                <tr>
-                                    <td colSpan="9" className="py-4">
-                                        <EmptyState type="loading" message="Loading payments ledger..." />
-                                    </td>
+                {loading ? (
+                    <div className="p-12 text-center text-xs text-text-muted flex items-center justify-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin text-brand-primary" />
+                        <span>Loading payments ledger...</span>
+                    </div>
+                ) : error ? (
+                    <div className="p-8 text-center text-xs text-red-500">{error}</div>
+                ) : payments.length === 0 ? (
+                    <div className="p-12 text-center text-xs text-text-muted">No payment records found matching criteria.</div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr className="border-b border-border-subtle text-text-muted bg-bg-main/50 uppercase tracking-wider font-semibold">
+                                    <th className="p-4">Payment #</th>
+                                    <th className="p-4">Date</th>
+                                    <th className="p-4">Invoice #</th>
+                                    <th className="p-4">Customer</th>
+                                    <th className="p-4">Method</th>
+                                    <th className="p-4">Ref / Cheque</th>
+                                    <th className="p-4 text-right">Amount</th>
+                                    <th className="p-4">Status</th>
+                                    <th className="p-4 text-right">Actions</th>
                                 </tr>
-                            ) : error ? (
-                                <tr>
-                                    <td colSpan="9" className="py-4">
-                                        <EmptyState type="error" message={error} onRetry={fetchPaymentsList} />
-                                    </td>
-                                </tr>
-                            ) : !payments || payments.length === 0 ? (
-                                <tr>
-                                    <td colSpan="9" className="py-4">
-                                        <EmptyState type="empty" message="No payment records found." />
-                                    </td>
-                                </tr>
-                            ) : (
-                                payments.map((p) => {
-                                    if (!p) return null;
-                                    return (
-                                        <tr key={p.id || Math.random()} className="hover:bg-bg-main/50 transition-colors">
-                                            <td className="p-4 font-bold text-text-primary align-top">
+                            </thead>
+                            <tbody className="divide-y divide-border-subtle">
+                                {payments.map((p) => (
+                                    <tr key={p.id} className="hover:bg-bg-main/40 transition-colors">
+                                        <td className="p-4 font-bold text-text-primary">
+                                            <button 
+                                                onClick={() => setSelectedPayment(p)}
+                                                className="hover:underline text-brand-primary text-left"
+                                            >
+                                                {p.paymentNumber}
+                                            </button>
+                                        </td>
+                                        <td className="p-4 text-text-muted">
+                                            {new Date(p.paymentDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                        </td>
+                                        <td className="p-4 font-medium">
+                                            <button 
+                                                onClick={() => navigate(`/invoices/${p.invoiceId}`)}
+                                                className="text-text-primary hover:text-brand-primary font-medium flex items-center gap-1 group"
+                                            >
+                                                <span>{p.invoiceNumber}</span>
+                                                <ArrowUpRight className="w-3 h-3 text-text-muted group-hover:text-brand-primary" />
+                                            </button>
+                                        </td>
+                                        <td className="p-4">
+                                            <div className="font-semibold text-text-primary">{p.customerName}</div>
+                                            {p.companyName && <div className="text-[11px] text-text-muted">{p.companyName}</div>}
+                                        </td>
+                                        <td className="p-4 font-medium text-text-primary">
+                                            <span className="px-2.5 py-1 bg-bg-main border border-border-subtle rounded-lg font-medium">
+                                                {p.paymentMethod}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-text-muted">
+                                            {p.transactionReference && <div>Ref: {p.transactionReference}</div>}
+                                            {p.chequeNumber && <div>Chq: {p.chequeNumber}</div>}
+                                            {p.bankName && <div className="text-[11px] text-text-muted">{p.bankName}</div>}
+                                            {!p.transactionReference && !p.chequeNumber && '-'}
+                                        </td>
+                                        <td className="p-4 text-right font-bold text-text-primary">
+                                            Rs. {Number(p.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </td>
+                                        <td className="p-4">
+                                            {p.status === 'RECORDED' ? (
+                                                <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-500 font-semibold rounded-full text-[11px]">
+                                                    RECORDED
+                                                </span>
+                                            ) : (
+                                                <span className="px-2.5 py-1 bg-red-500/10 text-red-500 font-semibold rounded-full text-[11px]" title={`Reason: ${p.cancellationReason || 'N/A'}`}>
+                                                    CANCELLED
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="p-4 text-right">
+                                            <div className="flex items-center justify-end gap-2">
                                                 <button 
                                                     onClick={() => setSelectedPayment(p)}
-                                                    className="hover:underline text-brand-primary text-left"
+                                                    className="p-1.5 hover:bg-bg-main text-text-muted hover:text-text-primary rounded-lg transition-colors"
+                                                    title="View Details"
                                                 >
-                                                    {p.paymentNumber || '—'}
+                                                    <Eye className="w-4 h-4" />
                                                 </button>
-                                            </td>
-                                            <td className="p-4 text-text-muted align-top">
-                                                {formatDate(p.paymentDate)}
-                                            </td>
-                                            <td className="p-4 font-medium align-top">
-                                                {p.invoiceId ? (
+                                                <button 
+                                                    onClick={() => handleDownloadReceipt(p.id, p.paymentNumber)}
+                                                    className="p-1.5 hover:bg-bg-main text-text-muted hover:text-text-primary rounded-lg transition-colors"
+                                                    title="Download Receipt PDF"
+                                                >
+                                                    <Download className="w-4 h-4" />
+                                                </button>
+                                                {p.status === 'RECORDED' && (
                                                     <button 
-                                                        onClick={() => navigate(`/invoices/${p.invoiceId}`)}
-                                                        className="text-text-primary hover:text-brand-primary font-semibold flex items-center gap-1 group"
+                                                        onClick={() => handleOpenCancelModal(p)}
+                                                        className="px-2.5 py-1 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg text-[11px] font-semibold transition-colors"
                                                     >
-                                                        <span>{p.invoiceNumber || `INV-${p.invoiceId}`}</span>
-                                                        <ArrowUpRight className="w-3 h-3 text-text-muted group-hover:text-brand-primary" />
+                                                        Cancel
                                                     </button>
-                                                ) : (
-                                                    <span>{p.invoiceNumber || '—'}</span>
                                                 )}
-                                            </td>
-                                            <td className="p-4 align-top">
-                                                <div className="font-semibold text-text-primary">{p.customerName || '—'}</div>
-                                                {p.companyName && <div className="text-[11px] text-text-muted">{p.companyName}</div>}
-                                            </td>
-                                            <td className="p-4 font-medium text-text-primary align-top">
-                                                <span className="px-2.5 py-1 bg-bg-main border border-border-subtle rounded-lg font-medium">
-                                                    {p.paymentMethod || '—'}
-                                                </span>
-                                            </td>
-                                            <td className="p-4 text-text-muted align-top">
-                                                {p.transactionReference && <div>Ref: {p.transactionReference}</div>}
-                                                {p.chequeNumber && <div>Chq: {p.chequeNumber}</div>}
-                                                {p.bankName && <div className="text-[11px] text-text-muted">{p.bankName}</div>}
-                                                {!p.transactionReference && !p.chequeNumber && '-'}
-                                            </td>
-                                            <td className="p-4 text-right font-bold text-text-primary">
-                                                Rs. {formatMoney(p.amount)}
-                                            </td>
-                                            <td className="p-4">
-                                                <StatusBadge status={p.status || 'RECORDED'} />
-                                            </td>
-                                            <td className="p-4 text-right">
-                                                <div className="flex items-center justify-end gap-2">
-                                                    <button 
-                                                        onClick={() => setSelectedPayment(p)}
-                                                        className="p-1.5 hover:bg-bg-main text-text-muted hover:text-text-primary rounded-lg transition-colors"
-                                                        title="View Details"
-                                                    >
-                                                        <Eye className="w-4 h-4" />
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => handleDownloadReceipt(p.id, p.paymentNumber)}
-                                                        className="p-1.5 hover:bg-bg-main text-text-muted hover:text-text-primary rounded-lg transition-colors"
-                                                        title="Download Receipt PDF"
-                                                    >
-                                                        <Download className="w-4 h-4" />
-                                                    </button>
-                                                    {p.status === 'RECORDED' && (
-                                                        <button 
-                                                            onClick={() => handleOpenCancelModal(p)}
-                                                            className="px-2.5 py-1 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg text-[11px] font-semibold transition-colors"
-                                                        >
-                                                            Cancel
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
 
                 {/* Pagination Footer */}
                 {totalPages > 1 && (
@@ -617,17 +576,16 @@ export default function Payments() {
                                             <div className="p-3 text-center text-xs text-text-muted flex items-center justify-center gap-2">
                                                 <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading eligible invoices...
                                             </div>
-                                        ) : !eligibleInvoices || eligibleInvoices.length === 0 ? (
+                                        ) : eligibleInvoices.length === 0 ? (
                                             <div className="p-4 text-center text-xs text-text-muted">
                                                 No eligible ISSUED or PARTIALLY_PAID Tax Invoices found.
                                             </div>
                                         ) : (
                                             eligibleInvoices.map((inv) => {
-                                                if (!inv) return null;
                                                 const isSelected = selectedInvoice && selectedInvoice.id === inv.id;
                                                 return (
                                                     <div
-                                                        key={inv.id || Math.random()}
+                                                        key={inv.id}
                                                         onClick={() => handleSelectInvoice(inv)}
                                                         className={`p-3 text-xs cursor-pointer flex items-center justify-between transition-colors ${
                                                             isSelected ? 'bg-emerald-500/10 border-l-4 border-l-emerald-600' : 'hover:bg-bg-main'
@@ -635,21 +593,21 @@ export default function Payments() {
                                                     >
                                                         <div>
                                                             <div className="font-bold text-text-primary flex items-center gap-2">
-                                                                <span>{inv.invoiceNumber || '—'}</span>
+                                                                <span>{inv.invoiceNumber}</span>
                                                                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-bg-main border border-border-subtle font-medium text-text-muted">
-                                                                    {inv.status || 'ISSUED'}
+                                                                    {inv.status}
                                                                 </span>
                                                             </div>
                                                             <div className="text-[11px] text-text-muted mt-0.5">
-                                                                {inv.clientName || '—'} {inv.clientCompany ? `(${inv.clientCompany})` : ''}
+                                                                {inv.clientName} {inv.clientCompany ? `(${inv.clientCompany})` : ''}
                                                             </div>
                                                         </div>
                                                         <div className="text-right">
                                                             <div className="font-bold text-amber-600 dark:text-amber-400">
-                                                                Bal: Rs. {formatMoney(inv.balanceDue !== undefined && inv.balanceDue !== null ? inv.balanceDue : inv.grandTotal)}
+                                                                Bal: Rs. {Number(inv.balanceDue || inv.grandTotal).toLocaleString()}
                                                             </div>
                                                             <div className="text-[11px] text-text-muted">
-                                                                Total: Rs. {formatMoney(inv.grandTotal)}
+                                                                Total: Rs. {Number(inv.grandTotal).toLocaleString()}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -665,7 +623,7 @@ export default function Payments() {
                                         <div className="flex items-center justify-between">
                                             <div className="font-bold text-xs text-text-primary flex items-center gap-1.5">
                                                 <Building2 className="w-4 h-4 text-brand-primary" />
-                                                <span>Customer: {selectedInvoice.clientName || '—'} {selectedInvoice.clientCompany ? `(${selectedInvoice.clientCompany})` : ''}</span>
+                                                <span>Customer: {selectedInvoice.clientName} {selectedInvoice.clientCompany ? `(${selectedInvoice.clientCompany})` : ''}</span>
                                             </div>
                                             <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">Selected</span>
                                         </div>
@@ -674,19 +632,19 @@ export default function Payments() {
                                             <div className="p-2 bg-bg-card rounded-lg border border-border-subtle">
                                                 <div className="text-[10px] text-text-muted font-medium">Invoice Total</div>
                                                 <div className="text-xs font-bold text-text-primary mt-0.5">
-                                                    Rs. {formatMoney(selectedInvoice.grandTotal)}
+                                                    Rs. {Number(selectedInvoice.grandTotal || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                 </div>
                                             </div>
                                             <div className="p-2 bg-emerald-500/5 rounded-lg border border-emerald-500/20">
                                                 <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Already Paid</div>
                                                 <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
-                                                    Rs. {formatMoney(selectedInvoice.amountPaid)}
+                                                    Rs. {Number(selectedInvoice.amountPaid || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                 </div>
                                             </div>
                                             <div className="p-2 bg-amber-500/5 rounded-lg border border-amber-500/20">
                                                 <div className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">Current Balance</div>
                                                 <div className="text-xs font-bold text-amber-600 dark:text-amber-400 mt-0.5">
-                                                    Rs. {formatMoney(currentInvoiceBalance)}
+                                                    Rs. {currentInvoiceBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                 </div>
                                             </div>
                                         </div>
@@ -729,10 +687,10 @@ export default function Payments() {
                                         isOverpayment ? 'bg-red-500/10 border-red-500/30 text-red-500' : 'bg-blue-500/10 border-blue-500/30 text-blue-600 dark:text-blue-400'
                                     }`}>
                                         <span className="font-medium">
-                                            {isOverpayment ? `Amount exceeds current balance by Rs. ${formatMoney(currentPaymentNumAmount - currentInvoiceBalance)}` : 'New Remaining Balance Preview:'}
+                                            {isOverpayment ? `Amount exceeds current balance by Rs. ${(currentPaymentNumAmount - currentInvoiceBalance).toLocaleString()}` : 'New Remaining Balance Preview:'}
                                         </span>
                                         <span className="font-bold">
-                                            Rs. {formatMoney(previewNewBalance)}
+                                            Rs. {previewNewBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </span>
                                     </div>
                                 )}
@@ -831,11 +789,13 @@ export default function Payments() {
                         <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle shrink-0">
                             <div>
                                 <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
-                                    <CreditCard className="w-5 h-5 text-brand-primary" /> {selectedPayment.paymentNumber || '—'}
+                                    <CreditCard className="w-5 h-5 text-brand-primary" /> {selectedPayment.paymentNumber}
                                 </h2>
-                                <div className="mt-1">
-                                    <StatusBadge status={selectedPayment.status || 'RECORDED'} />
-                                </div>
+                                <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold mt-1 ${
+                                    selectedPayment.status === 'RECORDED' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'
+                                }`}>
+                                    {selectedPayment.status}
+                                </span>
                             </div>
                             <button 
                                 onClick={() => setSelectedPayment(null)}
@@ -850,13 +810,13 @@ export default function Payments() {
                                 <div>
                                     <span className="text-text-muted block">Payment Date</span>
                                     <span className="font-bold text-text-primary text-sm mt-0.5 block">
-                                        {formatDate(selectedPayment.paymentDate)}
+                                        {new Date(selectedPayment.paymentDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                                     </span>
                                 </div>
                                 <div>
                                     <span className="text-text-muted block">Amount Received</span>
                                     <span className="font-bold text-emerald-600 dark:text-emerald-400 text-sm mt-0.5 block">
-                                        Rs. {formatMoney(selectedPayment.amount)}
+                                        Rs. {Number(selectedPayment.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </span>
                                 </div>
                             </div>
@@ -864,20 +824,16 @@ export default function Payments() {
                             <div className="space-y-3 pt-2">
                                 <div className="flex justify-between border-b border-border-subtle pb-2">
                                     <span className="text-text-muted">Associated Tax Invoice</span>
-                                    {selectedPayment.invoiceId ? (
-                                        <button 
-                                            onClick={() => { setSelectedPayment(null); navigate(`/invoices/${selectedPayment.invoiceId}`); }}
-                                            className="font-bold text-brand-primary hover:underline"
-                                        >
-                                            {selectedPayment.invoiceNumber || `INV-${selectedPayment.invoiceId}`}
-                                        </button>
-                                    ) : (
-                                        <span className="font-semibold text-text-primary">{selectedPayment.invoiceNumber || '—'}</span>
-                                    )}
+                                    <button 
+                                        onClick={() => { setSelectedPayment(null); navigate(`/invoices/${selectedPayment.invoiceId}`); }}
+                                        className="font-bold text-brand-primary hover:underline"
+                                    >
+                                        {selectedPayment.invoiceNumber}
+                                    </button>
                                 </div>
                                 <div className="flex justify-between border-b border-border-subtle pb-2">
                                     <span className="text-text-muted">Customer Name</span>
-                                    <span className="font-semibold text-text-primary">{selectedPayment.customerName || '—'}</span>
+                                    <span className="font-semibold text-text-primary">{selectedPayment.customerName}</span>
                                 </div>
                                 {selectedPayment.companyName && (
                                     <div className="flex justify-between border-b border-border-subtle pb-2">
@@ -887,7 +843,7 @@ export default function Payments() {
                                 )}
                                 <div className="flex justify-between border-b border-border-subtle pb-2">
                                     <span className="text-text-muted">Payment Method</span>
-                                    <span className="font-semibold text-text-primary">{selectedPayment.paymentMethod || '—'}</span>
+                                    <span className="font-semibold text-text-primary">{selectedPayment.paymentMethod}</span>
                                 </div>
                                 {selectedPayment.transactionReference && (
                                     <div className="flex justify-between border-b border-border-subtle pb-2">
@@ -922,8 +878,8 @@ export default function Payments() {
                                 {selectedPayment.status === 'CANCELLED' && (
                                     <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl space-y-1">
                                         <div className="font-bold text-red-500">Cancelled Record</div>
-                                        <div className="text-text-muted">Reason: {selectedPayment.cancellationReason || '—'}</div>
-                                        <div className="text-[10px] text-text-muted">Cancelled at: {formatDateTime(selectedPayment.cancelledAt)}</div>
+                                        <div className="text-text-muted">Reason: {selectedPayment.cancellationReason}</div>
+                                        <div className="text-[10px] text-text-muted">Cancelled at: {new Date(selectedPayment.cancelledAt).toLocaleString()}</div>
                                     </div>
                                 )}
                             </div>
@@ -957,7 +913,7 @@ export default function Payments() {
                     <div className="bg-bg-card border border-border-subtle rounded-2xl w-full max-w-md flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
                         <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle shrink-0">
                             <h2 className="text-base font-bold text-red-500 flex items-center gap-2">
-                                <AlertCircle className="w-5 h-5" /> Cancel Payment {cancellingPayment.paymentNumber || ''}
+                                <AlertCircle className="w-5 h-5" /> Cancel Payment {cancellingPayment.paymentNumber}
                             </h2>
                             <button 
                                 onClick={() => setCancellingPayment(null)}

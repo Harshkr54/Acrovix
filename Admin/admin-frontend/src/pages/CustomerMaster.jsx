@@ -3,9 +3,6 @@ import { getCustomers, createCustomer, updateCustomer, deleteCustomer, activateC
 import { useAuth } from '../context/AuthContext';
 import { UsersRound, Plus, ShieldAlert, AlertCircle, RefreshCw, X, Building, Mail, Phone, MapPin } from 'lucide-react';
 
-import PageHeader from '../components/ui/PageHeader';
-import StatusBadge from '../components/ui/StatusBadge';
-
 export default function CustomerMaster() {
     const { user: currentUser } = useAuth();
     const [customers, setCustomers] = useState([]);
@@ -115,21 +112,24 @@ export default function CustomerMaster() {
         <div className="space-y-6 max-w-[1600px] mx-auto pb-12">
             
             {/* Header */}
-            <PageHeader 
-                title="Customers" 
-                subtitle="Manage customer database and billing information." 
-                action={
-                    <button 
-                        onClick={() => {
-                            if (showForm) resetForm();
-                            else setShowForm(true);
-                        }}
-                        className={showForm ? "btn-secondary" : "btn-primary"}
-                    >
-                        {showForm ? 'Cancel' : <><Plus className="w-4 h-4 mr-2" /> Add Customer</>}
-                    </button>
-                }
-            />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
+                <div>
+                    <h1 className="text-[28px] font-bold text-text-primary tracking-tight leading-tight flex items-center">
+                        <UsersRound className="w-7 h-7 mr-3 text-[#14B8A6]" />
+                        Customers
+                    </h1>
+                    <p className="text-[13px] text-text-secondary mt-1">Manage customer database and billing information.</p>
+                </div>
+                <button 
+                    onClick={() => {
+                        if (showForm) resetForm();
+                        else setShowForm(true);
+                    }}
+                    className={showForm ? "inline-flex items-center px-4 py-2.5 bg-bg-card hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors shadow-sm" : "btn-primary flex items-center px-4 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]"}
+                >
+                    {showForm ? 'Cancel' : <><Plus className="w-4 h-4 mr-2" /> Add Customer</>}
+                </button>
+            </div>
 
             {/* Form Drawer / Card */}
             {showForm && (

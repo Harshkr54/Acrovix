@@ -9,11 +9,10 @@ import {
     AlertTriangle, 
     TrendingUp, 
     Calendar,
-    ArrowUpRight
+    ArrowUpRight,
+    Users
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import PageHeader from '../components/ui/PageHeader';
-import EmptyState from '../components/ui/EmptyState';
 
 export default function Receivables() {
     const navigate = useNavigate();
@@ -52,67 +51,70 @@ export default function Receivables() {
     const totalOverdueSum = receivables.reduce((sum, r) => sum + (Number(r.overdueAmount) || 0), 0);
 
     return (
-        <div className="space-y-6 max-w-[1600px] mx-auto pb-24">
+        <div className="p-8 max-w-7xl mx-auto space-y-6 pb-24">
             {/* Header */}
-            <PageHeader
-                title="Receivables"
-                subtitle="Track customer outstanding balances, payment collections, and overdue accounts."
-                icon={DollarSign}
-            />
+            <div>
+                <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2.5">
+                    <DollarSign className="w-7 h-7 text-emerald-600" /> Customer Receivables & Outstanding
+                </h1>
+                <p className="text-xs text-text-muted mt-1">
+                    Real-time ledger breakdown of customer invoices, payments received, balances due, and overdue accounts.
+                </p>
+            </div>
 
             {/* KPI Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="bg-bg-card border border-border-subtle rounded-2xl p-5 shadow-sm flex items-center justify-between">
                     <div>
-                        <div className="text-xs text-text-muted font-semibold uppercase tracking-wider">Total Invoiced</div>
+                        <div className="text-xs text-text-muted font-medium uppercase tracking-wider">Total Invoiced</div>
                         <div className="text-xl font-bold text-text-primary mt-1">
-                            ₹{totalInvoicedSum.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            Rs. {totalInvoicedSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
                     </div>
-                    <div className="w-12 h-12 bg-teal-50 dark:bg-teal-950/40 text-brand-primary rounded-2xl flex items-center justify-center">
+                    <div className="p-3 bg-blue-500/10 text-blue-500 rounded-xl">
                         <TrendingUp className="w-6 h-6" />
                     </div>
                 </div>
 
                 <div className="bg-bg-card border border-border-subtle rounded-2xl p-5 shadow-sm flex items-center justify-between">
                     <div>
-                        <div className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold uppercase tracking-wider">Total Received</div>
+                        <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium uppercase tracking-wider">Total Received</div>
                         <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">
-                            ₹{totalReceivedSum.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            Rs. {totalReceivedSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
                     </div>
-                    <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 rounded-2xl flex items-center justify-center">
+                    <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-xl">
                         <CheckCircle2 className="w-6 h-6" />
                     </div>
                 </div>
 
                 <div className="bg-bg-card border border-border-subtle rounded-2xl p-5 shadow-sm flex items-center justify-between">
                     <div>
-                        <div className="text-xs text-amber-600 dark:text-amber-400 font-semibold uppercase tracking-wider">Outstanding</div>
+                        <div className="text-xs text-amber-600 dark:text-amber-400 font-medium uppercase tracking-wider">Outstanding Balance</div>
                         <div className="text-xl font-bold text-amber-600 dark:text-amber-400 mt-1">
-                            ₹{totalOutstandingSum.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            Rs. {totalOutstandingSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
                     </div>
-                    <div className="w-12 h-12 bg-amber-50 dark:bg-amber-950/40 text-amber-600 rounded-2xl flex items-center justify-center">
+                    <div className="p-3 bg-amber-500/10 text-amber-500 rounded-xl">
                         <Clock className="w-6 h-6" />
                     </div>
                 </div>
 
                 <div className="bg-bg-card border border-border-subtle rounded-2xl p-5 shadow-sm flex items-center justify-between">
                     <div>
-                        <div className="text-xs text-red-500 font-semibold uppercase tracking-wider">Overdue Balance</div>
+                        <div className="text-xs text-red-500 font-medium uppercase tracking-wider">Overdue Balance</div>
                         <div className="text-xl font-bold text-red-500 mt-1">
-                            ₹{totalOverdueSum.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            Rs. {totalOverdueSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
                     </div>
-                    <div className="w-12 h-12 bg-red-50 dark:bg-red-950/40 text-red-500 rounded-2xl flex items-center justify-center">
+                    <div className="p-3 bg-red-500/10 text-red-500 rounded-xl">
                         <AlertTriangle className="w-6 h-6" />
                     </div>
                 </div>
             </div>
 
             {/* Filter Bar */}
-            <div className="bg-bg-card border border-border-subtle rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="bg-bg-card border border-border-subtle rounded-2xl p-5 shadow-sm flex items-center justify-between">
                 <form onSubmit={handleSearchSubmit} className="flex items-center gap-3 w-full max-w-md">
                     <div className="relative flex-1">
                         <Search className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
@@ -121,12 +123,12 @@ export default function Receivables() {
                             placeholder="Search by customer name or company..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="w-full pl-9 pr-4 py-2.5 bg-bg-main border border-border-subtle rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-primary"
+                            className="w-full pl-9 pr-4 py-2 bg-bg-main border border-border-subtle rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-primary"
                         />
                     </div>
                     <button
                         type="submit"
-                        className="btn-primary text-xs px-4 py-2.5 rounded-xl font-semibold"
+                        className="px-4 py-2 bg-brand-primary text-white rounded-xl text-xs font-semibold hover:bg-brand-secondary transition-colors"
                     >
                         Filter
                     </button>
@@ -138,47 +140,35 @@ export default function Receivables() {
 
             {/* Customer Receivables Table */}
             <div className="bg-bg-card border border-border-subtle rounded-2xl overflow-hidden shadow-sm">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs">
-                        <thead className="bg-bg-main/50 text-text-muted uppercase font-semibold">
-                            <tr>
-                                <th className="p-4">Customer / Code</th>
-                                <th className="p-4">Company</th>
-                                <th className="p-4 text-right">Total Invoiced</th>
-                                <th className="p-4 text-right">Total Received</th>
-                                <th className="p-4 text-right">Outstanding</th>
-                                <th className="p-4 text-right">Overdue</th>
-                                <th className="p-4">Oldest Due Date</th>
-                                <th className="p-4 text-right">Invoices</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border-subtle">
-                            {loading ? (
-                                <tr>
-                                    <td colSpan="8" className="py-8">
-                                        <EmptyState type="loading" message="Loading customer receivables..." />
-                                    </td>
+                {loading ? (
+                    <div className="p-12 text-center text-xs text-text-muted">Loading customer receivables...</div>
+                ) : error ? (
+                    <div className="p-8 text-center text-xs text-red-500">{error}</div>
+                ) : receivables.length === 0 ? (
+                    <div className="p-12 text-center text-xs text-text-muted">No customer receivable records found.</div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr className="border-b border-border-subtle text-text-muted bg-bg-main/50 uppercase tracking-wider font-semibold">
+                                    <th className="p-4">Customer / Code</th>
+                                    <th className="p-4">Company</th>
+                                    <th className="p-4 text-right">Total Invoiced</th>
+                                    <th className="p-4 text-right">Total Received</th>
+                                    <th className="p-4 text-right">Outstanding</th>
+                                    <th className="p-4 text-right">Overdue</th>
+                                    <th className="p-4">Oldest Due Date</th>
+                                    <th className="p-4 text-right">Invoices</th>
                                 </tr>
-                            ) : error ? (
-                                <tr>
-                                    <td colSpan="8" className="py-8">
-                                        <EmptyState type="error" message={error} onRetry={fetchReceivables} />
-                                    </td>
-                                </tr>
-                            ) : receivables.length === 0 ? (
-                                <tr>
-                                    <td colSpan="8" className="py-8">
-                                        <EmptyState type="empty" message="No customer receivable records found." />
-                                    </td>
-                                </tr>
-                            ) : (
-                                receivables.map((r) => (
-                                    <tr key={r.customerId} className="hover:bg-bg-main/50 transition-colors">
-                                        <td className="p-4 font-bold text-text-primary align-top">
-                                            <div className="text-sm font-semibold">{r.customerName}</div>
-                                            <div className="text-xs font-mono text-brand-primary">{r.customerCode}</div>
+                            </thead>
+                            <tbody className="divide-y divide-border-subtle">
+                                {receivables.map((r) => (
+                                    <tr key={r.customerId} className="hover:bg-bg-main/40 transition-colors">
+                                        <td className="p-4 font-bold text-text-primary">
+                                            <div className="text-sm">{r.customerName}</div>
+                                            <div className="text-[11px] font-mono text-text-muted">{r.customerCode}</div>
                                         </td>
-                                        <td className="p-4 text-text-primary align-top">
+                                        <td className="p-4 text-text-primary">
                                             {r.companyName ? (
                                                 <div className="flex items-center gap-1.5 font-medium">
                                                     <Building2 className="w-3.5 h-3.5 text-text-muted shrink-0" />
@@ -186,59 +176,48 @@ export default function Receivables() {
                                                 </div>
                                             ) : '-'}
                                         </td>
-                                        <td className="p-4 text-right font-medium text-text-primary align-top">
-                                            ₹{Number(r.totalInvoiced || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        <td className="p-4 text-right font-medium text-text-primary">
+                                            Rs. {Number(r.totalInvoiced || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </td>
-                                        <td className="p-4 text-right font-semibold text-emerald-600 dark:text-emerald-400 align-top">
-                                            ₹{Number(r.totalReceived || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        <td className="p-4 text-right font-semibold text-emerald-600 dark:text-emerald-400">
+                                            Rs. {Number(r.totalReceived || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </td>
-                                        <td className="p-4 text-right font-bold text-amber-600 dark:text-amber-400 align-top">
-                                            ₹{Number(r.outstandingAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        <td className="p-4 text-right font-bold text-amber-600 dark:text-amber-400">
+                                            Rs. {Number(r.outstandingAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </td>
-                                        <td className="p-4 text-right align-top">
+                                        <td className="p-4 text-right">
                                             {Number(r.overdueAmount) > 0 ? (
-                                                <span className="font-bold text-red-500 px-2 py-0.5 bg-red-50 dark:bg-red-950/40 rounded-full">
-                                                    ₹{Number(r.overdueAmount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                <span className="font-bold text-red-500 px-2 py-0.5 bg-red-500/10 rounded-full">
+                                                    Rs. {Number(r.overdueAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                 </span>
                                             ) : (
-                                                <span className="text-text-muted">₹0.00</span>
+                                                <span className="text-text-muted">Rs. 0.00</span>
                                             )}
                                         </td>
-                                        <td className="p-4 text-text-muted font-medium align-top">
-                                            {(() => {
-                                                if (!r.oldestDueDate) return '-';
-                                                try {
-                                                    const d = new Date(r.oldestDueDate);
-                                                    if (isNaN(d.getTime())) return '-';
-                                                    const isOverdue = d < new Date() && Number(r.outstandingAmount) > 0;
-                                                    return (
-                                                        <span className={`inline-flex items-center gap-1 ${isOverdue ? 'text-red-500 font-bold' : ''}`}>
-                                                            <Calendar className="w-3.5 h-3.5" />
-                                                            {d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                                                        </span>
-                                                    );
-                                                } catch (e) {
-                                                    return '-';
-                                                }
-                                            })()}
+                                        <td className="p-4 text-text-muted font-medium">
+                                            {r.oldestDueDate ? (
+                                                <span className={`inline-flex items-center gap-1 ${new Date(r.oldestDueDate) < new Date() && Number(r.outstandingAmount) > 0 ? 'text-red-500 font-bold' : ''}`}>
+                                                    <Calendar className="w-3.5 h-3.5" />
+                                                    {new Date(r.oldestDueDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                </span>
+                                            ) : '-'}
                                         </td>
-                                        <td className="p-4 text-right align-top">
+                                        <td className="p-4 text-right">
                                             <button
                                                 onClick={() => navigate(`/invoices?search=${encodeURIComponent(r.customerName)}`)}
-                                                className="btn-secondary text-xs px-3 py-1.5 rounded-xl font-medium inline-flex items-center gap-1"
+                                                className="px-3 py-1.5 bg-bg-main border border-border-subtle hover:bg-brand-primary hover:text-white hover:border-brand-primary rounded-lg text-xs font-medium transition-colors inline-flex items-center gap-1"
                                             >
                                                 <span>View Invoices</span>
                                                 <ArrowUpRight className="w-3 h-3" />
                                             </button>
                                         </td>
                                     </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
         </div>
     );
 }
-

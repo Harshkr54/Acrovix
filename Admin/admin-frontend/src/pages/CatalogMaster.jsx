@@ -1,10 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { getCatalog, createCatalogItem, updateCatalogItem, deleteCatalogItem, activateCatalogItem } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { Package, Plus, ShieldAlert, X, Tag, DollarSign, Percent } from 'lucide-react';
-import PageHeader from '../components/ui/PageHeader';
-import StatusBadge from '../components/ui/StatusBadge';
-import EmptyState from '../components/ui/EmptyState';
+import { Package, Plus, ShieldAlert, AlertCircle, RefreshCw, X, Box, Tag, DollarSign, Percent } from 'lucide-react';
 
 export default function CatalogMaster() {
     const { user: currentUser } = useAuth();
@@ -47,7 +44,7 @@ export default function CatalogMaster() {
             })
             .catch(err => {
                 console.error("Error fetching catalog", err);
-                setError(err.message || 'Failed to load catalog');
+                setError(err.message);
                 setIsLoading(false);
             });
     }, []);
@@ -104,13 +101,13 @@ export default function CatalogMaster() {
 
     if (!['SUPER_ADMIN', 'SALES'].includes(currentUser?.role)) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh]">
-                <div className="bg-bg-card p-8 text-center max-w-md w-full border border-border-subtle rounded-2xl shadow-sm">
-                    <div className="w-16 h-16 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 mx-auto rounded-2xl flex items-center justify-center mb-6">
-                        <ShieldAlert className="w-8 h-8 text-red-500" />
+            <div className="flex flex-col items-center justify-center h-[70vh]">
+                <div className="card p-8 text-center max-w-md w-full border-t-4 border-[#DC2626]">
+                    <div className="w-16 h-16 bg-[#FEF2F2] border border-[#FCA5A5] mx-auto rounded-[20px] flex items-center justify-center mb-6 shadow-sm">
+                        <ShieldAlert className="w-8 h-8 text-[#DC2626]" />
                     </div>
-                    <h2 className="text-xl font-bold text-text-primary mb-2">Unauthorized Access</h2>
-                    <p className="text-sm text-text-muted">You do not have permission to view catalog.</p>
+                    <h2 className="text-[20px] font-bold text-text-primary mb-2 tracking-tight">Unauthorized Access</h2>
+                    <p className="text-[13px] text-text-secondary">You do not have permission to view catalog.</p>
                 </div>
             </div>
         );
@@ -120,86 +117,88 @@ export default function CatalogMaster() {
         <div className="space-y-6 max-w-[1600px] mx-auto pb-12">
             
             {/* Header */}
-            <PageHeader
-                title="Product & Service Catalog"
-                subtitle="Manage products, services, default pricing, and HSN/SAC codes."
-                icon={Package}
-                action={
-                    canManage ? (
-                        <button 
-                            onClick={() => {
-                                if (showForm) resetForm();
-                                else setShowForm(true);
-                            }}
-                            className={showForm ? "btn-secondary text-xs px-4 py-2.5 rounded-xl font-medium" : "btn-primary text-xs px-4 py-2.5 rounded-xl font-medium flex items-center gap-2"}
-                        >
-                            {showForm ? 'Cancel' : <><Plus className="w-4 h-4" /> Add Item</>}
-                        </button>
-                    ) : null
-                }
-            />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
+                <div>
+                    <h1 className="text-[28px] font-bold text-text-primary tracking-tight leading-tight flex items-center">
+                        <Package className="w-7 h-7 mr-3 text-[#4F46E5]" />
+                        Product & Service Catalog
+                    </h1>
+                    <p className="text-[13px] text-text-secondary mt-1">View our available products and services database.</p>
+                </div>
+                {canManage && (
+                    <button 
+                        onClick={() => {
+                            if (showForm) resetForm();
+                            else setShowForm(true);
+                        }}
+                        className={showForm ? "inline-flex items-center px-4 py-2.5 bg-bg-card hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors shadow-sm" : "btn-primary flex items-center px-4 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]"}
+                    >
+                        {showForm ? 'Cancel' : <><Plus className="w-4 h-4 mr-2" /> Add Item</>}
+                    </button>
+                )}
+            </div>
 
             {/* Form Drawer / Card */}
             {showForm && canManage && (
-                <div className="bg-bg-card border border-brand-primary/20 rounded-2xl p-6 shadow-sm mb-6 relative">
+                <div className="card p-6 border border-[#4F46E5]/20 mb-6 relative overflow-hidden">
                     <div className="absolute top-4 right-4">
                         <button onClick={resetForm} className="text-text-muted hover:text-text-primary"><X className="w-5 h-5"/></button>
                     </div>
-                    <h2 className="text-base font-bold text-text-primary mb-6 flex items-center gap-2">
-                        <Package className="w-5 h-5 text-brand-primary" />
+                    <h2 className="text-[16px] font-bold text-text-primary mb-6 flex items-center tracking-tight">
+                        <Package className="w-5 h-5 mr-2 text-[#4F46E5]" />
                         {editingId ? 'Edit Item' : 'Add New Item'}
                     </h2>
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                             <div>
-                                <label className="block text-xs font-semibold text-text-muted uppercase mb-2">Item Type</label>
-                                <select required value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})} className="w-full bg-bg-main border border-border-subtle rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-brand-primary cursor-pointer">
+                                <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">Item Type</label>
+                                <select required value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})} className="input-field rounded-xl text-[13px] bg-bg-main h-11 appearance-none cursor-pointer">
                                     <option value="PRODUCT">Product</option>
                                     <option value="SERVICE">Service</option>
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-xs font-semibold text-text-muted uppercase mb-2">SKU Code</label>
+                                <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">SKU Code</label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><Tag className="h-4 w-4 text-text-muted" /></div>
-                                    <input required type="text" value={formData.sku} onChange={e => setFormData({...formData, sku: e.target.value})} className="w-full bg-bg-main border border-border-subtle rounded-xl pl-10 pr-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-brand-primary" placeholder="SKU-001" />
+                                    <input required type="text" value={formData.sku} onChange={e => setFormData({...formData, sku: e.target.value})} className="input-field pl-9 rounded-xl text-[13px] bg-bg-main h-11" placeholder="SKU-001" />
                                 </div>
                             </div>
                             <div className="md:col-span-2">
-                                <label className="block text-xs font-semibold text-text-muted uppercase mb-2">Item Name</label>
-                                <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-bg-main border border-border-subtle rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-brand-primary" placeholder="Product/Service Name" />
+                                <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">Item Name</label>
+                                <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="input-field rounded-xl text-[13px] bg-bg-main h-11" placeholder="Product/Service Name" />
                             </div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                             <div>
-                                <label className="block text-xs font-semibold text-text-muted uppercase mb-2">HSN / SAC Code</label>
-                                <input type="text" value={formData.hsnSac} onChange={e => setFormData({...formData, hsnSac: e.target.value})} className="w-full bg-bg-main border border-border-subtle rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-brand-primary" placeholder="Optional" />
+                                <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">HSN / SAC Code</label>
+                                <input type="text" value={formData.hsnSac} onChange={e => setFormData({...formData, hsnSac: e.target.value})} className="input-field rounded-xl text-[13px] bg-bg-main h-11" placeholder="Optional" />
                             </div>
                             <div>
-                                <label className="block text-xs font-semibold text-text-muted uppercase mb-2">Unit</label>
-                                <input type="text" value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})} className="w-full bg-bg-main border border-border-subtle rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-brand-primary" placeholder="NOS, KG, HR..." />
+                                <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">Unit</label>
+                                <input type="text" value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})} className="input-field rounded-xl text-[13px] bg-bg-main h-11" placeholder="NOS, KG, HR..." />
                             </div>
                             <div>
-                                <label className="block text-xs font-semibold text-text-muted uppercase mb-2">Default Rate</label>
+                                <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">Default Rate</label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><DollarSign className="h-4 w-4 text-text-muted" /></div>
-                                    <input required type="number" step="0.01" value={formData.defaultRate} onChange={e => setFormData({...formData, defaultRate: e.target.value})} className="w-full bg-bg-main border border-border-subtle rounded-xl pl-10 pr-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-brand-primary" placeholder="0.00" />
+                                    <input required type="number" step="0.01" value={formData.defaultRate} onChange={e => setFormData({...formData, defaultRate: e.target.value})} className="input-field pl-9 rounded-xl text-[13px] bg-bg-main h-11" placeholder="0.00" />
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-xs font-semibold text-text-muted uppercase mb-2">Default GST %</label>
+                                <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">Default GST %</label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><Percent className="h-4 w-4 text-text-muted" /></div>
-                                    <input type="number" step="0.01" value={formData.defaultGstPercent} onChange={e => setFormData({...formData, defaultGstPercent: e.target.value})} className="w-full bg-bg-main border border-border-subtle rounded-xl pl-10 pr-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-brand-primary" placeholder="18.0" />
+                                    <input type="number" step="0.01" value={formData.defaultGstPercent} onChange={e => setFormData({...formData, defaultGstPercent: e.target.value})} className="input-field pl-9 rounded-xl text-[13px] bg-bg-main h-11" placeholder="18.0" />
                                 </div>
                             </div>
                         </div>
                         <div>
-                            <label className="block text-xs font-semibold text-text-muted uppercase mb-2">Description</label>
-                            <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full bg-bg-main border border-border-subtle rounded-xl p-3 text-sm text-text-primary focus:outline-none focus:border-brand-primary min-h-[70px]" placeholder="Enter optional item description..."></textarea>
+                            <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">Description</label>
+                            <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="input-field rounded-xl text-[13px] bg-bg-main min-h-[60px] p-3" placeholder="Enter optional item description..."></textarea>
                         </div>
                         <div className="pt-2 flex justify-end">
-                            <button type="submit" className="btn-primary text-xs px-6 py-2.5 rounded-xl font-semibold">
+                            <button type="submit" className="btn-primary px-8 py-2.5 text-[13px] font-semibold shadow-[0_4px_14px_rgba(79,70,229,0.25)] border-transparent">
                                 {editingId ? 'Update Item' : 'Save Item'}
                             </button>
                         </div>
@@ -207,71 +206,93 @@ export default function CatalogMaster() {
                 </div>
             )}
 
-            <div className="bg-bg-card border border-border-subtle rounded-2xl overflow-hidden shadow-sm">
+            <div className="card flex flex-col">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
-                        <thead className="bg-bg-main/50 text-text-muted text-xs uppercase font-semibold">
+                    <table className="min-w-full divide-y divide-border-subtle">
+                        <thead>
                             <tr>
-                                <th className="px-6 py-4">SKU / Name</th>
-                                <th className="px-6 py-4">Type</th>
-                                <th className="px-6 py-4">Tax Info</th>
-                                <th className="px-6 py-4 text-right">Pricing</th>
-                                <th className="px-6 py-4 text-center">Status</th>
-                                {canManage && <th className="px-6 py-4 text-right">Actions</th>}
+                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card rounded-tl-[24px]">SKU / Name</th>
+                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Type</th>
+                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Tax Info</th>
+                                <th className="px-6 py-4 text-right text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Pricing</th>
+                                <th className="px-6 py-4 text-center text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Status</th>
+                                {canManage && <th className="px-6 py-4 text-right text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card rounded-tr-[24px]">Actions</th>}
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-border-subtle">
-                            {isLoading ? (
+                        <tbody className="bg-bg-card divide-y divide-border-subtle/40 rounded-b-[24px]">
+                            {error ? (
                                 <tr>
-                                    <td colSpan={canManage ? "6" : "5"} className="py-8">
-                                        <EmptyState type="loading" message="Loading catalog items..." />
+                                    <td colSpan={canManage ? "6" : "5"} className="px-6 py-20 text-center">
+                                        <div className="flex flex-col items-center justify-center space-y-4 max-w-sm mx-auto">
+                                            <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mb-1">
+                                                <AlertCircle className="w-6 h-6 text-red-500" />
+                                            </div>
+                                            <p className="text-[15px] font-bold text-text-primary">Failed to load catalog</p>
+                                            <p className="text-[13px] text-text-secondary leading-relaxed">{error}</p>
+                                            <button onClick={fetchCatalog} className="btn-primary mt-2">
+                                                <RefreshCw className="w-4 h-4 mr-2" />
+                                                Retry
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
-                            ) : error ? (
+                            ) : isLoading ? (
                                 <tr>
-                                    <td colSpan={canManage ? "6" : "5"} className="py-8">
-                                        <EmptyState type="error" message={error} onRetry={fetchCatalog} />
+                                    <td colSpan={canManage ? "6" : "5"} className="px-6 py-16 text-center">
+                                        <div className="flex justify-center mb-4">
+                                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4F46E5]"></div>
+                                        </div>
+                                        <p className="text-[13px] font-medium text-text-muted">Loading catalog...</p>
                                     </td>
                                 </tr>
                             ) : items.length === 0 ? (
                                 <tr>
-                                    <td colSpan={canManage ? "6" : "5"} className="py-8">
-                                        <EmptyState type="empty" message="No catalog items found." />
+                                    <td colSpan={canManage ? "6" : "5"} className="px-6 py-16 text-center text-text-muted text-[13px] font-medium">
+                                        No items found.
                                     </td>
                                 </tr>
                             ) : (
                                 items.map(c => (
-                                    <tr key={c.id} className="hover:bg-bg-main/50 transition-colors">
-                                        <td className="px-6 py-4 align-top">
-                                            <div className="text-xs font-bold text-brand-primary uppercase tracking-wider mb-0.5">{c.sku}</div>
-                                            <div className="text-sm font-semibold text-text-primary">{c.name}</div>
-                                            {c.description && <div className="text-xs text-text-muted mt-1 max-w-md line-clamp-1">{c.description}</div>}
+                                    <tr key={c.id} className="hover:bg-bg-hover transition-colors group">
+                                        <td className="px-6 py-4 whitespace-nowrap align-top">
+                                            <div className="text-[11px] font-bold text-text-muted mb-0.5 tracking-wider">{c.sku}</div>
+                                            <div className="text-[13px] font-bold text-text-primary tracking-tight">{c.name}</div>
                                         </td>
-                                        <td className="px-6 py-4 align-top">
-                                            <StatusBadge status={c.type} />
+                                        <td className="px-6 py-4 whitespace-nowrap align-top">
+                                            <span className={`inline-flex items-center text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md ${c.type === 'PRODUCT' ? 'bg-[#F3E8FF] text-[#7E22CE]' : 'bg-[#E0F2FE] text-[#0369A1]'}`}>
+                                                {c.type}
+                                            </span>
                                         </td>
-                                        <td className="px-6 py-4 align-top">
-                                            <div className="text-xs text-text-secondary">HSN: {c.hsnSac || 'N/A'}</div>
-                                            <div className="text-xs text-text-secondary mt-0.5">GST: {c.defaultGstPercent ? `${c.defaultGstPercent}%` : 'N/A'}</div>
+                                        <td className="px-6 py-4 whitespace-nowrap align-top">
+                                            <div className="text-[12px] font-medium text-text-secondary">HSN: {c.hsnSac || 'N/A'}</div>
+                                            <div className="text-[12px] font-medium text-text-secondary mt-0.5">GST: {c.defaultGstPercent ? `${c.defaultGstPercent}%` : 'N/A'}</div>
                                         </td>
-                                        <td className="px-6 py-4 align-top text-right">
-                                            <div className="text-sm font-bold text-text-primary">₹{Number(c.defaultRate).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
-                                            <div className="text-xs text-text-muted uppercase mt-0.5">per {c.unit}</div>
+                                        <td className="px-6 py-4 whitespace-nowrap align-top text-right">
+                                            <div className="text-[14px] font-bold text-text-primary">₹ {Number(c.defaultRate).toFixed(2)}</div>
+                                            <div className="text-[11px] font-medium text-text-muted uppercase mt-0.5">per {c.unit}</div>
                                         </td>
-                                        <td className="px-6 py-4 align-top text-center">
-                                            <StatusBadge status={c.active ? 'ACTIVE' : 'INACTIVE'} />
+                                        <td className="px-6 py-4 whitespace-nowrap align-top text-center">
+                                            {c.active ? (
+                                                <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-[#059669] bg-[#059669]/10 px-2 py-1 rounded-md">
+                                                    Active
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-[#DC2626] bg-[#DC2626]/10 px-2 py-1 rounded-md">
+                                                    Inactive
+                                                </span>
+                                            )}
                                         </td>
                                         {canManage && (
-                                            <td className="px-6 py-4 align-top text-right whitespace-nowrap">
+                                            <td className="px-6 py-4 whitespace-nowrap align-top text-right">
                                                 <button 
                                                     onClick={() => handleEdit(c)}
-                                                    className="text-xs font-semibold text-brand-primary hover:text-brand-hover transition-colors mr-4"
+                                                    className="text-[12px] font-semibold text-[#4F46E5] hover:text-[#4338CA] transition-colors mr-4"
                                                 >
                                                     Edit
                                                 </button>
                                                 <button 
                                                     onClick={() => toggleStatus(c.id, c.active)}
-                                                    className={`text-xs font-semibold transition-colors ${c.active ? 'text-red-500 hover:text-red-600' : 'text-brand-primary hover:text-brand-hover'}`}
+                                                    className={`text-[12px] font-semibold transition-colors ${c.active ? 'text-[#DC2626] hover:text-[#B91C1C]' : 'text-[#4F46E5] hover:text-[#4338CA]'}`}
                                                 >
                                                     {c.active ? 'Deactivate' : 'Activate'}
                                                 </button>
@@ -287,4 +308,3 @@ export default function CatalogMaster() {
         </div>
     );
 }
-

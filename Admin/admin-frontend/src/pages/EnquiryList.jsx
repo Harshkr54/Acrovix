@@ -3,8 +3,7 @@ import { createPortal } from 'react-dom';
 import { fetchApi } from '../services/api';
 import { Link } from 'react-router-dom';
 import { Search, Filter, Calendar, ChevronLeft, ChevronRight, Plus, Inbox, MoreHorizontal, AlertCircle, RefreshCw, Eye, Check, FileText } from 'lucide-react';
-import PageHeader from '../components/ui/PageHeader';
-import StatusBadge from '../components/ui/StatusBadge';
+import EnquiryDetailModal from '../components/EnquiryDetailModal';
 
 export default function EnquiryList() {
     const [enquiries, setEnquiries] = useState([]);
@@ -210,10 +209,12 @@ export default function EnquiryList() {
         <div className="space-y-6 max-w-[1600px] mx-auto pb-12">
             
             {/* Header */}
-            <PageHeader 
-                title="Enquiries" 
-                subtitle="Manage and track incoming business enquiries." 
-            />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
+                <div>
+                    <h1 className="text-[28px] font-bold text-text-primary tracking-tight leading-tight">Enquiries</h1>
+                    <p className="text-[13px] text-text-secondary mt-1">Manage and track incoming business enquiries. Double-click any row to view details.</p>
+                </div>
+            </div>
             
             {/* Date Validation Error Banner */}
             {dateError && (

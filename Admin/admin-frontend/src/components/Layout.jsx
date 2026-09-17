@@ -98,10 +98,10 @@ export default function Layout() {
     };
 
     const workspaceItems = [
-        { path: '/', name: 'Dashboard', icon: LayoutDashboard },
-        { path: '/enquiries', name: 'Enquiries', icon: MessageSquare },
+        { path: '/', name: 'Overview', icon: LayoutDashboard },
         { path: '/customers', name: 'Customers', icon: UsersRound },
         { path: '/catalog', name: 'Catalog', icon: Package },
+        { path: '/enquiries', name: 'Enquiries', icon: MessageSquare },
         { path: '/quotations', name: 'Quotations', icon: FileText },
         { path: '/purchase-orders', name: 'Purchase Orders', icon: ShoppingCart },
         { path: '/invoices', name: 'Invoices', icon: FileText },
@@ -115,7 +115,7 @@ export default function Layout() {
     }
 
     const systemItems = [
-        { path: '/activity', name: 'Activity Log', icon: Trash2 },
+        { path: '/trash', name: 'Trash', icon: Trash2 },
         { path: '/settings', name: 'Settings', icon: Settings }
     ];
 
@@ -131,24 +131,22 @@ export default function Layout() {
 
             {/* Sidebar */}
             <div className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-bg-card border-r border-border-subtle transition-all duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isCollapsed ? 'w-20' : 'w-64'} lg:relative lg:translate-x-0`}>
-                <div className="flex items-center justify-between h-[72px] px-5 border-b border-border-subtle/50">
+                <div className="flex items-center justify-between h-[72px] px-4 border-b border-border-subtle/50">
                     {!isCollapsed ? (
-                        <div className="flex flex-col justify-center h-full flex-1 min-w-0 pr-2">
+                        <div className="flex items-center h-full flex-1 min-w-0 pr-2">
                             <img 
                                 src={theme === 'dark' ? logoDark : logoLight} 
-                                alt="ACROVIX ERP" 
-                                className="h-9 w-full max-w-[170px] object-contain object-left transition-opacity duration-200" 
+                                alt="ACROVIX Innovations Private Limited" 
+                                className="h-12 w-full max-w-[190px] object-contain object-left transition-opacity duration-200" 
                             />
-                            <span className="text-[10px] font-extrabold tracking-[0.2em] text-[#0F8F95] uppercase mt-0.5 pl-0.5">ERP</span>
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center justify-center w-full h-full">
+                        <div className="flex items-center justify-center w-full h-full">
                             <img 
                                 src={theme === 'dark' ? logoDark : logoLight} 
                                 alt="ACROVIX" 
-                                className="h-8 w-full max-w-[50px] object-contain transition-opacity duration-200" 
+                                className="h-9 w-full max-w-[56px] object-contain transition-opacity duration-200" 
                             />
-                            <span className="text-[9px] font-extrabold tracking-widest text-[#0F8F95] uppercase">ERP</span>
                         </div>
                     )}
                     <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden text-text-muted hover:text-text-primary transition-colors p-1 rounded-lg">
@@ -156,11 +154,11 @@ export default function Layout() {
                     </button>
                 </div>
                 
-                <div className="flex-1 overflow-y-auto py-5 hide-scrollbar">
-                    <nav className="space-y-6 px-3">
+                <div className="flex-1 overflow-y-auto py-6 hide-scrollbar">
+                    <nav className="space-y-8 px-4">
                         {/* Workspace Section */}
                         <div>
-                            {!isCollapsed && <p className="px-3 mb-2 text-[10px] font-bold text-text-muted uppercase tracking-wider">Navigation</p>}
+                            {!isCollapsed && <p className="px-3 mb-3 text-[11px] font-semibold text-text-muted uppercase tracking-wider">Workspace</p>}
                             <div className="space-y-1">
                                 {workspaceItems.map((item) => {
                                     const Icon = item.icon;
@@ -170,18 +168,21 @@ export default function Layout() {
                                             key={item.name}
                                             to={item.path}
                                             onClick={() => setIsSidebarOpen(false)}
-                                            className={`group relative flex items-center px-3.5 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 ${
+                                            className={`group relative flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
                                                 isActive 
-                                                    ? 'bg-[#0F8F95] text-white shadow-sm shadow-[#0F8F95]/20 font-semibold' 
+                                                    ? 'bg-[#E6F5F2] text-[#102A43] dark:bg-[#0D9488]/10 dark:text-[#2DD4BF]' 
                                                     : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
                                             } ${isCollapsed ? 'justify-center px-2' : ''}`}
                                         >
-                                            <Icon className={`w-4 h-4 flex-shrink-0 ${!isCollapsed && 'mr-3'} ${isActive ? 'text-white' : 'text-text-muted group-hover:text-text-primary transition-colors'}`} />
+                                            {isActive && !isCollapsed && (
+                                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-[#0D9488] rounded-r-full" />
+                                            )}
+                                            <Icon className={`w-5 h-5 flex-shrink-0 ${!isCollapsed && 'mr-3'} ${isActive ? 'text-[#0D9488] dark:text-[#2DD4BF]' : 'text-text-muted group-hover:text-text-primary transition-colors'}`} />
                                             {!isCollapsed && <span>{item.name}</span>}
                                             
                                             {/* CSS Tooltip */}
                                             {isCollapsed && (
-                                                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-[#0B1F33] text-white text-[11px] font-semibold rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-md">
+                                                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-[#102A43] text-white text-[11px] font-semibold rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-md">
                                                     {item.name}
                                                 </div>
                                             )}
@@ -194,7 +195,7 @@ export default function Layout() {
                         {/* Management Section */}
                         {managementItems.length > 0 && (
                             <div>
-                                {!isCollapsed && <p className="px-3 mb-2 text-[10px] font-bold text-text-muted uppercase tracking-wider">Management</p>}
+                                {!isCollapsed && <p className="px-3 mb-3 text-[11px] font-semibold text-text-muted uppercase tracking-wider">Management</p>}
                                 <div className="space-y-1">
                                     {managementItems.map((item) => {
                                         const Icon = item.icon;
@@ -204,18 +205,21 @@ export default function Layout() {
                                                 key={item.name}
                                                 to={item.path}
                                                 onClick={() => setIsSidebarOpen(false)}
-                                                className={`group relative flex items-center px-3.5 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 ${
+                                                className={`group relative flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
                                                     isActive 
-                                                        ? 'bg-[#0F8F95] text-white shadow-sm shadow-[#0F8F95]/20 font-semibold' 
+                                                        ? 'bg-[#E6F5F2] text-[#102A43] dark:bg-[#0D9488]/10 dark:text-[#2DD4BF]' 
                                                         : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
                                                 } ${isCollapsed ? 'justify-center px-2' : ''}`}
                                             >
-                                                <Icon className={`w-4 h-4 flex-shrink-0 ${!isCollapsed && 'mr-3'} ${isActive ? 'text-white' : 'text-text-muted group-hover:text-text-primary transition-colors'}`} />
+                                                {isActive && !isCollapsed && (
+                                                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-[#0D9488] rounded-r-full" />
+                                                )}
+                                                <Icon className={`w-5 h-5 flex-shrink-0 ${!isCollapsed && 'mr-3'} ${isActive ? 'text-[#0D9488] dark:text-[#2DD4BF]' : 'text-text-muted group-hover:text-text-primary transition-colors'}`} />
                                                 {!isCollapsed && <span>{item.name}</span>}
                                                 
                                                 {/* CSS Tooltip */}
                                                 {isCollapsed && (
-                                                    <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-[#0B1F33] text-white text-[11px] font-semibold rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-md">
+                                                    <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-[#102A43] text-white text-[11px] font-semibold rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-md">
                                                         {item.name}
                                                     </div>
                                                 )}
@@ -228,7 +232,7 @@ export default function Layout() {
                         
                         {/* System Section */}
                         <div>
-                            {!isCollapsed && <p className="px-3 mb-2 text-[10px] font-bold text-text-muted uppercase tracking-wider">Settings</p>}
+                            {!isCollapsed && <p className="px-3 mb-3 text-[11px] font-semibold text-text-muted uppercase tracking-wider">System</p>}
                             <div className="space-y-1">
                                 {systemItems.map((item) => {
                                     const Icon = item.icon;
@@ -238,18 +242,21 @@ export default function Layout() {
                                             key={item.name}
                                             to={item.path}
                                             onClick={() => setIsSidebarOpen(false)}
-                                            className={`group relative flex items-center px-3.5 py-2.5 text-sm font-medium rounded-xl transition-all duration-150 ${
+                                            className={`group relative flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
                                                 isActive 
-                                                    ? 'bg-[#0F8F95] text-white shadow-sm shadow-[#0F8F95]/20 font-semibold' 
+                                                    ? 'bg-[#E6F5F2] text-[#102A43] dark:bg-[#0D9488]/10 dark:text-[#2DD4BF]' 
                                                     : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
                                             } ${isCollapsed ? 'justify-center px-2' : ''}`}
                                         >
-                                            <Icon className={`w-4 h-4 flex-shrink-0 ${!isCollapsed && 'mr-3'} ${isActive ? 'text-white' : 'text-text-muted group-hover:text-text-primary transition-colors'}`} />
+                                            {isActive && !isCollapsed && (
+                                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-[#0D9488] rounded-r-full" />
+                                            )}
+                                            <Icon className={`w-5 h-5 flex-shrink-0 ${!isCollapsed && 'mr-3'} ${isActive ? 'text-[#0D9488] dark:text-[#2DD4BF]' : 'text-text-muted group-hover:text-text-primary transition-colors'}`} />
                                             {!isCollapsed && <span>{item.name}</span>}
                                             
                                             {/* CSS Tooltip */}
                                             {isCollapsed && (
-                                                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-[#0B1F33] text-white text-[11px] font-semibold rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-md">
+                                                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-[#102A43] text-white text-[11px] font-semibold rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-md">
                                                     {item.name}
                                                 </div>
                                             )}
@@ -260,47 +267,51 @@ export default function Layout() {
                         </div>
 
                         {/* Sidebar Toggle */}
-                        <div className="pt-2 border-t border-border-subtle/50 mt-2">
+                        <div className="pt-4 border-t border-border-subtle/50 mt-4">
                             <button
                                 onClick={toggleSidebar}
-                                className={`hidden lg:flex group relative items-center w-full px-3 py-2 text-xs font-medium text-text-muted hover:text-text-primary hover:bg-bg-hover rounded-xl transition-colors ${isCollapsed ? 'justify-center px-2' : ''}`}
+                                className={`hidden lg:flex group relative items-center w-full px-3 py-2.5 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-bg-hover rounded-xl transition-colors ${isCollapsed ? 'justify-center px-2' : ''}`}
                             >
-                                {isCollapsed ? <PanelLeftOpen className={`w-4 h-4 flex-shrink-0 ${!isCollapsed && 'mr-3'}`} /> : <PanelLeftClose className={`w-4 h-4 flex-shrink-0 mr-3`} />}
+                                {isCollapsed ? <PanelLeftOpen className={`w-5 h-5 flex-shrink-0 ${!isCollapsed && 'mr-3'}`} /> : <PanelLeftClose className={`w-5 h-5 flex-shrink-0 mr-3`} />}
                                 {!isCollapsed && <span>Collapse Sidebar</span>}
+                                
+                                {/* CSS Tooltip */}
+                                {isCollapsed && (
+                                    <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-[#102A43] text-white text-[11px] font-semibold rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-md">
+                                        Expand Sidebar
+                                    </div>
+                                )}
                             </button>
                         </div>
                     </nav>
                 </div>
                 
-                <div className="p-3 border-t border-border-subtle/50">
-                    {!isCollapsed ? (
-                        <div className="flex items-center justify-between p-2 rounded-xl bg-bg-muted/50 border border-border-subtle/50">
-                            <div className="flex items-center min-w-0 mr-2">
-                                <div className="w-8 h-8 rounded-full bg-[#0F8F95] text-white flex items-center justify-center font-bold text-xs shadow-sm flex-shrink-0 mr-2.5">
-                                    {getInitials(user?.name)}
-                                </div>
-                                <div className="overflow-hidden">
-                                    <p className="text-xs font-semibold text-text-primary truncate leading-tight">{user?.name || 'Admin User'}</p>
-                                    <p className="text-[10px] text-text-muted font-medium uppercase tracking-wider truncate leading-tight mt-0.5">{user?.role?.replace('_', ' ')}</p>
-                                </div>
+                <div className="p-4 border-t border-border-subtle/50">
+                    {!isCollapsed && (
+                        <div className="mb-4 flex items-center px-2">
+                            <div className="w-10 h-10 rounded-full bg-[#EEF2FF] flex items-center justify-center mr-3 text-[#4F46E5] font-bold shadow-sm">
+                                {getInitials(user?.name)}
                             </div>
-                            <button 
-                                onClick={handleLogout}
-                                className="p-1.5 text-text-muted hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex-shrink-0"
-                                title="Sign out"
-                            >
-                                <LogOut className="w-4 h-4" />
-                            </button>
+                            <div className="overflow-hidden">
+                                <p className="text-sm font-semibold text-text-primary truncate leading-tight">{user?.name || 'Admin User'}</p>
+                                <p className="text-[11px] text-text-muted font-medium uppercase tracking-wider truncate leading-tight mt-0.5">{user?.role?.replace('_', ' ')}</p>
+                            </div>
                         </div>
-                    ) : (
-                        <button
-                            onClick={handleLogout}
-                            className="w-full flex justify-center py-2 text-text-muted hover:text-red-600 rounded-lg transition-colors"
-                            title="Sign out"
-                        >
-                            <LogOut className="w-5 h-5" />
-                        </button>
                     )}
+                    <button
+                        onClick={handleLogout}
+                        className={`group relative flex items-center w-full px-3 py-2.5 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-bg-hover rounded-xl transition-colors ${isCollapsed ? 'justify-center px-2' : ''}`}
+                    >
+                        <LogOut className={`w-5 h-5 flex-shrink-0 ${!isCollapsed && 'mr-3'}`} />
+                        {!isCollapsed && 'Sign out'}
+                        
+                        {/* CSS Tooltip */}
+                        {isCollapsed && (
+                            <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-[#102A43] text-white text-[11px] font-semibold rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-md">
+                                Sign out
+                            </div>
+                        )}
+                    </button>
                 </div>
             </div>
 
@@ -337,17 +348,17 @@ export default function Layout() {
                         
                         {/* Search Bar matching reference */}
                         <div ref={searchRef} className="relative w-full max-w-md hidden sm:block">
-                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 {isSearching ? (
-                                    <div className="animate-spin w-4 h-4 border-2 border-[#0F8F95] border-t-transparent rounded-full" />
+                                    <div className="animate-spin w-4 h-4 border-2 border-[#14B8A6] border-t-transparent rounded-full" />
                                 ) : (
                                     <Search className="h-4 w-4 text-text-muted" />
                                 )}
                             </div>
                             <input
                                 type="text"
-                                className="w-full pl-10 pr-10 py-2.5 bg-bg-card border border-border-subtle rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-[#0F8F95]/20 focus:border-[#0F8F95] transition-all shadow-sm text-text-primary placeholder-text-muted"
-                                placeholder="Search invoices, customers, enquiries..."
+                                className="w-full pl-10 pr-10 py-2.5 bg-bg-card border border-border-subtle rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-[#14B8A6]/20 focus:border-[#14B8A6]/30 transition-all shadow-sm text-text-primary placeholder-text-muted"
+                                placeholder="Search enquiries, quotations..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 onFocus={() => { if (searchQuery.trim() && (searchResults.enquiries.length > 0 || searchResults.quotations.length > 0)) setSearchDropdownOpen(true) }}
