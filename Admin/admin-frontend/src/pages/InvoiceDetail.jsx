@@ -12,15 +12,18 @@ export default function InvoiceDetail() {
     
     const [invoice, setInvoice] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [actionLoading, setActionLoading] = useState(false);
 
     const fetchInvoice = async () => {
         try {
             setLoading(true);
+            setError(null);
             const data = await getInvoiceById(id);
             setInvoice(data);
-        } catch (error) {
-            console.error('Failed to fetch Invoice', error);
+        } catch (err) {
+            console.error('Failed to fetch Invoice', err);
+            setError(err.message || 'Failed to load invoice details');
         } finally {
             setLoading(false);
         }
@@ -100,6 +103,15 @@ export default function InvoiceDetail() {
     };
 
     if (loading) return <div className="p-8 text-center text-text-muted">Loading Invoice details...</div>;
+    if (error) return (
+        <div className="p-8 text-center max-w-md mx-auto my-12 bg-bg-card border border-border-subtle rounded-2xl p-6">
+            <h3 className="text-base font-bold text-text-primary mb-1">Failed to Load Invoice</h3>
+            <p className="text-xs text-text-muted mb-4">{error}</p>
+            <button onClick={fetchInvoice} className="px-4 py-2 bg-brand-primary text-white rounded-xl text-xs font-semibold hover:bg-brand-secondary transition-colors">
+                Retry
+            </button>
+        </div>
+    );
     if (!invoice) return <div className="p-8 text-center text-text-muted">Invoice not found.</div>;
 
     const getStatusIcon = (status) => {

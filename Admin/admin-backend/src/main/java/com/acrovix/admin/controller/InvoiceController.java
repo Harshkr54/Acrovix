@@ -16,6 +16,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,6 +30,7 @@ public class InvoiceController {
     private final InvoiceService invoiceService;
 
     @GetMapping
+    @Transactional(readOnly = true)
     public ResponseEntity<Page<InvoiceResponse>> getInvoices(
             @RequestParam(required = false) InvoiceType type,
             @RequestParam(required = false) InvoiceStatus status,
@@ -42,12 +44,14 @@ public class InvoiceController {
     }
 
     @GetMapping("/{id}")
+    @Transactional(readOnly = true)
     public ResponseEntity<InvoiceResponse> getInvoice(@PathVariable Long id, @AuthenticationPrincipal AdminUser admin) {
         Invoice invoice = invoiceService.getInvoiceById(id, admin);
         return ResponseEntity.ok(mapToResponse(invoice));
     }
 
     @PostMapping
+    @Transactional
     public ResponseEntity<InvoiceResponse> createDraftInvoice(
             @Valid @RequestBody InvoiceRequest request,
             @AuthenticationPrincipal AdminUser admin) {
@@ -56,6 +60,7 @@ public class InvoiceController {
     }
 
     @PostMapping("/from-quotation/{quotationId}")
+    @Transactional
     public ResponseEntity<InvoiceResponse> createInvoiceFromQuotation(
             @PathVariable Long quotationId,
             @RequestParam InvoiceType type,
@@ -65,6 +70,7 @@ public class InvoiceController {
     }
 
     @PostMapping("/from-po/{poId}")
+    @Transactional
     public ResponseEntity<InvoiceResponse> createInvoiceFromPurchaseOrder(
             @PathVariable Long poId,
             @RequestParam InvoiceType type,
@@ -74,6 +80,7 @@ public class InvoiceController {
     }
 
     @PatchMapping("/{id}")
+    @Transactional
     public ResponseEntity<InvoiceResponse> updateDraftInvoice(
             @PathVariable Long id,
             @Valid @RequestBody InvoiceRequest request,
@@ -83,6 +90,7 @@ public class InvoiceController {
     }
 
     @PostMapping("/{id}/issue")
+    @Transactional
     public ResponseEntity<InvoiceResponse> issueInvoice(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser admin) {
@@ -91,6 +99,7 @@ public class InvoiceController {
     }
 
     @PostMapping("/{id}/cancel")
+    @Transactional
     public ResponseEntity<InvoiceResponse> cancelInvoice(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser admin) {
@@ -99,6 +108,7 @@ public class InvoiceController {
     }
 
     @PostMapping("/proforma/{id}/convert-to-tax-invoice")
+    @Transactional
     public ResponseEntity<InvoiceResponse> convertProformaToTaxInvoice(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser admin) {
@@ -107,6 +117,7 @@ public class InvoiceController {
     }
 
     @GetMapping("/{id}/pdf")
+    @Transactional(readOnly = true)
     public ResponseEntity<byte[]> getInvoicePdf(@PathVariable Long id, @AuthenticationPrincipal AdminUser admin) {
         Invoice invoice = invoiceService.getInvoiceById(id, admin); // Just for auth check
         byte[] pdfBytes = invoiceService.generateInvoicePdf(id);
