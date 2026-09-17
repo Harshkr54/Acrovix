@@ -205,12 +205,22 @@ export default function Receivables() {
                                             )}
                                         </td>
                                         <td className="p-4 text-text-muted font-medium align-top">
-                                            {r.oldestDueDate ? (
-                                                <span className={`inline-flex items-center gap-1 ${new Date(r.oldestDueDate) < new Date() && Number(r.outstandingAmount) > 0 ? 'text-red-500 font-bold' : ''}`}>
-                                                    <Calendar className="w-3.5 h-3.5" />
-                                                    {new Date(r.oldestDueDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                                                </span>
-                                            ) : '-'}
+                                            {(() => {
+                                                if (!r.oldestDueDate) return '-';
+                                                try {
+                                                    const d = new Date(r.oldestDueDate);
+                                                    if (isNaN(d.getTime())) return '-';
+                                                    const isOverdue = d < new Date() && Number(r.outstandingAmount) > 0;
+                                                    return (
+                                                        <span className={`inline-flex items-center gap-1 ${isOverdue ? 'text-red-500 font-bold' : ''}`}>
+                                                            <Calendar className="w-3.5 h-3.5" />
+                                                            {d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                        </span>
+                                                    );
+                                                } catch (e) {
+                                                    return '-';
+                                                }
+                                            })()}
                                         </td>
                                         <td className="p-4 text-right align-top">
                                             <button

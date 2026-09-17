@@ -1,54 +1,57 @@
 import React from 'react';
+import { Loader2, AlertCircle, Inbox } from 'lucide-react';
 
 export default function EmptyState({ 
+    type,
     loading = false, 
     error = null, 
+    message,
+    emptyMessage,
     onRetry = null, 
-    emptyMessage = "No items found.",
-    colSpan = 6,
-    icon: Icon = null
+    icon: Icon = null 
 }) {
-    if (loading) {
+    const isError = type === 'error' || Boolean(error);
+    const isLoading = type === 'loading' || Boolean(loading);
+    const displayMessage = message || emptyMessage || (isError ? (typeof error === 'string' ? error : 'An error occurred') : 'No items found.');
+
+    if (isLoading) {
         return (
-            <tr>
-                <td colSpan={colSpan} className="px-6 py-12 text-center">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                        <div className="w-6 h-6 border-2 border-[#0F8F95] border-t-transparent rounded-full animate-spin"></div>
-                        <span className="text-sm font-medium text-text-muted">Loading data...</span>
-                    </div>
-                </td>
-            </tr>
+            <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                <Loader2 className="w-8 h-8 text-brand-primary animate-spin mb-3" />
+                <p className="text-sm font-medium text-text-muted">{displayMessage || "Loading data..."}</p>
+            </div>
         );
     }
 
-    if (error) {
+    if (isError) {
         return (
-            <tr>
-                <td colSpan={colSpan} className="px-6 py-12 text-center">
-                    <div className="flex flex-col items-center justify-center gap-3">
-                        <p className="text-sm font-semibold text-red-500">{error}</p>
-                        {onRetry && (
-                            <button
-                                onClick={onRetry}
-                                className="px-4 py-1.5 bg-[#0F8F95]/10 hover:bg-[#0F8F95]/20 text-[#0F8F95] text-xs font-semibold rounded-lg transition-colors cursor-pointer"
-                            >
-                                Retry
-                            </button>
-                        )}
-                    </div>
-                </td>
-            </tr>
+            <div className="flex flex-col items-center justify-center py-12 px-4 text-center max-w-md mx-auto">
+                <div className="w-10 h-10 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center mb-3">
+                    <AlertCircle className="w-5 h-5" />
+                </div>
+                <p className="text-sm font-semibold text-text-primary mb-1">Unable to Load Data</p>
+                <p className="text-xs text-text-muted mb-4">{displayMessage}</p>
+                {onRetry && (
+                    <button
+                        type="button"
+                        onClick={onRetry}
+                        className="px-4 py-2 bg-brand-primary hover:bg-brand-secondary text-white text-xs font-semibold rounded-xl transition-colors cursor-pointer shadow-sm"
+                    >
+                        Retry
+                    </button>
+                )}
+            </div>
         );
     }
 
     return (
-        <tr>
-            <td colSpan={colSpan} className="px-6 py-12 text-center">
-                <div className="flex flex-col items-center justify-center gap-2">
-                    {Icon && <Icon className="w-8 h-8 text-text-muted/40" />}
-                    <span className="text-sm font-medium text-text-muted">{emptyMessage}</span>
-                </div>
-            </td>
-        </tr>
+        <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+            {Icon ? (
+                <Icon className="w-10 h-10 text-text-muted/40 mb-3" />
+            ) : (
+                <Inbox className="w-10 h-10 text-text-muted/40 mb-3" />
+            )}
+            <p className="text-sm font-medium text-text-muted">{displayMessage}</p>
+        </div>
     );
 }
