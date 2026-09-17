@@ -153,9 +153,42 @@ public class PaymentService {
 
     @Transactional(readOnly = true)
     public Page<PaymentResponse> getPayments(PaymentStatus status, PaymentMethod method, Long customerId, Long invoiceId, String search, Pageable pageable) {
-        Page<Payment> payments = paymentRepository.searchPayments(status, method, customerId, invoiceId, search, pageable);
+        String cleanSearch = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+        Page<Payment> payments = paymentRepository.searchPayments(status, method, customerId, invoiceId, cleanSearch, pageable);
         return payments.map(this::mapToResponse);
     }
+
+    @Transactional(readOnly = true)
+    public List<EligibleInvoiceResponse> getEligibleInvoicesForPayment(String search) {
+        String cleanSearch = (search != null && !search.trim().isEmpty()) ? search.trim().toLowerCase() : null;
+
+        return invoiceRepository.findAll().stream()
+                .filter(i -> i.getInvoiceType() == InvoiceType.TAX_INVOICE &&
+                        (i.getStatus() == InvoiceStatus.ISSUED || i.getStatus() == InvoiceStatus.PARTIALLY_PAID))
+                .filter(i -> {
+                    if (cleanSearch == null) return true;
+                    boolean matchNum = i.getInvoiceNumber() != null && i.getInvoiceNumber().toLowerCase().contains(cleanSearch);
+                    boolean matchName = i.getClientName() != null && i.getClientName().toLowerCase().contains(cleanSearch);
+                    boolean matchCompany = i.getClientCompany() != null && i.getClientCompany().toLowerCase().contains(cleanSearch);
+                    return matchNum || matchName || matchCompany;
+                })
+                .map(i -> EligibleInvoiceResponse.builder()
+                        .id(i.getId())
+                        .invoiceNumber(i.getInvoiceNumber())
+                        .invoiceType(i.getInvoiceType())
+                        .status(i.getStatus())
+                        .customerId(i.getCustomer() != null ? i.getCustomer().getId() : null)
+                        .clientName(i.getClientName())
+                        .clientCompany(i.getClientCompany())
+                        .grandTotal(i.getGrandTotal() != null ? i.getGrandTotal() : BigDecimal.ZERO)
+                        .amountPaid(i.getAmountPaid() != null ? i.getAmountPaid() : BigDecimal.ZERO)
+                        .balanceDue(i.getBalanceDue() != null ? i.getBalanceDue() : i.getGrandTotal())
+                        .invoiceDate(i.getInvoiceDate())
+                        .dueDate(i.getDueDate())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
 
     @Transactional(readOnly = true)
     public PaymentResponse getPaymentById(Long id) {

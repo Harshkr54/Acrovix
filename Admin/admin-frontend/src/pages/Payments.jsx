@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getPayments, cancelPayment, getPaymentReceiptPdf } from '../services/api';
+import { 
+    getPayments, 
+    cancelPayment, 
+    getPaymentReceiptPdf, 
+    getEligibleInvoicesForPayment, 
+    recordPayment 
+} from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../services/api';
 import { 
@@ -18,7 +24,10 @@ import {
     X,
     Building2,
     FileText,
-    ArrowUpRight
+    ArrowUpRight,
+    Plus,
+    Check,
+    Loader2
 } from 'lucide-react';
 
 export default function Payments() {
@@ -42,7 +51,27 @@ export default function Payments() {
     // Selected Payment Modal (View Detail)
     const [selectedPayment, setSelectedPayment] = useState(null);
 
-    // Cancel Payment Modal
+    // Record Payment Modal state
+    const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
+    const [eligibleInvoices, setEligibleInvoices] = useState([]);
+    const [loadingInvoices, setLoadingInvoices] = useState(false);
+    const [invoiceSearchQuery, setInvoiceSearchQuery] = useState('');
+    const [selectedInvoice, setSelectedInvoice] = useState(null);
+
+    const [paymentForm, setPaymentForm] = useState({
+        paymentDate: new Date().toISOString().split('T')[0],
+        amount: '',
+        paymentMethod: 'BANK_TRANSFER',
+        transactionReference: '',
+        chequeNumber: '',
+        bankName: '',
+        notes: ''
+    });
+    const [paymentError, setPaymentError] = useState(null);
+    const [recordingPayment, setRecordingPayment] = useState(false);
+    const [successToast, setSuccessToast] = useState(null);
+
+    // Cancel Payment Modal state
     const [cancellingPayment, setCancellingPayment] = useState(null);
     const [cancelReason, setCancelReason] = useState('');
     const [cancelError, setCancelError] = useState(null);
@@ -83,6 +112,45 @@ export default function Payments() {
         fetchPaymentsList();
     }, [page, statusFilter, methodFilter, startDate, endDate]);
 
+    const fetchEligibleInvoices = async (query = '') => {
+        try {
+            setLoadingInvoices(true);
+            const list = await getEligibleInvoicesForPayment(query);
+            setEligibleInvoices(list || []);
+        } catch (err) {
+            console.error('Failed to fetch eligible invoices', err);
+        } finally {
+            setLoadingInvoices(false);
+        }
+    };
+
+    const handleOpenRecordPaymentModal = async () => {
+        setPaymentForm({
+            paymentDate: new Date().toISOString().split('T')[0],
+            amount: '',
+            paymentMethod: 'BANK_TRANSFER',
+            transactionReference: '',
+            chequeNumber: '',
+            bankName: '',
+            notes: ''
+        });
+        setSelectedInvoice(null);
+        setInvoiceSearchQuery('');
+        setPaymentError(null);
+        setIsRecordModalOpen(true);
+        await fetchEligibleInvoices('');
+    };
+
+    const handleSelectInvoice = (inv) => {
+        setSelectedInvoice(inv);
+        setPaymentError(null);
+        const bal = inv.balanceDue !== undefined && inv.balanceDue !== null ? inv.balanceDue : inv.grandTotal;
+        setPaymentForm(prev => ({
+            ...prev,
+            amount: bal > 0 ? String(bal) : ''
+        }));
+    };
+
     const handleSearchSubmit = (e) => {
         e.preventDefault();
         setPage(0);
@@ -96,6 +164,55 @@ export default function Payments() {
         setStartDate('');
         setEndDate('');
         setPage(0);
+    };
+
+    const handleRecordPaymentSubmit = async (e) => {
+        e.preventDefault();
+        setPaymentError(null);
+
+        if (!selectedInvoice) {
+            setPaymentError('Please search and select an eligible Tax Invoice.');
+            return;
+        }
+
+        const numAmount = parseFloat(paymentForm.amount);
+        const currentBalance = selectedInvoice.balanceDue !== undefined && selectedInvoice.balanceDue !== null 
+            ? Number(selectedInvoice.balanceDue) 
+            : Number(selectedInvoice.grandTotal);
+
+        if (isNaN(numAmount) || numAmount <= 0) {
+            setPaymentError('Payment amount must be greater than zero.');
+            return;
+        }
+
+        if (numAmount > currentBalance + 0.001) {
+            setPaymentError(`Payment amount (Rs. ${numAmount.toLocaleString()}) cannot exceed remaining balance (Rs. ${currentBalance.toLocaleString()}).`);
+            return;
+        }
+
+        try {
+            setRecordingPayment(true);
+            const result = await recordPayment({
+                invoiceId: selectedInvoice.id,
+                paymentDate: paymentForm.paymentDate,
+                amount: numAmount,
+                paymentMethod: paymentForm.paymentMethod,
+                transactionReference: paymentForm.transactionReference.trim() || null,
+                chequeNumber: paymentForm.chequeNumber.trim() || null,
+                bankName: paymentForm.bankName.trim() || null,
+                notes: paymentForm.notes.trim() || null
+            });
+
+            setIsRecordModalOpen(false);
+            setSuccessToast(`Payment ${result.paymentNumber || 'record'} of Rs. ${numAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} recorded successfully!`);
+            setTimeout(() => setSuccessToast(null), 5000);
+            await fetchPaymentsList();
+        } catch (err) {
+            console.error('Failed to record payment', err);
+            setPaymentError(err.message || 'Failed to record payment');
+        } finally {
+            setRecordingPayment(false);
+        }
     };
 
     const handleDownloadReceipt = (paymentId, paymentNumber) => {
@@ -154,8 +271,25 @@ export default function Payments() {
         }
     };
 
+    // Calculate dynamic UI previews for payment modal
+    const currentInvoiceBalance = selectedInvoice ? Number(selectedInvoice.balanceDue || 0) : 0;
+    const currentPaymentNumAmount = parseFloat(paymentForm.amount) || 0;
+    const previewNewBalance = selectedInvoice ? Math.max(0, currentInvoiceBalance - currentPaymentNumAmount) : 0;
+    const isOverpayment = selectedInvoice && currentPaymentNumAmount > currentInvoiceBalance + 0.001;
+
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-6 pb-24">
+            {/* Success Toast */}
+            {successToast && (
+                <div className="fixed top-20 right-8 z-50 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top duration-300">
+                    <CheckCircle className="w-5 h-5 shrink-0" />
+                    <span className="text-xs font-semibold">{successToast}</span>
+                    <button onClick={() => setSuccessToast(null)} className="ml-2 hover:opacity-80">
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+            )}
+
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
@@ -163,9 +297,15 @@ export default function Payments() {
                         <CreditCard className="w-7 h-7 text-brand-primary" /> Payment Ledger
                     </h1>
                     <p className="text-xs text-text-muted mt-1">
-                        Track, inspect, and manage all recorded customer payment transactions and receipts.
+                        Track, inspect, and manually record customer payments for money received externally.
                     </p>
                 </div>
+                <button 
+                    onClick={handleOpenRecordPaymentModal}
+                    className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition-colors flex items-center gap-2 shadow-sm self-start md:self-auto"
+                >
+                    <Plus className="w-4 h-4" /> Record Payment
+                </button>
             </div>
 
             {/* Filter Bar */}
@@ -251,7 +391,10 @@ export default function Payments() {
             {/* Table */}
             <div className="bg-bg-card border border-border-subtle rounded-2xl overflow-hidden shadow-sm">
                 {loading ? (
-                    <div className="p-12 text-center text-xs text-text-muted">Loading payments ledger...</div>
+                    <div className="p-12 text-center text-xs text-text-muted flex items-center justify-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin text-brand-primary" />
+                        <span>Loading payments ledger...</span>
+                    </div>
                 ) : error ? (
                     <div className="p-8 text-center text-xs text-red-500">{error}</div>
                 ) : payments.length === 0 ? (
@@ -382,6 +525,262 @@ export default function Payments() {
                     </div>
                 )}
             </div>
+
+            {/* Record Payment Modal */}
+            {isRecordModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="bg-bg-card border border-border-subtle rounded-2xl w-full max-w-xl flex flex-col max-h-[92vh] overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle shrink-0">
+                            <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
+                                <CreditCard className="w-5 h-5 text-emerald-600" /> Record Manual Payment
+                            </h2>
+                            <button 
+                                onClick={() => setIsRecordModalOpen(false)}
+                                className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-main transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleRecordPaymentSubmit} className="flex flex-col flex-1 overflow-hidden">
+                            <div className="p-6 space-y-4 overflow-y-auto flex-1">
+                                {paymentError && (
+                                    <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-500 font-medium flex items-center gap-2">
+                                        <AlertCircle className="w-4 h-4 shrink-0" />
+                                        <span>{paymentError}</span>
+                                    </div>
+                                )}
+
+                                {/* Step 1: Select Eligible Invoice */}
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-text-muted">1. Select Tax Invoice *</label>
+                                    
+                                    <div className="relative">
+                                        <Search className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
+                                        <input
+                                            type="text"
+                                            placeholder="Search eligible invoices by number, client, company..."
+                                            value={invoiceSearchQuery}
+                                            onChange={(e) => {
+                                                setInvoiceSearchQuery(e.target.value);
+                                                fetchEligibleInvoices(e.target.value);
+                                            }}
+                                            className="w-full pl-9 pr-4 py-2 bg-bg-main border border-border-subtle rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-primary"
+                                        />
+                                    </div>
+
+                                    {/* Invoice Selector List */}
+                                    <div className="border border-border-subtle rounded-xl max-h-40 overflow-y-auto divide-y divide-border-subtle bg-bg-main/30">
+                                        {loadingInvoices ? (
+                                            <div className="p-3 text-center text-xs text-text-muted flex items-center justify-center gap-2">
+                                                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading eligible invoices...
+                                            </div>
+                                        ) : eligibleInvoices.length === 0 ? (
+                                            <div className="p-4 text-center text-xs text-text-muted">
+                                                No eligible ISSUED or PARTIALLY_PAID Tax Invoices found.
+                                            </div>
+                                        ) : (
+                                            eligibleInvoices.map((inv) => {
+                                                const isSelected = selectedInvoice && selectedInvoice.id === inv.id;
+                                                return (
+                                                    <div
+                                                        key={inv.id}
+                                                        onClick={() => handleSelectInvoice(inv)}
+                                                        className={`p-3 text-xs cursor-pointer flex items-center justify-between transition-colors ${
+                                                            isSelected ? 'bg-emerald-500/10 border-l-4 border-l-emerald-600' : 'hover:bg-bg-main'
+                                                        }`}
+                                                    >
+                                                        <div>
+                                                            <div className="font-bold text-text-primary flex items-center gap-2">
+                                                                <span>{inv.invoiceNumber}</span>
+                                                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-bg-main border border-border-subtle font-medium text-text-muted">
+                                                                    {inv.status}
+                                                                </span>
+                                                            </div>
+                                                            <div className="text-[11px] text-text-muted mt-0.5">
+                                                                {inv.clientName} {inv.clientCompany ? `(${inv.clientCompany})` : ''}
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <div className="font-bold text-amber-600 dark:text-amber-400">
+                                                                Bal: Rs. {Number(inv.balanceDue || inv.grandTotal).toLocaleString()}
+                                                            </div>
+                                                            <div className="text-[11px] text-text-muted">
+                                                                Total: Rs. {Number(inv.grandTotal).toLocaleString()}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Step 2: Authoritative Invoice & Customer Breakdown Card */}
+                                {selectedInvoice && (
+                                    <div className="p-4 bg-bg-main rounded-xl border border-border-subtle space-y-3 animate-in fade-in duration-200">
+                                        <div className="flex items-center justify-between">
+                                            <div className="font-bold text-xs text-text-primary flex items-center gap-1.5">
+                                                <Building2 className="w-4 h-4 text-brand-primary" />
+                                                <span>Customer: {selectedInvoice.clientName} {selectedInvoice.clientCompany ? `(${selectedInvoice.clientCompany})` : ''}</span>
+                                            </div>
+                                            <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">Selected</span>
+                                        </div>
+
+                                        <div className="grid grid-cols-3 gap-2 text-center pt-1 border-t border-border-subtle">
+                                            <div className="p-2 bg-bg-card rounded-lg border border-border-subtle">
+                                                <div className="text-[10px] text-text-muted font-medium">Invoice Total</div>
+                                                <div className="text-xs font-bold text-text-primary mt-0.5">
+                                                    Rs. {Number(selectedInvoice.grandTotal || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                </div>
+                                            </div>
+                                            <div className="p-2 bg-emerald-500/5 rounded-lg border border-emerald-500/20">
+                                                <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Already Paid</div>
+                                                <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                                                    Rs. {Number(selectedInvoice.amountPaid || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                </div>
+                                            </div>
+                                            <div className="p-2 bg-amber-500/5 rounded-lg border border-amber-500/20">
+                                                <div className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">Current Balance</div>
+                                                <div className="text-xs font-bold text-amber-600 dark:text-amber-400 mt-0.5">
+                                                    Rs. {currentInvoiceBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Step 3: Payment Entry Fields */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-text-muted mb-1">Payment Date *</label>
+                                        <input
+                                            type="date"
+                                            required
+                                            value={paymentForm.paymentDate}
+                                            onChange={(e) => setPaymentForm({ ...paymentForm, paymentDate: e.target.value })}
+                                            className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-text-muted mb-1">Amount Received (Rs.) *</label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0.01"
+                                            required
+                                            disabled={!selectedInvoice}
+                                            value={paymentForm.amount}
+                                            onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
+                                            placeholder={selectedInvoice ? "Enter amount" : "Select invoice first"}
+                                            className={`w-full px-3 py-2 bg-bg-main border rounded-lg text-sm font-bold focus:outline-none ${
+                                                isOverpayment ? 'border-red-500 text-red-500' : 'border-border-subtle text-text-primary focus:border-brand-primary'
+                                            }`}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Real-time Balance Preview */}
+                                {selectedInvoice && currentPaymentNumAmount > 0 && (
+                                    <div className={`p-3 rounded-xl text-xs flex items-center justify-between border ${
+                                        isOverpayment ? 'bg-red-500/10 border-red-500/30 text-red-500' : 'bg-blue-500/10 border-blue-500/30 text-blue-600 dark:text-blue-400'
+                                    }`}>
+                                        <span className="font-medium">
+                                            {isOverpayment ? `Amount exceeds current balance by Rs. ${(currentPaymentNumAmount - currentInvoiceBalance).toLocaleString()}` : 'New Remaining Balance Preview:'}
+                                        </span>
+                                        <span className="font-bold">
+                                            Rs. {previewNewBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </span>
+                                    </div>
+                                )}
+
+                                <div>
+                                    <label className="block text-xs font-semibold text-text-muted mb-1">Payment Method *</label>
+                                    <select
+                                        value={paymentForm.paymentMethod}
+                                        onChange={(e) => setPaymentForm({ ...paymentForm, paymentMethod: e.target.value })}
+                                        className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
+                                    >
+                                        <option value="BANK_TRANSFER">Bank Transfer (NEFT/RTGS/IMPS)</option>
+                                        <option value="UPI">UPI / GPay / PhonePe</option>
+                                        <option value="CHEQUE">Cheque / Demand Draft</option>
+                                        <option value="CASH">Cash</option>
+                                        <option value="CARD">Debit / Credit Card</option>
+                                        <option value="OTHER">Other External Method</option>
+                                    </select>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-text-muted mb-1">Transaction Ref / UTR</label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. UTR12345678"
+                                            value={paymentForm.transactionReference}
+                                            onChange={(e) => setPaymentForm({ ...paymentForm, transactionReference: e.target.value })}
+                                            className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className={`block text-xs font-semibold mb-1 ${paymentForm.paymentMethod === 'CHEQUE' ? 'text-amber-600 font-bold' : 'text-text-muted'}`}>
+                                            Cheque Number {paymentForm.paymentMethod === 'CHEQUE' ? '*' : ''}
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. CHQ-998811"
+                                            value={paymentForm.chequeNumber}
+                                            onChange={(e) => setPaymentForm({ ...paymentForm, chequeNumber: e.target.value })}
+                                            className={`w-full px-3 py-2 bg-bg-main border rounded-lg text-sm focus:outline-none ${
+                                                paymentForm.paymentMethod === 'CHEQUE' ? 'border-amber-500/50 focus:border-amber-500' : 'border-border-subtle focus:border-brand-primary'
+                                            }`}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-semibold text-text-muted mb-1">Bank Name</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. HDFC Bank / ICICI Bank"
+                                        value={paymentForm.bankName}
+                                        onChange={(e) => setPaymentForm({ ...paymentForm, bankName: e.target.value })}
+                                        className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-semibold text-text-muted mb-1">Internal Notes</label>
+                                    <textarea
+                                        rows={2}
+                                        placeholder="Optional payment notes..."
+                                        value={paymentForm.notes}
+                                        onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })}
+                                        className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary resize-none"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border-subtle bg-bg-card shrink-0">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsRecordModalOpen(false)}
+                                    className="px-4 py-2 border border-border-subtle text-text-muted hover:text-text-primary rounded-lg text-sm font-medium transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={recordingPayment || !selectedInvoice || isOverpayment}
+                                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
+                                >
+                                    {recordingPayment ? 'Recording...' : 'Record Payment'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
 
             {/* View Payment Details Modal */}
             {selectedPayment && (

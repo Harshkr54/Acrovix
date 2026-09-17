@@ -282,4 +282,10 @@ export const getDashboardReceivables = () => fetchApi('/dashboard/receivables');
 
 export const getPaymentReceiptPdf = (id) => fetchApi(`/payments/${id}/pdf`);
 
+export const getEligibleInvoicesForPayment = (search) => {
+    const qs = search ? `?search=${encodeURIComponent(search)}` : '';
+    return fetchApi(`/payments/eligible-invoices${qs}`);
+};
+
+
 

@@ -57,6 +57,13 @@ public class PaymentController {
         return ResponseEntity.ok(payments);
     }
 
+    @GetMapping("/payments/eligible-invoices")
+    public ResponseEntity<List<EligibleInvoiceResponse>> getEligibleInvoices(
+            @RequestParam(required = false) String search) {
+        return ResponseEntity.ok(paymentService.getEligibleInvoicesForPayment(search));
+    }
+
+
     @GetMapping("/payments/{id}")
     public ResponseEntity<PaymentResponse> getPaymentById(@PathVariable Long id) {
         return ResponseEntity.ok(paymentService.getPaymentById(id));

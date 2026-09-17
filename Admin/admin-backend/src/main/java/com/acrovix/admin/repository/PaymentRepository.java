@@ -20,16 +20,17 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
 
     List<Payment> findByInvoiceIdOrderByCreatedAtDesc(Long invoiceId);
 
-    @Query("SELECT p FROM Payment p WHERE " +
+    @Query("SELECT p FROM Payment p LEFT JOIN p.invoice i LEFT JOIN p.customer c WHERE " +
            "(:status IS NULL OR p.status = :status) AND " +
            "(:method IS NULL OR p.paymentMethod = :method) AND " +
-           "(:customerId IS NULL OR p.customer.id = :customerId) AND " +
-           "(:invoiceId IS NULL OR p.invoice.id = :invoiceId) AND " +
-           "(:search IS NULL OR " +
+           "(:customerId IS NULL OR (c IS NOT NULL AND c.id = :customerId)) AND " +
+           "(:invoiceId IS NULL OR (i IS NOT NULL AND i.id = :invoiceId)) AND " +
+           "(:search IS NULL OR :search = '' OR " +
            "LOWER(p.paymentNumber) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-           "LOWER(p.invoice.invoiceNumber) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+           "(i IS NOT NULL AND LOWER(i.invoiceNumber) LIKE LOWER(CONCAT('%', :search, '%'))) OR " +
            "LOWER(p.transactionReference) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-           "LOWER(p.customer.name) LIKE LOWER(CONCAT('%', :search, '%')))")
+           "(c IS NOT NULL AND LOWER(c.name) LIKE LOWER(CONCAT('%', :search, '%'))) OR " +
+           "(c IS NOT NULL AND LOWER(c.companyName) LIKE LOWER(CONCAT('%', :search, '%'))))")
     Page<Payment> searchPayments(
             @Param("status") PaymentStatus status,
             @Param("method") PaymentMethod method,
@@ -39,3 +40,4 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
             Pageable pageable
     );
 }
+
