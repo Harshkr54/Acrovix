@@ -42,14 +42,15 @@ export default function CrmPipeline() {
             setLoading(true);
             setError(null);
             const data = await getCrmPipeline();
-            // Data may be object { NEW: [...], CONTACTED: [...] } or an array of leads
-            if (data && typeof data === 'object' && !Array.isArray(data)) {
-                setPipelineData(data);
-            } else if (Array.isArray(data)) {
+            const pipelineMap = (data && data.pipeline) ? data.pipeline : (data || {});
+
+            if (pipelineMap && typeof pipelineMap === 'object' && !Array.isArray(pipelineMap)) {
+                setPipelineData(pipelineMap);
+            } else if (Array.isArray(pipelineMap)) {
                 // Group by status
                 const grouped = {};
                 STAGES.forEach(s => { grouped[s.key] = []; });
-                data.forEach(lead => {
+                pipelineMap.forEach(lead => {
                     const st = lead.status || 'NEW';
                     if (!grouped[st]) grouped[st] = [];
                     grouped[st].push(lead);
