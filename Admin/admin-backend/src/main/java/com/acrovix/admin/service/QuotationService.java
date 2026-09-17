@@ -145,6 +145,7 @@ public class QuotationService {
                 .clientCompany(request.getClientCompany())
                 .clientEmail(request.getClientEmail())
                 .clientPhone(request.getClientPhone())
+                .currency(request.getCurrency() != null ? request.getCurrency() : Currency.INR)
                 .quotationSource(request.getQuotationSource() != null ? request.getQuotationSource() : QuotationSource.OTHER)
                 .sourceNotes(request.getSourceNotes())
                 .status("DRAFT")
@@ -187,6 +188,9 @@ public class QuotationService {
         quotation.setClientCompany(request.getClientCompany());
         quotation.setClientEmail(request.getClientEmail());
         quotation.setClientPhone(request.getClientPhone());
+        if (request.getCurrency() != null) {
+            quotation.setCurrency(request.getCurrency());
+        }
         if (request.getQuotationSource() != null) {
             quotation.setQuotationSource(request.getQuotationSource());
         }

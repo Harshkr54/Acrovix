@@ -298,7 +298,7 @@ export default function CrmLeads() {
                                             </td>
 
                                             <td className="px-5 py-4 whitespace-nowrap font-semibold text-text-primary">
-                                                {formatCurrency(lead.estimatedValue)}
+                                                {formatCurrency(lead.estimatedValue, lead.currency)}
                                             </td>
 
                                             <td className="px-5 py-4 whitespace-nowrap text-text-secondary">

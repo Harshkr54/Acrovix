@@ -1,5 +1,6 @@
 package com.acrovix.admin.dto;
 
+import com.acrovix.admin.entity.Currency;
 import com.acrovix.admin.entity.InvoiceType;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -18,6 +19,7 @@ public class InvoiceRequest {
     private Long customerId;
     private Long quotationId;
     private Long purchaseOrderId;
+    private Currency currency;
 
     @NotNull(message = "Invoice Date is required")
     private LocalDate invoiceDate;

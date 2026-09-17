@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { formatCurrency } from '../utils/formatters';
 import { 
     getReportSummary, 
     getQuotationReport, 
@@ -138,11 +139,6 @@ export default function Reports() {
         } finally {
             setIsExporting(false);
         }
-    };
-
-    const formatCurrency = (val) => {
-        if (val === null || val === undefined) return '₹0';
-        return `₹${Number(val).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
     };
 
     return (

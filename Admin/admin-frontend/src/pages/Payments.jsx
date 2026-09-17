@@ -9,6 +9,7 @@ import {
 } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../services/api';
+import { formatCurrency } from '../utils/formatters';
 import { 
     CreditCard, 
     Search, 
@@ -454,7 +455,7 @@ export default function Payments() {
                                             {!p.transactionReference && !p.chequeNumber && '-'}
                                         </td>
                                         <td className="p-4 text-right font-bold text-text-primary">
-                                            Rs. {Number(p.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            {formatCurrency(p.amount, p.currency, 2)}
                                         </td>
                                         <td className="p-4">
                                             {p.status === 'RECORDED' ? (
@@ -604,10 +605,10 @@ export default function Payments() {
                                                         </div>
                                                         <div className="text-right">
                                                             <div className="font-bold text-amber-600 dark:text-amber-400">
-                                                                Bal: Rs. {Number(inv.balanceDue || inv.grandTotal).toLocaleString()}
+                                                                Bal: {formatCurrency(inv.balanceDue || inv.grandTotal, inv.currency, 2)}
                                                             </div>
                                                             <div className="text-[11px] text-text-muted">
-                                                                Total: Rs. {Number(inv.grandTotal).toLocaleString()}
+                                                                Total: {formatCurrency(inv.grandTotal, inv.currency, 2)}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -632,19 +633,19 @@ export default function Payments() {
                                             <div className="p-2 bg-bg-card rounded-lg border border-border-subtle">
                                                 <div className="text-[10px] text-text-muted font-medium">Invoice Total</div>
                                                 <div className="text-xs font-bold text-text-primary mt-0.5">
-                                                    Rs. {Number(selectedInvoice.grandTotal || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    {formatCurrency(selectedInvoice.grandTotal || 0, selectedInvoice.currency, 2)}
                                                 </div>
                                             </div>
                                             <div className="p-2 bg-emerald-500/5 rounded-lg border border-emerald-500/20">
                                                 <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Already Paid</div>
                                                 <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
-                                                    Rs. {Number(selectedInvoice.amountPaid || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    {formatCurrency(selectedInvoice.amountPaid || 0, selectedInvoice.currency, 2)}
                                                 </div>
                                             </div>
                                             <div className="p-2 bg-amber-500/5 rounded-lg border border-amber-500/20">
                                                 <div className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">Current Balance</div>
                                                 <div className="text-xs font-bold text-amber-600 dark:text-amber-400 mt-0.5">
-                                                    Rs. {currentInvoiceBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    {formatCurrency(currentInvoiceBalance, selectedInvoice.currency, 2)}
                                                 </div>
                                             </div>
                                         </div>
@@ -664,7 +665,7 @@ export default function Payments() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-semibold text-text-muted mb-1">Amount Received (Rs.) *</label>
+                                        <label className="block text-xs font-semibold text-text-muted mb-1">Amount Received ({selectedInvoice?.currency === 'USD' ? '$' : '₹'}) *</label>
                                         <input
                                             type="number"
                                             step="0.01"
@@ -687,10 +688,10 @@ export default function Payments() {
                                         isOverpayment ? 'bg-red-500/10 border-red-500/30 text-red-500' : 'bg-blue-500/10 border-blue-500/30 text-blue-600 dark:text-blue-400'
                                     }`}>
                                         <span className="font-medium">
-                                            {isOverpayment ? `Amount exceeds current balance by Rs. ${(currentPaymentNumAmount - currentInvoiceBalance).toLocaleString()}` : 'New Remaining Balance Preview:'}
+                                            {isOverpayment ? `Amount exceeds current balance by ${formatCurrency(currentPaymentNumAmount - currentInvoiceBalance, selectedInvoice.currency, 2)}` : 'New Remaining Balance Preview:'}
                                         </span>
                                         <span className="font-bold">
-                                            Rs. {previewNewBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            {formatCurrency(previewNewBalance, selectedInvoice.currency, 2)}
                                         </span>
                                     </div>
                                 )}
@@ -816,7 +817,7 @@ export default function Payments() {
                                 <div>
                                     <span className="text-text-muted block">Amount Received</span>
                                     <span className="font-bold text-emerald-600 dark:text-emerald-400 text-sm mt-0.5 block">
-                                        Rs. {Number(selectedPayment.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        {formatCurrency(selectedPayment.amount, selectedPayment.currency, 2)}
                                     </span>
                                 </div>
                             </div>

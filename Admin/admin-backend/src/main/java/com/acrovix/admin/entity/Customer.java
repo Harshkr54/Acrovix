@@ -55,8 +55,17 @@ public class Customer {
     @Column(name = "payment_terms", length = 100)
     private String paymentTerms;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "currency", length = 10)
+    @Builder.Default
+    private Currency currency = Currency.INR;
+
     @Column(name = "credit_limit", precision = 12, scale = 2)
     private BigDecimal creditLimit;
+
+    public Currency getCurrency() {
+        return currency != null ? currency : Currency.INR;
+    }
 
     @Column(nullable = false)
     private boolean active = true;

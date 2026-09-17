@@ -1,5 +1,6 @@
 package com.acrovix.admin.dto.crm;
 
+import com.acrovix.admin.entity.Currency;
 import com.acrovix.admin.entity.LeadPriority;
 import com.acrovix.admin.entity.LeadSource;
 import com.acrovix.admin.entity.LeadStatus;
@@ -39,6 +40,7 @@ public class CrmLeadRequest {
     private LeadSource leadSource;
     private Long assignedToId;
 
+    private Currency currency;
     private BigDecimal estimatedValue;
     private LocalDate expectedClosingDate;
     private Integer probability;

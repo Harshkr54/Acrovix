@@ -1,5 +1,6 @@
 package com.acrovix.admin.dto;
 
+import com.acrovix.admin.entity.Currency;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -18,6 +19,7 @@ public class ReceivableSummaryResponse {
     private String customerCode;
     private String customerName;
     private String companyName;
+    private Currency currency;
 
     private BigDecimal totalInvoiced;
     private BigDecimal totalReceived;

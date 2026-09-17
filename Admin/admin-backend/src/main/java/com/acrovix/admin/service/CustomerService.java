@@ -4,6 +4,7 @@ import com.acrovix.admin.dto.CustomerRequest;
 import com.acrovix.admin.dto.CustomerResponse;
 import com.acrovix.admin.entity.AdminActivity;
 import com.acrovix.admin.entity.Customer;
+import com.acrovix.admin.entity.Currency;
 import com.acrovix.admin.exception.ResourceConflictException;
 import com.acrovix.admin.exception.ResourceNotFoundException;
 import com.acrovix.admin.repository.AdminActivityRepository;
@@ -54,6 +55,7 @@ public class CustomerService {
                 .customerCode(request.getCustomerCode())
                 .name(request.getName())
                 .companyName(request.getCompanyName())
+                .currency(request.getCurrency() != null ? request.getCurrency() : Currency.INR)
                 .email(request.getEmail())
                 .phone(request.getPhone())
                 .alternatePhone(request.getAlternatePhone())
@@ -86,6 +88,9 @@ public class CustomerService {
         customer.setCustomerCode(request.getCustomerCode());
         customer.setName(request.getName());
         customer.setCompanyName(request.getCompanyName());
+        if (request.getCurrency() != null) {
+            customer.setCurrency(request.getCurrency());
+        }
         customer.setEmail(request.getEmail());
         customer.setPhone(request.getPhone());
         customer.setAlternatePhone(request.getAlternatePhone());
@@ -133,6 +138,7 @@ public class CustomerService {
                 .customerCode(customer.getCustomerCode())
                 .name(customer.getName())
                 .companyName(customer.getCompanyName())
+                .currency(customer.getCurrency())
                 .email(customer.getEmail())
                 .phone(customer.getPhone())
                 .alternatePhone(customer.getAlternatePhone())

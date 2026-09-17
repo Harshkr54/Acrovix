@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getReceivables } from '../services/api';
+import { formatCurrency } from '../utils/formatters';
 import { 
     DollarSign, 
     Search, 
@@ -44,11 +45,35 @@ export default function Receivables() {
         fetchReceivables();
     };
 
-    // Calculate aggregate totals
-    const totalInvoicedSum = receivables.reduce((sum, r) => sum + (Number(r.totalInvoiced) || 0), 0);
-    const totalReceivedSum = receivables.reduce((sum, r) => sum + (Number(r.totalReceived) || 0), 0);
-    const totalOutstandingSum = receivables.reduce((sum, r) => sum + (Number(r.outstandingAmount) || 0), 0);
-    const totalOverdueSum = receivables.reduce((sum, r) => sum + (Number(r.overdueAmount) || 0), 0);
+    // Calculate aggregate totals grouped by currency
+    const sumByCurrency = (field) => {
+        const acc = {};
+        receivables.forEach(r => {
+            const curr = r.currency || 'INR';
+            const val = Number(r[field]) || 0;
+            acc[curr] = (acc[curr] || 0) + val;
+        });
+        return acc;
+    };
+
+    const totalInvoicedByCurrency = sumByCurrency('totalInvoiced');
+    const totalReceivedByCurrency = sumByCurrency('totalReceived');
+    const totalOutstandingByCurrency = sumByCurrency('outstandingAmount');
+    const totalOverdueByCurrency = sumByCurrency('overdueAmount');
+
+    const renderCurrencyTotals = (map, colorClass = 'text-text-primary') => {
+        const keys = Object.keys(map);
+        if (keys.length === 0) return <div className={`text-xl font-bold ${colorClass}`}>₹0.00</div>;
+        return (
+            <div className="space-y-0.5 mt-1">
+                {keys.map(curr => (
+                    <div key={curr} className={`text-xl font-bold ${colorClass}`}>
+                        {formatCurrency(map[curr], curr, 2)}
+                    </div>
+                ))}
+            </div>
+        );
+    };
 
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-6 pb-24">
@@ -67,9 +92,7 @@ export default function Receivables() {
                 <div className="bg-bg-card border border-border-subtle rounded-2xl p-5 shadow-sm flex items-center justify-between">
                     <div>
                         <div className="text-xs text-text-muted font-medium uppercase tracking-wider">Total Invoiced</div>
-                        <div className="text-xl font-bold text-text-primary mt-1">
-                            Rs. {totalInvoicedSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </div>
+                        {renderCurrencyTotals(totalInvoicedByCurrency, "text-text-primary")}
                     </div>
                     <div className="p-3 bg-blue-500/10 text-blue-500 rounded-xl">
                         <TrendingUp className="w-6 h-6" />
@@ -79,9 +102,7 @@ export default function Receivables() {
                 <div className="bg-bg-card border border-border-subtle rounded-2xl p-5 shadow-sm flex items-center justify-between">
                     <div>
                         <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium uppercase tracking-wider">Total Received</div>
-                        <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">
-                            Rs. {totalReceivedSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </div>
+                        {renderCurrencyTotals(totalReceivedByCurrency, "text-emerald-600 dark:text-emerald-400")}
                     </div>
                     <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-xl">
                         <CheckCircle2 className="w-6 h-6" />
@@ -91,9 +112,7 @@ export default function Receivables() {
                 <div className="bg-bg-card border border-border-subtle rounded-2xl p-5 shadow-sm flex items-center justify-between">
                     <div>
                         <div className="text-xs text-amber-600 dark:text-amber-400 font-medium uppercase tracking-wider">Outstanding Balance</div>
-                        <div className="text-xl font-bold text-amber-600 dark:text-amber-400 mt-1">
-                            Rs. {totalOutstandingSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </div>
+                        {renderCurrencyTotals(totalOutstandingByCurrency, "text-amber-600 dark:text-amber-400")}
                     </div>
                     <div className="p-3 bg-amber-500/10 text-amber-500 rounded-xl">
                         <Clock className="w-6 h-6" />
@@ -103,9 +122,7 @@ export default function Receivables() {
                 <div className="bg-bg-card border border-border-subtle rounded-2xl p-5 shadow-sm flex items-center justify-between">
                     <div>
                         <div className="text-xs text-red-500 font-medium uppercase tracking-wider">Overdue Balance</div>
-                        <div className="text-xl font-bold text-red-500 mt-1">
-                            Rs. {totalOverdueSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </div>
+                        {renderCurrencyTotals(totalOverdueByCurrency, "text-red-500")}
                     </div>
                     <div className="p-3 bg-red-500/10 text-red-500 rounded-xl">
                         <AlertTriangle className="w-6 h-6" />
@@ -134,7 +151,7 @@ export default function Receivables() {
                     </button>
                 </form>
                 <div className="text-xs text-text-muted font-medium">
-                    Showing <span className="font-bold text-text-primary">{receivables.length}</span> customers
+                    Showing <span className="font-bold text-text-primary">{receivables.length}</span> entries
                 </div>
             </div>
 
@@ -162,10 +179,17 @@ export default function Receivables() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border-subtle">
-                                {receivables.map((r) => (
-                                    <tr key={r.customerId} className="hover:bg-bg-main/40 transition-colors">
+                                {receivables.map((r, idx) => (
+                                    <tr key={`${r.customerId}-${r.currency || 'INR'}-${idx}`} className="hover:bg-bg-main/40 transition-colors">
                                         <td className="p-4 font-bold text-text-primary">
-                                            <div className="text-sm">{r.customerName}</div>
+                                            <div className="text-sm flex items-center gap-2">
+                                                <span>{r.customerName}</span>
+                                                {r.currency && (
+                                                    <span className="text-[10px] px-2 py-0.5 bg-bg-main border border-border-subtle rounded-full text-text-muted font-semibold">
+                                                        {r.currency}
+                                                    </span>
+                                                )}
+                                            </div>
                                             <div className="text-[11px] font-mono text-text-muted">{r.customerCode}</div>
                                         </td>
                                         <td className="p-4 text-text-primary">
@@ -177,21 +201,21 @@ export default function Receivables() {
                                             ) : '-'}
                                         </td>
                                         <td className="p-4 text-right font-medium text-text-primary">
-                                            Rs. {Number(r.totalInvoiced || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            {formatCurrency(r.totalInvoiced || 0, r.currency, 2)}
                                         </td>
                                         <td className="p-4 text-right font-semibold text-emerald-600 dark:text-emerald-400">
-                                            Rs. {Number(r.totalReceived || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            {formatCurrency(r.totalReceived || 0, r.currency, 2)}
                                         </td>
                                         <td className="p-4 text-right font-bold text-amber-600 dark:text-amber-400">
-                                            Rs. {Number(r.outstandingAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            {formatCurrency(r.outstandingAmount || 0, r.currency, 2)}
                                         </td>
                                         <td className="p-4 text-right">
                                             {Number(r.overdueAmount) > 0 ? (
                                                 <span className="font-bold text-red-500 px-2 py-0.5 bg-red-500/10 rounded-full">
-                                                    Rs. {Number(r.overdueAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                    {formatCurrency(r.overdueAmount, r.currency, 2)}
                                                 </span>
                                             ) : (
-                                                <span className="text-text-muted">Rs. 0.00</span>
+                                                <span className="text-text-muted">{formatCurrency(0, r.currency, 2)}</span>
                                             )}
                                         </td>
                                         <td className="p-4 text-text-muted font-medium">

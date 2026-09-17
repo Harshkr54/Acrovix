@@ -62,9 +62,13 @@ public class PaymentService {
 
         BigDecimal paymentAmount = request.getAmount().setScale(2, RoundingMode.HALF_UP);
 
+        if (request.getCurrency() != null && request.getCurrency() != invoice.getCurrency()) {
+            throw new IllegalArgumentException("Payment currency (" + request.getCurrency() + ") does not match invoice currency (" + invoice.getCurrency() + "). Cross-currency payments are not allowed.");
+        }
+
         if (paymentAmount.compareTo(currentBalanceDue) > 0) {
-            throw new IllegalStateException("Payment amount (Rs. " + paymentAmount + 
-                    ") exceeds remaining balance due (Rs. " + currentBalanceDue + ")");
+            throw new IllegalStateException("Payment amount (" + paymentAmount + 
+                    ") exceeds remaining balance due (" + currentBalanceDue + ")");
         }
 
         String paymentNumber = sequenceGeneratorService.generateNextPaymentNumber(request.getPaymentDate());
@@ -74,6 +78,7 @@ public class PaymentService {
                 .invoice(invoice)
                 .customer(invoice.getCustomer())
                 .paymentDate(request.getPaymentDate())
+                .currency(invoice.getCurrency())
                 .amount(paymentAmount)
                 .paymentMethod(request.getPaymentMethod())
                 .transactionReference(request.getTransactionReference())
@@ -175,6 +180,7 @@ public class PaymentService {
                 .map(i -> EligibleInvoiceResponse.builder()
                         .id(i.getId())
                         .invoiceNumber(i.getInvoiceNumber())
+                        .currency(i.getCurrency())
                         .invoiceType(i.getInvoiceType())
                         .status(i.getStatus())
                         .customerId(i.getCustomer() != null ? i.getCustomer().getId() : null)
@@ -220,40 +226,64 @@ public class PaymentService {
                     .filter(i -> i.getCustomer() != null && i.getCustomer().getId().equals(c.getId()))
                     .collect(Collectors.toList());
 
-            BigDecimal totalInvoiced = customerInvoices.stream()
-                    .map(i -> i.getGrandTotal() != null ? i.getGrandTotal() : BigDecimal.ZERO)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP);
+            if (customerInvoices.isEmpty()) {
+                list.add(ReceivableSummaryResponse.builder()
+                        .customerId(c.getId())
+                        .customerCode(c.getCustomerCode())
+                        .customerName(c.getName())
+                        .companyName(c.getCompanyName())
+                        .currency(c.getCurrency() != null ? c.getCurrency() : Currency.INR)
+                        .totalInvoiced(BigDecimal.ZERO.setScale(2))
+                        .totalReceived(BigDecimal.ZERO.setScale(2))
+                        .outstandingAmount(BigDecimal.ZERO.setScale(2))
+                        .overdueAmount(BigDecimal.ZERO.setScale(2))
+                        .oldestDueDate(null)
+                        .build());
+            } else {
+                Map<Currency, List<Invoice>> byCurrency = customerInvoices.stream()
+                        .collect(Collectors.groupingBy(i -> i.getCurrency() != null ? i.getCurrency() : Currency.INR));
 
-            BigDecimal totalReceived = customerInvoices.stream()
-                    .map(i -> i.getAmountPaid() != null ? i.getAmountPaid() : BigDecimal.ZERO)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP);
+                for (Map.Entry<Currency, List<Invoice>> entry : byCurrency.entrySet()) {
+                    Currency curr = entry.getKey();
+                    List<Invoice> invs = entry.getValue();
 
-            BigDecimal outstanding = customerInvoices.stream()
-                    .map(i -> i.getBalanceDue() != null ? i.getBalanceDue() : BigDecimal.ZERO)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP);
+                    BigDecimal totalInvoiced = invs.stream()
+                            .map(i -> i.getGrandTotal() != null ? i.getGrandTotal() : BigDecimal.ZERO)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP);
 
-            BigDecimal overdue = customerInvoices.stream()
-                    .filter(i -> i.getDueDate() != null && i.getDueDate().isBefore(today) && i.getBalanceDue() != null && i.getBalanceDue().compareTo(BigDecimal.ZERO) > 0)
-                    .map(Invoice::getBalanceDue)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP);
+                    BigDecimal totalReceived = invs.stream()
+                            .map(i -> i.getAmountPaid() != null ? i.getAmountPaid() : BigDecimal.ZERO)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP);
 
-            LocalDate oldestDueDate = customerInvoices.stream()
-                    .filter(i -> i.getBalanceDue() != null && i.getBalanceDue().compareTo(BigDecimal.ZERO) > 0 && i.getDueDate() != null)
-                    .map(Invoice::getDueDate)
-                    .min(LocalDate::compareTo)
-                    .orElse(null);
+                    BigDecimal outstanding = invs.stream()
+                            .map(i -> i.getBalanceDue() != null ? i.getBalanceDue() : BigDecimal.ZERO)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP);
 
-            list.add(ReceivableSummaryResponse.builder()
-                    .customerId(c.getId())
-                    .customerCode(c.getCustomerCode())
-                    .customerName(c.getName())
-                    .companyName(c.getCompanyName())
-                    .totalInvoiced(totalInvoiced)
-                    .totalReceived(totalReceived)
-                    .outstandingAmount(outstanding)
-                    .overdueAmount(overdue)
-                    .oldestDueDate(oldestDueDate)
-                    .build());
+                    BigDecimal overdue = invs.stream()
+                            .filter(i -> i.getDueDate() != null && i.getDueDate().isBefore(today) && i.getBalanceDue() != null && i.getBalanceDue().compareTo(BigDecimal.ZERO) > 0)
+                            .map(Invoice::getBalanceDue)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP);
+
+                    LocalDate oldestDueDate = invs.stream()
+                            .filter(i -> i.getBalanceDue() != null && i.getBalanceDue().compareTo(BigDecimal.ZERO) > 0 && i.getDueDate() != null)
+                            .map(Invoice::getDueDate)
+                            .min(LocalDate::compareTo)
+                            .orElse(null);
+
+                    list.add(ReceivableSummaryResponse.builder()
+                            .customerId(c.getId())
+                            .customerCode(c.getCustomerCode())
+                            .customerName(c.getName())
+                            .companyName(c.getCompanyName())
+                            .currency(curr)
+                            .totalInvoiced(totalInvoiced)
+                            .totalReceived(totalReceived)
+                            .outstandingAmount(outstanding)
+                            .overdueAmount(overdue)
+                            .oldestDueDate(oldestDueDate)
+                            .build());
+                }
+            }
         }
 
         return new PageImpl<>(list, pageable, customers.getTotalElements());

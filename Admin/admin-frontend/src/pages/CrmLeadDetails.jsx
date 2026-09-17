@@ -337,7 +337,7 @@ export default function CrmLeadDetails() {
                             <div>
                                 <span className="text-text-muted block font-medium">Estimated Value</span>
                                 <span className="text-xl font-bold text-[#0D9488]">
-                                    {formatCurrency(lead.estimatedValue)}
+                                    {formatCurrency(lead.estimatedValue, lead.currency)}
                                 </span>
                             </div>
 

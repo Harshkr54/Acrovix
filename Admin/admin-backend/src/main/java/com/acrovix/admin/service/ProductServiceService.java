@@ -3,6 +3,7 @@ package com.acrovix.admin.service;
 import com.acrovix.admin.dto.ProductServiceRequest;
 import com.acrovix.admin.dto.ProductServiceResponse;
 import com.acrovix.admin.entity.AdminActivity;
+import com.acrovix.admin.entity.Currency;
 import com.acrovix.admin.entity.ProductService;
 import com.acrovix.admin.entity.ProductServiceType;
 import com.acrovix.admin.exception.ResourceConflictException;
@@ -55,6 +56,7 @@ public class ProductServiceService {
                 .sku(request.getSku())
                 .name(request.getName())
                 .description(request.getDescription())
+                .currency(request.getCurrency() != null ? request.getCurrency() : Currency.INR)
                 .type(request.getType())
                 .hsnSac(request.getHsnSac())
                 .defaultRate(request.getDefaultRate())
@@ -83,6 +85,9 @@ public class ProductServiceService {
         item.setSku(request.getSku());
         item.setName(request.getName());
         item.setDescription(request.getDescription());
+        if (request.getCurrency() != null) {
+            item.setCurrency(request.getCurrency());
+        }
         item.setType(request.getType());
         item.setHsnSac(request.getHsnSac());
         item.setDefaultRate(request.getDefaultRate());
@@ -123,6 +128,7 @@ public class ProductServiceService {
     private ProductServiceResponse mapToResponse(ProductService item) {
         return ProductServiceResponse.builder()
                 .id(item.getId())
+                .currency(item.getCurrency())
                 .sku(item.getSku())
                 .name(item.getName())
                 .description(item.getDescription())

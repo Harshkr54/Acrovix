@@ -1,5 +1,6 @@
 package com.acrovix.admin.dto;
 
+import com.acrovix.admin.entity.Currency;
 import com.acrovix.admin.entity.InvoiceStatus;
 import com.acrovix.admin.entity.InvoiceType;
 import lombok.Data;
@@ -13,6 +14,7 @@ import java.util.List;
 public class InvoiceResponse {
     private Long id;
     private String invoiceNumber;
+    private Currency currency;
     private InvoiceType invoiceType;
     private InvoiceStatus status;
     private boolean isLocked;

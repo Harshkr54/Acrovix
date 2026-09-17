@@ -8,6 +8,7 @@ import AcceptRejectQuotationModal from '../components/AcceptRejectQuotationModal
 import QuotationHistoryModal from '../components/QuotationHistoryModal';
 import ActionMenu from '../components/ActionMenu';
 import { createInvoiceFromQuotation } from '../services/api';
+import { formatCurrency } from '../utils/formatters';
 
 export default function QuotationList() {
     const [quotations, setQuotations] = useState([]);
@@ -350,7 +351,7 @@ export default function QuotationList() {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap align-top">
                                         <div className="text-[13px] font-bold text-text-primary tracking-tight">
-                                            ₹{q.grandTotal?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                                            {formatCurrency(q.grandTotal, q.currency, 2)}
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap align-top">

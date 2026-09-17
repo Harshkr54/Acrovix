@@ -1,6 +1,7 @@
 package com.acrovix.admin.repository;
 
 import com.acrovix.admin.entity.CrmLead;
+import com.acrovix.admin.entity.Currency;
 import com.acrovix.admin.entity.LeadStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -29,6 +30,12 @@ public interface CrmLeadRepository extends JpaRepository<CrmLead, Long>, JpaSpec
 
     @Query("SELECT COALESCE(SUM(l.estimatedValue), 0) FROM CrmLead l WHERE l.status = :status")
     BigDecimal sumEstimatedValueByStatus(@Param("status") LeadStatus status);
+
+    @Query("SELECT COALESCE(SUM(l.estimatedValue), 0) FROM CrmLead l WHERE l.status IN (:statuses) AND COALESCE(l.currency, com.acrovix.admin.entity.Currency.INR) = :currency")
+    BigDecimal sumEstimatedValueByStatusInAndCurrency(@Param("statuses") List<LeadStatus> statuses, @Param("currency") Currency currency);
+
+    @Query("SELECT COALESCE(SUM(l.estimatedValue), 0) FROM CrmLead l WHERE l.status = :status AND COALESCE(l.currency, com.acrovix.admin.entity.Currency.INR) = :currency")
+    BigDecimal sumEstimatedValueByStatusAndCurrency(@Param("status") LeadStatus status, @Param("currency") Currency currency);
 
     List<CrmLead> findByStatusOrderByCreatedAtDesc(LeadStatus status);
 }

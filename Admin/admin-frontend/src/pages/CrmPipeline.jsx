@@ -133,7 +133,14 @@ export default function CrmPipeline() {
             <div className="grid grid-cols-1 md:grid-cols-7 gap-4 items-start overflow-x-auto">
                 {STAGES.map(stage => {
                     const columnLeads = pipelineData[stage.key] || [];
-                    const stageTotalValue = columnLeads.reduce((acc, curr) => acc + (Number(curr.estimatedValue) || 0), 0);
+                    const currencyTotals = {};
+                    columnLeads.forEach(lead => {
+                        const curr = lead.currency || 'INR';
+                        const val = Number(lead.estimatedValue) || 0;
+                        if (val > 0) {
+                            currencyTotals[curr] = (currencyTotals[curr] || 0) + val;
+                        }
+                    });
 
                     // Skip non-active columns on mobile viewport
                     const isVisibleOnMobile = mobileActiveStage === stage.key;
@@ -149,8 +156,16 @@ export default function CrmPipeline() {
                             <div className="flex items-center justify-between pb-3 border-b border-border-subtle mb-3">
                                 <div>
                                     <span className="text-xs font-bold text-text-primary uppercase tracking-wider">{stage.label}</span>
-                                    <div className="text-[11px] font-medium text-text-muted mt-0.5">
-                                        {formatCurrency(stageTotalValue)}
+                                    <div className="mt-0.5 space-y-0.5">
+                                        {Object.keys(currencyTotals).length > 0 ? (
+                                            Object.entries(currencyTotals).map(([curr, val]) => (
+                                                <div key={curr} className="text-[11px] font-semibold text-text-muted">
+                                                    {curr}: {formatCurrency(val, curr)}
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="text-[11px] font-medium text-text-muted">₹0</div>
+                                        )}
                                     </div>
                                 </div>
                                 <span className="w-5 h-5 rounded-full bg-bg-main border border-border-subtle text-[11px] font-bold text-text-muted flex items-center justify-center">
@@ -191,7 +206,7 @@ export default function CrmPipeline() {
                                             </div>
 
                                             <div className="text-xs font-extrabold text-text-primary pt-1 border-t border-border-subtle/50">
-                                                {formatCurrency(lead.estimatedValue)}
+                                                {formatCurrency(lead.estimatedValue, lead.currency)}
                                             </div>
 
                                             <div className="flex items-center justify-between text-[11px] text-text-muted pt-1">

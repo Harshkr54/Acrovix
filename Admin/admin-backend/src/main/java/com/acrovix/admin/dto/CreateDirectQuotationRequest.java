@@ -1,5 +1,6 @@
 package com.acrovix.admin.dto;
 
+import com.acrovix.admin.entity.Currency;
 import com.acrovix.admin.entity.QuotationSource;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -26,6 +27,7 @@ public class CreateDirectQuotationRequest {
     private String clientEmail;
 
     private String clientPhone;
+    private Currency currency;
 
     @NotNull(message = "Quotation source is required")
     private QuotationSource quotationSource;

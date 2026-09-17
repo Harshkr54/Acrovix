@@ -37,8 +37,17 @@ public class PurchaseOrder {
     @Column(name = "po_date", nullable = false)
     private LocalDate poDate;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "currency", length = 10)
+    @Builder.Default
+    private Currency currency = Currency.INR;
+
     @Column(name = "po_value", nullable = false, precision = 12, scale = 2)
     private BigDecimal poValue;
+
+    public Currency getCurrency() {
+        return currency != null ? currency : Currency.INR;
+    }
 
     @Column(name = "po_document_url")
     private String poDocumentUrl;

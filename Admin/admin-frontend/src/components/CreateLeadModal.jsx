@@ -31,6 +31,7 @@ export default function CreateLeadModal({ isOpen, onClose, onSuccess, initialEnq
     const [priority, setPriority] = useState('MEDIUM');
     const [leadSource, setLeadSource] = useState('WEBSITE');
     const [assignedToId, setAssignedToId] = useState('');
+    const [currency, setCurrency] = useState('INR');
     const [estimatedValue, setEstimatedValue] = useState('');
     const [expectedClosingDate, setExpectedClosingDate] = useState('');
     const [probability, setProbability] = useState('50');
@@ -102,6 +103,7 @@ export default function CreateLeadModal({ isOpen, onClose, onSuccess, initialEnq
             priority,
             leadSource,
             assignedToId: assignedToId ? Number(assignedToId) : null,
+            currency: currency,
             estimatedValue: estimatedValue ? Number(estimatedValue) : null,
             expectedClosingDate: expectedClosingDate || null,
             probability: probability ? Number(probability) : 50,
@@ -251,7 +253,19 @@ export default function CreateLeadModal({ isOpen, onClose, onSuccess, initialEnq
                         </div>
 
                         <div>
-                            <label className="block text-xs font-semibold uppercase text-text-muted mb-1">Estimated Value (₹)</label>
+                            <label className="block text-xs font-semibold uppercase text-text-muted mb-1">Currency</label>
+                            <select
+                                value={currency}
+                                onChange={(e) => setCurrency(e.target.value)}
+                                className="w-full px-3 py-2 text-sm bg-bg-main border border-border-subtle rounded-xl text-text-primary focus:outline-none focus:ring-2 focus:ring-[#0D9488]"
+                            >
+                                <option value="INR">INR (₹)</option>
+                                <option value="USD">USD ($)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-semibold uppercase text-text-muted mb-1">Estimated Value ({currency === 'USD' ? '$' : '₹'})</label>
                             <div className="relative">
                                 <DollarSign className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
                                 <input

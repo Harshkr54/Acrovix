@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { getCatalog, createCatalogItem, updateCatalogItem, deleteCatalogItem, activateCatalogItem } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { formatCurrency } from '../utils/formatters';
 import { Package, Plus, ShieldAlert, AlertCircle, RefreshCw, X, Box, Tag, DollarSign, Percent } from 'lucide-react';
 
 export default function CatalogMaster() {
@@ -23,12 +24,13 @@ export default function CatalogMaster() {
         hsnSac: '',
         defaultRate: '',
         defaultGstPercent: '',
-        unit: 'NOS'
+        unit: 'NOS',
+        currency: 'INR'
     });
 
     const resetForm = () => {
         setFormData({
-            sku: '', name: '', description: '', type: 'PRODUCT', hsnSac: '', defaultRate: '', defaultGstPercent: '', unit: 'NOS'
+            sku: '', name: '', description: '', type: 'PRODUCT', hsnSac: '', defaultRate: '', defaultGstPercent: '', unit: 'NOS', currency: 'INR'
         });
         setEditingId(null);
         setShowForm(false);
@@ -78,7 +80,8 @@ export default function CatalogMaster() {
             hsnSac: item.hsnSac || '',
             defaultRate: item.defaultRate || '',
             defaultGstPercent: item.defaultGstPercent || '',
-            unit: item.unit || 'NOS'
+            unit: item.unit || 'NOS',
+            currency: item.currency || 'INR'
         });
         setEditingId(item.id);
         setShowForm(true);
@@ -169,7 +172,7 @@ export default function CatalogMaster() {
                                 <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="input-field rounded-xl text-[13px] bg-bg-main h-11" placeholder="Product/Service Name" />
                             </div>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
                             <div>
                                 <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">HSN / SAC Code</label>
                                 <input type="text" value={formData.hsnSac} onChange={e => setFormData({...formData, hsnSac: e.target.value})} className="input-field rounded-xl text-[13px] bg-bg-main h-11" placeholder="Optional" />
@@ -177,6 +180,17 @@ export default function CatalogMaster() {
                             <div>
                                 <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">Unit</label>
                                 <input type="text" value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})} className="input-field rounded-xl text-[13px] bg-bg-main h-11" placeholder="NOS, KG, HR..." />
+                            </div>
+                            <div>
+                                <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">Currency</label>
+                                <select 
+                                    value={formData.currency} 
+                                    onChange={e => setFormData({...formData, currency: e.target.value})} 
+                                    className="input-field rounded-xl text-[13px] bg-bg-main h-11 cursor-pointer font-semibold"
+                                >
+                                    <option value="INR">INR (₹)</option>
+                                    <option value="USD">USD ($)</option>
+                                </select>
                             </div>
                             <div>
                                 <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">Default Rate</label>
@@ -268,7 +282,7 @@ export default function CatalogMaster() {
                                             <div className="text-[12px] font-medium text-text-secondary mt-0.5">GST: {c.defaultGstPercent ? `${c.defaultGstPercent}%` : 'N/A'}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap align-top text-right">
-                                            <div className="text-[14px] font-bold text-text-primary">₹ {Number(c.defaultRate).toFixed(2)}</div>
+                                            <div className="text-[14px] font-bold text-text-primary">{formatCurrency(c.defaultRate, c.currency, 2)}</div>
                                             <div className="text-[11px] font-medium text-text-muted uppercase mt-0.5">per {c.unit}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap align-top text-center">

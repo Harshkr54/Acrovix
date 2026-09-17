@@ -19,13 +19,14 @@ export default function CustomerMaster() {
         email: '',
         phone: '',
         gstin: '',
+        currency: 'INR',
         billingAddress: '',
         shippingAddress: ''
     });
 
     const resetForm = () => {
         setFormData({
-            customerCode: '', name: '', companyName: '', email: '', phone: '', gstin: '', billingAddress: '', shippingAddress: ''
+            customerCode: '', name: '', companyName: '', email: '', phone: '', gstin: '', currency: 'INR', billingAddress: '', shippingAddress: ''
         });
         setEditingId(null);
         setShowForm(false);
@@ -73,6 +74,7 @@ export default function CustomerMaster() {
             email: customer.email || '',
             phone: customer.phone || '',
             gstin: customer.gstin || '',
+            currency: customer.currency || 'INR',
             billingAddress: customer.billingAddress || '',
             shippingAddress: customer.shippingAddress || ''
         });
@@ -176,6 +178,17 @@ export default function CustomerMaster() {
                                 <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">GSTIN</label>
                                 <input type="text" value={formData.gstin} onChange={e => setFormData({...formData, gstin: e.target.value})} className="input-field rounded-xl text-[13px] bg-bg-main h-11" placeholder="22AAAAA0000A1Z5" />
                             </div>
+                            <div>
+                                <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">Default Billing Currency</label>
+                                <select 
+                                    value={formData.currency} 
+                                    onChange={e => setFormData({...formData, currency: e.target.value})} 
+                                    className="input-field rounded-xl text-[13px] bg-bg-main h-11 cursor-pointer font-semibold"
+                                >
+                                    <option value="INR">INR (₹)</option>
+                                    <option value="USD">USD ($)</option>
+                                </select>
+                            </div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
@@ -204,6 +217,7 @@ export default function CustomerMaster() {
                                 <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card rounded-tl-[24px]">Code / Name</th>
                                 <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Company / GSTIN</th>
                                 <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Contact Info</th>
+                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Currency</th>
                                 <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Status</th>
                                 <th className="px-6 py-4 text-right text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card rounded-tr-[24px]">Actions</th>
                             </tr>
@@ -211,7 +225,7 @@ export default function CustomerMaster() {
                         <tbody className="bg-bg-card divide-y divide-border-subtle/40 rounded-b-[24px]">
                             {error ? (
                                 <tr>
-                                    <td colSpan="5" className="px-6 py-20 text-center">
+                                    <td colSpan="6" className="px-6 py-20 text-center">
                                         <div className="flex flex-col items-center justify-center space-y-4 max-w-sm mx-auto">
                                             <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mb-1">
                                                 <AlertCircle className="w-6 h-6 text-red-500" />
@@ -227,7 +241,7 @@ export default function CustomerMaster() {
                                 </tr>
                             ) : isLoading ? (
                                 <tr>
-                                    <td colSpan="5" className="px-6 py-16 text-center">
+                                    <td colSpan="6" className="px-6 py-16 text-center">
                                         <div className="flex justify-center mb-4">
                                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#14B8A6]"></div>
                                         </div>
@@ -236,7 +250,7 @@ export default function CustomerMaster() {
                                 </tr>
                             ) : customers.length === 0 ? (
                                 <tr>
-                                    <td colSpan="5" className="px-6 py-16 text-center text-text-muted text-[13px] font-medium">
+                                    <td colSpan="6" className="px-6 py-16 text-center text-text-muted text-[13px] font-medium">
                                         No customers found.
                                     </td>
                                 </tr>
@@ -254,6 +268,11 @@ export default function CustomerMaster() {
                                         <td className="px-6 py-4 whitespace-nowrap align-top">
                                             <div className="text-text-secondary text-[13px] font-medium flex items-center"><Mail className="w-3 h-3 mr-1.5"/>{c.email}</div>
                                             {c.phone && <div className="text-text-secondary text-[12px] mt-1 flex items-center"><Phone className="w-3 h-3 mr-1.5"/>{c.phone}</div>}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap align-top">
+                                            <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-text-primary bg-bg-main border border-border-subtle px-2 py-1 rounded-md">
+                                                {c.currency || 'INR'}
+                                            </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap align-top">
                                             {c.active ? (

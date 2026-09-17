@@ -1,5 +1,6 @@
 package com.acrovix.admin.dto;
 
+import com.acrovix.admin.entity.Currency;
 import com.acrovix.admin.entity.PaymentMethod;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
@@ -20,6 +21,8 @@ public class PaymentRequest {
     @NotNull(message = "Payment Amount is required")
     @DecimalMin(value = "0.01", message = "Amount must be greater than zero")
     private BigDecimal amount;
+
+    private Currency currency;
 
     @NotNull(message = "Payment Method is required")
     private PaymentMethod paymentMethod;

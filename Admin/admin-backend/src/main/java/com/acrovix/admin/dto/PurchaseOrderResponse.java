@@ -1,5 +1,6 @@
 package com.acrovix.admin.dto;
 
+import com.acrovix.admin.entity.Currency;
 import com.acrovix.admin.entity.PurchaseOrderReceivedVia;
 import com.acrovix.admin.entity.PurchaseOrderStatus;
 import lombok.Data;
@@ -15,6 +16,7 @@ public class PurchaseOrderResponse {
     private String quotationNumber;
     private String clientName;
     private String clientCompany;
+    private Currency currency;
     private BigDecimal quotationValue;
     
     private String clientPoNumber;

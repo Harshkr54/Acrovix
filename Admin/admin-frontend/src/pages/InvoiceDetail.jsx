@@ -14,6 +14,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { ArrowLeft, Clock, CheckCircle, XCircle, FileText, Download, Edit3, X, CreditCard, Plus, AlertCircle, RefreshCw } from 'lucide-react';
 import { API_BASE_URL } from '../services/api';
+import { formatCurrency } from '../utils/formatters';
 
 export default function InvoiceDetail() {
     const { id } = useParams();
@@ -429,15 +430,15 @@ export default function InvoiceDetail() {
                     <div className="grid grid-cols-4 gap-4">
                         <div className="p-4 bg-bg-main rounded-xl border border-border-subtle">
                             <div className="text-xs text-text-muted font-medium mb-1">Grand Total</div>
-                            <div className="text-lg font-bold text-text-primary">Rs. {Number(invoice.grandTotal || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                            <div className="text-lg font-bold text-text-primary">{formatCurrency(invoice.grandTotal || 0, invoice.currency, 2)}</div>
                         </div>
                         <div className="p-4 bg-emerald-500/5 rounded-xl border border-emerald-500/20">
                             <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mb-1">Amount Received</div>
-                            <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">Rs. {Number(invoice.amountPaid || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                            <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(invoice.amountPaid || 0, invoice.currency, 2)}</div>
                         </div>
                         <div className="p-4 bg-amber-500/5 rounded-xl border border-amber-500/20">
                             <div className="text-xs text-amber-600 dark:text-amber-400 font-medium mb-1">Balance Due</div>
-                            <div className="text-lg font-bold text-amber-600 dark:text-amber-400">Rs. {Number(invoice.balanceDue !== undefined && invoice.balanceDue !== null ? invoice.balanceDue : invoice.grandTotal).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                            <div className="text-lg font-bold text-amber-600 dark:text-amber-400">{formatCurrency(invoice.balanceDue !== undefined && invoice.balanceDue !== null ? invoice.balanceDue : invoice.grandTotal, invoice.currency, 2)}</div>
                         </div>
                         <div className="p-4 bg-bg-main rounded-xl border border-border-subtle flex flex-col justify-center">
                             <div className="text-xs text-text-muted font-medium mb-1">Payment Status</div>
@@ -481,7 +482,7 @@ export default function InvoiceDetail() {
                             </div>
                             <div>
                                 <label className="text-xs text-text-muted">Grand Total</label>
-                                <div className="font-medium text-text-primary mt-1">Rs. {Number(invoice.grandTotal || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                                <div className="font-medium text-text-primary mt-1">{formatCurrency(invoice.grandTotal || 0, invoice.currency, 2)}</div>
                             </div>
                             <div>
                                 <label className="text-xs text-text-muted">Payment Terms</label>
@@ -496,29 +497,29 @@ export default function InvoiceDetail() {
                         <div className="space-y-2 text-sm">
                             <div className="flex justify-between">
                                 <span className="text-text-muted">Taxable Amount</span>
-                                <span className="font-medium">Rs. {Number(invoice.taxableAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span className="font-medium">{formatCurrency(invoice.taxableAmount || 0, invoice.currency, 2)}</span>
                             </div>
                             {invoice.cgstAmount > 0 && (
                                 <div className="flex justify-between">
                                     <span className="text-text-muted">CGST</span>
-                                    <span className="font-medium">Rs. {Number(invoice.cgstAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    <span className="font-medium">{formatCurrency(invoice.cgstAmount || 0, invoice.currency, 2)}</span>
                                 </div>
                             )}
                             {invoice.sgstAmount > 0 && (
                                 <div className="flex justify-between">
                                     <span className="text-text-muted">SGST</span>
-                                    <span className="font-medium">Rs. {Number(invoice.sgstAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    <span className="font-medium">{formatCurrency(invoice.sgstAmount || 0, invoice.currency, 2)}</span>
                                 </div>
                             )}
                             {invoice.igstAmount > 0 && (
                                 <div className="flex justify-between">
                                     <span className="text-text-muted">IGST</span>
-                                    <span className="font-medium">Rs. {Number(invoice.igstAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    <span className="font-medium">{formatCurrency(invoice.igstAmount || 0, invoice.currency, 2)}</span>
                                 </div>
                             )}
                             <div className="flex justify-between pt-2 border-t border-border-subtle">
                                 <span className="font-bold text-text-primary">Grand Total</span>
-                                <span className="font-bold text-text-primary">Rs. {Number(invoice.grandTotal || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span className="font-bold text-text-primary">{formatCurrency(invoice.grandTotal || 0, invoice.currency, 2)}</span>
                             </div>
                             {invoice.amountInWords && (
                                 <div className="pt-2 text-xs text-text-muted italic">
@@ -566,7 +567,7 @@ export default function InvoiceDetail() {
                                                         {p.bankName && <div className="text-[11px] text-text-muted">{p.bankName}</div>}
                                                         {!p.transactionReference && !p.chequeNumber && '-'}
                                                     </td>
-                                                    <td className="p-3 font-bold text-text-primary text-right">Rs. {Number(p.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                    <td className="p-3 font-bold text-text-primary text-right">{formatCurrency(p.amount, invoice.currency, 2)}</td>
                                                     <td className="p-3">
                                                         {p.status === 'RECORDED' ? (
                                                             <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-500 font-semibold rounded-full text-[11px]">RECORDED</span>
@@ -692,15 +693,15 @@ export default function InvoiceDetail() {
                                 <div className="p-4 bg-bg-main rounded-xl border border-border-subtle grid grid-cols-3 gap-2 text-center">
                                     <div>
                                         <div className="text-[11px] text-text-muted font-medium">Grand Total</div>
-                                        <div className="text-xs font-bold text-text-primary mt-0.5">Rs. {Number(invoice.grandTotal || 0).toLocaleString()}</div>
+                                        <div className="text-xs font-bold text-text-primary mt-0.5">{formatCurrency(invoice.grandTotal || 0, invoice.currency, 2)}</div>
                                     </div>
                                     <div>
                                         <div className="text-[11px] text-text-muted font-medium">Already Paid</div>
-                                        <div className="text-xs font-bold text-emerald-600 mt-0.5">Rs. {Number(invoice.amountPaid || 0).toLocaleString()}</div>
+                                        <div className="text-xs font-bold text-emerald-600 mt-0.5">{formatCurrency(invoice.amountPaid || 0, invoice.currency, 2)}</div>
                                     </div>
                                     <div>
                                         <div className="text-[11px] text-text-muted font-medium">Balance Due</div>
-                                        <div className="text-xs font-bold text-amber-600 mt-0.5">Rs. {Number(invoice.balanceDue !== undefined && invoice.balanceDue !== null ? invoice.balanceDue : invoice.grandTotal).toLocaleString()}</div>
+                                        <div className="text-xs font-bold text-amber-600 mt-0.5">{formatCurrency(invoice.balanceDue !== undefined && invoice.balanceDue !== null ? invoice.balanceDue : invoice.grandTotal, invoice.currency, 2)}</div>
                                     </div>
                                 </div>
 
@@ -716,7 +717,7 @@ export default function InvoiceDetail() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-semibold text-text-muted mb-1">Amount (Rs.) *</label>
+                                        <label className="block text-xs font-semibold text-text-muted mb-1">Amount ({invoice.currency === 'USD' ? '$' : '₹'}) *</label>
                                         <input
                                             type="number"
                                             step="0.01"

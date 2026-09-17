@@ -74,6 +74,7 @@ public class PurchaseOrderService {
         PurchaseOrder po = PurchaseOrder.builder()
                 .poNumber(poNumber)
                 .quotation(quotation)
+                .currency(quotation.getCurrency())
                 .clientPoNumber(request.getClientPoNumber())
                 .poDate(request.getPoDate())
                 .poValue(request.getPoValue())
@@ -190,6 +191,7 @@ public class PurchaseOrderService {
         
         response.setClientPoNumber(po.getClientPoNumber());
         response.setPoDate(po.getPoDate());
+        response.setCurrency(po.getCurrency());
         response.setPoValue(po.getPoValue());
         
         // Mismatch Logic

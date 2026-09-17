@@ -1,5 +1,6 @@
 package com.acrovix.admin.dto.crm;
 
+import com.acrovix.admin.entity.Currency;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -23,6 +24,9 @@ public class CrmDashboardSummaryResponse {
 
     private BigDecimal openPipelineValue;
     private BigDecimal wonValue;
+
+    private Map<Currency, BigDecimal> openPipelineValueByCurrency;
+    private Map<Currency, BigDecimal> wonValueByCurrency;
 
     private long followUpsDueToday;
     private long overdueFollowUps;

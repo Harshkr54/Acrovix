@@ -14,6 +14,7 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
         clientCompany: '',
         clientEmail: '',
         clientPhone: '',
+        currency: 'INR',
         quotationSource: 'PHONE',
         sourceNotes: ''
     });
@@ -28,6 +29,7 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
             clientCompany: '',
             clientEmail: '',
             clientPhone: '',
+            currency: 'INR',
             quotationSource: 'PHONE',
             sourceNotes: ''
         });
@@ -69,6 +71,7 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                     clientCompany: formData.clientCompany.trim() || null,
                     clientEmail: formData.clientEmail.trim(),
                     clientPhone: formData.clientPhone.trim() || null,
+                    currency: formData.currency,
                     quotationSource: formData.quotationSource,
                     sourceNotes: formData.sourceNotes.trim() || null
                 })
@@ -243,22 +246,39 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-1.5">
-                                    Quotation Source <span className="text-red-500">*</span>
-                                </label>
-                                <select
-                                    name="quotationSource"
-                                    value={formData.quotationSource}
-                                    onChange={handleInputChange}
-                                    className="w-full bg-bg-main border border-border-subtle focus:border-[#14B8A6] rounded-xl px-3.5 py-2.5 text-[13px] font-medium text-text-primary outline-none transition-colors"
-                                >
-                                    {sourceOptions.map(opt => (
-                                        <option key={opt.value} value={opt.value}>
-                                            {opt.label}
-                                        </option>
-                                    ))}
-                                </select>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-1.5">
+                                        Currency <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        name="currency"
+                                        value={formData.currency}
+                                        onChange={handleInputChange}
+                                        className="w-full bg-bg-main border border-border-subtle focus:border-[#14B8A6] rounded-xl px-3.5 py-2.5 text-[13px] font-medium text-text-primary outline-none transition-colors"
+                                    >
+                                        <option value="INR">INR (₹)</option>
+                                        <option value="USD">USD ($)</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-1.5">
+                                        Quotation Source <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        name="quotationSource"
+                                        value={formData.quotationSource}
+                                        onChange={handleInputChange}
+                                        className="w-full bg-bg-main border border-border-subtle focus:border-[#14B8A6] rounded-xl px-3.5 py-2.5 text-[13px] font-medium text-text-primary outline-none transition-colors"
+                                    >
+                                        {sourceOptions.map(opt => (
+                                            <option key={opt.value} value={opt.value}>
+                                                {opt.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
 
                             <div>

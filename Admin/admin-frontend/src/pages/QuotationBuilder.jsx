@@ -33,6 +33,7 @@ export default function QuotationBuilder() {
     const [clientCompany, setClientCompany] = useState('');
     const [clientEmail, setClientEmail] = useState('');
     const [clientPhone, setClientPhone] = useState('');
+    const [currency, setCurrency] = useState('INR');
     const [quotationSource, setQuotationSource] = useState('ENQUIRY');
     const [sourceNotes, setSourceNotes] = useState('');
 
@@ -86,6 +87,7 @@ export default function QuotationBuilder() {
                 setClientCompany(q.clientCompany || '');
                 setClientEmail(q.clientEmail || '');
                 setClientPhone(q.clientPhone || '');
+                setCurrency(q.currency || 'INR');
                 setCustomerId(q.customerId || null);
                 setQuotationSource(q.quotationSource || (q.enquiry ? 'ENQUIRY' : 'DIRECT'));
                 setSourceNotes(q.sourceNotes || '');
@@ -393,6 +395,7 @@ export default function QuotationBuilder() {
                 clientCompany: clientCompany,
                 clientEmail: clientEmail,
                 clientPhone: clientPhone,
+                currency: currency,
                 quotationSource: quotationSource,
                 sourceNotes: sourceNotes,
                 columnConfigs: columnConfigs,
@@ -460,6 +463,7 @@ export default function QuotationBuilder() {
                 clientCompany: clientCompany,
                 clientEmail: clientEmail,
                 clientPhone: clientPhone,
+                currency: currency,
                 quotationSource: quotationSource,
                 sourceNotes: sourceNotes,
                 columnConfigs: columnConfigs,
@@ -523,6 +527,7 @@ export default function QuotationBuilder() {
                 clientCompany: clientCompany,
                 clientEmail: clientEmail,
                 clientPhone: clientPhone,
+                currency: currency,
                 quotationSource: quotationSource,
                 sourceNotes: sourceNotes,
                 columnConfigs: columnConfigs,
@@ -710,7 +715,18 @@ export default function QuotationBuilder() {
                         )}
                     </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+                    <div>
+                        <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Currency</p>
+                        <select
+                            value={currency}
+                            onChange={(e) => setCurrency(e.target.value)}
+                            className="w-full bg-bg-main border border-border-subtle focus:border-[#14B8A6] rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
+                        >
+                            <option value="INR">INR (₹)</option>
+                            <option value="USD">USD ($)</option>
+                        </select>
+                    </div>
                     <div>
                         <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Client Name</p>
                         <input
@@ -1014,23 +1030,23 @@ export default function QuotationBuilder() {
                     <div className="space-y-4 relative z-10">
                         <div className="flex justify-between text-[13px] text-text-secondary">
                             <span className="font-medium">Subtotal (Before Tax)</span>
-                            <span className="font-mono font-semibold text-text-primary tracking-tight">₹{totals.subtotalBeforeTax.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span className="font-mono font-semibold text-text-primary tracking-tight">{formatCurrency(totals.subtotalBeforeTax, currency, 2)}</span>
                         </div>
                         <div className="flex justify-between text-[13px]">
                             <span className="font-medium text-text-secondary">Total Discount</span>
-                            <span className="text-[#DC2626] font-mono font-semibold tracking-tight">-₹{totals.discount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span className="text-[#DC2626] font-mono font-semibold tracking-tight">-{formatCurrency(totals.discount, currency, 2)}</span>
                         </div>
                         <div className="flex justify-between text-[13px] text-text-secondary">
                             <span className="font-medium">Taxable Amount</span>
-                            <span className="font-mono font-semibold text-text-primary tracking-tight">₹{totals.taxableAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span className="font-mono font-semibold text-text-primary tracking-tight">{formatCurrency(totals.taxableAmount, currency, 2)}</span>
                         </div>
                         <div className="flex justify-between text-[13px] text-text-secondary pb-5 border-b border-border-subtle">
                             <span className="font-medium">Total Tax</span>
-                            <span className="font-mono font-semibold text-text-primary tracking-tight">₹{totals.tax.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span className="font-mono font-semibold text-text-primary tracking-tight">{formatCurrency(totals.tax, currency, 2)}</span>
                         </div>
                         <div className="flex justify-between items-end pt-3">
                             <span className="text-[15px] font-bold text-text-primary">Grand Total</span>
-                            <span className="text-[32px] font-bold text-[#14B8A6] font-mono tracking-tight leading-none">₹{totals.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span className="text-[32px] font-bold text-[#14B8A6] font-mono tracking-tight leading-none">{formatCurrency(totals.grandTotal, currency, 2)}</span>
                         </div>
                     </div>
                 </div>

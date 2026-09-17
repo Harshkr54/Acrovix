@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { XCircle, ShoppingCart } from 'lucide-react';
 import { createPurchaseOrder } from '../services/api';
 import { useNavigate } from 'react-router-dom';
+import { formatCurrency } from '../utils/formatters';
 
 export default function CreatePurchaseOrderModal({ isOpen, onClose, quotation, onSuccess }) {
     const navigate = useNavigate();
@@ -62,7 +63,7 @@ export default function CreatePurchaseOrderModal({ isOpen, onClose, quotation, o
                     <div className="mb-6 bg-brand-primary/5 border border-brand-primary/20 rounded-lg p-4">
                         <div className="text-sm text-brand-primary font-semibold mb-1">Source Quotation</div>
                         <div className="text-sm font-medium text-text-primary">{quotation.quotationNumber} - {quotation.clientName}</div>
-                        <div className="text-xs text-text-muted">Value: Rs. {Number(quotation.grandTotal).toLocaleString()}</div>
+                        <div className="text-xs text-text-muted">Value: {formatCurrency(quotation.grandTotal, quotation.currency)}</div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 mb-4">
@@ -89,7 +90,7 @@ export default function CreatePurchaseOrderModal({ isOpen, onClose, quotation, o
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-text-primary mb-1">PO Value (Rs.) *</label>
+                            <label className="block text-sm font-medium text-text-primary mb-1">PO Value ({quotation.currency === 'USD' ? '$' : '₹'}) *</label>
                             <input
                                 type="number"
                                 name="poValue"

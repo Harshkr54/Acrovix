@@ -1,5 +1,6 @@
 package com.acrovix.admin.dto;
 
+import com.acrovix.admin.entity.Currency;
 import com.acrovix.admin.entity.ProductServiceType;
 import lombok.Builder;
 import lombok.Data;
@@ -11,6 +12,7 @@ import java.time.LocalDateTime;
 @Builder
 public class ProductServiceResponse {
     private Long id;
+    private Currency currency;
     private String sku;
     private String name;
     private String description;

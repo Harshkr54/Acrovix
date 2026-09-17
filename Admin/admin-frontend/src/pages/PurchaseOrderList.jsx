@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getPurchaseOrders } from '../services/api';
 import { Search, Plus, Filter, FileText, ShoppingCart, CheckCircle, Clock, XCircle, Package } from 'lucide-react';
+import { formatCurrency } from '../utils/formatters';
 
 export default function PurchaseOrderList() {
     const [orders, setOrders] = useState([]);
@@ -140,7 +141,7 @@ export default function PurchaseOrderList() {
                                         </td>
                                         <td className="px-6 py-4 text-text-secondary">{order.quotationNumber}</td>
                                         <td className="px-6 py-4 text-right font-medium">
-                                            Rs. {Number(order.poValue).toLocaleString()}
+                                            {formatCurrency(order.poValue, order.currency)}
                                             {order.valueMismatch && (
                                                 <div className="text-xs text-red-500 mt-1" title="Mismatch with Quotation">⚠ Mismatch</div>
                                             )}

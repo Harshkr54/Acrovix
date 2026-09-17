@@ -77,8 +77,17 @@ public class CrmLead {
     @JoinColumn(name = "assigned_to")
     private AdminUser assignedTo;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "currency", length = 10)
+    @Builder.Default
+    private Currency currency = Currency.INR;
+
     @Column(name = "estimated_value", precision = 12, scale = 2)
     private BigDecimal estimatedValue;
+
+    public Currency getCurrency() {
+        return currency != null ? currency : Currency.INR;
+    }
 
     @Column(name = "expected_closing_date")
     private LocalDate expectedClosingDate;

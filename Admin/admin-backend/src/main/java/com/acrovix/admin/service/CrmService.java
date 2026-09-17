@@ -2,6 +2,7 @@ package com.acrovix.admin.service;
 
 import com.acrovix.admin.dto.crm.*;
 import com.acrovix.admin.entity.*;
+import com.acrovix.admin.entity.Currency;
 import com.acrovix.admin.exception.ResourceConflictException;
 import com.acrovix.admin.exception.ResourceNotFoundException;
 import com.acrovix.admin.repository.*;
@@ -108,6 +109,7 @@ public class CrmService {
                 .priority(request.getPriority() != null ? request.getPriority() : LeadPriority.MEDIUM)
                 .leadSource(request.getLeadSource() != null ? request.getLeadSource() : LeadSource.WEBSITE)
                 .assignedTo(assignedUser)
+                .currency(request.getCurrency() != null ? request.getCurrency() : Currency.INR)
                 .estimatedValue(request.getEstimatedValue())
                 .expectedClosingDate(request.getExpectedClosingDate())
                 .probability(request.getProbability())
@@ -209,6 +211,9 @@ public class CrmService {
         }
         if (request.getLeadSource() != null) {
             lead.setLeadSource(request.getLeadSource());
+        }
+        if (request.getCurrency() != null) {
+            lead.setCurrency(request.getCurrency());
         }
         if (request.getEstimatedValue() != null) {
             lead.setEstimatedValue(request.getEstimatedValue());
@@ -462,6 +467,15 @@ public class CrmService {
 
         BigDecimal wonVal = crmLeadRepository.sumEstimatedValueByStatus(LeadStatus.WON);
 
+        Map<Currency, BigDecimal> openPipelineValueByCurrency = new EnumMap<>(Currency.class);
+        Map<Currency, BigDecimal> wonValueByCurrency = new EnumMap<>(Currency.class);
+        for (Currency c : Currency.values()) {
+            openPipelineValueByCurrency.put(c, crmLeadRepository.sumEstimatedValueByStatusInAndCurrency(
+                    List.of(LeadStatus.NEW, LeadStatus.CONTACTED, LeadStatus.QUALIFIED, LeadStatus.PROPOSAL, LeadStatus.NEGOTIATION), c
+            ));
+            wonValueByCurrency.put(c, crmLeadRepository.sumEstimatedValueByStatusAndCurrency(LeadStatus.WON, c));
+        }
+
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime startToday = LocalDate.now().atStartOfDay();
         LocalDateTime endToday = LocalDate.now().atTime(LocalTime.MAX);
@@ -489,6 +503,8 @@ public class CrmService {
                 .lostCount(lostCount)
                 .openPipelineValue(openPipelineVal)
                 .wonValue(wonVal)
+                .openPipelineValueByCurrency(openPipelineValueByCurrency)
+                .wonValueByCurrency(wonValueByCurrency)
                 .followUpsDueToday(dueToday)
                 .overdueFollowUps(overdue)
                 .statusBreakdown(statusBreakdown)
@@ -581,6 +597,7 @@ public class CrmService {
                 .leadSource(lead.getLeadSource())
                 .assignedToId(lead.getAssignedTo() != null ? lead.getAssignedTo().getId() : null)
                 .assignedToName(lead.getAssignedTo() != null ? lead.getAssignedTo().getName() : null)
+                .currency(lead.getCurrency())
                 .estimatedValue(lead.getEstimatedValue())
                 .expectedClosingDate(lead.getExpectedClosingDate())
                 .probability(lead.getProbability())

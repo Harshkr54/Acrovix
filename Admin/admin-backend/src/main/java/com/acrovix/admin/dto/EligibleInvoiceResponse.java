@@ -1,5 +1,6 @@
 package com.acrovix.admin.dto;
 
+import com.acrovix.admin.entity.Currency;
 import com.acrovix.admin.entity.InvoiceStatus;
 import com.acrovix.admin.entity.InvoiceType;
 import lombok.AllArgsConstructor;
@@ -17,6 +18,7 @@ import java.time.LocalDate;
 public class EligibleInvoiceResponse {
     private Long id;
     private String invoiceNumber;
+    private Currency currency;
     private InvoiceType invoiceType;
     private InvoiceStatus status;
     private Long customerId;

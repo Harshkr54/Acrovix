@@ -40,8 +40,17 @@ public class Payment {
     @Column(name = "payment_date", nullable = false)
     private LocalDate paymentDate;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "currency", length = 10)
+    @Builder.Default
+    private Currency currency = Currency.INR;
+
     @Column(name = "amount", precision = 12, scale = 2, nullable = false)
     private BigDecimal amount;
+
+    public Currency getCurrency() {
+        return currency != null ? currency : Currency.INR;
+    }
 
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_method", nullable = false, length = 30)

@@ -155,8 +155,19 @@ export default function CrmDashboard() {
                         </div>
                     </div>
                     <div className="mt-3">
-                        <span className="text-2xl font-bold text-text-primary">{formatCurrency(openPipelineValue)}</span>
-                        <p className="text-xs text-text-muted mt-0.5">Active deals in pipeline</p>
+                        {summary?.openPipelineValueByCurrency && Object.keys(summary.openPipelineValueByCurrency).length > 0 ? (
+                            <div className="space-y-1">
+                                {Object.entries(summary.openPipelineValueByCurrency).map(([curr, val]) => (
+                                    <div key={curr} className="flex items-center justify-between">
+                                        <span className="text-xs font-semibold text-text-muted">{curr}</span>
+                                        <span className="text-lg font-bold text-text-primary">{formatCurrency(val, curr)}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <span className="text-2xl font-bold text-text-primary">{formatCurrency(openPipelineValue, 'INR')}</span>
+                        )}
+                        <p className="text-xs text-text-muted mt-1">Active deals in pipeline</p>
                     </div>
                 </div>
 
@@ -167,9 +178,20 @@ export default function CrmDashboard() {
                             <CheckCircle2 className="w-5 h-5" />
                         </div>
                     </div>
-                    <div className="mt-3 flex items-baseline justify-between">
-                        <span className="text-2xl font-bold text-text-primary">{formatCurrency(wonValue)}</span>
-                        <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">{wonCount} won</span>
+                    <div className="mt-3">
+                        {summary?.wonValueByCurrency && Object.keys(summary.wonValueByCurrency).length > 0 ? (
+                            <div className="space-y-1">
+                                {Object.entries(summary.wonValueByCurrency).map(([curr, val]) => (
+                                    <div key={curr} className="flex items-center justify-between">
+                                        <span className="text-xs font-semibold text-text-muted">{curr}</span>
+                                        <span className="text-lg font-bold text-text-primary">{formatCurrency(val, curr)}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <span className="text-2xl font-bold text-text-primary">{formatCurrency(wonValue, 'INR')}</span>
+                        )}
+                        <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold mt-1">{wonCount} won</p>
                     </div>
                 </div>
             </div>
@@ -291,7 +313,7 @@ export default function CrmDashboard() {
                                             </div>
                                             <div className="flex items-center gap-2 text-xs text-text-muted mt-0.5">
                                                 {lead.companyName && <span className="truncate">{lead.companyName}</span>}
-                                                <span>• {formatCurrency(lead.estimatedValue)}</span>
+                                                <span>• {formatCurrency(lead.estimatedValue, lead.currency)}</span>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2 shrink-0">

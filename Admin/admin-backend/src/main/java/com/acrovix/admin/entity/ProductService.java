@@ -35,8 +35,17 @@ public class ProductService {
     @Column(name = "hsn_sac", length = 50)
     private String hsnSac;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "currency", length = 10)
+    @Builder.Default
+    private Currency currency = Currency.INR;
+
     @Column(name = "default_rate", precision = 12, scale = 2)
     private BigDecimal defaultRate;
+
+    public Currency getCurrency() {
+        return currency != null ? currency : Currency.INR;
+    }
 
     @Column(name = "default_gst_percent", precision = 5, scale = 2)
     private BigDecimal defaultGstPercent;

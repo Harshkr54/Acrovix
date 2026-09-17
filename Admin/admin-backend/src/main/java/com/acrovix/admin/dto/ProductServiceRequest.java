@@ -1,5 +1,6 @@
 package com.acrovix.admin.dto;
 
+import com.acrovix.admin.entity.Currency;
 import com.acrovix.admin.entity.ProductServiceType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -10,6 +11,7 @@ import java.math.BigDecimal;
 
 @Data
 public class ProductServiceRequest {
+    private Currency currency;
     
     @NotBlank(message = "SKU is required")
     @Size(max = 100, message = "SKU cannot exceed 100 characters")

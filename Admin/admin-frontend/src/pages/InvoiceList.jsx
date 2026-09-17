@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getInvoices } from '../services/api';
+import { formatCurrency } from '../utils/formatters';
 import { Search, Plus, Filter, FileText, CheckCircle, Clock, XCircle, Package } from 'lucide-react';
 
 export default function InvoiceList() {
@@ -165,7 +166,7 @@ export default function InvoiceList() {
                                             <div className="text-xs text-text-muted">{invoice.clientCompany}</div>
                                         </td>
                                         <td className="px-6 py-4 text-right font-medium">
-                                            Rs. {Number(invoice.grandTotal || 0).toLocaleString()}
+                                            {formatCurrency(invoice.grandTotal || 0, invoice.currency, 2)}
                                         </td>
                                         <td className="px-6 py-4">
                                             {getStatusBadge(invoice.status)}

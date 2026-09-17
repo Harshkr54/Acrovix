@@ -79,8 +79,17 @@ public class Quotation {
     @Column(nullable = false, length = 50)
     private String status = "DRAFT"; // DRAFT, SENT, ACCEPTED, REJECTED, EXPIRED
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "currency", length = 10)
+    @Builder.Default
+    private Currency currency = Currency.INR;
+
     @Column(precision = 12, scale = 2)
     private BigDecimal subtotal;
+
+    public Currency getCurrency() {
+        return currency != null ? currency : Currency.INR;
+    }
 
     @Column(name = "discount_amount", precision = 12, scale = 2)
     private BigDecimal discountAmount;

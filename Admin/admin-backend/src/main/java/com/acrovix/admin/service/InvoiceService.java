@@ -69,7 +69,29 @@ public class InvoiceService {
         invoice.setLocked(false);
         invoice.setCreatedBy(admin);
 
-        // Snapshot Customer
+        if (request.getQuotationId() != null) {
+            Quotation quotation = quotationRepository.findById(request.getQuotationId())
+                    .orElseThrow(() -> new IllegalArgumentException("Quotation not found"));
+            if (!"ACCEPTED".equals(quotation.getStatus()) && !"CONVERTED".equals(quotation.getStatus())) {
+                throw new IllegalStateException("Invoice can only be created from ACCEPTED or CONVERTED quotation");
+            }
+            invoice.setQuotation(quotation);
+            invoice.setCurrency(quotation.getCurrency());
+        }
+
+        if (request.getPurchaseOrderId() != null) {
+            PurchaseOrder po = purchaseOrderRepository.findById(request.getPurchaseOrderId())
+                    .orElseThrow(() -> new IllegalArgumentException("Purchase Order not found"));
+            if (po.getStatus() != PurchaseOrderStatus.VERIFIED && po.getStatus() != PurchaseOrderStatus.PARTIALLY_FULFILLED) {
+                throw new IllegalStateException("Invoice can only be created from VERIFIED or PARTIALLY_FULFILLED Purchase Order");
+            }
+            invoice.setPurchaseOrder(po);
+            invoice.setCurrency(po.getCurrency());
+        }
+
+        if (invoice.getCurrency() == null) {
+            invoice.setCurrency(request.getCurrency() != null ? request.getCurrency() : Currency.INR);
+        }
         if (request.getCustomerId() != null) {
             Customer customer = customerRepository.findById(request.getCustomerId())
                     .orElseThrow(() -> new IllegalArgumentException("Customer not found"));
@@ -383,6 +405,7 @@ public class InvoiceService {
         // Copy Refs
         taxInvoice.setQuotation(proforma.getQuotation());
         taxInvoice.setPurchaseOrder(proforma.getPurchaseOrder());
+        taxInvoice.setCurrency(proforma.getCurrency());
         
         // Copy Totals
         taxInvoice.setSubtotal(proforma.getSubtotal());
@@ -564,6 +587,7 @@ public class InvoiceService {
         InvoiceResponse response = new InvoiceResponse();
         response.setId(invoice.getId());
         response.setInvoiceNumber(invoice.getInvoiceNumber());
+        response.setCurrency(invoice.getCurrency());
         response.setInvoiceType(invoice.getInvoiceType());
         response.setStatus(invoice.getStatus());
         response.setLocked(invoice.isLocked());

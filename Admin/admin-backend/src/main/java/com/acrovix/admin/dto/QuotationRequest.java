@@ -1,5 +1,6 @@
 package com.acrovix.admin.dto;
 
+import com.acrovix.admin.entity.Currency;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -27,6 +28,7 @@ public class QuotationRequest {
     private String clientEmail;
     
     private String clientPhone;
+    private Currency currency;
     private com.acrovix.admin.entity.QuotationSource quotationSource;
     private String sourceNotes;
     private String termsAndConditions;
