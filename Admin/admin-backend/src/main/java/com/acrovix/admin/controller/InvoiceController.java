@@ -119,4 +119,14 @@ public class InvoiceController {
         
         return new ResponseEntity<>(pdfBytes, headers, org.springframework.http.HttpStatus.OK);
     }
+
+    @PostMapping("/{id}/send-email")
+    public ResponseEntity<java.util.Map<String, Object>> sendInvoiceEmail(
+            @PathVariable Long id,
+            @RequestBody(required = false) java.util.Map<String, String> body,
+            @AuthenticationPrincipal AdminUser admin) {
+        String overrideEmail = body != null ? body.get("recipientEmail") : null;
+        invoiceService.sendInvoiceEmail(id, overrideEmail, admin);
+        return ResponseEntity.ok(java.util.Map.of("success", true, "message", "Invoice email sent successfully"));
+    }
 }

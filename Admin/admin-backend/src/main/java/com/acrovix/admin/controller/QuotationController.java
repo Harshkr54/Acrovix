@@ -158,15 +158,15 @@ public class QuotationController {
                 .body(pdf);
     }
 
-    @PostMapping("/{id}/send")
+    @PostMapping({"/{id}/send", "/{id}/send-email"})
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
     @Transactional
-    public ResponseEntity<?> sendQuotation(
+    public ResponseEntity<java.util.Map<String, Object>> sendQuotation(
             @PathVariable Long id,
             @RequestBody(required = false) com.acrovix.admin.dto.SendQuotationRequest request,
             @AuthenticationPrincipal AdminUser admin) {
         quotationService.sendQuotation(id, request != null ? request.getRecipientEmail() : null, admin);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(java.util.Map.of("success", true, "message", "Quotation email sent successfully"));
     }
 
     @PostMapping("/direct")

@@ -100,4 +100,14 @@ public class PaymentController {
     public ResponseEntity<DashboardReceivablesResponse> getDashboardReceivablesStats() {
         return ResponseEntity.ok(paymentService.getDashboardReceivablesStats());
     }
+
+    @PostMapping("/payments/{id}/send-receipt-email")
+    public ResponseEntity<java.util.Map<String, Object>> sendPaymentReceiptEmail(
+            @PathVariable Long id,
+            @RequestBody(required = false) java.util.Map<String, String> body,
+            @AuthenticationPrincipal AdminUser admin) {
+        String overrideEmail = body != null ? body.get("recipientEmail") : null;
+        paymentService.sendPaymentReceiptEmail(id, overrideEmail, admin);
+        return ResponseEntity.ok(java.util.Map.of("success", true, "message", "Payment receipt email sent successfully"));
+    }
 }

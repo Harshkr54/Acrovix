@@ -291,6 +291,19 @@ public class QuotationService {
                 throw new IllegalArgumentException("Invalid recipient email format");
             }
             finalRecipient = trimmed;
+        } else {
+            if (quotation.getClientEmail() != null && !quotation.getClientEmail().trim().isEmpty()) {
+                finalRecipient = quotation.getClientEmail().trim();
+            } else if (quotation.getCustomer() != null && quotation.getCustomer().getEmail() != null && !quotation.getCustomer().getEmail().trim().isEmpty()) {
+                finalRecipient = quotation.getCustomer().getEmail().trim();
+            }
+        }
+
+        if (finalRecipient == null || finalRecipient.isEmpty()) {
+            throw new IllegalArgumentException("Recipient email is required to send quotation");
+        }
+        if (!finalRecipient.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
+            throw new IllegalArgumentException("Invalid recipient email format");
         }
 
         // Generate a secure unique client token if not already set

@@ -36,6 +36,31 @@ public class InvoiceService {
     private final AdminActivityRepository activityRepository;
     private final NotificationService notificationService;
     private final PdfService pdfService;
+    private final EmailService emailService;
+
+    @Transactional(readOnly = true)
+    public void sendInvoiceEmail(Long id, String overrideEmail, AdminUser admin) {
+        Invoice invoice = getInvoiceById(id, admin);
+
+        String targetEmail = overrideEmail != null ? overrideEmail.trim() : null;
+        if (targetEmail == null || targetEmail.isEmpty()) {
+            if (invoice.getCustomer() != null && invoice.getCustomer().getEmail() != null) {
+                targetEmail = invoice.getCustomer().getEmail().trim();
+            } else if (invoice.getClientEmail() != null) {
+                targetEmail = invoice.getClientEmail().trim();
+            }
+        }
+
+        if (targetEmail == null || targetEmail.isEmpty()) {
+            throw new IllegalArgumentException("Recipient email is required to send invoice");
+        }
+
+        if (!targetEmail.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
+            throw new IllegalArgumentException("Invalid recipient email format");
+        }
+
+        emailService.sendInvoiceEmail(invoice, targetEmail);
+    }
 
     @Transactional(readOnly = true)
     public Page<InvoiceResponse> searchInvoices(InvoiceType type, InvoiceStatus status, String search, Pageable pageable) {

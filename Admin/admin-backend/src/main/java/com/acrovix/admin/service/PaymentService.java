@@ -2,6 +2,7 @@ package com.acrovix.admin.service;
 
 import com.acrovix.admin.dto.*;
 import com.acrovix.admin.entity.*;
+import com.acrovix.admin.exception.ResourceNotFoundException;
 import com.acrovix.admin.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -29,6 +30,32 @@ public class PaymentService {
     private final SequenceGeneratorService sequenceGeneratorService;
     private final AdminActivityRepository activityRepository;
     private final PdfService pdfService;
+    private final EmailService emailService;
+
+    @Transactional(readOnly = true)
+    public void sendPaymentReceiptEmail(Long id, String overrideEmail, AdminUser admin) {
+        Payment payment = paymentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
+
+        String targetEmail = overrideEmail != null ? overrideEmail.trim() : null;
+        if (targetEmail == null || targetEmail.isEmpty()) {
+            if (payment.getCustomer() != null && payment.getCustomer().getEmail() != null) {
+                targetEmail = payment.getCustomer().getEmail().trim();
+            } else if (payment.getInvoice() != null && payment.getInvoice().getClientEmail() != null) {
+                targetEmail = payment.getInvoice().getClientEmail().trim();
+            }
+        }
+
+        if (targetEmail == null || targetEmail.isEmpty()) {
+            throw new IllegalArgumentException("Recipient email is required to send payment receipt");
+        }
+
+        if (!targetEmail.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
+            throw new IllegalArgumentException("Invalid recipient email format");
+        }
+
+        emailService.sendPaymentReceiptEmail(payment, targetEmail);
+    }
 
     @Transactional
     public Payment recordPayment(PaymentRequest request, AdminUser admin) {

@@ -12,7 +12,7 @@ import {
     getPaymentReceiptPdf
 } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { ArrowLeft, Clock, CheckCircle, XCircle, FileText, Download, Edit3, X, CreditCard, Plus, AlertCircle, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Clock, CheckCircle, XCircle, FileText, Download, Edit3, X, CreditCard, Plus, AlertCircle, RefreshCw, Mail } from 'lucide-react';
 import { API_BASE_URL } from '../services/api';
 import { formatCurrency } from '../utils/formatters';
 
@@ -277,6 +277,32 @@ export default function InvoiceDetail() {
         }
     };
 
+    const [sendingEmail, setSendingEmail] = useState(false);
+
+    const handleSendEmail = async () => {
+        try {
+            setSendingEmail(true);
+            const token = localStorage.getItem('adminToken');
+            const res = await fetch(`${API_BASE_URL}/invoices/${id}/send-email`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.message || 'Failed to send invoice email');
+            }
+            alert(data.message || 'Invoice email sent successfully!');
+        } catch (err) {
+            console.error('Failed to send invoice email', err);
+            alert(err.message || 'Failed to send invoice email');
+        } finally {
+            setSendingEmail(false);
+        }
+    };
+
     const handleDownloadPdf = () => {
         const token = localStorage.getItem('adminToken');
         fetch(`${API_BASE_URL}/invoices/${id}/pdf`, {
@@ -371,6 +397,17 @@ export default function InvoiceDetail() {
                         className="px-4 py-2 bg-bg-card border border-border-subtle hover:bg-bg-main text-text-primary rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
                     >
                         <Download className="w-4 h-4" /> PDF
+                    </button>
+                    <button 
+                        onClick={handleSendEmail}
+                        disabled={sendingEmail || actionLoading}
+                        className="px-4 py-2 bg-bg-card border border-border-subtle hover:bg-bg-main text-text-primary rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
+                    >
+                        {sendingEmail ? (
+                            <><span className="animate-spin w-4 h-4 border-b-2 border-brand-primary rounded-full"></span> Sending...</>
+                        ) : (
+                            <><Mail className="w-4 h-4 text-brand-primary" /> Send Email</>
+                        )}
                     </button>
                     {isRecordPaymentEligible && (
                         <button 

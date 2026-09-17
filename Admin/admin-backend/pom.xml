@@ -92,6 +92,12 @@
 			<version>3.1.0</version>
 		</dependency>
 
+		<!-- Spring Boot Starter Mail for JavaMailSender support -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
+
 
 
 		<!-- H2 Database for unit/integration testing -->

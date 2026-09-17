@@ -28,6 +28,7 @@ import {
     ArrowUpRight,
     Plus,
     Check,
+    Mail,
     Loader2
 } from 'lucide-react';
 
@@ -272,6 +273,32 @@ export default function Payments() {
         }
     };
 
+    const [sendingReceiptId, setSendingReceiptId] = useState(null);
+
+    const handleSendReceiptEmail = async (paymentId) => {
+        try {
+            setSendingReceiptId(paymentId);
+            const token = localStorage.getItem('adminToken');
+            const res = await fetch(`${API_BASE_URL}/payments/${paymentId}/send-receipt-email`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.message || 'Failed to send payment receipt email');
+            }
+            alert(data.message || 'Payment receipt email sent successfully!');
+        } catch (err) {
+            console.error('Send Receipt Email Error:', err);
+            alert(err.message || 'Failed to send payment receipt email');
+        } finally {
+            setSendingReceiptId(null);
+        }
+    };
+
     // Calculate dynamic UI previews for payment modal
     const currentInvoiceBalance = selectedInvoice ? Number(selectedInvoice.balanceDue || 0) : 0;
     const currentPaymentNumAmount = parseFloat(paymentForm.amount) || 0;
@@ -483,6 +510,18 @@ export default function Payments() {
                                                     title="Download Receipt PDF"
                                                 >
                                                     <Download className="w-4 h-4" />
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleSendReceiptEmail(p.id)}
+                                                    disabled={sendingReceiptId === p.id}
+                                                    className="p-1.5 hover:bg-bg-main text-text-muted hover:text-brand-primary rounded-lg transition-colors disabled:opacity-50"
+                                                    title="Send Receipt Email"
+                                                >
+                                                    {sendingReceiptId === p.id ? (
+                                                        <span className="animate-spin w-4 h-4 border-b-2 border-brand-primary rounded-full inline-block"></span>
+                                                    ) : (
+                                                        <Mail className="w-4 h-4 text-brand-primary" />
+                                                    )}
                                                 </button>
                                                 {p.status === 'RECORDED' && (
                                                     <button 
@@ -896,6 +935,17 @@ export default function Payments() {
                                 </button>
                             ) : <div />}
                             <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => handleSendReceiptEmail(selectedPayment.id)}
+                                    disabled={sendingReceiptId === selectedPayment.id}
+                                    className="px-4 py-2 bg-bg-card border border-border-subtle hover:bg-bg-main text-text-primary rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                                >
+                                    {sendingReceiptId === selectedPayment.id ? (
+                                        <><span className="animate-spin w-3.5 h-3.5 border-b-2 border-brand-primary rounded-full inline-block"></span> Sending...</>
+                                    ) : (
+                                        <><Mail className="w-3.5 h-3.5 text-brand-primary" /> Send Receipt Email</>
+                                    )}
+                                </button>
                                 <button
                                     onClick={() => handleDownloadReceipt(selectedPayment.id, selectedPayment.paymentNumber)}
                                     className="px-4 py-2 bg-brand-primary hover:bg-brand-secondary text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5"

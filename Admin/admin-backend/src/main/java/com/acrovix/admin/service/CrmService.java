@@ -28,6 +28,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CrmService {
 
+    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(CrmService.class);
+
     private final CrmLeadRepository crmLeadRepository;
     private final CrmFollowUpRepository crmFollowUpRepository;
     private final AdminEnquiryRepository enquiryRepository;
@@ -36,6 +38,7 @@ public class CrmService {
     private final AdminActivityRepository activityRepository;
     private final NotificationService notificationService;
     private final SequenceGeneratorService sequenceGeneratorService;
+    private final EmailService emailService;
 
     // --- LEAD LIFECYCLE & CRUD ---
 
@@ -120,6 +123,13 @@ public class CrmService {
         lead = crmLeadRepository.save(lead);
 
         logActivity(currentUser.getId(), "LEAD_CREATED", "CrmLead", lead.getId(), "Created CRM Lead #" + lead.getLeadNumber());
+
+        try {
+            emailService.sendCrmLeadNotification(lead);
+        } catch (Exception e) {
+            logger.warn("CRM lead notification email failed for lead #{}: {}", lead.getLeadNumber(), e.getMessage());
+        }
+
         return mapToLeadResponse(lead);
     }
 
