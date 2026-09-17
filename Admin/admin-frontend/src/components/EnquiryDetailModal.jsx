@@ -236,16 +236,18 @@ export default function EnquiryDetailModal({ isOpen, onClose, enquiry, onStatusU
                                 ))}
                             </div>
                         ) : (
-                            <div className="text-xs text-text-muted flex items-center justify-between p-3 bg-bg-card rounded-xl border border-border-subtle">
+                            <div className="text-xs text-text-muted flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-bg-card rounded-xl border border-border-subtle">
                                 <span>No quotation created for this enquiry yet.</span>
-                                <Link
-                                    to={`/quotations/new/${enquiry.id}`}
-                                    onClick={onClose}
-                                    className="btn-primary py-1.5 px-3 text-xs flex items-center shadow-sm"
-                                >
-                                    <Plus className="w-3.5 h-3.5 mr-1.5" />
-                                    Create Quotation
-                                </Link>
+                                <div className="flex items-center gap-2">
+                                    <Link
+                                        to={`/quotations/new/${enquiry.id}`}
+                                        onClick={onClose}
+                                        className="btn-primary py-1.5 px-3 text-xs flex items-center shadow-sm"
+                                    >
+                                        <Plus className="w-3.5 h-3.5 mr-1.5" />
+                                        Create Quotation
+                                    </Link>
+                                </div>
                             </div>
                         )}
                     </div>

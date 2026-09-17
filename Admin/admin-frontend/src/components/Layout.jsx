@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { LayoutDashboard, MessageSquare, LogOut, FileText, Shield, Menu, X, ChevronLeft, ChevronRight, Sun, Moon, Search, Bell, Settings, Trash2, PanelLeftClose, PanelLeftOpen, ArrowLeft, UsersRound, Package, ShoppingCart, CreditCard, DollarSign, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, LogOut, FileText, Shield, Menu, X, ChevronLeft, ChevronRight, Sun, Moon, Search, Bell, Settings, Trash2, PanelLeftClose, PanelLeftOpen, ArrowLeft, UsersRound, Package, ShoppingCart, CreditCard, DollarSign, BarChart3, Target, TrendingUp, Clock } from 'lucide-react';
 import HeaderControls from './HeaderControls';
 import { getInitials } from '../utils/userUtils';
 import { fetchApi } from '../services/api';
@@ -109,6 +109,13 @@ export default function Layout() {
         { path: '/receivables', name: 'Receivables', icon: DollarSign },
         { path: '/reports', name: 'Reports', icon: BarChart3 }
     ];
+
+    const crmItems = [
+        { path: '/crm', name: 'CRM Dashboard', icon: Target, exact: true },
+        { path: '/crm/leads', name: 'Leads', icon: UsersRound },
+        { path: '/crm/pipeline', name: 'Pipeline', icon: TrendingUp },
+        { path: '/crm/follow-ups', name: 'Follow-ups', icon: Clock }
+    ];
     
     const managementItems = [];
     if (user?.role === 'SUPER_ADMIN') {
@@ -164,6 +171,44 @@ export default function Layout() {
                                 {workspaceItems.map((item) => {
                                     const Icon = item.icon;
                                     const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
+                                    return (
+                                        <Link
+                                            key={item.name}
+                                            to={item.path}
+                                            onClick={() => setIsSidebarOpen(false)}
+                                            className={`group relative flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
+                                                isActive 
+                                                    ? 'bg-[#E6F5F2] text-[#102A43] dark:bg-[#0D9488]/10 dark:text-[#2DD4BF]' 
+                                                    : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
+                                            } ${isCollapsed ? 'justify-center px-2' : ''}`}
+                                        >
+                                            {isActive && !isCollapsed && (
+                                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-[#0D9488] rounded-r-full" />
+                                            )}
+                                            <Icon className={`w-5 h-5 flex-shrink-0 ${!isCollapsed && 'mr-3'} ${isActive ? 'text-[#0D9488] dark:text-[#2DD4BF]' : 'text-text-muted group-hover:text-text-primary transition-colors'}`} />
+                                            {!isCollapsed && <span>{item.name}</span>}
+                                            
+                                            {/* CSS Tooltip */}
+                                            {isCollapsed && (
+                                                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-[#102A43] text-white text-[11px] font-semibold rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-md">
+                                                    {item.name}
+                                                </div>
+                                            )}
+                                        </Link>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* CRM & Sales Section */}
+                        <div>
+                            {!isCollapsed && <p className="px-3 mb-3 text-[11px] font-semibold text-text-muted uppercase tracking-wider">CRM & Sales</p>}
+                            <div className="space-y-1">
+                                {crmItems.map((item) => {
+                                    const Icon = item.icon;
+                                    const isActive = item.exact 
+                                        ? location.pathname === item.path 
+                                        : (location.pathname === item.path || location.pathname.startsWith(item.path + '/'));
                                     return (
                                         <Link
                                             key={item.name}

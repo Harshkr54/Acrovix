@@ -361,5 +361,71 @@ export const exportReportCsv = async (reportType, preset, fromDate, toDate) => {
     return await response.text();
 };
 
+// --- CRM & SALES PIPELINE ---
+export const getCrmLeads = (params = {}) => {
+    const cleanParams = Object.fromEntries(
+        Object.entries(params).filter(([_, v]) => v !== '' && v !== null && v !== undefined)
+    );
+    const qs = new URLSearchParams(cleanParams).toString();
+    return fetchApi(`/crm/leads${qs ? `?${qs}` : ''}`);
+};
+
+export const getCrmLeadById = (id) => fetchApi(`/crm/leads/${id}`);
+
+export const createCrmLead = (data) => fetchApi('/crm/leads', {
+    method: 'POST',
+    body: JSON.stringify(data)
+});
+
+export const updateCrmLead = (id, data) => fetchApi(`/crm/leads/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data)
+});
+
+export const updateCrmLeadStatus = (id, data) => fetchApi(`/crm/leads/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify(data)
+});
+
+export const assignCrmLead = (id, assigneeId) => fetchApi(`/crm/leads/${id}/assign`, {
+    method: 'PATCH',
+    body: JSON.stringify({ assigneeId })
+});
+
+export const createCrmFollowUp = (leadId, data) => fetchApi(`/crm/leads/${leadId}/follow-ups`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+});
+
+export const getCrmFollowUpsForLead = (leadId) => fetchApi(`/crm/leads/${leadId}/follow-ups`);
+
+export const updateCrmFollowUp = (id, data) => fetchApi(`/crm/follow-ups/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data)
+});
+
+export const completeCrmFollowUp = (id, outcome) => fetchApi(`/crm/follow-ups/${id}/complete`, {
+    method: 'PATCH',
+    body: JSON.stringify({ outcome })
+});
+
+export const cancelCrmFollowUp = (id) => fetchApi(`/crm/follow-ups/${id}/cancel`, {
+    method: 'PATCH'
+});
+
+export const getDueFollowUpsToday = () => fetchApi('/crm/follow-ups/due');
+
+export const getUpcomingFollowUps = (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return fetchApi(`/crm/follow-ups/upcoming${qs ? `?${qs}` : ''}`);
+};
+
+export const getCrmPipeline = () => fetchApi('/crm/pipeline');
+
+export const getCrmDashboardSummary = () => fetchApi('/crm/dashboard');
+
+export const getAdminUsers = () => fetchApi('/users');
+
+
 
 

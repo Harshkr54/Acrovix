@@ -137,4 +137,39 @@ public class SequenceGeneratorService {
 
         return String.format("ACX/PAY/%s/%04d", fyString, currentVal);
     }
+
+    @Transactional
+    public String generateNextLeadNumber(java.time.LocalDate documentDate) {
+        java.time.LocalDate date = (documentDate != null) ? documentDate : java.time.LocalDate.now();
+        int year = date.getYear();
+        int month = date.getMonthValue();
+        
+        int startYear;
+        int endYear;
+        
+        if (month >= 4) {
+            startYear = year;
+            endYear = year + 1;
+        } else {
+            startYear = year - 1;
+            endYear = year;
+        }
+        
+        String fyString = String.format("%02d-%02d", startYear % 100, endYear % 100);
+        String sequenceName = "LEAD_" + startYear + "_" + endYear;
+
+        SequenceTracker tracker = repository.findBySequenceNameForUpdate(sequenceName)
+                .orElseGet(() -> {
+                    SequenceTracker newTracker = new SequenceTracker();
+                    newTracker.setSequenceName(sequenceName);
+                    newTracker.setNextVal(1L);
+                    return newTracker;
+                });
+
+        Long currentVal = tracker.getNextVal();
+        tracker.setNextVal(currentVal + 1);
+        repository.save(tracker);
+
+        return String.format("ACX/LEAD/%s/%04d", fyString, currentVal);
+    }
 }

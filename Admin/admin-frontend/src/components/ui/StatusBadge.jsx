@@ -40,6 +40,21 @@ export default function StatusBadge({ status, type }) {
         FAILED: { bg: 'bg-[#FEF2F2] text-[#DC2626]', label: 'Failed' },
         INACTIVE: { bg: 'bg-[#FEF2F2] text-[#DC2626]', label: 'Inactive' },
 
+        // CRM Lead & Follow Up Statuses
+        NEW: { bg: 'bg-blue-500/10 text-blue-600 dark:text-blue-400', label: 'New' },
+        CONTACTED: { bg: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400', label: 'Contacted' },
+        QUALIFIED: { bg: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400', label: 'Qualified' },
+        PROPOSAL: { bg: 'bg-amber-500/10 text-amber-600 dark:text-amber-400', label: 'Proposal' },
+        NEGOTIATION: { bg: 'bg-orange-500/10 text-orange-600 dark:text-orange-400', label: 'Negotiation' },
+        WON: { bg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', label: 'Won' },
+        LOST: { bg: 'bg-rose-500/10 text-rose-600 dark:text-rose-400', label: 'Lost' },
+
+        // CRM Priorities
+        LOW: { bg: 'bg-slate-500/10 text-slate-600 dark:text-slate-400', label: 'Low' },
+        MEDIUM: { bg: 'bg-blue-500/10 text-blue-600 dark:text-blue-400', label: 'Medium' },
+        HIGH: { bg: 'bg-amber-500/10 text-amber-600 dark:text-amber-400', label: 'High' },
+        URGENT: { bg: 'bg-rose-500/10 text-rose-600 dark:text-rose-400', label: 'Urgent' },
+
         // Neutral / Draft
         DRAFT: { bg: 'bg-[#F1F5F9] text-[#64748B]', label: 'Draft' },
     };

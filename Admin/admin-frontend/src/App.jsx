@@ -20,6 +20,11 @@ import InvoiceDetail from './pages/InvoiceDetail';
 import Payments from './pages/Payments';
 import Receivables from './pages/Receivables';
 import Reports from './pages/Reports';
+import CrmDashboard from './pages/CrmDashboard';
+import CrmLeads from './pages/CrmLeads';
+import CrmLeadDetails from './pages/CrmLeadDetails';
+import CrmPipeline from './pages/CrmPipeline';
+import CrmFollowUps from './pages/CrmFollowUps';
 
 const ProtectedRoute = ({ children }) => {
     const { user } = useAuth();
@@ -36,6 +41,11 @@ function App() {
             
             <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                 <Route index element={<Dashboard />} />
+                <Route path="crm" element={<CrmDashboard />} />
+                <Route path="crm/leads" element={<CrmLeads />} />
+                <Route path="crm/leads/:id" element={<CrmLeadDetails />} />
+                <Route path="crm/pipeline" element={<CrmPipeline />} />
+                <Route path="crm/follow-ups" element={<CrmFollowUps />} />
                 <Route path="enquiries" element={<EnquiryList />} />
                 <Route path="quotations" element={<QuotationList />} />
                 <Route path="quotations/new/:enquiryId" element={<QuotationBuilder />} />
