@@ -16,6 +16,8 @@
   --color-text-highlight: var(--theme-text-highlight);
   
   /* Static Brand Colors */
+  --color-brand-primary: #2563EB;
+  --color-brand-secondary: #1D4ED8;
   --color-acx-teal: #14B8A6;
   --color-acx-teal-light: #2DD4BF;
   --color-acx-deep-teal: #0D9488;

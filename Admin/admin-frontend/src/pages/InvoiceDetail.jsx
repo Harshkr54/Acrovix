@@ -379,9 +379,10 @@ export default function InvoiceDetail() {
 
             {/* Edit Invoice Details Modal */}
             {isEditModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-bg-card border border-border-subtle rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="bg-bg-card border border-border-subtle rounded-2xl w-full max-w-2xl flex flex-col max-h-[85vh] overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle shrink-0">
                             <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
                                 <Edit3 className="w-5 h-5 text-brand-primary" /> Edit Invoice Details
                             </h2>
@@ -393,111 +394,115 @@ export default function InvoiceDetail() {
                             </button>
                         </div>
 
-                        <form onSubmit={handleSaveEdit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
-                            {editError && (
-                                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-500 font-medium">
-                                    {editError}
-                                </div>
-                            )}
+                        {/* Form */}
+                        <form onSubmit={handleSaveEdit} className="flex flex-col flex-1 overflow-hidden">
+                            <div className="p-6 space-y-4 overflow-y-auto flex-1">
+                                {editError && (
+                                    <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-500 font-medium">
+                                        {editError}
+                                    </div>
+                                )}
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-semibold text-text-muted mb-1">Client Name *</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={editForm.clientName}
-                                        onChange={(e) => setEditForm({ ...editForm, clientName: e.target.value })}
-                                        className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-text-muted mb-1">Company</label>
-                                    <input
-                                        type="text"
-                                        value={editForm.clientCompany}
-                                        onChange={(e) => setEditForm({ ...editForm, clientCompany: e.target.value })}
-                                        className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-text-muted mb-1">Email</label>
-                                    <input
-                                        type="email"
-                                        value={editForm.clientEmail}
-                                        onChange={(e) => setEditForm({ ...editForm, clientEmail: e.target.value })}
-                                        className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-text-muted mb-1">Phone</label>
-                                    <input
-                                        type="text"
-                                        value={editForm.clientPhone}
-                                        onChange={(e) => setEditForm({ ...editForm, clientPhone: e.target.value })}
-                                        className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
-                                    />
-                                </div>
-                                <div className="col-span-2">
-                                    <label className="block text-xs font-semibold text-text-muted mb-1">Address</label>
-                                    <textarea
-                                        rows={2}
-                                        value={editForm.clientAddress}
-                                        onChange={(e) => setEditForm({ ...editForm, clientAddress: e.target.value })}
-                                        className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary resize-none"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-text-muted mb-1">GSTIN</label>
-                                    <input
-                                        type="text"
-                                        placeholder="e.g. 27AAAAA0000A1Z5"
-                                        value={editForm.clientGstin}
-                                        onChange={(e) => setEditForm({ ...editForm, clientGstin: e.target.value })}
-                                        className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary uppercase"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-text-muted mb-1">Place of Supply</label>
-                                    <input
-                                        type="text"
-                                        placeholder="e.g. Maharashtra"
-                                        value={editForm.placeOfSupply}
-                                        onChange={(e) => setEditForm({ ...editForm, placeOfSupply: e.target.value })}
-                                        className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-text-muted mb-1">Invoice Date</label>
-                                    <input
-                                        type="date"
-                                        value={editForm.invoiceDate}
-                                        onChange={(e) => setEditForm({ ...editForm, invoiceDate: e.target.value })}
-                                        className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-text-muted mb-1">Due Date</label>
-                                    <input
-                                        type="date"
-                                        value={editForm.dueDate}
-                                        onChange={(e) => setEditForm({ ...editForm, dueDate: e.target.value })}
-                                        className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
-                                    />
-                                </div>
-                                <div className="col-span-2">
-                                    <label className="block text-xs font-semibold text-text-muted mb-1">Payment Terms</label>
-                                    <input
-                                        type="text"
-                                        placeholder="e.g. 50% advance, 50% upon delivery"
-                                        value={editForm.paymentTerms}
-                                        onChange={(e) => setEditForm({ ...editForm, paymentTerms: e.target.value })}
-                                        className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
-                                    />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-text-muted mb-1">Client Name *</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            value={editForm.clientName}
+                                            onChange={(e) => setEditForm({ ...editForm, clientName: e.target.value })}
+                                            className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-text-muted mb-1">Company</label>
+                                        <input
+                                            type="text"
+                                            value={editForm.clientCompany}
+                                            onChange={(e) => setEditForm({ ...editForm, clientCompany: e.target.value })}
+                                            className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-text-muted mb-1">Email</label>
+                                        <input
+                                            type="email"
+                                            value={editForm.clientEmail}
+                                            onChange={(e) => setEditForm({ ...editForm, clientEmail: e.target.value })}
+                                            className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-text-muted mb-1">Phone</label>
+                                        <input
+                                            type="text"
+                                            value={editForm.clientPhone}
+                                            onChange={(e) => setEditForm({ ...editForm, clientPhone: e.target.value })}
+                                            className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
+                                        />
+                                    </div>
+                                    <div className="col-span-2">
+                                        <label className="block text-xs font-semibold text-text-muted mb-1">Address</label>
+                                        <textarea
+                                            rows={2}
+                                            value={editForm.clientAddress}
+                                            onChange={(e) => setEditForm({ ...editForm, clientAddress: e.target.value })}
+                                            className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary resize-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-text-muted mb-1">GSTIN</label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. 27AAAAA0000A1Z5"
+                                            value={editForm.clientGstin}
+                                            onChange={(e) => setEditForm({ ...editForm, clientGstin: e.target.value })}
+                                            className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary uppercase"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-text-muted mb-1">Place of Supply</label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. Maharashtra"
+                                            value={editForm.placeOfSupply}
+                                            onChange={(e) => setEditForm({ ...editForm, placeOfSupply: e.target.value })}
+                                            className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-text-muted mb-1">Invoice Date</label>
+                                        <input
+                                            type="date"
+                                            value={editForm.invoiceDate}
+                                            onChange={(e) => setEditForm({ ...editForm, invoiceDate: e.target.value })}
+                                            className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-text-muted mb-1">Due Date</label>
+                                        <input
+                                            type="date"
+                                            value={editForm.dueDate}
+                                            onChange={(e) => setEditForm({ ...editForm, dueDate: e.target.value })}
+                                            className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
+                                        />
+                                    </div>
+                                    <div className="col-span-2">
+                                        <label className="block text-xs font-semibold text-text-muted mb-1">Payment Terms</label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. 50% advance, 50% upon delivery"
+                                            value={editForm.paymentTerms}
+                                            onChange={(e) => setEditForm({ ...editForm, paymentTerms: e.target.value })}
+                                            className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="flex items-center justify-end gap-3 pt-4 border-t border-border-subtle">
+                            {/* Sticky Modal Footer */}
+                            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border-subtle bg-bg-card shrink-0">
                                 <button
                                     type="button"
                                     onClick={() => setIsEditModalOpen(false)}
@@ -508,7 +513,7 @@ export default function InvoiceDetail() {
                                 <button
                                     type="submit"
                                     disabled={savingEdit}
-                                    className="px-4 py-2 bg-brand-primary hover:bg-brand-secondary text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+                                    className="px-4 py-2 bg-brand-primary hover:bg-brand-secondary text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
                                 >
                                     {savingEdit ? 'Saving...' : 'Save Changes'}
                                 </button>
