@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getPurchaseOrderById, verifyPurchaseOrder, updatePurchaseOrderStatus, createInvoiceFromPurchaseOrder } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { ArrowLeft, Clock, CheckCircle, Package, XCircle, FileText, Download, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, FileText, Download, AlertTriangle, XCircle, ShoppingCart } from 'lucide-react';
 import { API_BASE_URL } from '../services/api';
+import StatusBadge from '../components/ui/StatusBadge';
+import EmptyState from '../components/ui/EmptyState';
 
 export default function PurchaseOrderDetail() {
     const { id } = useParams();
@@ -12,6 +14,7 @@ export default function PurchaseOrderDetail() {
     
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [actionLoading, setActionLoading] = useState(false);
     const [statusModalOpen, setStatusModalOpen] = useState(false);
     const [newStatus, setNewStatus] = useState('');
@@ -20,10 +23,12 @@ export default function PurchaseOrderDetail() {
     const fetchOrder = async () => {
         try {
             setLoading(true);
+            setError(null);
             const data = await getPurchaseOrderById(id);
             setOrder(data);
-        } catch (error) {
-            console.error('Failed to fetch PO', error);
+        } catch (err) {
+            console.error('Failed to fetch PO', err);
+            setError('Purchase Order not found or unable to load.');
         } finally {
             setLoading(false);
         }
@@ -39,9 +44,9 @@ export default function PurchaseOrderDetail() {
             setActionLoading(true);
             await verifyPurchaseOrder(id);
             await fetchOrder();
-        } catch (error) {
-            console.error('Failed to verify PO', error);
-            alert(error.message || 'Failed to verify PO');
+        } catch (err) {
+            console.error('Failed to verify PO', err);
+            alert(err.message || 'Failed to verify PO');
         } finally {
             setActionLoading(false);
         }
@@ -53,9 +58,9 @@ export default function PurchaseOrderDetail() {
             setActionLoading(true);
             const invoice = await createInvoiceFromPurchaseOrder(id, 'TAX_INVOICE');
             navigate(`/invoices/${invoice.id}`);
-        } catch (error) {
-            console.error('Failed to create Tax Invoice', error);
-            alert(error.message || 'Failed to create Tax Invoice');
+        } catch (err) {
+            console.error('Failed to create Tax Invoice', err);
+            alert(err.message || 'Failed to create Tax Invoice');
         } finally {
             setActionLoading(false);
         }
@@ -69,9 +74,9 @@ export default function PurchaseOrderDetail() {
             setStatusModalOpen(false);
             setRemarks('');
             await fetchOrder();
-        } catch (error) {
-            console.error('Failed to update status', error);
-            alert(error.message || 'Failed to update status');
+        } catch (err) {
+            console.error('Failed to update status', err);
+            alert(err.message || 'Failed to update status');
         } finally {
             setActionLoading(false);
         }
@@ -104,60 +109,63 @@ export default function PurchaseOrderDetail() {
         });
     };
 
-    if (loading) return <div className="p-8 text-center text-text-muted">Loading PO details...</div>;
-    if (!order) return <div className="p-8 text-center text-text-muted">Purchase Order not found.</div>;
+    if (loading) {
+        return (
+            <div className="py-12 max-w-5xl mx-auto">
+                <EmptyState type="loading" message="Loading Purchase Order details..." />
+            </div>
+        );
+    }
 
-    const getStatusIcon = (status) => {
-        switch (status) {
-            case 'RECEIVED': return <Clock className="w-5 h-5 text-yellow-500"/>;
-            case 'VERIFIED': return <CheckCircle className="w-5 h-5 text-blue-500"/>;
-            case 'PARTIALLY_FULFILLED': return <Package className="w-5 h-5 text-purple-500"/>;
-            case 'FULFILLED': return <CheckCircle className="w-5 h-5 text-green-500"/>;
-            case 'CANCELLED': return <XCircle className="w-5 h-5 text-red-500"/>;
-            default: return null;
-        }
-    };
+    if (error || !order) {
+        return (
+            <div className="py-12 max-w-5xl mx-auto">
+                <EmptyState type="error" message={error || "Purchase Order not found."} onRetry={fetchOrder} />
+            </div>
+        );
+    }
 
     return (
-        <div className="p-8 max-w-5xl mx-auto pb-24">
+        <div className="space-y-6 max-w-[1600px] mx-auto pb-24">
             {/* Header */}
-            <div className="flex items-center gap-4 mb-6">
-                <button 
-                    onClick={() => navigate('/purchase-orders')}
-                    className="p-2 hover:bg-bg-main rounded-full transition-colors text-text-muted hover:text-text-primary"
-                >
-                    <ArrowLeft className="w-5 h-5" />
-                </button>
-                <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                        <h1 className="text-2xl font-bold text-text-primary">{order.poNumber}</h1>
-                        <span className="px-3 py-1 bg-bg-main border border-border-subtle rounded-full text-xs font-medium flex items-center gap-1.5">
-                            {getStatusIcon(order.status)}
-                            {order.status}
-                        </span>
-                    </div>
-                </div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                     <button 
-                        onClick={handleDownloadPdf}
-                        className="px-4 py-2 bg-bg-card border border-border-subtle hover:bg-bg-main text-text-primary rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                        onClick={() => navigate('/purchase-orders')}
+                        className="p-2 hover:bg-bg-card border border-border-subtle rounded-xl transition-colors text-text-muted hover:text-text-primary"
                     >
-                        <Download className="w-4 h-4" /> PDF
+                        <ArrowLeft className="w-5 h-5" />
+                    </button>
+                    <div>
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-2xl font-bold text-text-primary">{order.poNumber}</h1>
+                            <StatusBadge status={order.status} />
+                        </div>
+                        <p className="text-xs text-text-muted mt-1">Received PO for client quotation fulfillment.</p>
+                    </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                    <button 
+                        onClick={handleDownloadPdf}
+                        className="btn-secondary text-xs px-4 py-2.5 rounded-xl font-medium flex items-center gap-2"
+                    >
+                        <Download className="w-4 h-4" /> Download PDF
                     </button>
                     {order.status === 'RECEIVED' && (
                         <button 
                             onClick={handleVerify}
                             disabled={actionLoading}
-                            className="px-4 py-2 bg-brand-primary hover:bg-brand-secondary text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+                            className="btn-primary text-xs px-4 py-2.5 rounded-xl font-medium flex items-center gap-2"
                         >
-                            <CheckCircle className="w-4 h-4" /> Verify
+                            <CheckCircle className="w-4 h-4" /> Verify PO
                         </button>
                     )}
                     {['VERIFIED', 'PARTIALLY_FULFILLED'].includes(order.status) && (
                         <button 
                             onClick={handleCreateTaxInvoice}
                             disabled={actionLoading}
-                            className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+                            className="btn-primary text-xs px-4 py-2.5 rounded-xl font-medium flex items-center gap-2"
                         >
                             <FileText className="w-4 h-4" /> Create Tax Invoice
                         </button>
@@ -165,7 +173,7 @@ export default function PurchaseOrderDetail() {
                     {['VERIFIED', 'PARTIALLY_FULFILLED'].includes(order.status) && (
                         <button 
                             onClick={() => { setNewStatus(''); setStatusModalOpen(true); }}
-                            className="px-4 py-2 bg-bg-card border border-border-subtle hover:bg-bg-main text-text-primary rounded-lg text-sm font-medium transition-colors"
+                            className="btn-secondary text-xs px-4 py-2.5 rounded-xl font-medium"
                         >
                             Update Status
                         </button>
@@ -173,43 +181,43 @@ export default function PurchaseOrderDetail() {
                 </div>
             </div>
 
-            {/* Content */}
-            <div className="grid grid-cols-3 gap-6">
-                <div className="col-span-2 space-y-6">
+            {/* Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 space-y-6">
                     {/* General Info */}
-                    <div className="bg-bg-card border border-border-subtle rounded-xl p-6">
-                        <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wider mb-4">Order Details</h3>
-                        <div className="grid grid-cols-2 gap-6">
+                    <div className="bg-bg-card border border-border-subtle rounded-2xl p-6 shadow-sm">
+                        <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider mb-4">Order Information</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div>
-                                <label className="text-xs text-text-muted">PO Date</label>
-                                <div className="font-medium text-text-primary mt-1">{new Date(order.poDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                                <label className="text-xs text-text-muted font-medium">PO Date</label>
+                                <div className="font-semibold text-text-primary mt-1">{new Date(order.poDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
                             </div>
                             <div>
-                                <label className="text-xs text-text-muted">Client PO Number</label>
-                                <div className="font-medium text-text-primary mt-1">{order.clientPoNumber || 'N/A'}</div>
+                                <label className="text-xs text-text-muted font-medium">Client PO Number</label>
+                                <div className="font-semibold text-text-primary mt-1">{order.clientPoNumber || 'N/A'}</div>
                             </div>
                             <div>
-                                <label className="text-xs text-text-muted">PO Value</label>
-                                <div className="font-medium text-text-primary mt-1">Rs. {Number(order.poValue).toLocaleString()}</div>
+                                <label className="text-xs text-text-muted font-medium">PO Value</label>
+                                <div className="font-bold text-brand-primary text-base mt-1">₹{Number(order.poValue).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
                             </div>
                             <div>
-                                <label className="text-xs text-text-muted">Received Via</label>
-                                <div className="font-medium text-text-primary mt-1">{order.receivedVia || 'N/A'}</div>
+                                <label className="text-xs text-text-muted font-medium">Received Via</label>
+                                <div className="font-semibold text-text-primary mt-1">{order.receivedVia || 'N/A'}</div>
                             </div>
                         </div>
                     </div>
 
                     {/* Mismatch Warning */}
                     {order.valueMismatch && (
-                        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-6 flex gap-4">
-                            <AlertTriangle className="w-6 h-6 text-red-500 shrink-0" />
+                        <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-2xl p-6 flex gap-4">
+                            <AlertTriangle className="w-6 h-6 text-red-500 shrink-0 mt-0.5" />
                             <div>
-                                <h3 className="text-sm font-bold text-red-600 mb-1">Value Mismatch Detected</h3>
-                                <p className="text-sm text-red-500/80 mb-3">
-                                    The Purchase Order value (Rs. {Number(order.poValue).toLocaleString()}) differs from the Quotation value (Rs. {Number(order.quotationValue).toLocaleString()}).
+                                <h3 className="text-sm font-bold text-red-600 dark:text-red-400 mb-1">Value Mismatch Warning</h3>
+                                <p className="text-xs text-red-600/80 dark:text-red-300/80 mb-3">
+                                    The Purchase Order value (₹{Number(order.poValue).toLocaleString('en-IN')}) differs from the Quotation value (₹{Number(order.quotationValue).toLocaleString('en-IN')}).
                                 </p>
-                                <div className="text-sm font-medium text-red-600">
-                                    Difference: Rs. {Number(order.difference).toLocaleString()}
+                                <div className="text-xs font-bold text-red-600 dark:text-red-400">
+                                    Difference Amount: ₹{Number(order.difference).toLocaleString('en-IN')}
                                 </div>
                             </div>
                         </div>
@@ -217,53 +225,53 @@ export default function PurchaseOrderDetail() {
 
                     {/* Remarks */}
                     {order.remarks && (
-                        <div className="bg-bg-card border border-border-subtle rounded-xl p-6">
-                            <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wider mb-4">Remarks</h3>
+                        <div className="bg-bg-card border border-border-subtle rounded-2xl p-6 shadow-sm">
+                            <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider mb-4">Remarks & Notes</h3>
                             <div className="text-sm text-text-secondary whitespace-pre-wrap">{order.remarks}</div>
                         </div>
                     )}
                 </div>
 
-                <div className="col-span-1 space-y-6">
+                <div className="space-y-6">
                     {/* Quotation Ref */}
-                    <div className="bg-bg-card border border-border-subtle rounded-xl p-6">
-                        <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wider mb-4">Source Quotation</h3>
+                    <div className="bg-bg-card border border-border-subtle rounded-2xl p-6 shadow-sm">
+                        <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider mb-4">Source Quotation</h3>
                         <div className="space-y-4">
                             <div>
-                                <label className="text-xs text-text-muted">Quotation Number</label>
+                                <label className="text-xs text-text-muted font-medium">Quotation Number</label>
                                 <button 
                                     onClick={() => navigate(`/quotations?search=${order.quotationNumber}`)}
-                                    className="block font-medium text-brand-primary hover:underline mt-1 text-left"
+                                    className="block font-bold text-brand-primary hover:underline mt-1 text-left text-sm"
                                 >
                                     {order.quotationNumber}
                                 </button>
                             </div>
                             <div>
-                                <label className="text-xs text-text-muted">Client</label>
-                                <div className="font-medium text-text-primary mt-1">{order.clientName}</div>
+                                <label className="text-xs text-text-muted font-medium">Client Name & Company</label>
+                                <div className="font-semibold text-text-primary mt-1 text-sm">{order.clientName}</div>
                                 <div className="text-xs text-text-muted">{order.clientCompany}</div>
                             </div>
                             <div>
-                                <label className="text-xs text-text-muted">Quotation Value</label>
-                                <div className="font-medium text-text-primary mt-1">Rs. {Number(order.quotationValue).toLocaleString()}</div>
+                                <label className="text-xs text-text-muted font-medium">Quotation Value</label>
+                                <div className="font-bold text-text-primary mt-1 text-sm">₹{Number(order.quotationValue).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
                             </div>
                         </div>
                     </div>
 
                     {/* Timeline */}
-                    <div className="bg-bg-card border border-border-subtle rounded-xl p-6">
-                        <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wider mb-4">Timeline</h3>
-                        <div className="space-y-4">
+                    <div className="bg-bg-card border border-border-subtle rounded-2xl p-6 shadow-sm">
+                        <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider mb-4">Activity Timeline</h3>
+                        <div className="space-y-4 text-xs">
                             <div>
-                                <label className="text-xs text-text-muted">Created</label>
-                                <div className="text-sm text-text-primary mt-1">{new Date(order.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
-                                <div className="text-xs text-text-muted">by {order.createdBy?.name || 'Unknown'}</div>
+                                <label className="text-text-muted font-medium">Created On</label>
+                                <div className="text-text-primary font-semibold mt-0.5">{new Date(order.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+                                <div className="text-text-muted">by {order.createdBy?.name || 'System'}</div>
                             </div>
                             {order.verifiedAt && (
                                 <div>
-                                    <label className="text-xs text-text-muted">Verified</label>
-                                    <div className="text-sm text-text-primary mt-1">{new Date(order.verifiedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
-                                    <div className="text-xs text-text-muted">by {order.verifiedBy?.name || 'Unknown'}</div>
+                                    <label className="text-text-muted font-medium">Verified On</label>
+                                    <div className="text-text-primary font-semibold mt-0.5">{new Date(order.verifiedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+                                    <div className="text-text-muted">by {order.verifiedBy?.name || 'System'}</div>
                                 </div>
                             )}
                         </div>
@@ -274,52 +282,50 @@ export default function PurchaseOrderDetail() {
             {/* Status Update Modal */}
             {statusModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-text-primary/20 backdrop-blur-sm">
-                    <div className="bg-bg-card border border-border-subtle rounded-xl shadow-xl w-full max-w-md overflow-hidden">
-                        <div className="p-4 border-b border-border-subtle flex justify-between items-center bg-bg-main/50">
-                            <h2 className="text-lg font-bold text-text-primary">Update Status</h2>
+                    <div className="bg-bg-card border border-border-subtle rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+                        <div className="p-5 border-b border-border-subtle flex justify-between items-center bg-bg-main/50">
+                            <h2 className="text-base font-bold text-text-primary">Update PO Status</h2>
                             <button onClick={() => setStatusModalOpen(false)} className="text-text-muted hover:text-text-primary">
                                 <XCircle className="w-5 h-5" />
                             </button>
                         </div>
-                        <form onSubmit={handleStatusUpdate} className="p-6">
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-text-primary mb-1">New Status *</label>
-                                    <select 
-                                        required
-                                        value={newStatus} 
-                                        onChange={(e) => setNewStatus(e.target.value)}
-                                        className="w-full bg-bg-main border border-border-subtle rounded-lg px-4 py-2 text-sm text-text-primary focus:border-brand-primary"
-                                    >
-                                        <option value="">Select status</option>
-                                        {['PARTIALLY_FULFILLED', 'FULFILLED', 'CANCELLED'].map(s => (
-                                            <option key={s} value={s}>{s}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-text-primary mb-1">Remarks</label>
-                                    <textarea 
-                                        rows="3"
-                                        value={remarks}
-                                        onChange={(e) => setRemarks(e.target.value)}
-                                        placeholder="Add notes about this status change..."
-                                        className="w-full bg-bg-main border border-border-subtle rounded-lg px-4 py-2 text-sm text-text-primary focus:border-brand-primary"
-                                    />
-                                </div>
+                        <form onSubmit={handleStatusUpdate} className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-xs font-semibold text-text-muted uppercase mb-2">New Status *</label>
+                                <select 
+                                    required
+                                    value={newStatus} 
+                                    onChange={(e) => setNewStatus(e.target.value)}
+                                    className="w-full bg-bg-main border border-border-subtle rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-brand-primary"
+                                >
+                                    <option value="">Select status</option>
+                                    {['PARTIALLY_FULFILLED', 'FULFILLED', 'CANCELLED'].map(s => (
+                                        <option key={s} value={s}>{s}</option>
+                                    ))}
+                                </select>
                             </div>
-                            <div className="mt-6 flex justify-end gap-3">
+                            <div>
+                                <label className="block text-xs font-semibold text-text-muted uppercase mb-2">Remarks</label>
+                                <textarea 
+                                    rows="3"
+                                    value={remarks}
+                                    onChange={(e) => setRemarks(e.target.value)}
+                                    placeholder="Add notes about this status change..."
+                                    className="w-full bg-bg-main border border-border-subtle rounded-xl p-3 text-sm text-text-primary focus:outline-none focus:border-brand-primary"
+                                />
+                            </div>
+                            <div className="mt-6 flex justify-end gap-3 pt-2">
                                 <button 
                                     type="button" 
                                     onClick={() => setStatusModalOpen(false)}
-                                    className="px-4 py-2 bg-bg-main border border-border-subtle text-text-primary rounded-lg text-sm font-medium"
+                                    className="btn-secondary text-xs px-4 py-2.5 rounded-xl font-medium"
                                 >
                                     Cancel
                                 </button>
                                 <button 
                                     type="submit" 
                                     disabled={actionLoading || !newStatus}
-                                    className="px-4 py-2 bg-brand-primary hover:bg-brand-secondary text-white rounded-lg text-sm font-medium disabled:opacity-50"
+                                    className="btn-primary text-xs px-5 py-2.5 rounded-xl font-semibold disabled:opacity-50"
                                 >
                                     {actionLoading ? 'Updating...' : 'Update Status'}
                                 </button>
@@ -331,3 +337,4 @@ export default function PurchaseOrderDetail() {
         </div>
     );
 }
+

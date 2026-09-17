@@ -278,7 +278,7 @@ export default function Payments() {
     const isOverpayment = selectedInvoice && currentPaymentNumAmount > currentInvoiceBalance + 0.001;
 
     return (
-        <div className="p-8 max-w-7xl mx-auto space-y-6 pb-24">
+        <div className="space-y-6 max-w-[1600px] mx-auto pb-24">
             {/* Success Toast */}
             {successToast && (
                 <div className="fixed top-20 right-8 z-50 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top duration-300">
@@ -291,25 +291,22 @@ export default function Payments() {
             )}
 
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2.5">
-                        <CreditCard className="w-7 h-7 text-brand-primary" /> Payment Ledger
-                    </h1>
-                    <p className="text-xs text-text-muted mt-1">
-                        Track, inspect, and manually record customer payments for money received externally.
-                    </p>
-                </div>
-                <button 
-                    onClick={handleOpenRecordPaymentModal}
-                    className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition-colors flex items-center gap-2 shadow-sm self-start md:self-auto"
-                >
-                    <Plus className="w-4 h-4" /> Record Payment
-                </button>
-            </div>
+            <PageHeader
+                title="Payment Ledger"
+                subtitle="Track, inspect, and manually record customer payment transactions and receipts."
+                icon={CreditCard}
+                action={
+                    <button 
+                        onClick={handleOpenRecordPaymentModal}
+                        className="btn-primary text-xs px-4 py-2.5 rounded-xl font-medium flex items-center gap-2"
+                    >
+                        <Plus className="w-4 h-4" /> Record Payment
+                    </button>
+                }
+            />
 
             {/* Filter Bar */}
-            <div className="bg-bg-card border border-border-subtle rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="bg-bg-card border border-border-subtle rounded-2xl p-4 shadow-sm space-y-4">
                 <form onSubmit={handleSearchSubmit} className="flex flex-wrap items-center gap-3">
                     {/* Search Input */}
                     <div className="relative flex-1 min-w-[240px]">
@@ -319,7 +316,7 @@ export default function Payments() {
                             placeholder="Search by Payment #, Invoice #, Customer..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="w-full pl-9 pr-4 py-2 bg-bg-main border border-border-subtle rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-primary"
+                            className="w-full pl-9 pr-4 py-2.5 bg-bg-main border border-border-subtle rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-primary"
                         />
                     </div>
 
@@ -327,7 +324,7 @@ export default function Payments() {
                     <select
                         value={methodFilter}
                         onChange={(e) => { setMethodFilter(e.target.value); setPage(0); }}
-                        className="px-3 py-2 bg-bg-main border border-border-subtle rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-primary"
+                        className="px-3 py-2.5 bg-bg-main border border-border-subtle rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-primary cursor-pointer"
                     >
                         <option value="">All Payment Methods</option>
                         <option value="BANK_TRANSFER">Bank Transfer</option>
@@ -342,7 +339,7 @@ export default function Payments() {
                     <select
                         value={statusFilter}
                         onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
-                        className="px-3 py-2 bg-bg-main border border-border-subtle rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-primary"
+                        className="px-3 py-2.5 bg-bg-main border border-border-subtle rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-primary cursor-pointer"
                     >
                         <option value="">All Statuses</option>
                         <option value="RECORDED">RECORDED</option>
@@ -350,7 +347,7 @@ export default function Payments() {
                     </select>
 
                     {/* Date Range */}
-                    <div className="flex items-center gap-1.5 bg-bg-main border border-border-subtle rounded-xl px-3 py-1.5">
+                    <div className="flex items-center gap-1.5 bg-bg-main border border-border-subtle rounded-xl px-3 py-2">
                         <Calendar className="w-3.5 h-3.5 text-text-muted" />
                         <input
                             type="date"
@@ -371,7 +368,7 @@ export default function Payments() {
 
                     <button
                         type="submit"
-                        className="px-4 py-2 bg-brand-primary text-white rounded-xl text-xs font-semibold hover:bg-brand-secondary transition-colors"
+                        className="btn-primary text-xs px-4 py-2.5 rounded-xl font-semibold"
                     >
                         Search
                     </button>
@@ -390,35 +387,44 @@ export default function Payments() {
 
             {/* Table */}
             <div className="bg-bg-card border border-border-subtle rounded-2xl overflow-hidden shadow-sm">
-                {loading ? (
-                    <div className="p-12 text-center text-xs text-text-muted flex items-center justify-center gap-2">
-                        <Loader2 className="w-4 h-4 animate-spin text-brand-primary" />
-                        <span>Loading payments ledger...</span>
-                    </div>
-                ) : error ? (
-                    <div className="p-8 text-center text-xs text-red-500">{error}</div>
-                ) : payments.length === 0 ? (
-                    <div className="p-12 text-center text-xs text-text-muted">No payment records found matching criteria.</div>
-                ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse text-xs">
-                            <thead>
-                                <tr className="border-b border-border-subtle text-text-muted bg-bg-main/50 uppercase tracking-wider font-semibold">
-                                    <th className="p-4">Payment #</th>
-                                    <th className="p-4">Date</th>
-                                    <th className="p-4">Invoice #</th>
-                                    <th className="p-4">Customer</th>
-                                    <th className="p-4">Method</th>
-                                    <th className="p-4">Ref / Cheque</th>
-                                    <th className="p-4 text-right">Amount</th>
-                                    <th className="p-4">Status</th>
-                                    <th className="p-4 text-right">Actions</th>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                        <thead className="bg-bg-main/50 text-text-muted uppercase font-semibold">
+                            <tr>
+                                <th className="p-4">Payment #</th>
+                                <th className="p-4">Date</th>
+                                <th className="p-4">Invoice #</th>
+                                <th className="p-4">Customer</th>
+                                <th className="p-4">Method</th>
+                                <th className="p-4">Ref / Cheque</th>
+                                <th className="p-4 text-right">Amount</th>
+                                <th className="p-4">Status</th>
+                                <th className="p-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border-subtle">
+                            {loading ? (
+                                <tr>
+                                    <td colSpan="9" className="py-8">
+                                        <EmptyState type="loading" message="Loading payments ledger..." />
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody className="divide-y divide-border-subtle">
-                                {payments.map((p) => (
-                                    <tr key={p.id} className="hover:bg-bg-main/40 transition-colors">
-                                        <td className="p-4 font-bold text-text-primary">
+                            ) : error ? (
+                                <tr>
+                                    <td colSpan="9" className="py-8">
+                                        <EmptyState type="error" message={error} onRetry={fetchPaymentsList} />
+                                    </td>
+                                </tr>
+                            ) : payments.length === 0 ? (
+                                <tr>
+                                    <td colSpan="9" className="py-8">
+                                        <EmptyState type="empty" message="No payment records found." />
+                                    </td>
+                                </tr>
+                            ) : (
+                                payments.map((p) => (
+                                    <tr key={p.id} className="hover:bg-bg-main/50 transition-colors">
+                                        <td className="p-4 font-bold text-text-primary align-top">
                                             <button 
                                                 onClick={() => setSelectedPayment(p)}
                                                 className="hover:underline text-brand-primary text-left"
@@ -426,28 +432,28 @@ export default function Payments() {
                                                 {p.paymentNumber}
                                             </button>
                                         </td>
-                                        <td className="p-4 text-text-muted">
+                                        <td className="p-4 text-text-muted align-top">
                                             {new Date(p.paymentDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                                         </td>
-                                        <td className="p-4 font-medium">
+                                        <td className="p-4 font-medium align-top">
                                             <button 
                                                 onClick={() => navigate(`/invoices/${p.invoiceId}`)}
-                                                className="text-text-primary hover:text-brand-primary font-medium flex items-center gap-1 group"
+                                                className="text-text-primary hover:text-brand-primary font-semibold flex items-center gap-1 group"
                                             >
                                                 <span>{p.invoiceNumber}</span>
                                                 <ArrowUpRight className="w-3 h-3 text-text-muted group-hover:text-brand-primary" />
                                             </button>
                                         </td>
-                                        <td className="p-4">
+                                        <td className="p-4 align-top">
                                             <div className="font-semibold text-text-primary">{p.customerName}</div>
                                             {p.companyName && <div className="text-[11px] text-text-muted">{p.companyName}</div>}
                                         </td>
-                                        <td className="p-4 font-medium text-text-primary">
+                                        <td className="p-4 font-medium text-text-primary align-top">
                                             <span className="px-2.5 py-1 bg-bg-main border border-border-subtle rounded-lg font-medium">
                                                 {p.paymentMethod}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-text-muted">
+                                        <td className="p-4 text-text-muted align-top">
                                             {p.transactionReference && <div>Ref: {p.transactionReference}</div>}
                                             {p.chequeNumber && <div>Chq: {p.chequeNumber}</div>}
                                             {p.bankName && <div className="text-[11px] text-text-muted">{p.bankName}</div>}
@@ -494,11 +500,11 @@ export default function Payments() {
                                             </div>
                                         </td>
                                     </tr>
-                                ))}
-                            </tbody>
+                                ))
+                            )}
+                        </tbody>
                         </table>
                     </div>
-                )}
 
                 {/* Pagination Footer */}
                 {totalPages > 1 && (

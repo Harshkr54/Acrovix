@@ -1,7 +1,9 @@
 package com.acrovix.admin.service;
 
 import com.acrovix.admin.dto.InvoiceItemRequest;
+import com.acrovix.admin.dto.InvoiceItemResponse;
 import com.acrovix.admin.dto.InvoiceRequest;
+import com.acrovix.admin.dto.InvoiceResponse;
 import com.acrovix.admin.entity.*;
 import com.acrovix.admin.repository.*;
 import com.acrovix.admin.util.AmountToWordsConverter;
@@ -18,6 +20,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -35,8 +38,16 @@ public class InvoiceService {
     private final PdfService pdfService;
 
     @Transactional(readOnly = true)
-    public Page<Invoice> searchInvoices(InvoiceType type, InvoiceStatus status, String search, Pageable pageable) {
-        return invoiceRepository.searchInvoices(type, status, search, pageable);
+    public Page<InvoiceResponse> searchInvoices(InvoiceType type, InvoiceStatus status, String search, Pageable pageable) {
+        String cleanSearch = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
+        Page<Invoice> invoices = invoiceRepository.searchInvoices(type, status, cleanSearch, pageable);
+        return invoices.map(this::mapToResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public InvoiceResponse getInvoiceResponseById(Long id, AdminUser admin) {
+        Invoice invoice = getInvoiceById(id, admin);
+        return mapToResponse(invoice);
     }
 
     @Transactional(readOnly = true)
@@ -546,5 +557,89 @@ public class InvoiceService {
                 .entityId(entityId)
                 .build();
         activityRepository.save(activity);
+    }
+
+    public InvoiceResponse mapToResponse(Invoice invoice) {
+        if (invoice == null) return null;
+        InvoiceResponse response = new InvoiceResponse();
+        response.setId(invoice.getId());
+        response.setInvoiceNumber(invoice.getInvoiceNumber());
+        response.setInvoiceType(invoice.getInvoiceType());
+        response.setStatus(invoice.getStatus());
+        response.setLocked(invoice.isLocked());
+
+        response.setCustomerId(invoice.getCustomer() != null ? invoice.getCustomer().getId() : null);
+        response.setQuotationId(invoice.getQuotation() != null ? invoice.getQuotation().getId() : null);
+        response.setPurchaseOrderId(invoice.getPurchaseOrder() != null ? invoice.getPurchaseOrder().getId() : null);
+
+        response.setClientName(invoice.getClientName());
+        response.setClientCompany(invoice.getClientCompany());
+        response.setClientEmail(invoice.getClientEmail());
+        response.setClientPhone(invoice.getClientPhone());
+        response.setClientAddress(invoice.getClientAddress());
+        response.setClientGstin(invoice.getClientGstin());
+        response.setPlaceOfSupply(invoice.getPlaceOfSupply());
+
+        response.setSupplierCompany(invoice.getSupplierCompany());
+        response.setSupplierAddress(invoice.getSupplierAddress());
+        response.setSupplierGstin(invoice.getSupplierGstin());
+        response.setSupplierState(invoice.getSupplierState());
+
+        response.setInvoiceDate(invoice.getInvoiceDate());
+        response.setDueDate(invoice.getDueDate());
+        response.setIssuedAt(invoice.getIssuedAt());
+        response.setCancelledAt(invoice.getCancelledAt());
+        response.setPaymentTerms(invoice.getPaymentTerms());
+        response.setTermsAndConditions(invoice.getTermsAndConditions());
+
+        response.setSubtotal(invoice.getSubtotal() != null ? invoice.getSubtotal() : BigDecimal.ZERO);
+        response.setDiscountAmount(invoice.getDiscountAmount() != null ? invoice.getDiscountAmount() : BigDecimal.ZERO);
+        response.setTaxableAmount(invoice.getTaxableAmount() != null ? invoice.getTaxableAmount() : BigDecimal.ZERO);
+        response.setCgstAmount(invoice.getCgstAmount() != null ? invoice.getCgstAmount() : BigDecimal.ZERO);
+        response.setSgstAmount(invoice.getSgstAmount() != null ? invoice.getSgstAmount() : BigDecimal.ZERO);
+        response.setIgstAmount(invoice.getIgstAmount() != null ? invoice.getIgstAmount() : BigDecimal.ZERO);
+        response.setTaxAmount(invoice.getTaxAmount() != null ? invoice.getTaxAmount() : BigDecimal.ZERO);
+        
+        BigDecimal grandTotal = invoice.getGrandTotal() != null ? invoice.getGrandTotal() : BigDecimal.ZERO;
+        response.setGrandTotal(grandTotal);
+        response.setAmountPaid(invoice.getAmountPaid() != null ? invoice.getAmountPaid() : BigDecimal.ZERO);
+        response.setBalanceDue(invoice.getBalanceDue() != null ? invoice.getBalanceDue() : grandTotal);
+        response.setAmountInWords(invoice.getAmountInWords());
+
+        response.setCreatedAt(invoice.getCreatedAt());
+        response.setUpdatedAt(invoice.getUpdatedAt());
+
+        if (invoice.getCreatedBy() != null) {
+            response.setCreatedByUsername(invoice.getCreatedBy().getUsername());
+            response.setCreatedByFullName(invoice.getCreatedBy().getName());
+        }
+
+        if (invoice.getItems() != null) {
+            List<InvoiceItemResponse> items = invoice.getItems().stream().map(item -> {
+                InvoiceItemResponse ir = new InvoiceItemResponse();
+                ir.setId(item.getId());
+                ir.setProductServiceId(item.getProductService() != null ? item.getProductService().getId() : null);
+                ir.setSku(item.getSku());
+                ir.setDescription(item.getDescription());
+                ir.setHsnSac(item.getHsnSac());
+                ir.setQuantity(item.getQuantity());
+                ir.setUnit(item.getUnit());
+                ir.setListPrice(item.getListPrice());
+                ir.setUnitPrice(item.getUnitPrice());
+                ir.setDiscountPercent(item.getDiscountPercent());
+                ir.setTaxPercent(item.getTaxPercent());
+                ir.setTaxableAmount(item.getTaxableAmount());
+                ir.setCgstAmount(item.getCgstAmount());
+                ir.setSgstAmount(item.getSgstAmount());
+                ir.setIgstAmount(item.getIgstAmount());
+                ir.setTaxAmount(item.getTaxAmount());
+                ir.setLineTotal(item.getLineTotal());
+                ir.setSortOrder(item.getSortOrder());
+                return ir;
+            }).collect(Collectors.toList());
+            response.setItems(items);
+        }
+
+        return response;
     }
 }

@@ -370,10 +370,11 @@ export default function HeaderControls() {
                             : 'bg-bg-card border-border-subtle hover:bg-bg-hover'
                     }`}
                 >
-                    <div className="w-7 h-7 rounded-full bg-[#EEF2FF] flex items-center justify-center text-[#4F46E5] font-bold text-xs">
+                    <div className="w-7 h-7 rounded-full bg-[#0F8F95] text-white flex items-center justify-center font-bold text-xs shadow-sm">
                         {getInitials(user?.name)}
                     </div>
-                    <ChevronRight className={`w-4 h-4 text-text-muted transition-transform ${activeDropdown === 'profile' ? '-rotate-90' : 'rotate-90'}`} />
+                    <span className="text-xs font-semibold text-text-primary hidden md:inline truncate max-w-[120px]">{user?.name || 'Admin User'}</span>
+                    <ChevronRight className={`w-3.5 h-3.5 text-text-muted transition-transform ${activeDropdown === 'profile' ? '-rotate-90' : 'rotate-90'}`} />
                 </div>
 
                 {activeDropdown === 'profile' && (
@@ -381,7 +382,7 @@ export default function HeaderControls() {
                         <div className="px-4 py-4 border-b border-border-subtle bg-bg-muted/30">
                             <p className="text-sm font-bold text-text-primary truncate">{user?.name || 'Admin User'}</p>
                             <p className="text-[12px] text-text-secondary truncate mt-0.5">{user?.email}</p>
-                            <div className="mt-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-[#E0E7FF] text-[#4338CA]">
+                            <div className="mt-2 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#E6F5F2] text-[#0F8F95]">
                                 {user?.role?.replace('_', ' ')}
                             </div>
                         </div>

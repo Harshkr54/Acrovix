@@ -10,6 +10,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -260,5 +261,79 @@ public class InvoiceServiceTest {
         assertEquals("27MANUALGSTIN", taxInvoice.getClientGstin());
         assertEquals("Karnataka", taxInvoice.getPlaceOfSupply());
         assertEquals("50% Advance", taxInvoice.getPaymentTerms());
+    }
+
+    @Test
+    void testSearchInvoices_NoFiltersAndSanitization() {
+        Invoice invoice = new Invoice();
+        invoice.setId(1L);
+        invoice.setInvoiceNumber("ACX/INV/26-27/0001");
+        invoice.setInvoiceType(InvoiceType.TAX_INVOICE);
+        invoice.setStatus(InvoiceStatus.ISSUED);
+        invoice.setGrandTotal(new BigDecimal("118000.00"));
+        invoice.setAmountPaid(BigDecimal.ZERO);
+        invoice.setBalanceDue(new BigDecimal("118000.00"));
+
+        Page<Invoice> invoicePage = new org.springframework.data.domain.PageImpl<>(List.of(invoice));
+
+        when(invoiceRepository.searchInvoices(null, null, null, org.springframework.data.domain.PageRequest.of(0, 10))).thenReturn(invoicePage);
+
+        // Test with empty string search -> sanitized to null
+        org.springframework.data.domain.Page<com.acrovix.admin.dto.InvoiceResponse> responses = 
+                invoiceService.searchInvoices(null, null, "   ", org.springframework.data.domain.PageRequest.of(0, 10));
+
+        assertNotNull(responses);
+        assertEquals(1, responses.getTotalElements());
+        com.acrovix.admin.dto.InvoiceResponse resp = responses.getContent().get(0);
+        assertEquals("ACX/INV/26-27/0001", resp.getInvoiceNumber());
+        assertEquals(0, new BigDecimal("0.00").compareTo(resp.getAmountPaid()));
+        assertEquals(0, new BigDecimal("118000.00").compareTo(resp.getBalanceDue()));
+        
+        verify(invoiceRepository).searchInvoices(null, null, null, org.springframework.data.domain.PageRequest.of(0, 10));
+    }
+
+    @Test
+    void testSearchInvoices_WithFilters() {
+        Invoice invoice = new Invoice();
+        invoice.setId(2L);
+        invoice.setInvoiceNumber("ACX/PI/26-27/0001");
+        invoice.setInvoiceType(InvoiceType.PROFORMA);
+        invoice.setStatus(InvoiceStatus.DRAFT);
+        invoice.setGrandTotal(new BigDecimal("50000.00"));
+        invoice.setBalanceDue(new BigDecimal("50000.00"));
+
+        Page<Invoice> invoicePage = new org.springframework.data.domain.PageImpl<>(List.of(invoice));
+
+        when(invoiceRepository.searchInvoices(InvoiceType.PROFORMA, InvoiceStatus.DRAFT, "ACX", org.springframework.data.domain.PageRequest.of(0, 10))).thenReturn(invoicePage);
+
+        org.springframework.data.domain.Page<com.acrovix.admin.dto.InvoiceResponse> responses = 
+                invoiceService.searchInvoices(InvoiceType.PROFORMA, InvoiceStatus.DRAFT, "ACX", org.springframework.data.domain.PageRequest.of(0, 10));
+
+        assertNotNull(responses);
+        assertEquals(1, responses.getTotalElements());
+        com.acrovix.admin.dto.InvoiceResponse resp = responses.getContent().get(0);
+        assertEquals(InvoiceType.PROFORMA, resp.getInvoiceType());
+        assertEquals(InvoiceStatus.DRAFT, resp.getStatus());
+        assertEquals(0, new BigDecimal("50000.00").compareTo(resp.getGrandTotal()));
+        assertEquals(0, new BigDecimal("0.00").compareTo(resp.getAmountPaid()));
+        assertEquals(0, new BigDecimal("50000.00").compareTo(resp.getBalanceDue()));
+    }
+
+    @Test
+    void testMapToResponse_ZeroPaymentsInvoiceDoesNotFail() {
+        Invoice invoice = new Invoice();
+        invoice.setId(3L);
+        invoice.setInvoiceNumber("ACX/INV/26-27/0002");
+        invoice.setInvoiceType(InvoiceType.TAX_INVOICE);
+        invoice.setStatus(InvoiceStatus.ISSUED);
+        invoice.setGrandTotal(new BigDecimal("10000.00"));
+        invoice.setAmountPaid(null); // null payment field
+        invoice.setBalanceDue(null); // null balance field
+
+        com.acrovix.admin.dto.InvoiceResponse resp = invoiceService.mapToResponse(invoice);
+
+        assertNotNull(resp);
+        assertEquals(0, BigDecimal.ZERO.compareTo(resp.getAmountPaid()));
+        assertEquals(0, new BigDecimal("10000.00").compareTo(resp.getBalanceDue()));
     }
 }
