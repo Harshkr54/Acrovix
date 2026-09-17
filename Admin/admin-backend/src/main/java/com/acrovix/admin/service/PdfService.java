@@ -368,4 +368,104 @@ public class PdfService {
             throw new RuntimeException("Failed to generate Invoice PDF", e);
         }
     }
+
+    public byte[] generatePaymentReceiptPdf(com.acrovix.admin.entity.Payment payment) {
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Document document = new Document();
+            PdfWriter.getInstance(document, out);
+            document.open();
+
+            // Header
+            Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 20);
+            String supplierName = payment.getInvoice() != null && payment.getInvoice().getSupplierCompany() != null
+                    ? payment.getInvoice().getSupplierCompany()
+                    : "ACROVIX INNOVATIONS PRIVATE LIMITED";
+            Paragraph title = new Paragraph(supplierName, titleFont);
+            title.setAlignment(Element.ALIGN_CENTER);
+            document.add(title);
+
+            Paragraph subtitle = new Paragraph("PAYMENT RECEIPT", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16));
+            subtitle.setAlignment(Element.ALIGN_CENTER);
+            document.add(subtitle);
+            document.add(new Paragraph(" "));
+
+            // Details Table (2 columns)
+            PdfPTable table = new PdfPTable(2);
+            table.setWidthPercentage(100);
+
+            // Left Column (Receipt & Payment Details)
+            PdfPCell leftCell = new PdfPCell();
+            leftCell.setBorder(Rectangle.NO_BORDER);
+            leftCell.addElement(new Paragraph("Receipt Number: " + (payment.getPaymentNumber() != null ? payment.getPaymentNumber() : ""), FontFactory.getFont(FontFactory.HELVETICA_BOLD)));
+            String dateStr = payment.getPaymentDate() != null ? payment.getPaymentDate().format(DateTimeFormatter.ofPattern("dd-MMM-yyyy")) : "";
+            leftCell.addElement(new Paragraph("Payment Date: " + dateStr));
+            leftCell.addElement(new Paragraph("Payment Method: " + (payment.getPaymentMethod() != null ? payment.getPaymentMethod().name() : "")));
+            if (payment.getTransactionReference() != null && !payment.getTransactionReference().isBlank()) {
+                leftCell.addElement(new Paragraph("Transaction Ref / UTR: " + payment.getTransactionReference()));
+            }
+            if (payment.getBankName() != null && !payment.getBankName().isBlank()) {
+                leftCell.addElement(new Paragraph("Bank Name: " + payment.getBankName()));
+            }
+            if (payment.getChequeNumber() != null && !payment.getChequeNumber().isBlank()) {
+                leftCell.addElement(new Paragraph("Cheque Number: " + payment.getChequeNumber()));
+            }
+            leftCell.addElement(new Paragraph("Status: " + (payment.getStatus() != null ? payment.getStatus().name() : "")));
+            table.addCell(leftCell);
+
+            // Right Column (Customer & Invoice Ref Details)
+            PdfPCell rightCell = new PdfPCell();
+            rightCell.setBorder(Rectangle.NO_BORDER);
+            rightCell.addElement(new Paragraph("Received From:", FontFactory.getFont(FontFactory.HELVETICA_BOLD)));
+            String clientName = payment.getInvoice() != null && payment.getInvoice().getClientName() != null
+                    ? payment.getInvoice().getClientName()
+                    : (payment.getCustomer() != null ? payment.getCustomer().getName() : "");
+            rightCell.addElement(new Paragraph(clientName));
+
+            String clientComp = payment.getInvoice() != null && payment.getInvoice().getClientCompany() != null
+                    ? payment.getInvoice().getClientCompany()
+                    : (payment.getCustomer() != null ? payment.getCustomer().getCompanyName() : "");
+            if (clientComp != null && !clientComp.isBlank()) {
+                rightCell.addElement(new Paragraph(clientComp));
+            }
+
+            if (payment.getInvoice() != null) {
+                rightCell.addElement(new Paragraph(" "));
+                rightCell.addElement(new Paragraph("Against Invoice: " + (payment.getInvoice().getInvoiceNumber() != null ? payment.getInvoice().getInvoiceNumber() : ""), FontFactory.getFont(FontFactory.HELVETICA_BOLD)));
+                rightCell.addElement(new Paragraph("Invoice Total: Rs. " + (payment.getInvoice().getGrandTotal() != null ? payment.getInvoice().getGrandTotal().toString() : "0.00")));
+            }
+            table.addCell(rightCell);
+
+            document.add(table);
+            document.add(new Paragraph(" "));
+
+            // Amount Box
+            PdfPTable amountTable = new PdfPTable(2);
+            amountTable.setWidthPercentage(100);
+            PdfPCell labelCell = new PdfPCell(new Phrase("Amount Received:", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12)));
+            labelCell.setBackgroundColor(new java.awt.Color(240, 240, 240));
+            amountTable.addCell(labelCell);
+
+            PdfPCell valueCell = new PdfPCell(new Phrase("Rs. " + (payment.getAmount() != null ? payment.getAmount().toString() : "0.00"), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14)));
+            valueCell.setBackgroundColor(new java.awt.Color(240, 240, 240));
+            amountTable.addCell(valueCell);
+
+            document.add(amountTable);
+            document.add(new Paragraph(" "));
+
+            if (payment.getNotes() != null && !payment.getNotes().isBlank()) {
+                document.add(new Paragraph("Notes:", FontFactory.getFont(FontFactory.HELVETICA_BOLD)));
+                document.add(new Paragraph(payment.getNotes()));
+                document.add(new Paragraph(" "));
+            }
+
+            if (payment.getRecordedBy() != null) {
+                document.add(new Paragraph("Recorded By: " + (payment.getRecordedBy().getName() != null ? payment.getRecordedBy().getName() : payment.getRecordedBy().getUsername())));
+            }
+
+            document.close();
+            return out.toByteArray();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate Payment Receipt PDF", e);
+        }
+    }
 }

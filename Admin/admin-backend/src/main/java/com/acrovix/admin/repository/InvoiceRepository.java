@@ -28,4 +28,8 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
 
     @Query("SELECT COALESCE(SUM(i.grandTotal), 0) FROM Invoice i WHERE i.purchaseOrder.id = :poId AND i.status != 'CANCELLED'")
     java.math.BigDecimal sumInvoicedAmountForPo(@Param("poId") Long poId);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT i FROM Invoice i WHERE i.id = :id")
+    java.util.Optional<Invoice> findByIdForUpdate(@Param("id") Long id);
 }

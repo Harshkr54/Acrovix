@@ -247,3 +247,39 @@ export const convertProformaToTaxInvoice = (id) => fetchApi(`/invoices/proforma/
     method: 'POST'
 });
 
+// --- PAYMENTS & RECEIVABLES ---
+export const recordPayment = (data) => fetchApi('/payments', {
+    method: 'POST',
+    body: JSON.stringify(data)
+});
+
+export const cancelPayment = (id, data) => fetchApi(`/payments/${id}/cancel`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+});
+
+export const getPayments = (params = {}) => {
+    const cleanParams = Object.fromEntries(
+        Object.entries(params).filter(([_, v]) => v !== '' && v !== null && v !== undefined)
+    );
+    const qs = new URLSearchParams(cleanParams).toString();
+    return fetchApi(`/payments${qs ? `?${qs}` : ''}`);
+};
+
+export const getPaymentById = (id) => fetchApi(`/payments/${id}`);
+
+export const getInvoicePayments = (invoiceId) => fetchApi(`/invoices/${invoiceId}/payments`);
+
+export const getReceivables = (params = {}) => {
+    const cleanParams = Object.fromEntries(
+        Object.entries(params).filter(([_, v]) => v !== '' && v !== null && v !== undefined)
+    );
+    const qs = new URLSearchParams(cleanParams).toString();
+    return fetchApi(`/receivables${qs ? `?${qs}` : ''}`);
+};
+
+export const getDashboardReceivables = () => fetchApi('/dashboard/receivables');
+
+export const getPaymentReceiptPdf = (id) => fetchApi(`/payments/${id}/pdf`);
+
+

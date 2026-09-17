@@ -103,4 +103,38 @@ public class SequenceGeneratorService {
         String docPrefix = type == com.acrovix.admin.entity.InvoiceType.PROFORMA ? "PI" : "INV";
         return String.format("ACX/%s/%s/%04d", docPrefix, fyString, currentVal);
     }
+
+    @Transactional
+    public String generateNextPaymentNumber(java.time.LocalDate paymentDate) {
+        int year = paymentDate.getYear();
+        int month = paymentDate.getMonthValue();
+        
+        int startYear;
+        int endYear;
+        
+        if (month >= 4) {
+            startYear = year;
+            endYear = year + 1;
+        } else {
+            startYear = year - 1;
+            endYear = year;
+        }
+        
+        String fyString = String.format("%02d-%02d", startYear % 100, endYear % 100);
+        String sequenceName = "PAYMENT_" + startYear + "_" + endYear;
+
+        SequenceTracker tracker = repository.findBySequenceNameForUpdate(sequenceName)
+                .orElseGet(() -> {
+                    SequenceTracker newTracker = new SequenceTracker();
+                    newTracker.setSequenceName(sequenceName);
+                    newTracker.setNextVal(1L);
+                    return newTracker;
+                });
+
+        Long currentVal = tracker.getNextVal();
+        tracker.setNextVal(currentVal + 1);
+        repository.save(tracker);
+
+        return String.format("ACX/PAY/%s/%04d", fyString, currentVal);
+    }
 }

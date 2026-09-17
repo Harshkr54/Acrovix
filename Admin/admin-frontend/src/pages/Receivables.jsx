@@ -1,0 +1,223 @@
+import React, { useState, useEffect } from 'react';
+import { getReceivables } from '../services/api';
+import { 
+    DollarSign, 
+    Search, 
+    Building2, 
+    Clock, 
+    CheckCircle2, 
+    AlertTriangle, 
+    TrendingUp, 
+    Calendar,
+    ArrowUpRight,
+    Users
+} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+
+export default function Receivables() {
+    const navigate = useNavigate();
+    const [receivables, setReceivables] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [search, setSearch] = useState('');
+
+    const fetchReceivables = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const data = await getReceivables({ search: search.trim() || undefined });
+            setReceivables(Array.isArray(data) ? data : []);
+        } catch (err) {
+            console.error('Failed to fetch receivables summary', err);
+            setError(err.message || 'Failed to load receivables summary');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchReceivables();
+    }, []);
+
+    const handleSearchSubmit = (e) => {
+        e.preventDefault();
+        fetchReceivables();
+    };
+
+    // Calculate aggregate totals
+    const totalInvoicedSum = receivables.reduce((sum, r) => sum + (Number(r.totalInvoiced) || 0), 0);
+    const totalReceivedSum = receivables.reduce((sum, r) => sum + (Number(r.totalReceived) || 0), 0);
+    const totalOutstandingSum = receivables.reduce((sum, r) => sum + (Number(r.outstandingAmount) || 0), 0);
+    const totalOverdueSum = receivables.reduce((sum, r) => sum + (Number(r.overdueAmount) || 0), 0);
+
+    return (
+        <div className="p-8 max-w-7xl mx-auto space-y-6 pb-24">
+            {/* Header */}
+            <div>
+                <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2.5">
+                    <DollarSign className="w-7 h-7 text-emerald-600" /> Customer Receivables & Outstanding
+                </h1>
+                <p className="text-xs text-text-muted mt-1">
+                    Real-time ledger breakdown of customer invoices, payments received, balances due, and overdue accounts.
+                </p>
+            </div>
+
+            {/* KPI Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-bg-card border border-border-subtle rounded-2xl p-5 shadow-sm flex items-center justify-between">
+                    <div>
+                        <div className="text-xs text-text-muted font-medium uppercase tracking-wider">Total Invoiced</div>
+                        <div className="text-xl font-bold text-text-primary mt-1">
+                            Rs. {totalInvoicedSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </div>
+                    </div>
+                    <div className="p-3 bg-blue-500/10 text-blue-500 rounded-xl">
+                        <TrendingUp className="w-6 h-6" />
+                    </div>
+                </div>
+
+                <div className="bg-bg-card border border-border-subtle rounded-2xl p-5 shadow-sm flex items-center justify-between">
+                    <div>
+                        <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium uppercase tracking-wider">Total Received</div>
+                        <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+                            Rs. {totalReceivedSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </div>
+                    </div>
+                    <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-xl">
+                        <CheckCircle2 className="w-6 h-6" />
+                    </div>
+                </div>
+
+                <div className="bg-bg-card border border-border-subtle rounded-2xl p-5 shadow-sm flex items-center justify-between">
+                    <div>
+                        <div className="text-xs text-amber-600 dark:text-amber-400 font-medium uppercase tracking-wider">Outstanding Balance</div>
+                        <div className="text-xl font-bold text-amber-600 dark:text-amber-400 mt-1">
+                            Rs. {totalOutstandingSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </div>
+                    </div>
+                    <div className="p-3 bg-amber-500/10 text-amber-500 rounded-xl">
+                        <Clock className="w-6 h-6" />
+                    </div>
+                </div>
+
+                <div className="bg-bg-card border border-border-subtle rounded-2xl p-5 shadow-sm flex items-center justify-between">
+                    <div>
+                        <div className="text-xs text-red-500 font-medium uppercase tracking-wider">Overdue Balance</div>
+                        <div className="text-xl font-bold text-red-500 mt-1">
+                            Rs. {totalOverdueSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </div>
+                    </div>
+                    <div className="p-3 bg-red-500/10 text-red-500 rounded-xl">
+                        <AlertTriangle className="w-6 h-6" />
+                    </div>
+                </div>
+            </div>
+
+            {/* Filter Bar */}
+            <div className="bg-bg-card border border-border-subtle rounded-2xl p-5 shadow-sm flex items-center justify-between">
+                <form onSubmit={handleSearchSubmit} className="flex items-center gap-3 w-full max-w-md">
+                    <div className="relative flex-1">
+                        <Search className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                            type="text"
+                            placeholder="Search by customer name or company..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2 bg-bg-main border border-border-subtle rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-primary"
+                        />
+                    </div>
+                    <button
+                        type="submit"
+                        className="px-4 py-2 bg-brand-primary text-white rounded-xl text-xs font-semibold hover:bg-brand-secondary transition-colors"
+                    >
+                        Filter
+                    </button>
+                </form>
+                <div className="text-xs text-text-muted font-medium">
+                    Showing <span className="font-bold text-text-primary">{receivables.length}</span> customers
+                </div>
+            </div>
+
+            {/* Customer Receivables Table */}
+            <div className="bg-bg-card border border-border-subtle rounded-2xl overflow-hidden shadow-sm">
+                {loading ? (
+                    <div className="p-12 text-center text-xs text-text-muted">Loading customer receivables...</div>
+                ) : error ? (
+                    <div className="p-8 text-center text-xs text-red-500">{error}</div>
+                ) : receivables.length === 0 ? (
+                    <div className="p-12 text-center text-xs text-text-muted">No customer receivable records found.</div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr className="border-b border-border-subtle text-text-muted bg-bg-main/50 uppercase tracking-wider font-semibold">
+                                    <th className="p-4">Customer / Code</th>
+                                    <th className="p-4">Company</th>
+                                    <th className="p-4 text-right">Total Invoiced</th>
+                                    <th className="p-4 text-right">Total Received</th>
+                                    <th className="p-4 text-right">Outstanding</th>
+                                    <th className="p-4 text-right">Overdue</th>
+                                    <th className="p-4">Oldest Due Date</th>
+                                    <th className="p-4 text-right">Invoices</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border-subtle">
+                                {receivables.map((r) => (
+                                    <tr key={r.customerId} className="hover:bg-bg-main/40 transition-colors">
+                                        <td className="p-4 font-bold text-text-primary">
+                                            <div className="text-sm">{r.customerName}</div>
+                                            <div className="text-[11px] font-mono text-text-muted">{r.customerCode}</div>
+                                        </td>
+                                        <td className="p-4 text-text-primary">
+                                            {r.companyName ? (
+                                                <div className="flex items-center gap-1.5 font-medium">
+                                                    <Building2 className="w-3.5 h-3.5 text-text-muted shrink-0" />
+                                                    <span>{r.companyName}</span>
+                                                </div>
+                                            ) : '-'}
+                                        </td>
+                                        <td className="p-4 text-right font-medium text-text-primary">
+                                            Rs. {Number(r.totalInvoiced || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </td>
+                                        <td className="p-4 text-right font-semibold text-emerald-600 dark:text-emerald-400">
+                                            Rs. {Number(r.totalReceived || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </td>
+                                        <td className="p-4 text-right font-bold text-amber-600 dark:text-amber-400">
+                                            Rs. {Number(r.outstandingAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </td>
+                                        <td className="p-4 text-right">
+                                            {Number(r.overdueAmount) > 0 ? (
+                                                <span className="font-bold text-red-500 px-2 py-0.5 bg-red-500/10 rounded-full">
+                                                    Rs. {Number(r.overdueAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                </span>
+                                            ) : (
+                                                <span className="text-text-muted">Rs. 0.00</span>
+                                            )}
+                                        </td>
+                                        <td className="p-4 text-text-muted font-medium">
+                                            {r.oldestDueDate ? (
+                                                <span className={`inline-flex items-center gap-1 ${new Date(r.oldestDueDate) < new Date() && Number(r.outstandingAmount) > 0 ? 'text-red-500 font-bold' : ''}`}>
+                                                    <Calendar className="w-3.5 h-3.5" />
+                                                    {new Date(r.oldestDueDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                </span>
+                                            ) : '-'}
+                                        </td>
+                                        <td className="p-4 text-right">
+                                            <button
+                                                onClick={() => navigate(`/invoices?search=${encodeURIComponent(r.customerName)}`)}
+                                                className="px-3 py-1.5 bg-bg-main border border-border-subtle hover:bg-brand-primary hover:text-white hover:border-brand-primary rounded-lg text-xs font-medium transition-colors inline-flex items-center gap-1"
+                                            >
+                                                <span>View Invoices</span>
+                                                <ArrowUpRight className="w-3 h-3" />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}

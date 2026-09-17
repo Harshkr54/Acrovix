@@ -17,6 +17,8 @@ import PurchaseOrderList from './pages/PurchaseOrderList';
 import PurchaseOrderDetail from './pages/PurchaseOrderDetail';
 import InvoiceList from './pages/InvoiceList';
 import InvoiceDetail from './pages/InvoiceDetail';
+import Payments from './pages/Payments';
+import Receivables from './pages/Receivables';
 
 const ProtectedRoute = ({ children }) => {
     const { user } = useAuth();
@@ -43,6 +45,8 @@ function App() {
                 <Route path="purchase-orders/:id" element={<PurchaseOrderDetail />} />
                 <Route path="invoices" element={<InvoiceList />} />
                 <Route path="invoices/:id" element={<InvoiceDetail />} />
+                <Route path="payments" element={<Payments />} />
+                <Route path="receivables" element={<Receivables />} />
                 <Route path="users" element={<UserList />} />
                 <Route path="trash" element={<TrashList />} />
                 <Route path="activity" element={<Activity />} />

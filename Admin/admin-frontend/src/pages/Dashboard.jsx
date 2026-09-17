@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { fetchApi } from '../services/api';
-import { FileText, Inbox, Activity, CheckCircle, Clock, ChevronRight, Filter, Plus, MoreHorizontal, MessageSquare, User, AlertCircle, RefreshCw, Loader2, X, RotateCcw, Eye, Check } from 'lucide-react';
+import { fetchApi, getDashboardReceivables } from '../services/api';
+import { FileText, Inbox, Activity, CheckCircle, Clock, ChevronRight, Filter, Plus, MoreHorizontal, MessageSquare, User, AlertCircle, RefreshCw, Loader2, X, RotateCcw, Eye, Check, CreditCard, DollarSign, TrendingUp, AlertTriangle } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import CreateQuotationModal from '../components/CreateQuotationModal';
@@ -37,6 +37,7 @@ const getChartTrendLabel = (dateRange) => {
 
 export default function Dashboard() {
     const [stats, setStats] = useState(null);
+    const [receivablesStats, setReceivablesStats] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -87,6 +88,12 @@ export default function Dashboard() {
         try {
             const data = await fetchApi(endpoint);
             setStats(data);
+            try {
+                const recData = await getDashboardReceivables();
+                setReceivablesStats(recData);
+            } catch (rErr) {
+                console.error("Failed to fetch dashboard receivables", rErr);
+            }
         } catch (err) {
             console.error("Error fetching stats", err);
             setError(err.message || 'An unexpected error occurred');
@@ -94,6 +101,7 @@ export default function Dashboard() {
             setIsLoading(false);
         }
     }, [appliedFilters]);
+
 
     useEffect(() => {
         fetchDashboardData(appliedFilters);
@@ -458,6 +466,78 @@ export default function Dashboard() {
                             </div>
                         </div>
                     </div>
+
+                    {/* Financial & Receivables KPI Row */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+                        <div className="card p-6 flex flex-col justify-between border-l-4 border-l-blue-500">
+                            <div className="flex justify-between items-start mb-2">
+                                <span className="text-[13px] font-semibold text-text-secondary">Total Invoiced</span>
+                                <div className="p-2 bg-blue-500/10 rounded-xl">
+                                    <TrendingUp className="w-5 h-5 text-blue-500" />
+                                </div>
+                            </div>
+                            <div>
+                                <div className="text-[24px] font-bold text-text-primary tracking-tight">
+                                    Rs. {Number(receivablesStats?.totalInvoiced || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </div>
+                                <div className="flex items-center mt-1 text-[11px] font-medium text-text-muted">
+                                    <span>Total Issued Tax Invoices</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="card p-6 flex flex-col justify-between border-l-4 border-l-emerald-500">
+                            <div className="flex justify-between items-start mb-2">
+                                <span className="text-[13px] font-semibold text-emerald-600 dark:text-emerald-400">Total Received</span>
+                                <div className="p-2 bg-emerald-500/10 rounded-xl">
+                                    <CreditCard className="w-5 h-5 text-emerald-500" />
+                                </div>
+                            </div>
+                            <div>
+                                <div className="text-[24px] font-bold text-emerald-600 dark:text-emerald-400 tracking-tight">
+                                    Rs. {Number(receivablesStats?.totalReceived || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </div>
+                                <div className="flex items-center mt-1 text-[11px] font-medium text-text-muted">
+                                    <span>Active Payment Ledger</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="card p-6 flex flex-col justify-between border-l-4 border-l-amber-500">
+                            <div className="flex justify-between items-start mb-2">
+                                <span className="text-[13px] font-semibold text-amber-600 dark:text-amber-400">Outstanding Balance</span>
+                                <div className="p-2 bg-amber-500/10 rounded-xl">
+                                    <Clock className="w-5 h-5 text-amber-500" />
+                                </div>
+                            </div>
+                            <div>
+                                <div className="text-[24px] font-bold text-amber-600 dark:text-amber-400 tracking-tight">
+                                    Rs. {Number(receivablesStats?.outstandingAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </div>
+                                <div className="flex items-center mt-1 text-[11px] font-medium text-text-muted">
+                                    <span>Pending Receivables</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="card p-6 flex flex-col justify-between border-l-4 border-l-red-500">
+                            <div className="flex justify-between items-start mb-2">
+                                <span className="text-[13px] font-semibold text-red-500">Overdue Balance</span>
+                                <div className="p-2 bg-red-500/10 rounded-xl">
+                                    <AlertTriangle className="w-5 h-5 text-red-500" />
+                                </div>
+                            </div>
+                            <div>
+                                <div className="text-[24px] font-bold text-red-500 tracking-tight">
+                                    Rs. {Number(receivablesStats?.overdueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </div>
+                                <div className="flex items-center mt-1 text-[11px] font-medium text-text-muted">
+                                    <span>Past Due Date</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
 
                     {/* Main Content Grid */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
