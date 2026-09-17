@@ -287,5 +287,79 @@ export const getEligibleInvoicesForPayment = (search) => {
     return fetchApi(`/payments/eligible-invoices${qs}`);
 };
 
+// --- REPORTS & BUSINESS ANALYTICS ---
+export const getReportSummary = (preset, fromDate, toDate) => {
+    const params = new URLSearchParams();
+    if (preset) params.append('preset', preset);
+    if (fromDate) params.append('fromDate', fromDate);
+    if (toDate) params.append('toDate', toDate);
+    return fetchApi(`/reports/summary?${params.toString()}`);
+};
+
+export const getQuotationReport = (preset, fromDate, toDate) => {
+    const params = new URLSearchParams();
+    if (preset) params.append('preset', preset);
+    if (fromDate) params.append('fromDate', fromDate);
+    if (toDate) params.append('toDate', toDate);
+    return fetchApi(`/reports/quotations?${params.toString()}`);
+};
+
+export const getPurchaseOrderReport = (preset, fromDate, toDate) => {
+    const params = new URLSearchParams();
+    if (preset) params.append('preset', preset);
+    if (fromDate) params.append('fromDate', fromDate);
+    if (toDate) params.append('toDate', toDate);
+    return fetchApi(`/reports/purchase-orders?${params.toString()}`);
+};
+
+export const getInvoiceReport = (preset, fromDate, toDate) => {
+    const params = new URLSearchParams();
+    if (preset) params.append('preset', preset);
+    if (fromDate) params.append('fromDate', fromDate);
+    if (toDate) params.append('toDate', toDate);
+    return fetchApi(`/reports/invoices?${params.toString()}`);
+};
+
+export const getPaymentReport = (preset, fromDate, toDate) => {
+    const params = new URLSearchParams();
+    if (preset) params.append('preset', preset);
+    if (fromDate) params.append('fromDate', fromDate);
+    if (toDate) params.append('toDate', toDate);
+    return fetchApi(`/reports/payments?${params.toString()}`);
+};
+
+export const getCustomerAnalytics = (preset, fromDate, toDate) => {
+    const params = new URLSearchParams();
+    if (preset) params.append('preset', preset);
+    if (fromDate) params.append('fromDate', fromDate);
+    if (toDate) params.append('toDate', toDate);
+    return fetchApi(`/reports/customers?${params.toString()}`);
+};
+
+export const getMonthlyTrends = (preset, fromDate, toDate) => {
+    const params = new URLSearchParams();
+    if (preset) params.append('preset', preset);
+    if (fromDate) params.append('fromDate', fromDate);
+    if (toDate) params.append('toDate', toDate);
+    return fetchApi(`/reports/trends?${params.toString()}`);
+};
+
+export const exportReportCsv = async (reportType, preset, fromDate, toDate) => {
+    const params = new URLSearchParams();
+    if (reportType) params.append('type', reportType);
+    if (preset) params.append('preset', preset);
+    if (fromDate) params.append('fromDate', fromDate);
+    if (toDate) params.append('toDate', toDate);
+
+    const url = `${API_BASE_URL}/reports/export?${params.toString()}`;
+    const response = await fetch(url, {
+        headers: getAuthHeaders()
+    });
+    if (!response.ok) {
+        throw new Error('Failed to export CSV report');
+    }
+    return await response.text();
+};
+
 
 

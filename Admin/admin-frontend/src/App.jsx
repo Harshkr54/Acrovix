@@ -19,6 +19,7 @@ import InvoiceList from './pages/InvoiceList';
 import InvoiceDetail from './pages/InvoiceDetail';
 import Payments from './pages/Payments';
 import Receivables from './pages/Receivables';
+import Reports from './pages/Reports';
 
 const ProtectedRoute = ({ children }) => {
     const { user } = useAuth();
@@ -47,6 +48,7 @@ function App() {
                 <Route path="invoices/:id" element={<InvoiceDetail />} />
                 <Route path="payments" element={<Payments />} />
                 <Route path="receivables" element={<Receivables />} />
+                <Route path="reports" element={<Reports />} />
                 <Route path="users" element={<UserList />} />
                 <Route path="trash" element={<TrashList />} />
                 <Route path="activity" element={<Activity />} />
