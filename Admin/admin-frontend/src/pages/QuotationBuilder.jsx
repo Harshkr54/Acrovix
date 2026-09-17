@@ -574,8 +574,8 @@ export default function QuotationBuilder() {
         const isTrashError = error.includes("not found") || error.includes("404") || error.includes("Trash");
         return (
             <div className="flex flex-col items-center justify-center min-h-[50vh] text-center px-4">
-                <div className="w-16 h-16 bg-[#FEF2F2] border border-[#FCA5A5] flex items-center justify-center rounded-[20px] mb-6 shadow-sm">
-                    <AlertCircle className="w-8 h-8 text-[#DC2626]" />
+                <div className="w-16 h-16 bg-brand-danger/10 border border-brand-danger/30 flex items-center justify-center rounded-[20px] mb-6 shadow-sm">
+                    <AlertCircle className="w-8 h-8 text-brand-danger" />
                 </div>
                 <h2 className="text-[20px] font-bold text-text-primary mb-2 tracking-tight">
                     {isTrashError ? "Quotation Unavailable" : "Initialization Failed"}
@@ -584,15 +584,15 @@ export default function QuotationBuilder() {
                     {isTrashError ? "This quotation is in Trash or no longer exists. Please restore it from the Trash section before editing." : error}
                 </p>
                 <div className="flex items-center space-x-3">
-                    <button onClick={() => navigate('/quotations')} className="inline-flex items-center px-4 py-2.5 bg-bg-card hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors shadow-sm">
+                    <button onClick={() => navigate('/quotations')} className="inline-flex items-center px-4 py-2.5 bg-bg-acx-card hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors shadow-sm">
                         Back to Quotations
                     </button>
                     {isTrashError ? (
-                        <button onClick={() => navigate('/trash')} className="btn-primary flex items-center px-4 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]">
+                        <button onClick={() => navigate('/trash')} className="acx-btn-primary flex items-center px-4 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]">
                             Go to Trash
                         </button>
                     ) : (
-                        <button onClick={initializeBuilder} className="btn-primary flex items-center px-4 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]">
+                        <button onClick={initializeBuilder} className="acx-btn-primary flex items-center px-4 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]">
                             <RefreshCw className="w-4 h-4 mr-2" />
                             Retry
                         </button>
@@ -606,7 +606,7 @@ export default function QuotationBuilder() {
         return (
             <div className="flex h-full items-center justify-center min-h-[50vh]">
                 <div className="flex flex-col items-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#14B8A6] mb-4"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-teal mb-4"></div>
                     <p className="text-[13px] font-medium text-text-muted">Initializing workspace...</p>
                 </div>
             </div>
@@ -639,14 +639,14 @@ export default function QuotationBuilder() {
                     <button 
                         onClick={handleSaveDraft} 
                         disabled={isSaving || isSending}
-                        className="inline-flex items-center justify-center px-4 py-2.5 bg-bg-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors shadow-sm"
+                        className="inline-flex items-center justify-center px-4 py-2.5 bg-bg-acx-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors shadow-sm"
                     >
                         {isSaving ? <><span className="animate-spin w-4 h-4 border-b-2 border-text-primary rounded-full mr-2"></span> Saving</> : <><Save className="mr-2 h-4 w-4 text-text-secondary" /> Save Draft</>}
                     </button>
                     <button 
                         onClick={handleSend} 
                         disabled={isSending || isSaving}
-                        className="btn-primary flex items-center px-5 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)] disabled:opacity-50"
+                        className="acx-btn-primary flex items-center px-5 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)] disabled:opacity-50"
                     >
                         {isSending ? <><span className="animate-spin w-4 h-4 border-b-2 border-white rounded-full mr-2"></span> Sending...</> : <><Send className="mr-2 h-4 w-4" /> Send Quotation</>}
                     </button>
@@ -655,25 +655,25 @@ export default function QuotationBuilder() {
 
             {/* Validation Error Banner */}
             {validationError && (
-                <div className="p-4 bg-[#FEF2F2] border border-[#FCA5A5] rounded-2xl flex items-center gap-3 shadow-sm animate-in fade-in duration-200">
-                    <AlertCircle className="w-5 h-5 text-[#DC2626] shrink-0" />
-                    <p className="text-[14px] font-semibold text-[#DC2626]">{validationError}</p>
+                <div className="p-4 bg-brand-danger/10 border border-brand-danger/30 rounded-2xl flex items-center gap-3 shadow-sm animate-in fade-in duration-200">
+                    <AlertCircle className="w-5 h-5 text-brand-danger shrink-0" />
+                    <p className="text-[14px] font-semibold text-brand-danger">{validationError}</p>
                 </div>
             )}
 
             {/* Client Details Card */}
-            <div className="card p-6 md:p-8">
+            <div className="acx-acx-card p-6 md:p-8">
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center text-[11px] font-bold text-text-secondary uppercase tracking-wider">
                         <User className="w-4 h-4 mr-2" />
                         Client Details &amp; Source
                     </div>
                     {enquiry?.referenceId ? (
-                        <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-[#4F46E5] bg-[#4F46E5]/10 px-2 py-0.5 rounded-md">
+                        <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-[var(--color-brand-primary)] bg-[var(--color-brand-primary)]/10 px-2 py-0.5 rounded-md">
                             WEBSITE ENQUIRY
                         </span>
                     ) : (
-                        <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-[#14B8A6] bg-[#14B8A6]/10 px-2 py-0.5 rounded-md">
+                        <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-brand-teal bg-[#14B8A6]/10 px-2 py-0.5 rounded-md">
                             DIRECT · {quotationSource || 'PHONE'}
                         </span>
                     )}
@@ -691,10 +691,10 @@ export default function QuotationBuilder() {
                             }}
                             onFocus={() => setIsCustomerDropdownOpen(true)}
                             onBlur={() => setTimeout(() => setIsCustomerDropdownOpen(false), 200)}
-                            className="w-full bg-bg-main border border-border-subtle focus:border-[#14B8A6] rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
+                            className="w-full bg-bg-main border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
                         />
                         {isCustomerDropdownOpen && (
-                            <div className="absolute z-50 w-full mt-1 bg-bg-card border border-border-subtle rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                            <div className="absolute z-50 w-full mt-1 bg-bg-acx-card border border-border-subtle rounded-xl shadow-lg max-h-48 overflow-y-auto">
                                 {isLoadingCustomers ? (
                                     <div className="p-3 text-[12px] text-text-muted text-center">Loading...</div>
                                 ) : customers.length === 0 ? (
@@ -721,7 +721,7 @@ export default function QuotationBuilder() {
                         <select
                             value={currency}
                             onChange={(e) => setCurrency(e.target.value)}
-                            className="w-full bg-bg-main border border-border-subtle focus:border-[#14B8A6] rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
+                            className="w-full bg-bg-main border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
                         >
                             <option value="INR">INR (₹)</option>
                             <option value="USD">USD ($)</option>
@@ -733,7 +733,7 @@ export default function QuotationBuilder() {
                             type="text"
                             value={clientName}
                             onChange={(e) => setClientName(e.target.value)}
-                            className="w-full bg-bg-main border border-border-subtle focus:border-[#14B8A6] rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
+                            className="w-full bg-bg-main border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
                             placeholder="Client Name"
                         />
                     </div>
@@ -743,7 +743,7 @@ export default function QuotationBuilder() {
                             type="text"
                             value={clientCompany}
                             onChange={(e) => setClientCompany(e.target.value)}
-                            className="w-full bg-bg-main border border-border-subtle focus:border-[#14B8A6] rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
+                            className="w-full bg-bg-main border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
                             placeholder="Company Name"
                         />
                     </div>
@@ -753,7 +753,7 @@ export default function QuotationBuilder() {
                             type="email"
                             value={clientEmail}
                             onChange={(e) => setClientEmail(e.target.value)}
-                            className="w-full bg-bg-main border border-border-subtle focus:border-[#14B8A6] rounded-xl px-3 py-2 text-[13px] font-medium text-text-primary outline-none transition-colors"
+                            className="w-full bg-bg-main border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] font-medium text-text-primary outline-none transition-colors"
                             placeholder="client@email.com"
                         />
                     </div>
@@ -763,7 +763,7 @@ export default function QuotationBuilder() {
                             type="text"
                             value={clientPhone}
                             onChange={(e) => setClientPhone(e.target.value)}
-                            className="w-full bg-bg-main border border-border-subtle focus:border-[#14B8A6] rounded-xl px-3 py-2 text-[13px] font-medium text-text-primary outline-none transition-colors"
+                            className="w-full bg-bg-main border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] font-medium text-text-primary outline-none transition-colors"
                             placeholder="+91..."
                         />
                     </div>
@@ -778,17 +778,17 @@ export default function QuotationBuilder() {
             </div>
 
             {/* Gemini Import */}
-            <div className="card p-6 md:p-8 border border-[#7C3AED]/20 relative overflow-hidden group">
-                <div className="absolute -right-8 -top-8 text-[#7C3AED]/5 pointer-events-none transition-transform group-hover:scale-110 duration-700">
+            <div className="acx-acx-card p-6 md:p-8 border border-[#7C3AED]/20 relative overflow-hidden group">
+                <div className="absolute -right-8 -top-8 text-purple-600/5 pointer-events-none transition-transform group-hover:scale-110 duration-700">
                     <Wand2 className="w-48 h-48" />
                 </div>
                 <h2 className="text-[14px] font-bold text-text-primary mb-4 flex items-center relative z-10 tracking-tight">
-                    <Wand2 className="h-4 w-4 text-[#7C3AED] mr-2" />
+                    <Wand2 className="h-4 w-4 text-purple-600 mr-2" />
                     AI Auto-Extraction
                 </h2>
                 <div className="flex flex-col sm:flex-row gap-4 relative z-10">
                     <textarea 
-                        className="flex-1 input-field h-24 resize-none rounded-xl text-[13px] bg-bg-main" 
+                        className="flex-1 acx-input h-24 resize-none rounded-xl text-[13px] bg-bg-main" 
                         placeholder="Paste rough requirements... (e.g., 'We need 2 DELL servers at 60k each and a Cisco router for 5k')"
                         value={roughText}
                         onChange={(e) => setRoughText(e.target.value)}
@@ -797,7 +797,7 @@ export default function QuotationBuilder() {
                         <button 
                             onClick={handleParseText}
                             disabled={isParsing || !roughText.trim()}
-                            className="w-full h-11 flex justify-center items-center px-4 border border-[#7C3AED]/30 rounded-xl text-[13px] font-semibold text-[#7C3AED] bg-[#7C3AED]/5 hover:bg-[#7C3AED]/10 disabled:opacity-50 transition-colors shadow-sm"
+                            className="w-full h-11 flex justify-center items-center px-4 border border-[#7C3AED]/30 rounded-xl text-[13px] font-semibold text-purple-600 bg-[#7C3AED]/5 hover:bg-[#7C3AED]/10 disabled:opacity-50 transition-colors shadow-sm"
                         >
                             {isParsing ? (
                                 <><span className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-current mr-2"></span> Parsing</>
@@ -810,8 +810,8 @@ export default function QuotationBuilder() {
             </div>
 
             {/* Item Editor */}
-            <div className="card overflow-hidden flex flex-col">
-                <div className="px-6 py-5 border-b border-border-subtle flex justify-between items-center bg-bg-card">
+            <div className="acx-acx-card overflow-hidden flex flex-col">
+                <div className="px-6 py-5 border-b border-border-subtle flex justify-between items-center bg-bg-acx-card">
                     <div>
                         <h2 className="text-base font-bold text-text-primary tracking-tight flex items-center">
                             <Hash className="w-4 h-4 mr-2 text-text-secondary" /> Line Items
@@ -825,7 +825,7 @@ export default function QuotationBuilder() {
                         <button onClick={() => setIsConfigModalOpen(true)} className="inline-flex items-center px-4 py-2 border border-border-subtle hover:bg-bg-hover rounded-xl text-[12px] font-semibold text-text-primary transition-colors shadow-sm">
                             <Settings className="w-4 h-4 mr-2" /> Configure Columns
                         </button>
-                        <button onClick={handleDownloadTemplate} className="inline-flex items-center px-4 py-2 border border-[#4F46E5]/30 bg-[#4F46E5]/5 hover:bg-[#4F46E5]/10 rounded-xl text-[12px] font-semibold text-[#4F46E5] transition-colors shadow-sm">
+                        <button onClick={handleDownloadTemplate} className="inline-flex items-center px-4 py-2 border border-[var(--color-brand-primary)]/30 bg-[var(--color-brand-primary)]/5 hover:bg-[var(--color-brand-primary)]/10 rounded-xl text-[12px] font-semibold text-[var(--color-brand-primary)] transition-colors shadow-sm">
                             <Download className="w-4 h-4 mr-2" /> Download Template
                         </button>
                     </div>
@@ -844,10 +844,10 @@ export default function QuotationBuilder() {
                             }}
                             onFocus={() => setIsCatalogDropdownOpen(true)}
                             onBlur={() => setTimeout(() => setIsCatalogDropdownOpen(false), 200)}
-                            className="w-full bg-bg-card border border-border-subtle focus:border-[#14B8A6] rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
+                            className="w-full bg-bg-acx-card border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
                         />
                         {isCatalogDropdownOpen && (
-                            <div className="absolute z-50 w-full mt-1 bg-bg-card border border-border-subtle rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                            <div className="absolute z-50 w-full mt-1 bg-bg-acx-card border border-border-subtle rounded-xl shadow-lg max-h-48 overflow-y-auto">
                                 {isLoadingCatalog ? (
                                     <div className="p-3 text-[12px] text-text-muted text-center">Loading...</div>
                                 ) : catalogItems.length === 0 ? (
@@ -863,7 +863,7 @@ export default function QuotationBuilder() {
                                                 <div className="text-[13px] font-bold text-text-primary">{item.name}</div>
                                                 <div className="text-[11px] text-text-muted">{item.sku} | HSN: {item.hsnSac}</div>
                                             </div>
-                                            <div className="text-[12px] font-mono font-semibold text-[#14B8A6]">
+                                            <div className="text-[12px] font-mono font-semibold text-brand-teal">
                                                 ₹{item.listPrice}
                                             </div>
                                         </div>
@@ -874,7 +874,7 @@ export default function QuotationBuilder() {
                     </div>
                 </div>
                 
-                <div className="overflow-x-auto">
+                <div className="acx-table-container">
                     <table className="min-w-[900px] w-full">
                         <thead>
                             <tr>
@@ -883,10 +883,10 @@ export default function QuotationBuilder() {
                                         {config.displayName}
                                     </th>
                                 ))}
-                                <th className="px-2 py-4 text-center text-[11px] font-bold text-text-muted uppercase tracking-wider w-[5%] bg-bg-card">Actions</th>
+                                <th className="px-2 py-4 text-center text-[11px] font-bold text-text-muted uppercase tracking-wider w-[5%] bg-bg-acx-card">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-border-subtle/40 bg-bg-card">
+                        <tbody className="divide-y divide-border-subtle/40 bg-bg-acx-card">
                             {items.map((item, index) => {
                                 const qty = parseFloat(item.quantity) || 0;
                                 const lp = parseFloat(item.listPrice) || 0;
@@ -910,7 +910,7 @@ export default function QuotationBuilder() {
                                                             step="any"
                                                             value={(item.customValues && item.customValues[config.columnKey]) || ''} 
                                                             onChange={(e) => updateItem(item.id, `custom_${config.columnKey}`, e.target.value)} 
-                                                            className={`w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary transition-all outline-none ${config.columnType === 'CURRENCY' || config.columnType === 'NUMBER' ? 'text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none' : ''}`}
+                                                            className={`w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary transition-all outline-none ${config.columnType === 'CURRENCY' || config.columnType === 'NUMBER' ? 'text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none' : ''}`}
                                                             placeholder={config.displayName}
                                                         />
                                                     </td>
@@ -927,50 +927,50 @@ export default function QuotationBuilder() {
                                                 case "sku":
                                                     return (
                                                         <td key={config.columnKey} className="px-3 py-3 align-top">
-                                                            <input type="text" value={item.sku} onChange={(e) => updateItem(item.id, 'sku', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary transition-all outline-none uppercase font-mono tracking-tight" placeholder="SKU" />
+                                                            <input type="text" value={item.sku} onChange={(e) => updateItem(item.id, 'sku', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary transition-all outline-none uppercase font-mono tracking-tight" placeholder="SKU" />
                                                         </td>
                                                     );
                                                 case "description":
                                                     return (
                                                         <td key={config.columnKey} className="px-4 py-3 align-top">
-                                                            <input type="text" value={item.description} onChange={(e) => updateItem(item.id, 'description', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-3 text-[13px] font-semibold text-text-primary transition-all outline-none" placeholder="Item description" />
+                                                            <input type="text" value={item.description} onChange={(e) => updateItem(item.id, 'description', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-3 text-[13px] font-semibold text-text-primary transition-all outline-none" placeholder="Item description" />
                                                             {item.sourceText && <p className="text-[11px] text-text-secondary mt-1 italic pl-3 border-l-2 border-[#7C3AED]/40 leading-tight">"{item.sourceText}"</p>}
                                                         </td>
                                                     );
                                                 case "hsnSac":
                                                     return (
                                                         <td key={config.columnKey} className="px-3 py-3 align-top">
-                                                            <input type="text" value={item.hsnSac} onChange={(e) => updateItem(item.id, 'hsnSac', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary transition-all outline-none font-mono tracking-tight" placeholder="HSN/SAC" />
+                                                            <input type="text" value={item.hsnSac} onChange={(e) => updateItem(item.id, 'hsnSac', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary transition-all outline-none font-mono tracking-tight" placeholder="HSN/SAC" />
                                                         </td>
                                                     );
                                                 case "quantity":
                                                     return (
                                                         <td key={config.columnKey} className="px-3 py-3 align-top text-right">
-                                                            <input type="number" step="any" min="0" value={item.quantity} onChange={(e) => updateItem(item.id, 'quantity', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary text-right transition-all outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                                                            <input type="number" step="any" min="0" value={item.quantity} onChange={(e) => updateItem(item.id, 'quantity', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary text-right transition-all outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                                                         </td>
                                                     );
                                                 case "listPrice":
                                                     return (
                                                         <td key={config.columnKey} className="px-3 py-3 align-top text-right">
-                                                            <input type="number" step="any" min="0" value={item.listPrice} onChange={(e) => updateItem(item.id, 'listPrice', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary text-right transition-all outline-none font-mono tracking-tight [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                                                            <input type="number" step="any" min="0" value={item.listPrice} onChange={(e) => updateItem(item.id, 'listPrice', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary text-right transition-all outline-none font-mono tracking-tight [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                                                         </td>
                                                     );
                                                 case "discountPercent":
                                                     return (
                                                         <td key={config.columnKey} className="px-3 py-3 align-top text-right">
-                                                            <input type="number" step="any" min="0" max="100" value={item.discountPercent} onChange={(e) => updateItem(item.id, 'discountPercent', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-1 text-[13px] font-medium text-text-primary text-right transition-all outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                                                            <input type="number" step="any" min="0" max="100" value={item.discountPercent} onChange={(e) => updateItem(item.id, 'discountPercent', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-1 text-[13px] font-medium text-text-primary text-right transition-all outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                                                         </td>
                                                     );
                                                 case "unitPrice":
                                                     return (
                                                         <td key={config.columnKey} className="px-3 py-3 align-top text-right">
-                                                            <input type="number" step="any" min="0" value={item.unitPrice} onChange={(e) => updateItem(item.id, 'unitPrice', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-bold text-text-primary text-right transition-all outline-none font-mono tracking-tight [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                                                            <input type="number" step="any" min="0" value={item.unitPrice} onChange={(e) => updateItem(item.id, 'unitPrice', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-bold text-text-primary text-right transition-all outline-none font-mono tracking-tight [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                                                         </td>
                                                     );
                                                 case "taxPercent":
                                                     return (
                                                         <td key={config.columnKey} className="px-3 py-3 align-top text-right">
-                                                            <input type="number" step="any" min="0" max="100" value={item.taxPercent} onChange={(e) => updateItem(item.id, 'taxPercent', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-[#14B8A6] focus:bg-bg-main rounded-lg py-2 px-1 text-[13px] font-medium text-text-primary text-right transition-all outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                                                            <input type="number" step="any" min="0" max="100" value={item.taxPercent} onChange={(e) => updateItem(item.id, 'taxPercent', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-1 text-[13px] font-medium text-text-primary text-right transition-all outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                                                         </td>
                                                     );
                                                 case "taxAmount":
@@ -995,7 +995,7 @@ export default function QuotationBuilder() {
                                         })}
                                         <td className="px-2 py-3 align-top text-center">
                                             <div className="flex flex-col items-center justify-center space-y-1.5 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button onClick={() => removeItem(item.id)} className="p-1 text-[#DC2626] hover:bg-[#DC2626]/10 rounded" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
+                                                <button onClick={() => removeItem(item.id)} className="p-1 text-brand-danger hover:bg-[#DC2626]/10 rounded" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
                                             </div>
                                         </td>
                                     </tr>
@@ -1006,12 +1006,12 @@ export default function QuotationBuilder() {
                 </div>
                 
                 {/* Add Item Row */}
-                <div className="p-5 border-t border-border-subtle/50 bg-bg-card rounded-b-[24px] flex justify-between items-center">
+                <div className="p-5 border-t border-border-subtle/50 bg-bg-acx-card rounded-b-[24px] flex justify-between items-center">
                     <button onClick={addItem} className="inline-flex items-center px-4 py-2.5 bg-bg-main hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors shadow-sm">
-                        <Plus className="w-4 h-4 mr-2 text-[#4F46E5]" />
+                        <Plus className="w-4 h-4 mr-2 text-[var(--color-brand-primary)]" />
                         Add Item
                     </button>
-                    <button onClick={() => setItems([])} className="inline-flex items-center px-4 py-2 text-[13px] font-semibold text-[#DC2626] hover:bg-[#DC2626]/5 rounded-xl transition-colors">
+                    <button onClick={() => setItems([])} className="inline-flex items-center px-4 py-2 text-[13px] font-semibold text-brand-danger hover:bg-[#DC2626]/5 rounded-xl transition-colors">
                         <Trash2 className="w-4 h-4 mr-2" />
                         Clear All
                     </button>
@@ -1020,8 +1020,8 @@ export default function QuotationBuilder() {
 
             {/* Totals Preview - Light Summary Panel */}
             <div className="flex flex-col md:flex-row md:justify-end">
-                <div className="card p-8 w-full md:max-w-[420px] bg-bg-card border border-border-subtle shadow-sm relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#4F46E5]/5 rounded-full -mr-16 -mt-16 blur-2xl pointer-events-none"></div>
+                <div className="acx-card p-8 w-full md:max-w-[420px] bg-bg-acx-card border border-border-subtle shadow-sm relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--color-brand-primary)]/5 rounded-full -mr-16 -mt-16 blur-2xl pointer-events-none"></div>
                     <div className="absolute bottom-0 left-0 w-32 h-32 bg-[#14B8A6]/5 rounded-full -ml-16 -mb-16 blur-2xl pointer-events-none"></div>
                     
                     <h3 className="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-6 flex items-center relative z-10">
@@ -1034,7 +1034,7 @@ export default function QuotationBuilder() {
                         </div>
                         <div className="flex justify-between text-[13px]">
                             <span className="font-medium text-text-secondary">Total Discount</span>
-                            <span className="text-[#DC2626] font-mono font-semibold tracking-tight">-{formatCurrency(totals.discount, currency, 2)}</span>
+                            <span className="text-brand-danger font-mono font-semibold tracking-tight">-{formatCurrency(totals.discount, currency, 2)}</span>
                         </div>
                         <div className="flex justify-between text-[13px] text-text-secondary">
                             <span className="font-medium">Taxable Amount</span>
@@ -1046,7 +1046,7 @@ export default function QuotationBuilder() {
                         </div>
                         <div className="flex justify-between items-end pt-3">
                             <span className="text-[15px] font-bold text-text-primary">Grand Total</span>
-                            <span className="text-[32px] font-bold text-[#14B8A6] font-mono tracking-tight leading-none">{formatCurrency(totals.grandTotal, currency, 2)}</span>
+                            <span className="text-[32px] font-bold text-brand-teal font-mono tracking-tight leading-none">{formatCurrency(totals.grandTotal, currency, 2)}</span>
                         </div>
                     </div>
                 </div>

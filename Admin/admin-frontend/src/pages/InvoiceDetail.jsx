@@ -332,7 +332,7 @@ export default function InvoiceDetail() {
 
     if (loading) return <div className="p-8 text-center text-text-muted">Loading Invoice details...</div>;
     if (error) return (
-        <div className="p-8 text-center max-w-md mx-auto my-12 bg-bg-card border border-border-subtle rounded-2xl p-6">
+        <div className="p-8 text-center max-w-md mx-auto my-12 bg-bg-acx-card border border-border-subtle rounded-2xl p-6">
             <h3 className="text-base font-bold text-text-primary mb-1">Failed to Load Invoice</h3>
             <p className="text-xs text-text-muted mb-4">{error}</p>
             <button onClick={fetchInvoice} className="px-4 py-2 bg-brand-primary text-white rounded-xl text-xs font-semibold hover:bg-brand-secondary transition-colors">
@@ -387,21 +387,21 @@ export default function InvoiceDetail() {
                     {invoice.status === 'DRAFT' && (
                         <button 
                             onClick={handleOpenEditModal}
-                            className="px-4 py-2 bg-bg-card border border-border-subtle hover:bg-bg-main text-text-primary rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                            className="px-4 py-2 bg-bg-acx-card border border-border-subtle hover:bg-bg-main text-text-primary rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
                         >
                             <Edit3 className="w-4 h-4 text-brand-primary" /> Edit Details
                         </button>
                     )}
                     <button 
                         onClick={handleDownloadPdf}
-                        className="px-4 py-2 bg-bg-card border border-border-subtle hover:bg-bg-main text-text-primary rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                        className="px-4 py-2 bg-bg-acx-card border border-border-subtle hover:bg-bg-main text-text-primary rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
                     >
                         <Download className="w-4 h-4" /> PDF
                     </button>
                     <button 
                         onClick={handleSendEmail}
                         disabled={sendingEmail || actionLoading}
-                        className="px-4 py-2 bg-bg-card border border-border-subtle hover:bg-bg-main text-text-primary rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
+                        className="px-4 py-2 bg-bg-acx-card border border-border-subtle hover:bg-bg-main text-text-primary rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
                     >
                         {sendingEmail ? (
                             <><span className="animate-spin w-4 h-4 border-b-2 border-brand-primary rounded-full"></span> Sending...</>
@@ -449,7 +449,7 @@ export default function InvoiceDetail() {
 
             {/* Payment Summary Header Card for TAX_INVOICE */}
             {invoice.invoiceType === 'TAX_INVOICE' && invoice.status !== 'DRAFT' && (
-                <div className="mb-6 bg-bg-card border border-border-subtle rounded-2xl p-6 shadow-sm">
+                <div className="mb-6 bg-bg-acx-card border border-border-subtle rounded-2xl p-6 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">
                             <CreditCard className="w-5 h-5 text-brand-primary" />
@@ -496,7 +496,7 @@ export default function InvoiceDetail() {
             <div className="grid grid-cols-3 gap-6">
                 <div className="col-span-2 space-y-6">
                     {/* General Info */}
-                    <div className="bg-bg-card border border-border-subtle rounded-xl p-6">
+                    <div className="bg-bg-acx-card border border-border-subtle rounded-xl p-6">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wider">Invoice Details</h3>
                             {invoice.status === 'DRAFT' && (
@@ -529,7 +529,7 @@ export default function InvoiceDetail() {
                     </div>
 
                     {/* Amount Details */}
-                    <div className="bg-bg-card border border-border-subtle rounded-xl p-6">
+                    <div className="bg-bg-acx-card border border-border-subtle rounded-xl p-6">
                         <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wider mb-4">Financials</h3>
                         <div className="space-y-2 text-sm">
                             <div className="flex justify-between">
@@ -568,7 +568,7 @@ export default function InvoiceDetail() {
 
                     {/* Payment History Table (TAX_INVOICE only) */}
                     {invoice.invoiceType === 'TAX_INVOICE' && (
-                        <div className="bg-bg-card border border-border-subtle rounded-xl p-6">
+                        <div className="bg-bg-acx-card border border-border-subtle rounded-xl p-6">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wider">Payment History</h3>
                                 <span className="text-xs text-text-muted">{payments.length} {payments.length === 1 ? 'Record' : 'Records'}</span>
@@ -579,7 +579,7 @@ export default function InvoiceDetail() {
                                     No payments have been recorded for this invoice yet.
                                 </div>
                             ) : (
-                                <div className="overflow-x-auto">
+                                <div className="acx-table-container">
                                     <table className="w-full text-left border-collapse text-xs">
                                         <thead>
                                             <tr className="border-b border-border-subtle text-text-muted bg-bg-main/50">
@@ -645,7 +645,7 @@ export default function InvoiceDetail() {
 
                 <div className="col-span-1 space-y-6">
                     {/* Billed To */}
-                    <div className="bg-bg-card border border-border-subtle rounded-xl p-6">
+                    <div className="bg-bg-acx-card border border-border-subtle rounded-xl p-6">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wider">Billed To</h3>
                             {invoice.status === 'DRAFT' && (
@@ -677,7 +677,7 @@ export default function InvoiceDetail() {
                     </div>
 
                     {/* Timeline */}
-                    <div className="bg-bg-card border border-border-subtle rounded-xl p-6">
+                    <div className="bg-bg-acx-card border border-border-subtle rounded-xl p-6">
                         <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wider mb-4">Timeline</h3>
                         <div className="space-y-4">
                             <div>
@@ -705,7 +705,7 @@ export default function InvoiceDetail() {
             {/* Record Payment Modal */}
             {isRecordPaymentModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-bg-card border border-border-subtle rounded-2xl w-full max-w-lg flex flex-col max-h-[90vh] overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+                    <div className="bg-bg-acx-card border border-border-subtle rounded-2xl w-full max-w-lg flex flex-col max-h-[90vh] overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
                         <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle shrink-0">
                             <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
                                 <CreditCard className="w-5 h-5 text-emerald-600" /> Record Payment
@@ -830,7 +830,7 @@ export default function InvoiceDetail() {
                                 </div>
                             </div>
 
-                            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border-subtle bg-bg-card shrink-0">
+                            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border-subtle bg-bg-acx-card shrink-0">
                                 <button
                                     type="button"
                                     onClick={() => setIsRecordPaymentModalOpen(false)}
@@ -854,7 +854,7 @@ export default function InvoiceDetail() {
             {/* Cancel Payment Modal */}
             {cancellingPaymentId && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-bg-card border border-border-subtle rounded-2xl w-full max-w-md flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+                    <div className="bg-bg-acx-card border border-border-subtle rounded-2xl w-full max-w-md flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
                         <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle shrink-0">
                             <h2 className="text-base font-bold text-red-500 flex items-center gap-2">
                                 <AlertCircle className="w-5 h-5" /> Cancel Payment Record
@@ -914,7 +914,7 @@ export default function InvoiceDetail() {
             {/* Edit Invoice Details Modal */}
             {isEditModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-bg-card border border-border-subtle rounded-2xl w-full max-w-2xl flex flex-col max-h-[85vh] overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+                    <div className="bg-bg-acx-card border border-border-subtle rounded-2xl w-full max-w-2xl flex flex-col max-h-[85vh] overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
                         {/* Modal Header */}
                         <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle shrink-0">
                             <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
@@ -1036,7 +1036,7 @@ export default function InvoiceDetail() {
                             </div>
 
                             {/* Sticky Modal Footer */}
-                            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border-subtle bg-bg-card shrink-0">
+                            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border-subtle bg-bg-acx-card shrink-0">
                                 <button
                                     type="button"
                                     onClick={() => setIsEditModalOpen(false)}

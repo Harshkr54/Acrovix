@@ -16,15 +16,21 @@
   --color-text-highlight: var(--theme-text-highlight);
   
   /* Static Brand Colors */
-  --color-brand-primary: #2563EB;
-  --color-brand-secondary: #1D4ED8;
+  --color-brand-primary: #2563EB; /* ACROVIX Blue */
+  --color-brand-navy: #0B192C; /* Primary Navy */
+  --color-brand-teal: #0D9488; /* Teal */
+  --color-brand-success: #10B981; /* Soft green */
+  --color-brand-warning: #F59E0B; /* Soft amber */
+  --color-brand-danger: #EF4444; /* Soft red */
+  
+  /* Legacy Static Colors */
   --color-acx-teal: #14B8A6;
   --color-acx-teal-light: #2DD4BF;
   --color-acx-deep-teal: #0D9488;
   
   /* Reference Accent Colors */
-  --color-accent-blue: #EFF6FF; /* Very light blue background for icons */
-  --color-accent-blue-text: #2563EB; /* Deep blue for icons */
+  --color-accent-blue: #EFF6FF;
+  --color-accent-blue-text: #2563EB;
   --color-accent-indigo: #EEF2FF;
   --color-accent-indigo-text: #4F46E5;
   --color-accent-violet: #F5F3FF;
@@ -34,19 +40,19 @@
 }
 
 :root {
-  /* LIGHT MODE (DEFAULT - STRICT REFERENCE MATCH) */
-  --theme-bg-main: #F5F7FC; /* Very light subtle cool-white */
-  --theme-bg-card: #FFFFFF; /* Pure white cards */
+  /* LIGHT MODE - Pastel Atmosphere */
+  --theme-bg-main: #F4F7FB; /* Very light subtle blue/lavender pastel atmosphere */
+  --theme-bg-card: rgba(255, 255, 255, 0.95); /* Clean translucent white cards */
   --theme-bg-hover: #F8FAFC; 
   --theme-bg-muted: #F1F5F9;
   --theme-bg-highlight: #EEF2FF; /* Indigo-tinted highlight */
   
   --theme-border-subtle: #E2E8F0; /* Thin subtle borders */
   
-  --theme-text-primary: #102A43; /* Deep navy */
-  --theme-text-secondary: #526B84;
-  --theme-text-muted: #71869A;
-  --theme-text-highlight: #0D9488;
+  --theme-text-primary: #0B192C; /* Deep navy */
+  --theme-text-secondary: #475569; /* Blue-gray secondary */
+  --theme-text-muted: #64748B; /* Muted text */
+  --theme-text-highlight: #0D9488; /* Teal highlight */
 }
 
 :root[data-theme="dark"] {
@@ -67,7 +73,8 @@
 
 @layer base {
   body {
-    @apply bg-bg-main text-text-primary antialiased selection:bg-acx-teal/30 selection:text-acx-deep-teal;
+    @apply bg-bg-main text-text-primary antialiased selection:bg-brand-teal/30 selection:text-brand-teal;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
@@ -85,6 +92,68 @@
 }
 
 @layer components {
+  /* --- NEW ACROVIX DESIGN SYSTEM CLASSES --- */
+  
+  .acx-card {
+    @apply bg-bg-card border border-border-subtle rounded-2xl shadow-[0_4px_20px_-2px_rgba(11,25,44,0.05)] backdrop-blur-sm transition-shadow hover:shadow-[0_8px_30px_-4px_rgba(11,25,44,0.08)];
+  }
+
+  .acx-btn-primary {
+    @apply px-5 py-2.5 bg-brand-primary hover:bg-brand-primary/90 text-white rounded-xl font-medium transition-all duration-200 shadow-sm shadow-brand-primary/20 focus:outline-none focus:ring-2 focus:ring-brand-primary/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2;
+  }
+
+  .acx-btn-secondary {
+    @apply px-5 py-2.5 bg-white hover:bg-bg-hover text-text-secondary border border-border-subtle rounded-xl font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-border-subtle disabled:opacity-50 disabled:cursor-not-allowed shadow-sm flex items-center justify-center gap-2;
+  }
+  
+  .acx-btn-danger {
+    @apply px-5 py-2.5 bg-red-50 hover:bg-red-100 text-brand-danger border border-red-200 rounded-xl font-medium transition-all duration-200 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed shadow-sm flex items-center justify-center gap-2;
+  }
+
+  .acx-btn-ghost {
+    @apply px-4 py-2 hover:bg-bg-hover text-text-secondary hover:text-text-primary rounded-xl font-medium transition-colors duration-200 focus:outline-none flex items-center justify-center gap-2;
+  }
+
+  .acx-input {
+    @apply w-full px-4 py-2.5 bg-white border border-border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-teal/20 focus:border-brand-teal transition-all duration-200 text-text-primary placeholder-text-muted shadow-sm;
+  }
+
+  .acx-table-container {
+    @apply w-full overflow-x-auto rounded-2xl border border-border-subtle bg-white shadow-sm;
+  }
+
+  .acx-table {
+    @apply w-full text-left border-collapse;
+  }
+
+  .acx-table-header {
+    @apply px-6 py-4 text-xs font-semibold text-text-muted uppercase tracking-wider bg-bg-muted/30 border-b border-border-subtle;
+  }
+
+  .acx-table-cell {
+    @apply px-6 py-4 whitespace-nowrap text-sm text-text-secondary border-b border-border-subtle/50 group-hover:bg-bg-hover/50 transition-colors;
+  }
+
+  .acx-badge {
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-bg-muted text-text-secondary border border-border-subtle/50;
+  }
+  .acx-badge-success {
+    @apply bg-emerald-50 text-emerald-700 border-emerald-200;
+  }
+  .acx-badge-warning {
+    @apply bg-amber-50 text-amber-700 border-amber-200;
+  }
+  .acx-badge-danger {
+    @apply bg-red-50 text-red-700 border-red-200;
+  }
+  .acx-badge-primary {
+    @apply bg-blue-50 text-blue-700 border-blue-200;
+  }
+  .acx-badge-teal {
+    @apply bg-teal-50 text-teal-700 border-teal-200;
+  }
+
+  /* --- LEGACY CLASSES (PRESERVED FOR NOW) --- */
   .input-field {
     @apply w-full px-4 py-2.5 bg-bg-card border border-border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-acx-teal/20 focus:border-acx-teal transition-colors duration-200 text-text-primary placeholder-text-muted shadow-sm;
   }
@@ -101,8 +170,8 @@
     @apply px-5 py-2.5 bg-[#fef2f2] hover:bg-[#fee2e2] text-[#ef4444] border border-[#fca5a5] rounded-xl font-medium transition-colors duration-200 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed shadow-sm;
   }
   
-  /* Updated for Dark mode as well */
-  :root[data-theme="dark"] .btn-danger {
+  :root[data-theme="dark"] .btn-danger,
+  :root[data-theme="dark"] .acx-btn-danger {
     @apply bg-[#7f1d1d]/20 hover:bg-[#7f1d1d]/40 text-[#fca5a5] border-[#7f1d1d]/40;
   }
   

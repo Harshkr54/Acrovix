@@ -18,10 +18,10 @@ export default function StatusBadge({ status, type }) {
         CLOSED: { bg: 'bg-[#E6F5F2] text-[#0F8F95]', label: 'Closed' },
 
         // Info / Neutral Active
-        ISSUED: { bg: 'bg-[#EFF6FF] text-[#2563EB]', label: 'Issued' },
-        SENT: { bg: 'bg-[#EFF6FF] text-[#2563EB]', label: 'Sent' },
-        RECEIVED: { bg: 'bg-[#EFF6FF] text-[#2563EB]', label: 'Received' },
-        NEW: { bg: 'bg-[#EFF6FF] text-[#2563EB]', label: 'New' },
+        ISSUED: { bg: 'bg-brand-primary/10 text-brand-primary', label: 'Issued' },
+        SENT: { bg: 'bg-brand-primary/10 text-brand-primary', label: 'Sent' },
+        RECEIVED: { bg: 'bg-brand-primary/10 text-brand-primary', label: 'Received' },
+        NEW: { bg: 'bg-brand-primary/10 text-brand-primary', label: 'New' },
         TAX_INVOICE: { bg: 'bg-[#E6F5F2] text-[#0F8F95]', label: 'Tax Invoice' },
 
         // Warning / Pending
@@ -30,15 +30,15 @@ export default function StatusBadge({ status, type }) {
         PENDING: { bg: 'bg-[#FFF7ED] text-[#D97706]', label: 'Pending' },
         IN_PROGRESS: { bg: 'bg-[#FFF7ED] text-[#D97706]', label: 'In Progress' },
         QUOTED: { bg: 'bg-[#F1F5F9] text-[#475569]', label: 'Quoted' },
-        PROFORMA: { bg: 'bg-[#F3E8FF] text-[#7C3AED]', label: 'Proforma' },
-        REVISED: { bg: 'bg-[#F3E8FF] text-[#7C3AED]', label: 'Revised' },
+        PROFORMA: { bg: 'bg-[#F3E8FF] text-purple-600', label: 'Proforma' },
+        REVISED: { bg: 'bg-[#F3E8FF] text-purple-600', label: 'Revised' },
 
         // Danger / Critical
-        OVERDUE: { bg: 'bg-[#FEF2F2] text-[#DC2626]', label: 'Overdue' },
-        REJECTED: { bg: 'bg-[#FEF2F2] text-[#DC2626]', label: 'Rejected' },
-        CANCELLED: { bg: 'bg-[#FEF2F2] text-[#DC2626]', label: 'Cancelled' },
-        FAILED: { bg: 'bg-[#FEF2F2] text-[#DC2626]', label: 'Failed' },
-        INACTIVE: { bg: 'bg-[#FEF2F2] text-[#DC2626]', label: 'Inactive' },
+        OVERDUE: { bg: 'bg-brand-danger/10 text-brand-danger', label: 'Overdue' },
+        REJECTED: { bg: 'bg-brand-danger/10 text-brand-danger', label: 'Rejected' },
+        CANCELLED: { bg: 'bg-brand-danger/10 text-brand-danger', label: 'Cancelled' },
+        FAILED: { bg: 'bg-brand-danger/10 text-brand-danger', label: 'Failed' },
+        INACTIVE: { bg: 'bg-brand-danger/10 text-brand-danger', label: 'Inactive' },
 
         // CRM Lead & Follow Up Statuses
         NEW: { bg: 'bg-blue-500/10 text-blue-600 dark:text-blue-400', label: 'New' },

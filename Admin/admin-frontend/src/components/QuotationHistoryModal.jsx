@@ -36,19 +36,19 @@ export default function QuotationHistoryModal({ isOpen, onClose, quotation, onVi
         const status = normalizeStatus(rawStatus);
         switch(status) {
             case 'DRAFT': return 'text-[#71869A] bg-[#F1F5F9]';
-            case 'SENT': return 'text-[#2563EB] bg-[#EFF6FF]';
-            case 'ACCEPTED': return 'text-[#059669] bg-[#ECFDF5]';
-            case 'REJECTED': return 'text-[#DC2626] bg-[#FEF2F2]';
+            case 'SENT': return 'text-brand-primary bg-brand-primary/10';
+            case 'ACCEPTED': return 'text-brand-success bg-brand-success/10';
+            case 'REJECTED': return 'text-brand-danger bg-brand-danger/10';
             case 'EXPIRED': return 'text-[#EA580C] bg-[#FFF7ED]';
-            case 'REVISED': return 'text-[#6D28D9] bg-[#F5F3FF]'; // New color for REVISED
+            case 'REVISED': return 'text-[#6D28D9] bg-purple-50'; // New color for REVISED
             default: return 'text-text-secondary bg-bg-muted';
         }
     };
 
     return (
         <div className="fixed inset-0 bg-text-primary/30 backdrop-blur-sm z-[90] flex items-center justify-center p-4">
-            <div className="card w-full max-w-4xl shadow-2xl relative animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
-                <div className="p-6 md:px-8 md:pt-8 md:pb-6 border-b border-border-subtle flex justify-between items-center bg-bg-card rounded-t-[24px]">
+            <div className="acx-acx-card w-full max-w-4xl shadow-2xl relative animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
+                <div className="p-6 md:px-8 md:pt-8 md:pb-6 border-b border-border-subtle flex justify-between items-center bg-bg-acx-card rounded-t-[24px]">
                     <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 bg-indigo-50 border border-indigo-100 flex items-center justify-center rounded-[14px] text-indigo-600">
                             <History className="w-5 h-5" />
@@ -78,7 +78,7 @@ export default function QuotationHistoryModal({ isOpen, onClose, quotation, onVi
                         <div className="p-8 flex flex-col items-center text-center">
                             <AlertCircle className="w-10 h-10 text-red-500 mb-3" />
                             <p className="text-[14px] font-medium text-red-600 mb-4">{error}</p>
-                            <button onClick={loadHistory} className="btn-primary px-4 py-2 text-[12px]">Retry</button>
+                            <button onClick={loadHistory} className="acx-btn-primary px-4 py-2 text-[12px]">Retry</button>
                         </div>
                     ) : history.length === 0 ? (
                         <div className="py-16 flex flex-col items-center text-center">
@@ -86,7 +86,7 @@ export default function QuotationHistoryModal({ isOpen, onClose, quotation, onVi
                             <p className="text-[14px] font-medium text-text-secondary">No history found.</p>
                         </div>
                     ) : (
-                        <table className="min-w-full divide-y divide-border-subtle">
+                        <table className="acx-table">
                             <thead className="bg-bg-main sticky top-0 z-10">
                                 <tr>
                                     <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider">Version</th>
@@ -97,7 +97,7 @@ export default function QuotationHistoryModal({ isOpen, onClose, quotation, onVi
                                     <th className="px-6 py-4 text-right text-[11px] font-bold text-text-muted uppercase tracking-wider">Action</th>
                                 </tr>
                             </thead>
-                            <tbody className="bg-bg-card divide-y divide-border-subtle">
+                            <tbody className="bg-bg-acx-card divide-y divide-border-subtle">
                                 {history.map((ver) => (
                                     <tr key={ver.id} className={`hover:bg-bg-hover transition-colors ${ver.id === quotation.id ? 'bg-brand-primary/5' : ''}`}>
                                         <td className="px-6 py-4 whitespace-nowrap text-[13px] font-bold text-text-primary">
@@ -137,7 +137,7 @@ export default function QuotationHistoryModal({ isOpen, onClose, quotation, onVi
                     )}
                 </div>
 
-                <div className="p-6 border-t border-border-subtle bg-bg-card rounded-b-[24px] flex justify-end">
+                <div className="p-6 border-t border-border-subtle bg-bg-acx-card rounded-b-[24px] flex justify-end">
                     <button 
                         onClick={onClose}
                         className="px-5 py-2.5 bg-bg-main hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors shadow-sm"

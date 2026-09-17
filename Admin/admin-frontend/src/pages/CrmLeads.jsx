@@ -142,7 +142,7 @@ export default function CrmLeads() {
     const pageHeaderAction = (
         <button
             onClick={() => setIsCreateModalOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#0D9488] hover:bg-[#0B7A70] text-white text-xs font-semibold rounded-xl transition-all shadow-sm"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-brand-teal hover:bg-[#0B7A70] text-white text-xs font-semibold rounded-xl transition-all shadow-sm"
         >
             <Plus className="w-4 h-4" />
             New Lead
@@ -159,7 +159,7 @@ export default function CrmLeads() {
             />
 
             {/* Filter & Search Bar */}
-            <div className="bg-bg-card border border-border-subtle rounded-2xl p-4 shadow-sm space-y-3">
+            <div className="bg-bg-acx-card border border-border-subtle rounded-2xl p-4 shadow-sm space-y-3">
                 <form onSubmit={handleSearchSubmit} className="flex items-center gap-2">
                     <div className="relative flex-1">
                         <Search className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
@@ -173,7 +173,7 @@ export default function CrmLeads() {
                     </div>
                     <button
                         type="submit"
-                        className="px-4 py-2 bg-[#0D9488] hover:bg-[#0B7A70] text-white text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+                        className="px-4 py-2 bg-brand-teal hover:bg-[#0B7A70] text-white text-xs font-semibold rounded-xl transition-colors cursor-pointer"
                     >
                         Search
                     </button>
@@ -234,7 +234,7 @@ export default function CrmLeads() {
             </div>
 
             {/* Leads Table Container */}
-            <div className="bg-bg-card border border-border-subtle rounded-2xl shadow-sm overflow-hidden">
+            <div className="bg-bg-acx-card border border-border-subtle rounded-2xl shadow-sm overflow-hidden">
                 {loading ? (
                     <EmptyState loading message="Loading CRM leads..." />
                 ) : error ? (
@@ -246,7 +246,7 @@ export default function CrmLeads() {
                     />
                 ) : (
                     <>
-                        <div className="overflow-x-auto">
+                        <div className="acx-table-container">
                             <table className="w-full text-left border-collapse">
                                 <thead>
                                     <tr className="border-b border-border-subtle bg-bg-main/50 text-[11px] font-bold text-text-muted uppercase tracking-wider">
@@ -266,7 +266,7 @@ export default function CrmLeads() {
                                             <td className="px-5 py-4 font-bold text-text-primary whitespace-nowrap">
                                                 <button
                                                     onClick={() => navigate(`/crm/leads/${lead.id}`)}
-                                                    className="text-[#0D9488] hover:underline font-mono"
+                                                    className="text-brand-teal hover:underline font-mono"
                                                 >
                                                     {lead.leadNumber}
                                                 </button>
@@ -322,7 +322,7 @@ export default function CrmLeads() {
                                                     <button
                                                         onClick={() => navigate(`/crm/leads/${lead.id}`)}
                                                         title="View Details"
-                                                        className="p-1.5 rounded-lg text-text-muted hover:text-[#0D9488] hover:bg-bg-hover transition-colors"
+                                                        className="p-1.5 rounded-lg text-text-muted hover:text-brand-teal hover:bg-bg-hover transition-colors"
                                                     >
                                                         <Eye className="w-4 h-4" />
                                                     </button>

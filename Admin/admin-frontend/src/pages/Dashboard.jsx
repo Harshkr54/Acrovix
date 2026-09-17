@@ -212,11 +212,11 @@ export default function Dashboard() {
     const getStatusStyle = (rawStatus) => {
         const status = normalizeStatus(rawStatus);
         switch(status) {
-            case 'NEW': return 'text-[#2563EB]';
-            case 'CONTACTED': return 'text-[#4F46E5]';
-            case 'QUOTED': return 'text-[#7C3AED]';
-            case 'CONVERTED': return 'text-[#059669]';
-            case 'CLOSED': return 'text-[#DC2626]';
+            case 'NEW': return 'text-brand-primary';
+            case 'CONTACTED': return 'text-[var(--color-brand-primary)]';
+            case 'QUOTED': return 'text-purple-600';
+            case 'CONVERTED': return 'text-brand-success';
+            case 'CLOSED': return 'text-brand-danger';
             default: return 'text-text-secondary';
         }
     };
@@ -244,22 +244,22 @@ export default function Dashboard() {
                         aria-label="Toggle filters popover"
                         className={`flex items-center justify-center w-10 h-10 rounded-full border transition-all relative ${
                             isFilterOpen || hasActiveFilters
-                                ? 'bg-[#EEF2FF] border-[#818CF8] text-[#4F46E5] dark:bg-[#312E81]/30 dark:border-[#6366F1] dark:text-[#818CF8] shadow-sm'
+                                ? 'bg-brand-primary/10 border-[#818CF8] text-[var(--color-brand-primary)] dark:bg-[#312E81]/30 dark:border-[#6366F1] dark:text-[#818CF8] shadow-sm'
                                 : 'bg-bg-card border-border-subtle text-text-secondary hover:text-text-primary hover:shadow-sm'
                         }`}
                     >
                         <Filter className="w-4 h-4" />
                         {hasActiveFilters && (
-                            <span className="w-2.5 h-2.5 rounded-full bg-[#4F46E5] absolute top-1.5 right-1.5 ring-2 ring-bg-card" />
+                            <span className="w-2.5 h-2.5 rounded-full bg-[var(--color-brand-primary)] absolute top-1.5 right-1.5 ring-2 ring-bg-acx-acx-acx-acx-card" />
                         )}
                     </button>
 
                     {/* Filter Popover */}
                     {isFilterOpen && (
-                        <div className="absolute right-0 top-12 w-80 sm:w-96 bg-bg-card rounded-2xl shadow-xl border border-border-subtle p-5 z-50 animate-in slide-in-from-top-2 duration-200">
+                        <div className="absolute right-0 top-12 w-80 sm:w-96 bg-bg-acx-acx-acx-acx-card rounded-2xl shadow-xl border border-border-subtle p-5 z-50 animate-in slide-in-from-top-2 duration-200">
                             <div className="flex items-center justify-between pb-3 border-b border-border-subtle mb-4">
                                 <div className="flex items-center gap-2">
-                                    <Filter className="w-4 h-4 text-[#4F46E5]" />
+                                    <Filter className="w-4 h-4 text-[var(--color-brand-primary)]" />
                                     <h3 className="text-sm font-bold text-text-primary">Dashboard Filters</h3>
                                 </div>
                                 <button onClick={() => setIsFilterOpen(false)} className="text-text-muted hover:text-text-primary p-1 rounded-lg transition-colors">
@@ -274,7 +274,7 @@ export default function Dashboard() {
                                     <select
                                         value={draftFilters.dateRange}
                                         onChange={e => setDraftFilters({ ...draftFilters, dateRange: e.target.value })}
-                                        className="w-full px-3 py-2 bg-bg-main focus:bg-bg-card border border-border-subtle focus:border-[#4F46E5] rounded-xl text-xs text-text-primary outline-none transition-all"
+                                        className="w-full px-3 py-2 bg-bg-main focus:bg-bg-acx-acx-acx-acx-card border border-border-subtle focus:border-[var(--color-brand-primary)] rounded-xl text-xs text-text-primary outline-none transition-all"
                                     >
                                         <option value="ALL_TIME">All Time</option>
                                         <option value="TODAY">Today</option>
@@ -295,7 +295,7 @@ export default function Dashboard() {
                                                 type="date"
                                                 value={draftFilters.fromDate}
                                                 onChange={e => setDraftFilters({ ...draftFilters, fromDate: e.target.value })}
-                                                className="w-full px-2.5 py-1.5 bg-bg-card border border-border-subtle rounded-lg text-xs text-text-primary outline-none"
+                                                className="w-full px-2.5 py-1.5 bg-bg-acx-acx-acx-acx-card border border-border-subtle rounded-lg text-xs text-text-primary outline-none"
                                             />
                                         </div>
                                         <div>
@@ -304,7 +304,7 @@ export default function Dashboard() {
                                                 type="date"
                                                 value={draftFilters.toDate}
                                                 onChange={e => setDraftFilters({ ...draftFilters, toDate: e.target.value })}
-                                                className="w-full px-2.5 py-1.5 bg-bg-card border border-border-subtle rounded-lg text-xs text-text-primary outline-none"
+                                                className="w-full px-2.5 py-1.5 bg-bg-acx-acx-acx-acx-card border border-border-subtle rounded-lg text-xs text-text-primary outline-none"
                                             />
                                         </div>
                                         {draftFilters.fromDate && draftFilters.toDate && draftFilters.fromDate > draftFilters.toDate && (
@@ -319,7 +319,7 @@ export default function Dashboard() {
                                     <select
                                         value={draftFilters.enquiryStatus}
                                         onChange={e => setDraftFilters({ ...draftFilters, enquiryStatus: e.target.value })}
-                                        className="w-full px-3 py-2 bg-bg-main focus:bg-bg-card border border-border-subtle focus:border-[#4F46E5] rounded-xl text-xs text-text-primary outline-none transition-all"
+                                        className="w-full px-3 py-2 bg-bg-main focus:bg-bg-acx-acx-acx-acx-card border border-border-subtle focus:border-[var(--color-brand-primary)] rounded-xl text-xs text-text-primary outline-none transition-all"
                                     >
                                         <option value="ALL">All Statuses</option>
                                         <option value="NEW">New</option>
@@ -336,7 +336,7 @@ export default function Dashboard() {
                                     <select
                                         value={draftFilters.quotationStatus}
                                         onChange={e => setDraftFilters({ ...draftFilters, quotationStatus: e.target.value })}
-                                        className="w-full px-3 py-2 bg-bg-main focus:bg-bg-card border border-border-subtle focus:border-[#4F46E5] rounded-xl text-xs text-text-primary outline-none transition-all"
+                                        className="w-full px-3 py-2 bg-bg-main focus:bg-bg-acx-acx-acx-acx-card border border-border-subtle focus:border-[var(--color-brand-primary)] rounded-xl text-xs text-text-primary outline-none transition-all"
                                     >
                                         <option value="ALL">All Statuses</option>
                                         <option value="DRAFT">Draft</option>
@@ -361,7 +361,7 @@ export default function Dashboard() {
                                     <button
                                         type="submit"
                                         disabled={draftFilters.dateRange === 'CUSTOM' && Boolean(draftFilters.fromDate && draftFilters.toDate && draftFilters.fromDate > draftFilters.toDate)}
-                                        className="btn-primary px-5 py-2 shadow-sm text-xs font-semibold disabled:opacity-50"
+                                        className="acx-acx-acx-acx-btn-primary px-5 py-2 shadow-sm text-xs font-semibold disabled:opacity-50"
                                     >
                                         Apply Filters
                                     </button>
@@ -370,7 +370,7 @@ export default function Dashboard() {
                         </div>
                     )}
 
-                    <button onClick={() => setIsCreateModalOpen(true)} className="btn-primary flex items-center px-4 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]">
+                    <button onClick={() => setIsCreateModalOpen(true)} className="acx-acx-acx-acx-btn-primary flex items-center px-4 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]">
                         <Plus className="w-4 h-4 mr-2" />
                         Create Quotation
                     </button>
@@ -379,13 +379,13 @@ export default function Dashboard() {
             </div>
 
             {error ? (
-                <div className="flex flex-col items-center justify-center min-h-[300px] bg-bg-card rounded-[24px] border border-border-subtle text-center px-4">
+                <div className="flex flex-col items-center justify-center min-h-[300px] bg-bg-acx-acx-acx-acx-card rounded-[24px] border border-border-subtle text-center px-4">
                     <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4">
                         <AlertCircle className="w-8 h-8 text-red-500" />
                     </div>
                     <h3 className="text-lg font-bold text-text-primary mb-2">Failed to Load Dashboard</h3>
                     <p className="text-sm text-text-secondary mb-6">{error}</p>
-                    <button onClick={() => fetchDashboardData(appliedFilters)} className="btn-primary flex items-center shadow-sm">
+                    <button onClick={() => fetchDashboardData(appliedFilters)} className="acx-acx-acx-acx-btn-primary flex items-center shadow-sm">
                         <RefreshCw className="w-4 h-4 mr-2" />
                         Retry
                     </button>
@@ -395,16 +395,16 @@ export default function Dashboard() {
                     {/* KPI Cards Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
                         {/* Total Enquiries KPI */}
-                        <div className="card p-6 flex flex-col justify-between">
+                        <div className="acx-acx-acx-acx-acx-card p-6 flex flex-col justify-between">
                             <div className="flex justify-between items-start mb-2">
                                 <span className="text-[13px] font-semibold text-text-secondary">Total Enquiries</span>
-                                <div className="p-2 bg-[#EEF2FF] rounded-xl">
-                                    <Inbox className="w-5 h-5 text-[#4F46E5]" />
+                                <div className="p-2 bg-brand-primary/10 rounded-xl">
+                                    <Inbox className="w-5 h-5 text-[var(--color-brand-primary)]" />
                                 </div>
                             </div>
                             <div>
                                 <div className="text-[32px] font-bold text-text-primary tracking-tight h-[38px] flex items-center">
-                                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-[#4F46E5] ml-1" /> : (stats?.totalEnquiries ?? 0)}
+                                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-[var(--color-brand-primary)] ml-1" /> : (stats?.totalEnquiries ?? 0)}
                                 </div>
                                 <div className="flex items-center mt-1 text-[11px] font-medium text-text-muted">
                                     <span>Filtered count</span>
@@ -413,16 +413,16 @@ export default function Dashboard() {
                         </div>
 
                         {/* New Enquiries KPI */}
-                        <div className="card p-6 flex flex-col justify-between">
+                        <div className="acx-acx-acx-acx-acx-card p-6 flex flex-col justify-between">
                             <div className="flex justify-between items-start mb-2">
                                 <span className="text-[13px] font-semibold text-text-secondary">New Enquiries</span>
-                                <div className="p-2 bg-[#ECFEFF] rounded-xl">
-                                    <Activity className="w-5 h-5 text-[#0891B2]" />
+                                <div className="p-2 bg-brand-teal/10 rounded-xl">
+                                    <Activity className="w-5 h-5 text-brand-teal" />
                                 </div>
                             </div>
                             <div>
                                 <div className="text-[32px] font-bold text-text-primary tracking-tight h-[38px] flex items-center">
-                                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-[#0891B2] ml-1" /> : (stats?.newEnquiries ?? 0)}
+                                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-brand-teal ml-1" /> : (stats?.newEnquiries ?? 0)}
                                 </div>
                                 <div className="flex items-center mt-1 text-[11px] font-medium text-text-muted">
                                     <span>Filtered count</span>
@@ -431,16 +431,16 @@ export default function Dashboard() {
                         </div>
 
                         {/* Total Quotations KPI */}
-                        <div className="card p-6 flex flex-col justify-between">
+                        <div className="acx-acx-acx-acx-acx-card p-6 flex flex-col justify-between">
                             <div className="flex justify-between items-start mb-2">
                                 <span className="text-[13px] font-semibold text-text-secondary">Total Quotations</span>
-                                <div className="p-2 bg-[#F5F3FF] rounded-xl">
-                                    <FileText className="w-5 h-5 text-[#7C3AED]" />
+                                <div className="p-2 bg-purple-50 rounded-xl">
+                                    <FileText className="w-5 h-5 text-purple-600" />
                                 </div>
                             </div>
                             <div>
                                 <div className="text-[32px] font-bold text-text-primary tracking-tight h-[38px] flex items-center">
-                                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-[#7C3AED] ml-1" /> : (stats?.totalQuotations ?? 0)}
+                                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-purple-600 ml-1" /> : (stats?.totalQuotations ?? 0)}
                                 </div>
                                 <div className="flex items-center mt-1 text-[11px] font-medium text-text-muted">
                                     <span>Excludes Trash</span>
@@ -449,16 +449,16 @@ export default function Dashboard() {
                         </div>
 
                         {/* Accepted Quotations KPI */}
-                        <div className="card p-6 flex flex-col justify-between">
+                        <div className="acx-acx-acx-acx-acx-card p-6 flex flex-col justify-between">
                             <div className="flex justify-between items-start mb-2">
                                 <span className="text-[13px] font-semibold text-text-secondary">Accepted Quotations</span>
-                                <div className="p-2 bg-[#ECFDF5] rounded-xl">
-                                    <CheckCircle className="w-5 h-5 text-[#059669]" />
+                                <div className="p-2 bg-brand-success/10 rounded-xl">
+                                    <CheckCircle className="w-5 h-5 text-brand-success" />
                                 </div>
                             </div>
                             <div>
                                 <div className="text-[32px] font-bold text-text-primary tracking-tight h-[38px] flex items-center">
-                                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-[#059669] ml-1" /> : (stats?.acceptedQuotations ?? 0)}
+                                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-brand-success ml-1" /> : (stats?.acceptedQuotations ?? 0)}
                                 </div>
                                 <div className="flex items-center mt-1 text-[11px] font-medium text-text-muted">
                                     <span>Excludes Trash</span>
@@ -469,7 +469,7 @@ export default function Dashboard() {
 
                     {/* Financial & Receivables KPI Row */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-                        <div className="card p-6 flex flex-col justify-between border-l-4 border-l-blue-500">
+                        <div className="acx-acx-acx-acx-acx-card p-6 flex flex-col justify-between border-l-4 border-l-blue-500">
                             <div className="flex justify-between items-start mb-2">
                                 <span className="text-[13px] font-semibold text-text-secondary">Total Invoiced</span>
                                 <div className="p-2 bg-blue-500/10 rounded-xl">
@@ -486,7 +486,7 @@ export default function Dashboard() {
                             </div>
                         </div>
 
-                        <div className="card p-6 flex flex-col justify-between border-l-4 border-l-emerald-500">
+                        <div className="acx-acx-acx-acx-acx-card p-6 flex flex-col justify-between border-l-4 border-l-emerald-500">
                             <div className="flex justify-between items-start mb-2">
                                 <span className="text-[13px] font-semibold text-emerald-600 dark:text-emerald-400">Total Received</span>
                                 <div className="p-2 bg-emerald-500/10 rounded-xl">
@@ -503,7 +503,7 @@ export default function Dashboard() {
                             </div>
                         </div>
 
-                        <div className="card p-6 flex flex-col justify-between border-l-4 border-l-amber-500">
+                        <div className="acx-acx-acx-acx-acx-card p-6 flex flex-col justify-between border-l-4 border-l-amber-500">
                             <div className="flex justify-between items-start mb-2">
                                 <span className="text-[13px] font-semibold text-amber-600 dark:text-amber-400">Outstanding Balance</span>
                                 <div className="p-2 bg-amber-500/10 rounded-xl">
@@ -520,7 +520,7 @@ export default function Dashboard() {
                             </div>
                         </div>
 
-                        <div className="card p-6 flex flex-col justify-between border-l-4 border-l-red-500">
+                        <div className="acx-acx-acx-acx-acx-card p-6 flex flex-col justify-between border-l-4 border-l-red-500">
                             <div className="flex justify-between items-start mb-2">
                                 <span className="text-[13px] font-semibold text-red-500">Overdue Balance</span>
                                 <div className="p-2 bg-red-500/10 rounded-xl">
@@ -544,10 +544,10 @@ export default function Dashboard() {
                         
                         {/* Left Column: Analytics Chart (2/3 width) */}
                         <div className="lg:col-span-2">
-                            <div className="card p-6 flex flex-col h-full min-h-[360px]">
+                            <div className="acx-acx-acx-acx-acx-card p-6 flex flex-col h-full min-h-[360px]">
                                 <div className="flex items-center justify-between mb-6">
                                     <h2 className="text-base font-bold text-text-primary tracking-tight">Enquiries Overview</h2>
-                                    <div className="flex items-center px-3 py-1.5 rounded-lg border border-border-subtle bg-bg-card text-xs font-semibold text-text-secondary">
+                                    <div className="flex items-center px-3 py-1.5 rounded-lg border border-border-subtle bg-bg-acx-acx-acx-acx-card text-xs font-semibold text-text-secondary">
                                         <Clock className="w-3.5 h-3.5 mr-2 text-text-muted" />
                                         {getChartTrendLabel(appliedFilters.dateRange)}
                                     </div>
@@ -557,7 +557,7 @@ export default function Dashboard() {
                                 <div className="flex-1 relative flex items-end justify-between gap-2 px-2 pb-4 min-h-[220px] pt-8 border-b border-border-subtle/50 overflow-x-auto">
                                     {isLoading ? (
                                         <div className="w-full flex justify-center items-center h-full">
-                                            <Loader2 className="w-6 h-6 animate-spin text-[#4F46E5]" />
+                                            <Loader2 className="w-6 h-6 animate-spin text-[var(--color-brand-primary)]" />
                                         </div>
                                     ) : stats?.monthlyOverview && stats.monthlyOverview.length > 0 ? (
                                         (() => {
@@ -582,12 +582,12 @@ export default function Dashboard() {
                                                         <div className="w-full max-w-[40px] flex items-end justify-center gap-1 h-full">
                                                             {/* Total Enquiries Bar */}
                                                             <div
-                                                                className="w-1/2 bg-[#EEF2FF] border border-[#818CF8]/30 dark:bg-[#312E81]/30 dark:border-[#6366F1]/40 rounded-t-md transition-all duration-500"
+                                                                className="w-1/2 bg-brand-primary/10 border border-[#818CF8]/30 dark:bg-[#312E81]/30 dark:border-[#6366F1]/40 rounded-t-md transition-all duration-500"
                                                                 style={{ height: `${totalHeightPct}%` }}
                                                             />
                                                             {/* New Enquiries Bar */}
                                                             <div
-                                                                className="w-1/2 bg-[#4F46E5] rounded-t-md transition-all duration-500 shadow-sm"
+                                                                className="w-1/2 bg-[var(--color-brand-primary)] rounded-t-md transition-all duration-500 shadow-sm"
                                                                 style={{ height: `${newHeightPct}%` }}
                                                             />
                                                         </div>
@@ -608,11 +608,11 @@ export default function Dashboard() {
                                 {/* Legend */}
                                 <div className="flex items-center justify-center gap-6 pt-4">
                                     <div className="flex items-center">
-                                        <div className="w-2.5 h-2.5 rounded-full bg-[#4F46E5] mr-2"></div>
+                                        <div className="w-2.5 h-2.5 rounded-full bg-[var(--color-brand-primary)] mr-2"></div>
                                         <span className="text-[11px] font-medium text-text-secondary">New Enquiries</span>
                                     </div>
                                     <div className="flex items-center">
-                                        <div className="w-2.5 h-2.5 rounded-full bg-[#EEF2FF] border border-[#4F46E5]/20 mr-2"></div>
+                                        <div className="w-2.5 h-2.5 rounded-full bg-brand-primary/10 border border-[var(--color-brand-primary)]/20 mr-2"></div>
                                         <span className="text-[11px] font-medium text-text-secondary">Total Enquiries</span>
                                     </div>
                                 </div>
@@ -621,26 +621,26 @@ export default function Dashboard() {
 
                         {/* Right Column: Recent Activity Timeline (1/3 width) */}
                         <div className="lg:col-span-1">
-                            <div className="card h-full flex flex-col min-h-[360px]">
+                            <div className="acx-acx-acx-acx-acx-card h-full flex flex-col min-h-[360px]">
                                 <div className="px-6 py-5 flex items-center justify-between">
                                     <h2 className="text-base font-bold text-text-primary tracking-tight">Recent Activity</h2>
-                                    <Link to="/activity" className="text-[12px] font-semibold text-[#4F46E5] hover:text-[#4338CA] transition-colors flex items-center">
+                                    <Link to="/activity" className="text-[12px] font-semibold text-[var(--color-brand-primary)] hover:text-brand-primary/90 transition-colors flex items-center">
                                         View all <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
                                     </Link>
                                 </div>
                                 <div className="flex-1 px-6 pb-6 overflow-y-auto max-h-[300px]">
                                     {isLoading ? (
                                         <div className="flex justify-center items-center py-12">
-                                            <Loader2 className="w-6 h-6 animate-spin text-[#14B8A6]" />
+                                            <Loader2 className="w-6 h-6 animate-spin text-brand-teal" />
                                         </div>
                                     ) : stats?.recentActivities && stats.recentActivities.length > 0 ? (
                                         <div className="relative pl-3 space-y-6 before:absolute before:inset-y-0 before:left-[11px] before:w-[2px] before:bg-border-subtle/50">
                                             {stats.recentActivities.map((activity) => {
-                                                let iconStyle = 'bg-[#EFF6FF] text-[#2563EB]';
+                                                let iconStyle = 'bg-brand-primary/10 text-brand-primary';
                                                 let Icon = MessageSquare;
                                                 
                                                 if (activity.entityType === 'QUOTATION') {
-                                                    iconStyle = 'bg-[#F5F3FF] text-[#7C3AED]';
+                                                    iconStyle = 'bg-purple-50 text-purple-600';
                                                     Icon = FileText;
                                                 } else if (activity.entityType === 'USER') {
                                                     iconStyle = 'bg-[#FFF7ED] text-[#EA580C]';
@@ -684,32 +684,32 @@ export default function Dashboard() {
                     </div>
 
                     {/* Recent Enquiries Table */}
-                    <div className="card flex flex-col">
+                    <div className="acx-acx-acx-acx-acx-card flex flex-col">
                         <div className="px-6 py-5 flex items-center justify-between border-b border-border-subtle">
                             <h2 className="text-base font-bold text-text-primary tracking-tight">Recent Enquiries</h2>
-                            <Link to="/enquiries" className="text-[12px] font-semibold text-[#4F46E5] hover:text-[#4338CA] transition-colors flex items-center">
+                            <Link to="/enquiries" className="text-[12px] font-semibold text-[var(--color-brand-primary)] hover:text-brand-primary/90 transition-colors flex items-center">
                                 View all <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
                             </Link>
                         </div>
-                        <div className="overflow-x-auto">
+                        <div className="acx-table-container">
                             {isLoading ? (
-                                <div className="flex justify-center items-center py-12 bg-bg-card rounded-b-[24px]">
-                                    <Loader2 className="w-6 h-6 animate-spin text-[#4F46E5]" />
+                                <div className="flex justify-center items-center py-12 bg-bg-acx-acx-acx-acx-card rounded-b-[24px]">
+                                    <Loader2 className="w-6 h-6 animate-spin text-[var(--color-brand-primary)]" />
                                 </div>
                             ) : stats?.recentEnquiries && stats.recentEnquiries.length > 0 ? (
-                                <table className="min-w-full divide-y divide-border-subtle">
+                                <table className="acx-table">
                                     <thead>
                                         <tr>
-                                            <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card rounded-bl-[24px]">#</th>
-                                            <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Client</th>
-                                            <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Company</th>
-                                            <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Service</th>
-                                            <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Status</th>
-                                            <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Date</th>
-                                            <th className="px-6 py-4 text-center text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card rounded-br-[24px]">Actions</th>
+                                            <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-acx-acx-acx-card rounded-bl-[24px]">#</th>
+                                            <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-acx-acx-acx-card">Client</th>
+                                            <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-acx-acx-acx-card">Company</th>
+                                            <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-acx-acx-acx-card">Service</th>
+                                            <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-acx-acx-acx-card">Status</th>
+                                            <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-acx-acx-acx-card">Date</th>
+                                            <th className="px-6 py-4 text-center text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-acx-acx-acx-card rounded-br-[24px]">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="bg-bg-card divide-y divide-border-subtle/40">
+                                    <tbody className="bg-bg-acx-acx-acx-acx-card divide-y divide-border-subtle/40">
                                         {stats.recentEnquiries.map((enq) => (
                                             <tr 
                                                 key={enq.id} 
@@ -771,7 +771,7 @@ export default function Dashboard() {
                                                                     }}
                                                                     className="flex items-center w-full px-3 py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover rounded-xl transition-colors"
                                                                 >
-                                                                    <Eye className="w-3.5 h-3.5 mr-2 text-[#4F46E5]" />
+                                                                    <Eye className="w-3.5 h-3.5 mr-2 text-[var(--color-brand-primary)]" />
                                                                     Open Enquiry
                                                                 </button>
 
@@ -786,7 +786,7 @@ export default function Dashboard() {
                                                                     onClick={close}
                                                                     className="flex items-center w-full px-3 py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover rounded-xl transition-colors"
                                                                 >
-                                                                    <Plus className="w-3.5 h-3.5 mr-2 text-[#059669]" />
+                                                                    <Plus className="w-3.5 h-3.5 mr-2 text-brand-success" />
                                                                     Create Quotation
                                                                 </Link>
 
@@ -797,7 +797,7 @@ export default function Dashboard() {
                                                                             onClick={close}
                                                                             className="flex items-center w-full px-3 py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover rounded-xl transition-colors"
                                                                         >
-                                                                            <FileText className="w-3.5 h-3.5 mr-2 text-[#7C3AED]" />
+                                                                            <FileText className="w-3.5 h-3.5 mr-2 text-purple-600" />
                                                                             Open Quotation
                                                                         </Link>
                                                                     ) : (
@@ -810,10 +810,10 @@ export default function Dashboard() {
                                                                             className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover rounded-xl transition-colors"
                                                                         >
                                                                             <span className="flex items-center">
-                                                                                <FileText className="w-3.5 h-3.5 mr-2 text-[#7C3AED]" />
+                                                                                <FileText className="w-3.5 h-3.5 mr-2 text-purple-600" />
                                                                                 Open Quotation
                                                                             </span>
-                                                                            <span className="text-[10px] bg-[#F5F3FF] text-[#7C3AED] px-1.5 py-0.5 rounded-full font-bold">
+                                                                            <span className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full font-bold">
                                                                                 {rowQuotationsMap[enq.id].length}
                                                                             </span>
                                                                         </button>
@@ -837,7 +837,7 @@ export default function Dashboard() {
                                                                         }}
                                                                         className={`flex items-center justify-between w-full px-3 py-1.5 text-xs rounded-lg transition-colors ${
                                                                             normalizeStatus(enq.status) === st
-                                                                                ? 'bg-[#EEF2FF] text-[#4F46E5] font-bold dark:bg-[#312E81]/30'
+                                                                                ? 'bg-brand-primary/10 text-[var(--color-brand-primary)] font-bold dark:bg-[#312E81]/30'
                                                                                 : 'text-text-secondary hover:bg-bg-hover font-medium'
                                                                         }`}
                                                                     >
@@ -846,7 +846,7 @@ export default function Dashboard() {
                                                                             {getStatusLabel(st)}
                                                                         </span>
                                                                         {normalizeStatus(enq.status) === st && (
-                                                                            <Check className="w-3.5 h-3.5 text-[#4F46E5]" />
+                                                                            <Check className="w-3.5 h-3.5 text-[var(--color-brand-primary)]" />
                                                                         )}
                                                                     </button>
                                                                 ))}
@@ -859,7 +859,7 @@ export default function Dashboard() {
                                     </tbody>
                                 </table>
                             ) : (
-                                <div className="px-6 py-16 flex flex-col items-center justify-center bg-bg-card rounded-b-[24px]">
+                                <div className="px-6 py-16 flex flex-col items-center justify-center bg-bg-acx-acx-acx-acx-card rounded-b-[24px]">
                                     <div className="w-12 h-12 rounded-full bg-bg-muted flex items-center justify-center mb-4">
                                         <Inbox className="w-5 h-5 text-text-muted" />
                                     </div>

@@ -128,7 +128,7 @@ export default function Layout() {
     ];
 
     return (
-        <div className="flex h-screen bg-bg-main text-text-primary overflow-hidden font-sans">
+        <div className="flex h-screen bg-bg-main text-text-primary overflow-hidden">
             {/* Mobile Sidebar Overlay */}
             {isSidebarOpen && (
                 <div 
@@ -178,14 +178,14 @@ export default function Layout() {
                                             onClick={() => setIsSidebarOpen(false)}
                                             className={`group relative flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
                                                 isActive 
-                                                    ? 'bg-[#E6F5F2] text-[#102A43] dark:bg-[#0D9488]/10 dark:text-[#2DD4BF]' 
+                                                    ? 'bg-brand-teal/10 text-brand-navy shadow-sm' 
                                                     : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
                                             } ${isCollapsed ? 'justify-center px-2' : ''}`}
                                         >
                                             {isActive && !isCollapsed && (
-                                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-[#0D9488] rounded-r-full" />
+                                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-brand-teal rounded-r-full shadow-[0_0_8px_rgba(13,148,136,0.5)]" />
                                             )}
-                                            <Icon className={`w-5 h-5 flex-shrink-0 ${!isCollapsed && 'mr-3'} ${isActive ? 'text-[#0D9488] dark:text-[#2DD4BF]' : 'text-text-muted group-hover:text-text-primary transition-colors'}`} />
+                                            <Icon className={`w-5 h-5 flex-shrink-0 ${!isCollapsed && 'mr-3'} ${isActive ? 'text-brand-teal' : 'text-text-muted group-hover:text-brand-teal/70 transition-colors'}`} />
                                             {!isCollapsed && <span>{item.name}</span>}
                                             
                                             {/* CSS Tooltip */}
@@ -216,14 +216,14 @@ export default function Layout() {
                                             onClick={() => setIsSidebarOpen(false)}
                                             className={`group relative flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
                                                 isActive 
-                                                    ? 'bg-[#E6F5F2] text-[#102A43] dark:bg-[#0D9488]/10 dark:text-[#2DD4BF]' 
+                                                    ? 'bg-brand-teal/10 text-brand-navy shadow-sm' 
                                                     : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
                                             } ${isCollapsed ? 'justify-center px-2' : ''}`}
                                         >
                                             {isActive && !isCollapsed && (
-                                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-[#0D9488] rounded-r-full" />
+                                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-brand-teal rounded-r-full shadow-[0_0_8px_rgba(13,148,136,0.5)]" />
                                             )}
-                                            <Icon className={`w-5 h-5 flex-shrink-0 ${!isCollapsed && 'mr-3'} ${isActive ? 'text-[#0D9488] dark:text-[#2DD4BF]' : 'text-text-muted group-hover:text-text-primary transition-colors'}`} />
+                                            <Icon className={`w-5 h-5 flex-shrink-0 ${!isCollapsed && 'mr-3'} ${isActive ? 'text-brand-teal' : 'text-text-muted group-hover:text-brand-teal/70 transition-colors'}`} />
                                             {!isCollapsed && <span>{item.name}</span>}
                                             
                                             {/* CSS Tooltip */}
@@ -253,14 +253,14 @@ export default function Layout() {
                                                 onClick={() => setIsSidebarOpen(false)}
                                                 className={`group relative flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
                                                     isActive 
-                                                        ? 'bg-[#E6F5F2] text-[#102A43] dark:bg-[#0D9488]/10 dark:text-[#2DD4BF]' 
+                                                        ? 'bg-brand-teal/10 text-brand-navy shadow-sm' 
                                                         : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
                                                 } ${isCollapsed ? 'justify-center px-2' : ''}`}
                                             >
                                                 {isActive && !isCollapsed && (
-                                                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-[#0D9488] rounded-r-full" />
+                                                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-brand-teal rounded-r-full shadow-[0_0_8px_rgba(13,148,136,0.5)]" />
                                                 )}
-                                                <Icon className={`w-5 h-5 flex-shrink-0 ${!isCollapsed && 'mr-3'} ${isActive ? 'text-[#0D9488] dark:text-[#2DD4BF]' : 'text-text-muted group-hover:text-text-primary transition-colors'}`} />
+                                                <Icon className={`w-5 h-5 flex-shrink-0 ${!isCollapsed && 'mr-3'} ${isActive ? 'text-brand-teal' : 'text-text-muted group-hover:text-brand-teal/70 transition-colors'}`} />
                                                 {!isCollapsed && <span>{item.name}</span>}
                                                 
                                                 {/* CSS Tooltip */}
@@ -290,14 +290,14 @@ export default function Layout() {
                                             onClick={() => setIsSidebarOpen(false)}
                                             className={`group relative flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
                                                 isActive 
-                                                    ? 'bg-[#E6F5F2] text-[#102A43] dark:bg-[#0D9488]/10 dark:text-[#2DD4BF]' 
+                                                    ? 'bg-brand-teal/10 text-brand-navy shadow-sm' 
                                                     : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
                                             } ${isCollapsed ? 'justify-center px-2' : ''}`}
                                         >
                                             {isActive && !isCollapsed && (
-                                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-[#0D9488] rounded-r-full" />
+                                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-brand-teal rounded-r-full shadow-[0_0_8px_rgba(13,148,136,0.5)]" />
                                             )}
-                                            <Icon className={`w-5 h-5 flex-shrink-0 ${!isCollapsed && 'mr-3'} ${isActive ? 'text-[#0D9488] dark:text-[#2DD4BF]' : 'text-text-muted group-hover:text-text-primary transition-colors'}`} />
+                                            <Icon className={`w-5 h-5 flex-shrink-0 ${!isCollapsed && 'mr-3'} ${isActive ? 'text-brand-teal' : 'text-text-muted group-hover:text-brand-teal/70 transition-colors'}`} />
                                             {!isCollapsed && <span>{item.name}</span>}
                                             
                                             {/* CSS Tooltip */}
@@ -335,7 +335,7 @@ export default function Layout() {
                 <div className="p-4 border-t border-border-subtle/50">
                     {!isCollapsed && (
                         <div className="mb-4 flex items-center px-2">
-                            <div className="w-10 h-10 rounded-full bg-[#EEF2FF] flex items-center justify-center mr-3 text-[#4F46E5] font-bold shadow-sm">
+                            <div className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center mr-3 text-brand-primary font-bold shadow-sm border border-brand-primary/20">
                                 {getInitials(user?.name)}
                             </div>
                             <div className="overflow-hidden">
@@ -386,7 +386,7 @@ export default function Layout() {
                                     navigate('/');
                                 }
                             }}
-                            className="hidden sm:flex items-center justify-center w-9 h-9 mr-4 rounded-xl text-text-muted hover:bg-bg-card hover:shadow-sm hover:text-text-primary transition-all border border-transparent hover:border-border-subtle bg-bg-main"
+                            className="hidden sm:flex items-center justify-center w-9 h-9 mr-4 rounded-xl text-text-muted hover:bg-bg-acx-card hover:shadow-sm hover:text-text-primary transition-all border border-transparent hover:border-border-subtle bg-bg-main"
                             title="Go Back"
                         >
                             <ArrowLeft className="w-5 h-5" />
@@ -394,16 +394,16 @@ export default function Layout() {
                         
                         {/* Search Bar matching reference */}
                         <div ref={searchRef} className="relative w-full max-w-md hidden sm:block">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                 {isSearching ? (
-                                    <div className="animate-spin w-4 h-4 border-2 border-[#14B8A6] border-t-transparent rounded-full" />
+                                    <div className="animate-spin w-4 h-4 border-2 border-brand-teal border-t-transparent rounded-full" />
                                 ) : (
                                     <Search className="h-4 w-4 text-text-muted" />
                                 )}
                             </div>
                             <input
                                 type="text"
-                                className="w-full pl-10 pr-10 py-2.5 bg-bg-card border border-border-subtle rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-[#14B8A6]/20 focus:border-[#14B8A6]/30 transition-all shadow-sm text-text-primary placeholder-text-muted"
+                                className="w-full pl-11 pr-10 py-2.5 bg-white border border-border-subtle rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-teal/20 focus:border-brand-teal transition-all shadow-sm text-text-primary placeholder-text-muted"
                                 placeholder="Search enquiries, quotations..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -420,7 +420,7 @@ export default function Layout() {
 
                             {/* Dropdown Overlay */}
                             {searchDropdownOpen && (
-                                <div className="absolute top-full left-0 right-0 mt-2 bg-bg-card border border-border-subtle rounded-xl shadow-lg overflow-hidden z-50 max-h-[70vh] overflow-y-auto">
+                                <div className="absolute top-full left-0 right-0 mt-2 bg-bg-acx-card border border-border-subtle rounded-xl shadow-lg overflow-hidden z-50 max-h-[70vh] overflow-y-auto">
                                     {(searchResults.quotations.length === 0 && searchResults.enquiries.length === 0) ? (
                                         <div className="p-4 text-center text-text-muted text-sm">
                                             No results found for "{searchQuery}"
@@ -436,14 +436,14 @@ export default function Layout() {
                                                         <div 
                                                             key={q.id}
                                                             onClick={() => handleSearchNavigate(`/quotations/edit/${q.id}`)}
-                                                            className="px-4 py-3 hover:bg-bg-hover cursor-pointer transition-colors border-l-2 border-transparent hover:border-[#14B8A6]"
+                                                            className="px-4 py-3 hover:bg-bg-hover cursor-pointer transition-colors border-l-2 border-transparent hover:border-brand-teal"
                                                         >
                                                             <div className="flex justify-between items-start mb-0.5">
                                                                 <span className="text-sm font-semibold text-text-primary">{q.quotationNumber}</span>
                                                                 <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
-                                                                    q.status === 'SENT' ? 'bg-[#ECFDF5] text-[#059669]' : 
-                                                                    q.status === 'ACCEPTED' ? 'bg-[#EFF6FF] text-[#2563EB]' : 
-                                                                    q.status === 'REJECTED' ? 'bg-[#FEF2F2] text-[#DC2626]' : 
+                                                                    q.status === 'SENT' ? 'bg-brand-success/10 text-brand-success' : 
+                                                                    q.status === 'ACCEPTED' ? 'bg-brand-primary/10 text-brand-primary' : 
+                                                                    q.status === 'REJECTED' ? 'bg-brand-danger/10 text-brand-danger' : 
                                                                     'bg-[#F3F4F6] text-[#4B5563]'
                                                                 }`}>{q.status}</span>
                                                             </div>
@@ -464,13 +464,13 @@ export default function Layout() {
                                                         <div 
                                                             key={e.id}
                                                             onClick={() => handleSearchNavigate(`/enquiries?id=${e.id}`)}
-                                                            className="px-4 py-3 hover:bg-bg-hover cursor-pointer transition-colors border-l-2 border-transparent hover:border-[#14B8A6]"
+                                                            className="px-4 py-3 hover:bg-bg-hover cursor-pointer transition-colors border-l-2 border-transparent hover:border-brand-teal"
                                                         >
                                                             <div className="flex justify-between items-start mb-0.5">
                                                                 <span className="text-sm font-semibold text-text-primary">{e.referenceId || 'New Enquiry'}</span>
                                                                 <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
-                                                                    e.status === 'NEW' ? 'bg-[#EEF2FF] text-[#4F46E5]' :
-                                                                    e.status === 'QUOTED' ? 'bg-[#ECFDF5] text-[#059669]' :
+                                                                    e.status === 'NEW' ? 'bg-brand-primary/10 text-[var(--color-brand-primary)]' :
+                                                                    e.status === 'QUOTED' ? 'bg-brand-success/10 text-brand-success' :
                                                                     'bg-[#F3F4F6] text-[#4B5563]'
                                                                 }`}>{e.status}</span>
                                                             </div>

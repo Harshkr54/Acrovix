@@ -140,7 +140,7 @@ export default function PurchaseOrderDetail() {
                 <div className="flex items-center gap-3">
                     <button 
                         onClick={handleDownloadPdf}
-                        className="px-4 py-2 bg-bg-card border border-border-subtle hover:bg-bg-main text-text-primary rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                        className="px-4 py-2 bg-bg-acx-card border border-border-subtle hover:bg-bg-main text-text-primary rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
                     >
                         <Download className="w-4 h-4" /> PDF
                     </button>
@@ -165,7 +165,7 @@ export default function PurchaseOrderDetail() {
                     {['VERIFIED', 'PARTIALLY_FULFILLED'].includes(order.status) && (
                         <button 
                             onClick={() => { setNewStatus(''); setStatusModalOpen(true); }}
-                            className="px-4 py-2 bg-bg-card border border-border-subtle hover:bg-bg-main text-text-primary rounded-lg text-sm font-medium transition-colors"
+                            className="px-4 py-2 bg-bg-acx-card border border-border-subtle hover:bg-bg-main text-text-primary rounded-lg text-sm font-medium transition-colors"
                         >
                             Update Status
                         </button>
@@ -177,7 +177,7 @@ export default function PurchaseOrderDetail() {
             <div className="grid grid-cols-3 gap-6">
                 <div className="col-span-2 space-y-6">
                     {/* General Info */}
-                    <div className="bg-bg-card border border-border-subtle rounded-xl p-6">
+                    <div className="bg-bg-acx-card border border-border-subtle rounded-xl p-6">
                         <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wider mb-4">Order Details</h3>
                         <div className="grid grid-cols-2 gap-6">
                             <div>
@@ -217,7 +217,7 @@ export default function PurchaseOrderDetail() {
 
                     {/* Remarks */}
                     {order.remarks && (
-                        <div className="bg-bg-card border border-border-subtle rounded-xl p-6">
+                        <div className="bg-bg-acx-card border border-border-subtle rounded-xl p-6">
                             <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wider mb-4">Remarks</h3>
                             <div className="text-sm text-text-secondary whitespace-pre-wrap">{order.remarks}</div>
                         </div>
@@ -226,7 +226,7 @@ export default function PurchaseOrderDetail() {
 
                 <div className="col-span-1 space-y-6">
                     {/* Quotation Ref */}
-                    <div className="bg-bg-card border border-border-subtle rounded-xl p-6">
+                    <div className="bg-bg-acx-card border border-border-subtle rounded-xl p-6">
                         <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wider mb-4">Source Quotation</h3>
                         <div className="space-y-4">
                             <div>
@@ -251,7 +251,7 @@ export default function PurchaseOrderDetail() {
                     </div>
 
                     {/* Timeline */}
-                    <div className="bg-bg-card border border-border-subtle rounded-xl p-6">
+                    <div className="bg-bg-acx-card border border-border-subtle rounded-xl p-6">
                         <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wider mb-4">Timeline</h3>
                         <div className="space-y-4">
                             <div>
@@ -274,7 +274,7 @@ export default function PurchaseOrderDetail() {
             {/* Status Update Modal */}
             {statusModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-text-primary/20 backdrop-blur-sm">
-                    <div className="bg-bg-card border border-border-subtle rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+                    <div className="bg-bg-acx-card border border-border-subtle rounded-xl shadow-xl w-full max-w-md overflow-hidden">
                         <div className="p-4 border-b border-border-subtle flex justify-between items-center bg-bg-main/50">
                             <h2 className="text-lg font-bold text-text-primary">Update Status</h2>
                             <button onClick={() => setStatusModalOpen(false)} className="text-text-muted hover:text-text-primary">

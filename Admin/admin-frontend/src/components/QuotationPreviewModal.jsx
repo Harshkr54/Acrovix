@@ -23,8 +23,8 @@ export default function QuotationPreviewModal({
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-slate-50">
                     <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-[#4F46E5]/10 rounded-xl flex items-center justify-center">
-                            <FileText className="w-5 h-5 text-[#4F46E5]" />
+                        <div className="w-10 h-10 bg-[var(--color-brand-primary)]/10 rounded-xl flex items-center justify-center">
+                            <FileText className="w-5 h-5 text-[var(--color-brand-primary)]" />
                         </div>
                         <div>
                             <h2 className="text-[16px] font-bold text-slate-800 tracking-tight leading-none">Quotation Preview</h2>
@@ -36,7 +36,7 @@ export default function QuotationPreviewModal({
                             <a 
                                 href={pdfBlobUrl} 
                                 download={emailDetails?.filename || 'quotation-preview.pdf'}
-                                className="inline-flex items-center px-4 py-2 bg-white border border-slate-200 hover:border-[#4F46E5] hover:text-[#4F46E5] hover:bg-slate-50 rounded-xl text-[13px] font-semibold text-slate-700 transition-colors shadow-sm"
+                                className="inline-flex items-center px-4 py-2 bg-white border border-slate-200 hover:border-[var(--color-brand-primary)] hover:text-[var(--color-brand-primary)] hover:bg-slate-50 rounded-xl text-[13px] font-semibold text-slate-700 transition-colors shadow-sm"
                             >
                                 <Download className="w-4 h-4 mr-2" />
                                 Download PDF
@@ -58,22 +58,22 @@ export default function QuotationPreviewModal({
                             onClick={() => setActiveTab('pdf')}
                             className={`w-full flex items-center px-4 py-3 rounded-xl text-[13px] font-semibold transition-all ${
                                 activeTab === 'pdf' 
-                                ? 'bg-white shadow-sm border border-slate-200 text-[#4F46E5]' 
+                                ? 'bg-white shadow-sm border border-slate-200 text-[var(--color-brand-primary)]' 
                                 : 'text-slate-600 hover:bg-slate-100 border border-transparent'
                             }`}
                         >
-                            <FileText className={`w-4 h-4 mr-3 ${activeTab === 'pdf' ? 'text-[#4F46E5]' : 'text-slate-400'}`} />
+                            <FileText className={`w-4 h-4 mr-3 ${activeTab === 'pdf' ? 'text-[var(--color-brand-primary)]' : 'text-slate-400'}`} />
                             PDF Preview
                         </button>
                         <button 
                             onClick={() => setActiveTab('email')}
                             className={`w-full flex items-center px-4 py-3 rounded-xl text-[13px] font-semibold transition-all ${
                                 activeTab === 'email' 
-                                ? 'bg-white shadow-sm border border-slate-200 text-[#4F46E5]' 
+                                ? 'bg-white shadow-sm border border-slate-200 text-[var(--color-brand-primary)]' 
                                 : 'text-slate-600 hover:bg-slate-100 border border-transparent'
                             }`}
                         >
-                            <Mail className={`w-4 h-4 mr-3 ${activeTab === 'email' ? 'text-[#4F46E5]' : 'text-slate-400'}`} />
+                            <Mail className={`w-4 h-4 mr-3 ${activeTab === 'email' ? 'text-[var(--color-brand-primary)]' : 'text-slate-400'}`} />
                             Email Preview
                         </button>
                     </div>
@@ -82,7 +82,7 @@ export default function QuotationPreviewModal({
                     <div className="flex-1 bg-slate-100/50 relative overflow-hidden flex flex-col">
                         {isLoading && (
                             <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm">
-                                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#4F46E5] mb-4"></div>
+                                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[var(--color-brand-primary)] mb-4"></div>
                                 <p className="text-[13px] font-medium text-slate-600">Generating preview...</p>
                             </div>
                         )}
@@ -120,7 +120,7 @@ export default function QuotationPreviewModal({
                                                     <a 
                                                         href={pdfBlobUrl} 
                                                         download={emailDetails?.filename || 'quotation.pdf'}
-                                                        className="text-[#4F46E5] font-semibold hover:underline"
+                                                        className="text-[var(--color-brand-primary)] font-semibold hover:underline"
                                                     >
                                                         Download PDF to view
                                                     </a>

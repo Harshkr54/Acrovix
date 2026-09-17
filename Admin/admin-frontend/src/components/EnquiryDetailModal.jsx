@@ -49,11 +49,11 @@ export default function EnquiryDetailModal({ isOpen, onClose, enquiry, onStatusU
     const getStatusStyle = (rawStatus) => {
         const status = normalizeStatus(rawStatus);
         switch (status) {
-            case 'NEW': return 'bg-[#EEF2FF] text-[#2563EB] border-[#818CF8]/30';
-            case 'CONTACTED': return 'bg-[#EEF2FF] text-[#4F46E5] border-[#818CF8]/30';
-            case 'QUOTED': return 'bg-[#F5F3FF] text-[#7C3AED] border-[#C4B5FD]/30';
-            case 'CONVERTED': return 'bg-[#ECFDF5] text-[#059669] border-[#6EE7B7]/30';
-            case 'CLOSED': return 'bg-[#FEF2F2] text-[#DC2626] border-[#FCA5A5]/30';
+            case 'NEW': return 'bg-brand-primary/10 text-brand-primary border-[#818CF8]/30';
+            case 'CONTACTED': return 'bg-brand-primary/10 text-[var(--color-brand-primary)] border-[#818CF8]/30';
+            case 'QUOTED': return 'bg-purple-50 text-purple-600 border-[#C4B5FD]/30';
+            case 'CONVERTED': return 'bg-brand-success/10 text-brand-success border-[#6EE7B7]/30';
+            case 'CLOSED': return 'bg-brand-danger/10 text-brand-danger border-brand-danger/30/30';
             default: return 'bg-bg-muted text-text-secondary border-border-subtle';
         }
     };
@@ -80,21 +80,21 @@ export default function EnquiryDetailModal({ isOpen, onClose, enquiry, onStatusU
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in-50 duration-200">
             <div 
-                className="bg-bg-card border border-border-subtle rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200"
+                className="bg-bg-acx-card border border-border-subtle rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Modal Header */}
-                <div className="px-6 py-5 border-b border-border-subtle flex items-center justify-between bg-bg-card">
+                <div className="px-6 py-5 border-b border-border-subtle flex items-center justify-between bg-bg-acx-card">
                     <div className="flex items-center gap-3">
-                        <div className="p-2.5 bg-[#EEF2FF] dark:bg-[#312E81]/30 rounded-2xl">
-                            <Inbox className="w-5 h-5 text-[#4F46E5]" />
+                        <div className="p-2.5 bg-brand-primary/10 dark:bg-[#312E81]/30 rounded-2xl">
+                            <Inbox className="w-5 h-5 text-[var(--color-brand-primary)]" />
                         </div>
                         <div>
                             <div className="flex items-center gap-2">
                                 <h2 className="text-lg font-bold text-text-primary tracking-tight">
                                     Enquiry Details
                                 </h2>
-                                <span className="text-xs font-mono font-bold text-[#4F46E5] bg-[#EEF2FF] dark:bg-[#312E81]/30 px-2.5 py-0.5 rounded-lg border border-[#818CF8]/30">
+                                <span className="text-xs font-mono font-bold text-[var(--color-brand-primary)] bg-brand-primary/10 dark:bg-[#312E81]/30 px-2.5 py-0.5 rounded-lg border border-[#818CF8]/30">
                                     {enquiry.referenceId || `ACX-ENQ-${enquiry.id}`}
                                 </span>
                             </div>
@@ -122,7 +122,7 @@ export default function EnquiryDetailModal({ isOpen, onClose, enquiry, onStatusU
                 {/* Modal Body */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-6">
                     {statusError && (
-                        <div className="p-3 bg-[#FEF2F2] border border-[#FCA5A5] rounded-xl flex items-center gap-2 text-xs font-semibold text-[#DC2626]">
+                        <div className="p-3 bg-brand-danger/10 border border-brand-danger/30 rounded-xl flex items-center gap-2 text-xs font-semibold text-brand-danger">
                             <AlertCircle className="w-4 h-4 shrink-0" />
                             <span>{statusError}</span>
                         </div>
@@ -132,7 +132,7 @@ export default function EnquiryDetailModal({ isOpen, onClose, enquiry, onStatusU
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="p-4 bg-bg-muted/40 rounded-2xl border border-border-subtle space-y-3">
                             <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider flex items-center gap-1.5">
-                                <User className="w-3.5 h-3.5 text-[#4F46E5]" />
+                                <User className="w-3.5 h-3.5 text-[var(--color-brand-primary)]" />
                                 Client Contact Details
                             </h3>
                             <div className="space-y-2 text-xs">
@@ -142,7 +142,7 @@ export default function EnquiryDetailModal({ isOpen, onClose, enquiry, onStatusU
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <Mail className="w-3.5 h-3.5 text-text-muted shrink-0" />
-                                    <a href={`mailto:${enquiry.businessEmail}`} className="font-semibold text-[#4F46E5] hover:underline truncate">
+                                    <a href={`mailto:${enquiry.businessEmail}`} className="font-semibold text-[var(--color-brand-primary)] hover:underline truncate">
                                         {enquiry.businessEmail}
                                     </a>
                                 </div>
@@ -155,7 +155,7 @@ export default function EnquiryDetailModal({ isOpen, onClose, enquiry, onStatusU
 
                         <div className="p-4 bg-bg-muted/40 rounded-2xl border border-border-subtle space-y-3">
                             <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider flex items-center gap-1.5">
-                                <Building2 className="w-3.5 h-3.5 text-[#4F46E5]" />
+                                <Building2 className="w-3.5 h-3.5 text-[var(--color-brand-primary)]" />
                                 Business & Service Context
                             </h3>
                             <div className="space-y-2 text-xs">
@@ -186,10 +186,10 @@ export default function EnquiryDetailModal({ isOpen, onClose, enquiry, onStatusU
                     {/* Project Requirement Description */}
                     <div className="p-4 bg-bg-muted/40 rounded-2xl border border-border-subtle space-y-2">
                         <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider flex items-center gap-1.5">
-                            <Briefcase className="w-3.5 h-3.5 text-[#4F46E5]" />
+                            <Briefcase className="w-3.5 h-3.5 text-[var(--color-brand-primary)]" />
                             Project Requirement
                         </h3>
-                        <p className="text-xs text-text-primary leading-relaxed whitespace-pre-wrap font-sans bg-bg-card p-3 rounded-xl border border-border-subtle/50">
+                        <p className="text-xs text-text-primary leading-relaxed whitespace-pre-wrap font-sans bg-bg-acx-card p-3 rounded-xl border border-border-subtle/50">
                             {enquiry.projectRequirement || 'No additional project requirements described.'}
                         </p>
                     </div>
@@ -198,11 +198,11 @@ export default function EnquiryDetailModal({ isOpen, onClose, enquiry, onStatusU
                     <div className="p-4 bg-bg-muted/40 rounded-2xl border border-border-subtle space-y-3">
                         <div className="flex items-center justify-between">
                             <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider flex items-center gap-1.5">
-                                <FileText className="w-3.5 h-3.5 text-[#7C3AED]" />
+                                <FileText className="w-3.5 h-3.5 text-purple-600" />
                                 Associated Quotations
                             </h3>
                             {quotations.length > 0 && (
-                                <span className="text-[11px] font-bold text-[#7C3AED] bg-[#F5F3FF] px-2 py-0.5 rounded-full border border-[#C4B5FD]/30">
+                                <span className="text-[11px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-[#C4B5FD]/30">
                                     {quotations.length} Active {quotations.length === 1 ? 'Quotation' : 'Quotations'}
                                 </span>
                             )}
@@ -210,24 +210,24 @@ export default function EnquiryDetailModal({ isOpen, onClose, enquiry, onStatusU
 
                         {isLoadingQuotations ? (
                             <div className="flex justify-center items-center py-4 text-text-muted text-xs">
-                                <Loader2 className="w-4 h-4 animate-spin text-[#7C3AED] mr-2" />
+                                <Loader2 className="w-4 h-4 animate-spin text-purple-600 mr-2" />
                                 Checking associated quotations...
                             </div>
                         ) : quotations.length > 0 ? (
                             <div className="space-y-2">
                                 {quotations.map(q => (
-                                    <div key={q.id} className="flex items-center justify-between p-3 bg-bg-card rounded-xl border border-border-subtle text-xs">
+                                    <div key={q.id} className="flex items-center justify-between p-3 bg-bg-acx-card rounded-xl border border-border-subtle text-xs">
                                         <div>
                                             <span className="font-mono font-bold text-text-primary mr-2">{q.quotationNumber}</span>
                                             <span className="text-text-muted font-medium">({q.status})</span>
-                                            <div className="text-[11px] font-bold text-[#059669] mt-0.5">
+                                            <div className="text-[11px] font-bold text-brand-success mt-0.5">
                                                 ₹{Number(q.grandTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                             </div>
                                         </div>
                                         <Link
                                             to={`/quotations/edit/${q.id}`}
                                             onClick={onClose}
-                                            className="btn-primary py-1.5 px-3 text-xs flex items-center shadow-sm"
+                                            className="acx-btn-primary py-1.5 px-3 text-xs flex items-center shadow-sm"
                                         >
                                             <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
                                             Open Quotation
@@ -236,13 +236,13 @@ export default function EnquiryDetailModal({ isOpen, onClose, enquiry, onStatusU
                                 ))}
                             </div>
                         ) : (
-                            <div className="text-xs text-text-muted flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-bg-card rounded-xl border border-border-subtle">
+                            <div className="text-xs text-text-muted flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-bg-acx-card rounded-xl border border-border-subtle">
                                 <span>No quotation created for this enquiry yet.</span>
                                 <div className="flex items-center gap-2">
                                     <Link
                                         to={`/quotations/new/${enquiry.id}`}
                                         onClick={onClose}
-                                        className="btn-primary py-1.5 px-3 text-xs flex items-center shadow-sm"
+                                        className="acx-btn-primary py-1.5 px-3 text-xs flex items-center shadow-sm"
                                     >
                                         <Plus className="w-3.5 h-3.5 mr-1.5" />
                                         Create Quotation
@@ -254,7 +254,7 @@ export default function EnquiryDetailModal({ isOpen, onClose, enquiry, onStatusU
                 </div>
 
                 {/* Modal Footer / Status Update Controls */}
-                <div className="px-6 py-4 border-t border-border-subtle bg-bg-card flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="px-6 py-4 border-t border-border-subtle bg-bg-acx-card flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-text-muted uppercase">Status:</span>
                         <div className="flex flex-wrap items-center gap-1.5">

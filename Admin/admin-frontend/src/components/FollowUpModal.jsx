@@ -96,7 +96,7 @@ export default function FollowUpModal({ isOpen, onClose, mode = 'CREATE', leadId
 
     return (
         <div className="fixed inset-0 bg-text-primary/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-bg-card border border-border-subtle rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="bg-bg-acx-card border border-border-subtle rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-bg-main">
                     <div className="flex items-center gap-2.5">
                         {mode === 'COMPLETE' ? (
@@ -104,7 +104,7 @@ export default function FollowUpModal({ isOpen, onClose, mode = 'CREATE', leadId
                         ) : mode === 'CANCEL' ? (
                             <XCircle className="w-5 h-5 text-rose-500" />
                         ) : (
-                            <Calendar className="w-5 h-5 text-[#0D9488]" />
+                            <Calendar className="w-5 h-5 text-brand-teal" />
                         )}
                         <h2 className="text-lg font-bold text-text-primary">{getTitle()}</h2>
                     </div>
@@ -136,7 +136,7 @@ export default function FollowUpModal({ isOpen, onClose, mode = 'CREATE', leadId
                                                 onClick={() => setType(t.value)}
                                                 className={`flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all ${
                                                     isSelected 
-                                                        ? 'bg-[#0D9488]/10 border-[#0D9488] text-[#0D9488]' 
+                                                        ? 'bg-brand-teal/10 border-[#0D9488] text-brand-teal' 
                                                         : 'bg-bg-main border-border-subtle text-text-secondary hover:border-text-muted'
                                                 }`}
                                             >
@@ -205,7 +205,7 @@ export default function FollowUpModal({ isOpen, onClose, mode = 'CREATE', leadId
                             className={`inline-flex items-center gap-2 px-5 py-2 text-sm font-semibold text-white rounded-xl transition-all shadow-sm disabled:opacity-50 ${
                                 mode === 'CANCEL' 
                                     ? 'bg-rose-600 hover:bg-rose-700' 
-                                    : 'bg-[#0D9488] hover:bg-[#0B7A70]'
+                                    : 'bg-brand-teal hover:bg-[#0B7A70]'
                             }`}
                         >
                             {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}

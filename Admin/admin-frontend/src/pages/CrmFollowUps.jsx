@@ -76,7 +76,7 @@ export default function CrmFollowUps() {
                     onClick={() => setActiveTab('DUE')}
                     className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
                         activeTab === 'DUE'
-                            ? 'bg-[#0D9488] text-white border-[#0D9488] shadow-sm'
+                            ? 'bg-brand-teal text-white border-[#0D9488] shadow-sm'
                             : 'bg-bg-card border-border-subtle text-text-secondary hover:text-text-primary'
                     }`}
                 >
@@ -88,7 +88,7 @@ export default function CrmFollowUps() {
                     onClick={() => setActiveTab('UPCOMING')}
                     className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
                         activeTab === 'UPCOMING'
-                            ? 'bg-[#0D9488] text-white border-[#0D9488] shadow-sm'
+                            ? 'bg-brand-teal text-white border-[#0D9488] shadow-sm'
                             : 'bg-bg-card border-border-subtle text-text-secondary hover:text-text-primary'
                     }`}
                 >
@@ -98,7 +98,7 @@ export default function CrmFollowUps() {
             </div>
 
             {/* Main Content Area */}
-            <div className="bg-bg-card border border-border-subtle rounded-2xl shadow-sm p-6 space-y-4">
+            <div className="bg-bg-acx-card border border-border-subtle rounded-2xl shadow-sm p-6 space-y-4">
                 {loading ? (
                     <EmptyState loading message="Loading follow-ups schedule..." />
                 ) : error ? (
@@ -119,7 +119,7 @@ export default function CrmFollowUps() {
                                     <div className="flex items-center gap-2 flex-wrap">
                                         <button
                                             onClick={() => navigate(`/crm/leads/${fu.leadId}`)}
-                                            className="text-xs font-bold text-[#0D9488] hover:underline font-mono"
+                                            className="text-xs font-bold text-brand-teal hover:underline font-mono"
                                         >
                                             {fu.leadNumber}
                                         </button>

@@ -150,7 +150,7 @@ export default function CrmLeadDetails() {
                     </button>
                     <button
                         onClick={() => setFollowUpModalState({ isOpen: true, mode: 'CREATE', followUp: null })}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#0D9488] hover:bg-[#0B7A70] text-white text-xs font-semibold rounded-xl transition-all shadow-sm"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand-teal hover:bg-[#0B7A70] text-white text-xs font-semibold rounded-xl transition-all shadow-sm"
                     >
                         <Plus className="w-3.5 h-3.5" />
                         Add Follow-up
@@ -159,7 +159,7 @@ export default function CrmLeadDetails() {
             </div>
 
             {/* Sales Lifecycle Visual Progress */}
-            <div className="bg-bg-card border border-border-subtle rounded-2xl p-6 shadow-sm">
+            <div className="bg-bg-acx-card border border-border-subtle rounded-2xl p-6 shadow-sm">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-text-muted mb-4">Sales Lifecycle Stage</h3>
                 {isLost ? (
                     <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-center justify-between">
@@ -180,14 +180,14 @@ export default function CrmLeadDetails() {
                                 <div key={stage.key} className="flex-1 flex flex-col items-center relative z-10">
                                     <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all ${
                                         isCurrent 
-                                            ? 'bg-[#0D9488] text-white ring-4 ring-[#0D9488]/20 scale-110' 
+                                            ? 'bg-brand-teal text-white ring-4 ring-[#0D9488]/20 scale-110' 
                                             : isPassed 
-                                                ? 'bg-[#0D9488]/20 text-[#0D9488]' 
+                                                ? 'bg-brand-teal/20 text-brand-teal' 
                                                 : 'bg-bg-main border border-border-subtle text-text-muted'
                                     }`}>
                                         {isPassed ? <Check className="w-4 h-4" /> : idx + 1}
                                     </div>
-                                    <span className={`text-[11px] font-semibold mt-2 ${isCurrent ? 'text-[#0D9488]' : isPassed ? 'text-text-primary' : 'text-text-muted'}`}>
+                                    <span className={`text-[11px] font-semibold mt-2 ${isCurrent ? 'text-brand-teal' : isPassed ? 'text-text-primary' : 'text-text-muted'}`}>
                                         {stage.label}
                                     </span>
                                 </div>
@@ -201,9 +201,9 @@ export default function CrmLeadDetails() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left 2 Columns: Lead & Contact Info */}
                 <div className="lg:col-span-2 space-y-6">
-                    <div className="bg-bg-card border border-border-subtle rounded-2xl p-6 shadow-sm space-y-6">
+                    <div className="bg-bg-acx-card border border-border-subtle rounded-2xl p-6 shadow-sm space-y-6">
                         <h2 className="text-base font-bold text-text-primary flex items-center gap-2 border-b border-border-subtle pb-3">
-                            <Target className="w-5 h-5 text-[#0D9488]" />
+                            <Target className="w-5 h-5 text-brand-teal" />
                             Lead Information
                         </h2>
 
@@ -249,7 +249,7 @@ export default function CrmLeadDetails() {
                     </div>
 
                     {/* Follow-ups List Section */}
-                    <div className="bg-bg-card border border-border-subtle rounded-2xl p-6 shadow-sm space-y-4">
+                    <div className="bg-bg-acx-card border border-border-subtle rounded-2xl p-6 shadow-sm space-y-4">
                         <div className="flex items-center justify-between border-b border-border-subtle pb-3">
                             <h2 className="text-base font-bold text-text-primary flex items-center gap-2">
                                 <Calendar className="w-5 h-5 text-amber-500" />
@@ -257,7 +257,7 @@ export default function CrmLeadDetails() {
                             </h2>
                             <button
                                 onClick={() => setFollowUpModalState({ isOpen: true, mode: 'CREATE', followUp: null })}
-                                className="text-xs font-bold text-[#0D9488] hover:underline flex items-center gap-1"
+                                className="text-xs font-bold text-brand-teal hover:underline flex items-center gap-1"
                             >
                                 <Plus className="w-3.5 h-3.5" /> Schedule Follow-up
                             </button>
@@ -328,7 +328,7 @@ export default function CrmLeadDetails() {
 
                 {/* Right 1 Column: Deal Metrics & Metadata */}
                 <div className="space-y-6">
-                    <div className="bg-bg-card border border-border-subtle rounded-2xl p-6 shadow-sm space-y-4">
+                    <div className="bg-bg-acx-card border border-border-subtle rounded-2xl p-6 shadow-sm space-y-4">
                         <h3 className="text-xs font-bold uppercase tracking-wider text-text-muted border-b border-border-subtle pb-2">
                             Deal Metrics & Ownership
                         </h3>
@@ -336,7 +336,7 @@ export default function CrmLeadDetails() {
                         <div className="space-y-4 text-xs">
                             <div>
                                 <span className="text-text-muted block font-medium">Estimated Value</span>
-                                <span className="text-xl font-bold text-[#0D9488]">
+                                <span className="text-xl font-bold text-brand-teal">
                                     {formatCurrency(lead.estimatedValue, lead.currency)}
                                 </span>
                             </div>
@@ -346,7 +346,7 @@ export default function CrmLeadDetails() {
                                 <div className="flex items-center gap-2 mt-1">
                                     <div className="flex-1 h-2 bg-bg-main border border-border-subtle rounded-full overflow-hidden">
                                         <div 
-                                            className="h-full bg-[#0D9488]" 
+                                            className="h-full bg-brand-teal" 
                                             style={{ width: `${Math.min(100, lead.probability || 0)}%` }} 
                                         />
                                     </div>

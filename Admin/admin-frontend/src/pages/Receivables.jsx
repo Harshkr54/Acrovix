@@ -89,7 +89,7 @@ export default function Receivables() {
 
             {/* KPI Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-bg-card border border-border-subtle rounded-2xl p-5 shadow-sm flex items-center justify-between">
+                <div className="bg-bg-acx-card border border-border-subtle rounded-2xl p-5 shadow-sm flex items-center justify-between">
                     <div>
                         <div className="text-xs text-text-muted font-medium uppercase tracking-wider">Total Invoiced</div>
                         {renderCurrencyTotals(totalInvoicedByCurrency, "text-text-primary")}
@@ -99,7 +99,7 @@ export default function Receivables() {
                     </div>
                 </div>
 
-                <div className="bg-bg-card border border-border-subtle rounded-2xl p-5 shadow-sm flex items-center justify-between">
+                <div className="bg-bg-acx-card border border-border-subtle rounded-2xl p-5 shadow-sm flex items-center justify-between">
                     <div>
                         <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium uppercase tracking-wider">Total Received</div>
                         {renderCurrencyTotals(totalReceivedByCurrency, "text-emerald-600 dark:text-emerald-400")}
@@ -109,7 +109,7 @@ export default function Receivables() {
                     </div>
                 </div>
 
-                <div className="bg-bg-card border border-border-subtle rounded-2xl p-5 shadow-sm flex items-center justify-between">
+                <div className="bg-bg-acx-card border border-border-subtle rounded-2xl p-5 shadow-sm flex items-center justify-between">
                     <div>
                         <div className="text-xs text-amber-600 dark:text-amber-400 font-medium uppercase tracking-wider">Outstanding Balance</div>
                         {renderCurrencyTotals(totalOutstandingByCurrency, "text-amber-600 dark:text-amber-400")}
@@ -119,7 +119,7 @@ export default function Receivables() {
                     </div>
                 </div>
 
-                <div className="bg-bg-card border border-border-subtle rounded-2xl p-5 shadow-sm flex items-center justify-between">
+                <div className="bg-bg-acx-card border border-border-subtle rounded-2xl p-5 shadow-sm flex items-center justify-between">
                     <div>
                         <div className="text-xs text-red-500 font-medium uppercase tracking-wider">Overdue Balance</div>
                         {renderCurrencyTotals(totalOverdueByCurrency, "text-red-500")}
@@ -131,7 +131,7 @@ export default function Receivables() {
             </div>
 
             {/* Filter Bar */}
-            <div className="bg-bg-card border border-border-subtle rounded-2xl p-5 shadow-sm flex items-center justify-between">
+            <div className="bg-bg-acx-card border border-border-subtle rounded-2xl p-5 shadow-sm flex items-center justify-between">
                 <form onSubmit={handleSearchSubmit} className="flex items-center gap-3 w-full max-w-md">
                     <div className="relative flex-1">
                         <Search className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
@@ -156,7 +156,7 @@ export default function Receivables() {
             </div>
 
             {/* Customer Receivables Table */}
-            <div className="bg-bg-card border border-border-subtle rounded-2xl overflow-hidden shadow-sm">
+            <div className="bg-bg-acx-card border border-border-subtle rounded-2xl overflow-hidden shadow-sm">
                 {loading ? (
                     <div className="p-12 text-center text-xs text-text-muted">Loading customer receivables...</div>
                 ) : error ? (
@@ -164,7 +164,7 @@ export default function Receivables() {
                 ) : receivables.length === 0 ? (
                     <div className="p-12 text-center text-xs text-text-muted">No customer receivable records found.</div>
                 ) : (
-                    <div className="overflow-x-auto">
+                    <div className="acx-table-container">
                         <table className="w-full text-left border-collapse text-xs">
                             <thead>
                                 <tr className="border-b border-border-subtle text-text-muted bg-bg-main/50 uppercase tracking-wider font-semibold">

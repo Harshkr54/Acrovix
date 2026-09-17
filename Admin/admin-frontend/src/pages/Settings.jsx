@@ -164,7 +164,7 @@ export default function Settings() {
     if (isLoading) {
         return (
             <div className="flex justify-center items-center h-[50vh]">
-                <Loader2 className="w-8 h-8 animate-spin text-[#14B8A6]" />
+                <Loader2 className="w-8 h-8 animate-spin text-brand-teal" />
             </div>
         );
     }
@@ -173,7 +173,7 @@ export default function Settings() {
         <div className="max-w-4xl mx-auto space-y-6 pb-12 pt-2">
             <div>
                 <h1 className="text-[28px] font-bold text-text-primary tracking-tight leading-tight flex items-center">
-                    <SettingsIcon className="w-7 h-7 mr-3 text-[#4F46E5]" />
+                    <SettingsIcon className="w-7 h-7 mr-3 text-[var(--color-brand-primary)]" />
                     Settings
                 </h1>
                 <p className="text-[13px] text-text-secondary mt-1">Manage your account preferences and application settings.</p>
@@ -182,14 +182,14 @@ export default function Settings() {
             <div className="flex gap-4 border-b border-border-subtle pt-4">
                 <button
                     onClick={() => setActiveTab('profile')}
-                    className={`pb-3 px-1 text-[13px] font-bold transition-colors border-b-2 ${activeTab === 'profile' ? 'text-text-primary border-[#4F46E5]' : 'text-text-muted border-transparent hover:text-text-primary'}`}
+                    className={`pb-3 px-1 text-[13px] font-bold transition-colors border-b-2 ${activeTab === 'profile' ? 'text-text-primary border-[var(--color-brand-primary)]' : 'text-text-muted border-transparent hover:text-text-primary'}`}
                 >
                     Personal Settings
                 </button>
                 {authUser?.role === 'SUPER_ADMIN' && (
                     <button
                         onClick={() => setActiveTab('company')}
-                        className={`pb-3 px-1 text-[13px] font-bold transition-colors border-b-2 ${activeTab === 'company' ? 'text-text-primary border-[#4F46E5]' : 'text-text-muted border-transparent hover:text-text-primary'}`}
+                        className={`pb-3 px-1 text-[13px] font-bold transition-colors border-b-2 ${activeTab === 'company' ? 'text-text-primary border-[var(--color-brand-primary)]' : 'text-text-muted border-transparent hover:text-text-primary'}`}
                     >
                         Company Settings
                     </button>
@@ -201,10 +201,10 @@ export default function Settings() {
                     {activeTab === 'profile' && (
                         <>
                             {/* Profile Preferences */}
-                            <div className="card p-6">
+                            <div className="acx-acx-card p-6">
                                 <div className="flex items-center gap-3 mb-6">
-                                    <div className="w-10 h-10 rounded-full bg-[#EFF6FF] flex items-center justify-center">
-                                        <User className="w-5 h-5 text-[#2563EB]" />
+                                    <div className="w-10 h-10 rounded-full bg-brand-primary/10 flex items-center justify-center">
+                                        <User className="w-5 h-5 text-brand-primary" />
                                     </div>
                                     <div>
                                         <h2 className="text-base font-bold text-text-primary tracking-tight">Profile Preferences</h2>
@@ -213,7 +213,7 @@ export default function Settings() {
                                 </div>
                                 
                                 {profileMessage && (
-                                    <div className={`mb-6 p-3 rounded-xl flex items-center gap-2 text-[13px] font-medium ${profileMessage.type === 'success' ? 'bg-[#ECFDF5] text-[#059669]' : 'bg-[#FEF2F2] text-[#DC2626]'}`}>
+                                    <div className={`mb-6 p-3 rounded-xl flex items-center gap-2 text-[13px] font-medium ${profileMessage.type === 'success' ? 'bg-brand-success/10 text-brand-success' : 'bg-brand-danger/10 text-brand-danger'}`}>
                                         {profileMessage.type === 'success' ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
                                         {profileMessage.text}
                                     </div>
@@ -227,7 +227,7 @@ export default function Settings() {
                                             value={name} 
                                             onChange={e => setName(e.target.value)}
                                             required
-                                            className="w-full px-4 py-2 bg-bg-main focus:bg-bg-card border border-border-subtle focus:border-[#4F46E5] rounded-lg text-sm text-text-primary outline-none transition-all"
+                                            className="w-full px-4 py-2 bg-bg-main focus:bg-bg-acx-card border border-border-subtle focus:border-[var(--color-brand-primary)] rounded-lg text-sm text-text-primary outline-none transition-all"
                                         />
                                     </div>
                                     <div>
@@ -237,7 +237,7 @@ export default function Settings() {
                                             value={email} 
                                             onChange={e => setEmail(e.target.value)}
                                             required
-                                            className="w-full px-4 py-2 bg-bg-main focus:bg-bg-card border border-border-subtle focus:border-[#4F46E5] rounded-lg text-sm text-text-primary outline-none transition-all"
+                                            className="w-full px-4 py-2 bg-bg-main focus:bg-bg-acx-card border border-border-subtle focus:border-[var(--color-brand-primary)] rounded-lg text-sm text-text-primary outline-none transition-all"
                                         />
                                     </div>
                                     <div>
@@ -252,7 +252,7 @@ export default function Settings() {
                                         <button 
                                             type="submit" 
                                             disabled={isSavingProfile || (name === profile?.name && email === profile?.email)}
-                                            className="btn-primary px-6 py-2 shadow-sm disabled:opacity-50"
+                                            className="acx-btn-primary px-6 py-2 shadow-sm disabled:opacity-50"
                                         >
                                             {isSavingProfile ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
                                             Save Profile
@@ -262,10 +262,10 @@ export default function Settings() {
                             </div>
 
                             {/* Change Password */}
-                            <div className="card p-6">
+                            <div className="acx-acx-card p-6">
                                 <div className="flex items-center gap-3 mb-6">
-                                    <div className="w-10 h-10 rounded-full bg-[#FEF2F2] flex items-center justify-center">
-                                        <Lock className="w-5 h-5 text-[#DC2626]" />
+                                    <div className="w-10 h-10 rounded-full bg-brand-danger/10 flex items-center justify-center">
+                                        <Lock className="w-5 h-5 text-brand-danger" />
                                     </div>
                                     <div>
                                         <h2 className="text-base font-bold text-text-primary tracking-tight">Security</h2>
@@ -274,7 +274,7 @@ export default function Settings() {
                                 </div>
 
                                 {passwordMessage && (
-                                    <div className={`mb-6 p-3 rounded-xl flex items-center gap-2 text-[13px] font-medium ${passwordMessage.type === 'success' ? 'bg-[#ECFDF5] text-[#059669]' : 'bg-[#FEF2F2] text-[#DC2626]'}`}>
+                                    <div className={`mb-6 p-3 rounded-xl flex items-center gap-2 text-[13px] font-medium ${passwordMessage.type === 'success' ? 'bg-brand-success/10 text-brand-success' : 'bg-brand-danger/10 text-brand-danger'}`}>
                                         {passwordMessage.type === 'success' ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
                                         {passwordMessage.text}
                                     </div>
@@ -289,7 +289,7 @@ export default function Settings() {
                                                 value={currentPassword} 
                                                 onChange={e => setCurrentPassword(e.target.value)}
                                                 required
-                                                className="w-full pl-4 pr-11 py-2 bg-bg-main focus:bg-bg-card border border-border-subtle focus:border-[#4F46E5] rounded-lg text-sm text-text-primary outline-none transition-all"
+                                                className="w-full pl-4 pr-11 py-2 bg-bg-main focus:bg-bg-acx-card border border-border-subtle focus:border-[var(--color-brand-primary)] rounded-lg text-sm text-text-primary outline-none transition-all"
                                             />
                                             <button
                                                 type="button"
@@ -309,7 +309,7 @@ export default function Settings() {
                                                 onChange={e => setNewPassword(e.target.value)}
                                                 required
                                                 minLength={8}
-                                                className="w-full pl-4 pr-11 py-2 bg-bg-main focus:bg-bg-card border border-border-subtle focus:border-[#4F46E5] rounded-lg text-sm text-text-primary outline-none transition-all"
+                                                className="w-full pl-4 pr-11 py-2 bg-bg-main focus:bg-bg-acx-card border border-border-subtle focus:border-[var(--color-brand-primary)] rounded-lg text-sm text-text-primary outline-none transition-all"
                                             />
                                             <button
                                                 type="button"
@@ -329,7 +329,7 @@ export default function Settings() {
                                                 onChange={e => setConfirmPassword(e.target.value)}
                                                 required
                                                 minLength={8}
-                                                className="w-full pl-4 pr-11 py-2 bg-bg-main focus:bg-bg-card border border-border-subtle focus:border-[#4F46E5] rounded-lg text-sm text-text-primary outline-none transition-all"
+                                                className="w-full pl-4 pr-11 py-2 bg-bg-main focus:bg-bg-acx-card border border-border-subtle focus:border-[var(--color-brand-primary)] rounded-lg text-sm text-text-primary outline-none transition-all"
                                             />
                                             <button
                                                 type="button"
@@ -345,7 +345,7 @@ export default function Settings() {
                                         <button 
                                             type="submit" 
                                             disabled={isSavingPassword || !currentPassword || !newPassword || !confirmPassword}
-                                            className="btn-primary px-6 py-2 shadow-sm disabled:opacity-50"
+                                            className="acx-btn-primary px-6 py-2 shadow-sm disabled:opacity-50"
                                         >
                                             {isSavingPassword ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Lock className="w-4 h-4 mr-2" />}
                                             Change Password
@@ -355,10 +355,10 @@ export default function Settings() {
                             </div>
                             
                             {/* Appearance */}
-                            <div className="card p-6">
+                            <div className="acx-acx-card p-6">
                                 <div className="flex items-center gap-3 mb-6">
-                                    <div className="w-10 h-10 rounded-full bg-[#F5F3FF] flex items-center justify-center">
-                                        <Sun className="w-5 h-5 text-[#7C3AED]" />
+                                    <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center">
+                                        <Sun className="w-5 h-5 text-purple-600" />
                                     </div>
                                     <div>
                                         <h2 className="text-base font-bold text-text-primary tracking-tight">Appearance</h2>
@@ -387,7 +387,7 @@ export default function Settings() {
                     )}
 
                     {activeTab === 'company' && authUser?.role === 'SUPER_ADMIN' && (
-                        <div className="card p-6">
+                        <div className="acx-acx-card p-6">
                             <div className="flex items-center gap-3 mb-6">
                                 <div className="w-10 h-10 rounded-full bg-[#E0F2FE] flex items-center justify-center">
                                     <Building className="w-5 h-5 text-[#0284C7]" />
@@ -399,7 +399,7 @@ export default function Settings() {
                             </div>
 
                             {companyMessage && (
-                                <div className={`mb-6 p-3 rounded-xl flex items-center gap-2 text-[13px] font-medium ${companyMessage.type === 'success' ? 'bg-[#ECFDF5] text-[#059669]' : 'bg-[#FEF2F2] text-[#DC2626]'}`}>
+                                <div className={`mb-6 p-3 rounded-xl flex items-center gap-2 text-[13px] font-medium ${companyMessage.type === 'success' ? 'bg-brand-success/10 text-brand-success' : 'bg-brand-danger/10 text-brand-danger'}`}>
                                     {companyMessage.type === 'success' ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
                                     {companyMessage.text}
                                 </div>
@@ -510,7 +510,7 @@ export default function Settings() {
                                     <button 
                                         type="submit" 
                                         disabled={isSavingCompany}
-                                        className="btn-primary px-6 py-2.5 mt-4 shadow-sm disabled:opacity-50"
+                                        className="acx-btn-primary px-6 py-2.5 mt-4 shadow-sm disabled:opacity-50"
                                     >
                                         {isSavingCompany ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
                                         Save Company Settings
@@ -523,10 +523,10 @@ export default function Settings() {
 
                 {/* Sidebar (System Info) */}
                 <div className="md:col-span-1 space-y-6">
-                    <div className="card p-6">
+                    <div className="acx-acx-card p-6">
                         <div className="flex items-center gap-3 mb-6">
-                            <div className="w-10 h-10 rounded-full bg-[#ECFDF5] flex items-center justify-center">
-                                <SettingsIcon className="w-5 h-5 text-[#059669]" />
+                            <div className="w-10 h-10 rounded-full bg-brand-success/10 flex items-center justify-center">
+                                <SettingsIcon className="w-5 h-5 text-brand-success" />
                             </div>
                             <div>
                                 <h2 className="text-base font-bold text-text-primary tracking-tight">System Info</h2>

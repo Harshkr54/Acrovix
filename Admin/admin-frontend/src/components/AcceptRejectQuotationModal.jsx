@@ -37,7 +37,7 @@ export default function AcceptRejectQuotationModal({ isOpen, onClose, quotation,
 
     return (
         <div className="fixed inset-0 bg-text-primary/30 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-            <div className="card p-6 md:p-8 max-w-md w-full shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+            <div className="acx-acx-card p-6 md:p-8 max-w-md w-full shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
                 <div className="flex items-center space-x-3 mb-6">
                     <div className={`w-12 h-12 flex items-center justify-center rounded-[20px] shadow-sm border ${
                         isAccept ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : 'bg-red-50 border-red-200 text-red-600'
@@ -55,15 +55,15 @@ export default function AcceptRejectQuotationModal({ isOpen, onClose, quotation,
                 </div>
 
                 {error && (
-                    <div className="p-4 mb-6 bg-[#FEF2F2] border border-[#FCA5A5] rounded-xl flex items-start space-x-3">
-                        <AlertCircle className="w-5 h-5 text-[#DC2626] shrink-0 mt-0.5" />
-                        <p className="text-[13px] text-[#DC2626] font-medium leading-relaxed">{error}</p>
+                    <div className="p-4 mb-6 bg-brand-danger/10 border border-brand-danger/30 rounded-xl flex items-start space-x-3">
+                        <AlertCircle className="w-5 h-5 text-brand-danger shrink-0 mt-0.5" />
+                        <p className="text-[13px] text-brand-danger font-medium leading-relaxed">{error}</p>
                     </div>
                 )}
 
                 <div className="space-y-5">
                     <div>
-                        <label className="block text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-2">Response Source <span className="text-[#DC2626]">*</span></label>
+                        <label className="block text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-2">Response Source <span className="text-brand-danger">*</span></label>
                         <select 
                             value={responseSource} 
                             onChange={(e) => setResponseSource(e.target.value)}
@@ -92,7 +92,7 @@ export default function AcceptRejectQuotationModal({ isOpen, onClose, quotation,
                     <button 
                         onClick={onClose} 
                         disabled={isSubmitting}
-                        className="px-4 py-2.5 bg-bg-card hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors disabled:opacity-50"
+                        className="px-4 py-2.5 bg-bg-acx-card hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors disabled:opacity-50"
                     >
                         Cancel
                     </button>

@@ -169,7 +169,7 @@ export default function HeaderControls() {
                 </button>
 
                 {activeDropdown === 'docs' && (
-                    <div className="absolute right-0 mt-2 w-72 bg-bg-card rounded-2xl shadow-lg border border-border-subtle overflow-hidden z-50 animate-in slide-in-from-top-2 duration-200">
+                    <div className="absolute right-0 mt-2 w-72 bg-bg-acx-card rounded-2xl shadow-lg border border-border-subtle overflow-hidden z-50 animate-in slide-in-from-top-2 duration-200">
                         <div className="px-4 py-3 border-b border-border-subtle bg-bg-muted/30">
                             <h3 className="text-sm font-bold text-text-primary">Quick Access</h3>
                         </div>
@@ -177,7 +177,7 @@ export default function HeaderControls() {
                         <div className="max-h-[350px] overflow-y-auto">
                             {isQuotationsLoading ? (
                                 <div className="flex justify-center items-center py-8">
-                                    <Loader2 className="w-5 h-5 animate-spin text-[#14B8A6]" />
+                                    <Loader2 className="w-5 h-5 animate-spin text-brand-teal" />
                                 </div>
                             ) : (
                                 <>
@@ -194,8 +194,8 @@ export default function HeaderControls() {
                                                     onClick={() => setActiveDropdown(null)}
                                                     className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-bg-hover transition-colors"
                                                 >
-                                                    <div className="w-8 h-8 rounded bg-[#F5F3FF] flex items-center justify-center shrink-0">
-                                                        <FileText className="w-3.5 h-3.5 text-[#7C3AED]" />
+                                                    <div className="w-8 h-8 rounded bg-brand-teal/10 flex items-center justify-center shrink-0">
+                                                        <FileText className="w-3.5 h-3.5 text-brand-teal" />
                                                     </div>
                                                     <div className="min-w-0 flex-1">
                                                         <p className="text-[13px] font-semibold text-text-primary truncate">{q.quotationNumber}</p>
@@ -223,8 +223,8 @@ export default function HeaderControls() {
                                                     onClick={() => setActiveDropdown(null)}
                                                     className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-bg-hover transition-colors"
                                                 >
-                                                    <div className="w-8 h-8 rounded bg-[#EFF6FF] flex items-center justify-center shrink-0">
-                                                        <File className="w-3.5 h-3.5 text-[#2563EB]" />
+                                                    <div className="w-8 h-8 rounded bg-brand-primary/10 flex items-center justify-center shrink-0">
+                                                        <File className="w-3.5 h-3.5 text-brand-primary" />
                                                     </div>
                                                     <div className="min-w-0 flex-1">
                                                         <p className="text-[13px] font-semibold text-text-primary truncate">{q.quotationNumber || 'Draft Quotation'}</p>
@@ -242,10 +242,10 @@ export default function HeaderControls() {
                         
                         <div className="p-2 border-t border-border-subtle bg-bg-muted/30">
                             <Link 
-                                to="/quotations" 
-                                onClick={() => setActiveDropdown(null)}
-                                className="block w-full py-2 text-center text-[12px] font-semibold text-[#4F46E5] hover:bg-bg-hover rounded-lg transition-colors"
-                            >
+                                                to="/quotations" 
+                                                onClick={() => setActiveDropdown(null)}
+                                                className="block w-full py-2 text-center text-[12px] font-semibold text-brand-primary hover:bg-bg-hover rounded-lg transition-colors"
+                                            >
                                 View All Quotations →
                             </Link>
                         </div>
@@ -256,7 +256,7 @@ export default function HeaderControls() {
             {/* Theme Toggle */}
             <button
                 onClick={toggleTheme}
-                className="w-10 h-10 rounded-full bg-bg-card border border-border-subtle flex items-center justify-center text-text-muted hover:text-text-primary hover:shadow-sm transition-all"
+                className="w-10 h-10 rounded-full bg-bg-acx-card border border-border-subtle flex items-center justify-center text-text-muted hover:text-text-primary hover:shadow-sm transition-all"
                 aria-label="Toggle Theme"
                 title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
             >
@@ -275,20 +275,20 @@ export default function HeaderControls() {
                 >
                     <Bell className="w-4 h-4" />
                     {unreadCount > 0 && (
-                        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-[#ef4444] rounded-full border border-white dark:border-[#1E293B] flex items-center justify-center text-[10px] font-bold text-white leading-none">
+                        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-brand-danger rounded-full border border-white dark:border-bg-main flex items-center justify-center text-[10px] font-bold text-white leading-none">
                             {unreadCount > 99 ? '99+' : unreadCount}
                         </span>
                     )}
                 </button>
 
                 {activeDropdown === 'notifications' && (
-                    <div className="absolute right-0 mt-2 w-80 bg-bg-card rounded-2xl shadow-lg border border-border-subtle overflow-hidden z-50 animate-in slide-in-from-top-2 duration-200">
+                    <div className="absolute right-0 mt-2 w-80 bg-bg-acx-card rounded-2xl shadow-lg border border-border-subtle overflow-hidden z-50 animate-in slide-in-from-top-2 duration-200">
                         <div className="px-4 py-3 border-b border-border-subtle bg-bg-muted/30 flex justify-between items-center">
                             <h3 className="text-sm font-bold text-text-primary">Notifications</h3>
                             {unreadCount > 0 && (
                                 <button 
                                     onClick={markAllAsRead}
-                                    className="text-[10px] font-bold text-[#4F46E5] hover:text-[#4338CA] px-2 py-0.5 rounded-full hover:bg-[#EEF2FF] transition-colors"
+                                    className="text-[10px] font-bold text-brand-primary hover:text-brand-primary/80 px-2 py-0.5 rounded-full hover:bg-brand-primary/10 transition-colors"
                                 >
                                     Mark all read
                                 </button>
@@ -298,7 +298,7 @@ export default function HeaderControls() {
                         <div className="max-h-[350px] overflow-y-auto p-2">
                             {isNotificationsLoading ? (
                                 <div className="flex justify-center items-center py-8">
-                                    <Loader2 className="w-5 h-5 animate-spin text-[#14B8A6]" />
+                                    <Loader2 className="w-5 h-5 animate-spin text-brand-teal" />
                                 </div>
                             ) : notifications && notifications.length > 0 ? (
                                 notifications.map(notification => (
@@ -311,8 +311,8 @@ export default function HeaderControls() {
                                         }}
                                         className={`flex gap-3 p-3 rounded-xl hover:bg-bg-hover transition-colors relative group ${!notification.read ? 'bg-bg-muted/30' : ''}`}
                                     >
-                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${!notification.read ? 'bg-[#EEF2FF]' : 'bg-bg-card border border-border-subtle'}`}>
-                                            <Bell className={`w-3.5 h-3.5 ${!notification.read ? 'text-[#4F46E5]' : 'text-text-muted'}`} />
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${!notification.read ? 'bg-brand-primary/10' : 'bg-bg-card border border-border-subtle'}`}>
+                                            <Bell className={`w-3.5 h-3.5 ${!notification.read ? 'text-brand-primary' : 'text-text-muted'}`} />
                                         </div>
                                         <div className="min-w-0 flex-1">
                                             <p className={`text-[13px] leading-tight ${!notification.read ? 'font-bold text-text-primary' : 'font-semibold text-text-secondary'}`}>
@@ -326,7 +326,7 @@ export default function HeaderControls() {
                                         {!notification.read && (
                                             <button 
                                                 onClick={(e) => markAsRead(notification.id, e)}
-                                                className="absolute right-3 top-3 p-1 rounded-full text-text-muted hover:text-[#4F46E5] hover:bg-[#EEF2FF] opacity-0 group-hover:opacity-100 transition-all"
+                                                className="absolute right-3 top-3 p-1 rounded-full text-text-muted hover:text-brand-primary hover:bg-brand-primary/10 opacity-0 group-hover:opacity-100 transition-all"
                                                 title="Mark as read"
                                             >
                                                 <Check className="w-3.5 h-3.5" />
@@ -355,7 +355,7 @@ export default function HeaderControls() {
                     setActiveDropdown(null);
                     navigate('/settings');
                 }}
-                className="hidden sm:flex w-10 h-10 rounded-full bg-bg-card border border-border-subtle items-center justify-center text-text-muted hover:text-text-primary hover:shadow-sm transition-all"
+                className="hidden sm:flex w-10 h-10 rounded-full bg-bg-acx-card border border-border-subtle items-center justify-center text-text-muted hover:text-text-primary hover:shadow-sm transition-all"
             >
                 <SettingsIcon className="w-4 h-4" />
             </button>
@@ -370,18 +370,18 @@ export default function HeaderControls() {
                             : 'bg-bg-card border-border-subtle hover:bg-bg-hover'
                     }`}
                 >
-                    <div className="w-7 h-7 rounded-full bg-[#EEF2FF] flex items-center justify-center text-[#4F46E5] font-bold text-xs">
+                    <div className="w-7 h-7 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary font-bold text-xs">
                         {getInitials(user?.name)}
                     </div>
                     <ChevronRight className={`w-4 h-4 text-text-muted transition-transform ${activeDropdown === 'profile' ? '-rotate-90' : 'rotate-90'}`} />
                 </div>
 
                 {activeDropdown === 'profile' && (
-                    <div className="absolute top-full right-0 mt-3 w-64 bg-bg-card rounded-2xl shadow-lg border border-border-subtle overflow-hidden z-50 animate-in slide-in-from-top-2 duration-200">
+                    <div className="absolute top-full right-0 mt-3 w-64 bg-bg-acx-card rounded-2xl shadow-lg border border-border-subtle overflow-hidden z-50 animate-in slide-in-from-top-2 duration-200">
                         <div className="px-4 py-4 border-b border-border-subtle bg-bg-muted/30">
                             <p className="text-sm font-bold text-text-primary truncate">{user?.name || 'Admin User'}</p>
                             <p className="text-[12px] text-text-secondary truncate mt-0.5">{user?.email}</p>
-                            <div className="mt-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-[#E0E7FF] text-[#4338CA]">
+                            <div className="mt-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-brand-primary/10 text-brand-primary">
                                 {user?.role?.replace('_', ' ')}
                             </div>
                         </div>

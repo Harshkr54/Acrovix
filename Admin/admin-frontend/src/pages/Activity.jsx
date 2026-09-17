@@ -38,14 +38,14 @@ export default function Activity() {
             case 'QUOTATION':
                 return {
                     Icon: FileText,
-                    badgeStyle: 'bg-[#F5F3FF] text-[#7C3AED] border-[#C4B5FD]/30',
-                    iconBg: 'bg-[#F5F3FF] text-[#7C3AED]'
+                    badgeStyle: 'bg-purple-50 text-purple-600 border-[#C4B5FD]/30',
+                    iconBg: 'bg-purple-50 text-purple-600'
                 };
             case 'ENQUIRY':
                 return {
                     Icon: MessageSquare,
-                    badgeStyle: 'bg-[#EFF6FF] text-[#2563EB] border-[#93C5FD]/30',
-                    iconBg: 'bg-[#EFF6FF] text-[#2563EB]'
+                    badgeStyle: 'bg-brand-primary/10 text-brand-primary border-[#93C5FD]/30',
+                    iconBg: 'bg-brand-primary/10 text-brand-primary'
                 };
             case 'USER':
                 return {
@@ -56,8 +56,8 @@ export default function Activity() {
             default:
                 return {
                     Icon: ActivityIcon,
-                    badgeStyle: 'bg-[#F0FDFA] text-[#0D9488] border-[#99F6E4]/30',
-                    iconBg: 'bg-[#F0FDFA] text-[#0D9488]'
+                    badgeStyle: 'bg-[#F0FDFA] text-brand-teal border-[#99F6E4]/30',
+                    iconBg: 'bg-[#F0FDFA] text-brand-teal'
                 };
         }
     };
@@ -74,7 +74,7 @@ export default function Activity() {
             </div>
 
             {/* Main Content Area */}
-            <div className="card flex flex-col min-h-[400px]">
+            <div className="acx-acx-card flex flex-col min-h-[400px]">
                 {error ? (
                     <div className="p-12 flex flex-col items-center justify-center text-center">
                         <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mb-4">
@@ -82,14 +82,14 @@ export default function Activity() {
                         </div>
                         <h3 className="text-base font-bold text-text-primary mb-1">Failed to load activity logs</h3>
                         <p className="text-xs text-text-secondary mb-6 max-w-sm">{error}</p>
-                        <button onClick={fetchActivities} className="btn-primary flex items-center shadow-sm text-xs py-2 px-4">
+                        <button onClick={fetchActivities} className="acx-btn-primary flex items-center shadow-sm text-xs py-2 px-4">
                             <RefreshCw className="w-4 h-4 mr-2" />
                             Retry
                         </button>
                     </div>
                 ) : isLoading ? (
                     <div className="p-16 flex flex-col items-center justify-center">
-                        <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-[#14B8A6] mb-3"></div>
+                        <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-brand-teal mb-3"></div>
                         <span className="text-xs font-medium text-text-muted">Loading activities...</span>
                     </div>
                 ) : activities.length === 0 ? (
@@ -151,7 +151,7 @@ export default function Activity() {
                         </div>
 
                         {/* Pagination Footer */}
-                        <div className="px-6 py-4 border-t border-border-subtle/50 flex flex-col sm:flex-row items-center justify-between rounded-b-[24px] bg-bg-card">
+                        <div className="px-6 py-4 border-t border-border-subtle/50 flex flex-col sm:flex-row items-center justify-between rounded-b-[24px] bg-bg-acx-card">
                             <p className="text-[12px] text-text-muted font-medium mb-4 sm:mb-0">
                                 Showing <span className="font-bold text-text-primary">{totalElements === 0 ? 0 : currentPage * itemsPerPage + 1}</span> to <span className="font-bold text-text-primary">{Math.min((currentPage + 1) * itemsPerPage, totalElements)}</span> of <span className="font-bold text-text-primary">{totalElements}</span> activities
                             </p>
@@ -159,7 +159,7 @@ export default function Activity() {
                                 <button
                                     disabled={currentPage === 0 || isLoading}
                                     onClick={() => setCurrentPage(p => p - 1)}
-                                    className="inline-flex items-center px-3 py-1.5 bg-bg-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-lg text-[12px] font-semibold text-text-primary transition-colors shadow-sm"
+                                    className="inline-flex items-center px-3 py-1.5 bg-bg-acx-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-lg text-[12px] font-semibold text-text-primary transition-colors shadow-sm"
                                 >
                                     <ChevronLeft className="w-3.5 h-3.5 mr-1" />
                                     Prev
@@ -167,7 +167,7 @@ export default function Activity() {
                                 <button
                                     disabled={currentPage >= totalPages - 1 || isLoading}
                                     onClick={() => setCurrentPage(p => p + 1)}
-                                    className="inline-flex items-center px-3 py-1.5 bg-bg-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-lg text-[12px] font-semibold text-text-primary transition-colors shadow-sm"
+                                    className="inline-flex items-center px-3 py-1.5 bg-bg-acx-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-lg text-[12px] font-semibold text-text-primary transition-colors shadow-sm"
                                 >
                                     Next
                                     <ChevronRight className="w-3.5 h-3.5 ml-1" />

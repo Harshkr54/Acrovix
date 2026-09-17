@@ -124,7 +124,7 @@ export default function QuotationColumnConfigModal({ isOpen, onClose, activeConf
 
     return (
         <div className="fixed inset-0 bg-text-primary/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-            <div className="card p-6 md:p-8 max-w-2xl w-full border border-border-subtle shadow-2xl relative animate-in fade-in zoom-in-95 duration-200 my-8">
+            <div className="acx-acx-card p-6 md:p-8 max-w-2xl w-full border border-border-subtle shadow-2xl relative animate-in fade-in zoom-in-95 duration-200 my-8">
                 <button
                     onClick={onClose}
                     className="absolute top-5 right-5 p-2 text-text-muted hover:text-text-primary hover:bg-bg-hover rounded-xl transition-colors"
@@ -148,7 +148,7 @@ export default function QuotationColumnConfigModal({ isOpen, onClose, activeConf
                                     key={config.columnKey}
                                     className={`flex items-center justify-between p-2.5 rounded-lg border transition-all ${
                                         draggedIndex === index 
-                                        ? 'bg-bg-hover border-[#4F46E5]/30 opacity-50' 
+                                        ? 'bg-bg-hover border-[var(--color-brand-primary)]/30 opacity-50' 
                                         : 'bg-bg-card border-transparent hover:border-border-subtle hover:shadow-sm'
                                     } ${!config.visible ? 'opacity-60' : ''}`}
                                     onDragOver={(e) => handleDragOver(e, index)}
@@ -183,7 +183,7 @@ export default function QuotationColumnConfigModal({ isOpen, onClose, activeConf
                                         
                                         <button 
                                             onClick={() => toggleVisibility(index)}
-                                            className={`p-1.5 rounded-lg transition-colors ${config.visible ? 'text-[#14B8A6] hover:bg-[#14B8A6]/10' : 'text-text-muted hover:bg-bg-hover'}`}
+                                            className={`p-1.5 rounded-lg transition-colors ${config.visible ? 'text-brand-teal hover:bg-[#14B8A6]/10' : 'text-text-muted hover:bg-bg-hover'}`}
                                             title={config.visible ? "Hide Column" : "Show Column"}
                                         >
                                             {config.visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
@@ -192,7 +192,7 @@ export default function QuotationColumnConfigModal({ isOpen, onClose, activeConf
                                         {config.isCustom && (
                                             <button 
                                                 onClick={() => removeCustomColumn(index)}
-                                                className="p-1.5 text-[#DC2626] hover:bg-[#DC2626]/10 rounded-lg transition-colors ml-1"
+                                                className="p-1.5 text-brand-danger hover:bg-[#DC2626]/10 rounded-lg transition-colors ml-1"
                                                 title="Remove Custom Column"
                                             >
                                                 <Trash2 className="w-4 h-4" />
@@ -214,12 +214,12 @@ export default function QuotationColumnConfigModal({ isOpen, onClose, activeConf
                                 value={newColumnName}
                                 onChange={(e) => { setNewColumnName(e.target.value); setError(null); }}
                                 placeholder="Column Name (e.g. Warranty)"
-                                className="flex-1 bg-bg-card border border-border-subtle focus:border-[#4F46E5] rounded-lg px-3 py-2 text-[13px] font-medium text-text-primary outline-none"
+                                className="flex-1 bg-bg-acx-card border border-border-subtle focus:border-[var(--color-brand-primary)] rounded-lg px-3 py-2 text-[13px] font-medium text-text-primary outline-none"
                             />
                             <select 
                                 value={newColumnType}
                                 onChange={(e) => setNewColumnType(e.target.value)}
-                                className="w-32 bg-bg-card border border-border-subtle focus:border-[#4F46E5] rounded-lg px-3 py-2 text-[13px] font-medium text-text-primary outline-none"
+                                className="w-32 bg-bg-acx-card border border-border-subtle focus:border-[var(--color-brand-primary)] rounded-lg px-3 py-2 text-[13px] font-medium text-text-primary outline-none"
                             >
                                 <option value="TEXT">Text</option>
                                 <option value="NUMBER">Number</option>
@@ -228,7 +228,7 @@ export default function QuotationColumnConfigModal({ isOpen, onClose, activeConf
                             <button 
                                 onClick={handleAddCustomColumn}
                                 disabled={!newColumnName.trim()}
-                                className="inline-flex items-center justify-center px-4 py-2 bg-bg-card hover:bg-bg-hover border border-border-subtle rounded-lg text-[13px] font-semibold text-text-primary transition-colors disabled:opacity-50"
+                                className="inline-flex items-center justify-center px-4 py-2 bg-bg-acx-card hover:bg-bg-hover border border-border-subtle rounded-lg text-[13px] font-semibold text-text-primary transition-colors disabled:opacity-50"
                             >
                                 <Plus className="w-4 h-4 mr-1.5" /> Add
                             </button>
@@ -244,13 +244,13 @@ export default function QuotationColumnConfigModal({ isOpen, onClose, activeConf
                 <div className="flex items-center justify-end space-x-3 mt-8 pt-4 border-t border-border-subtle/50">
                     <button
                         onClick={onClose}
-                        className="px-4 py-2.5 bg-bg-card hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors"
+                        className="px-4 py-2.5 bg-bg-acx-card hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleApply}
-                        className="btn-primary flex items-center px-6 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]"
+                        className="acx-btn-primary flex items-center px-6 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]"
                     >
                         Apply Config
                     </button>

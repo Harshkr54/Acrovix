@@ -124,10 +124,10 @@ export default function CreateLeadModal({ isOpen, onClose, onSuccess, initialEnq
 
     return (
         <div className="fixed inset-0 bg-text-primary/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-            <div className="bg-bg-card border border-border-subtle rounded-2xl shadow-xl w-full max-w-2xl my-8 overflow-hidden">
+            <div className="bg-bg-acx-card border border-border-subtle rounded-2xl shadow-xl w-full max-w-2xl my-8 overflow-hidden">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-bg-main">
                     <div className="flex items-center gap-2.5">
-                        <Target className="w-5 h-5 text-[#0D9488]" />
+                        <Target className="w-5 h-5 text-brand-teal" />
                         <h2 className="text-lg font-bold text-text-primary">
                             {initialEnquiry ? `Convert Enquiry #${initialEnquiry.referenceId || initialEnquiry.id} to Lead` : 'Create New CRM Lead'}
                         </h2>
@@ -343,7 +343,7 @@ export default function CreateLeadModal({ isOpen, onClose, onSuccess, initialEnq
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="inline-flex items-center gap-2 px-5 py-2 text-sm font-semibold bg-[#0D9488] hover:bg-[#0B7A70] text-white rounded-xl transition-all shadow-sm disabled:opacity-50"
+                            className="inline-flex items-center gap-2 px-5 py-2 text-sm font-semibold bg-brand-teal hover:bg-[#0B7A70] text-white rounded-xl transition-all shadow-sm disabled:opacity-50"
                         >
                             {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
                             Create Lead

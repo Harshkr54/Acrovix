@@ -78,9 +78,9 @@ export default function UserList() {
     if (currentUser?.role !== 'SUPER_ADMIN') {
         return (
             <div className="flex flex-col items-center justify-center h-[70vh]">
-                <div className="card p-8 text-center max-w-md w-full border-t-4 border-[#DC2626]">
-                    <div className="w-16 h-16 bg-[#FEF2F2] border border-[#FCA5A5] mx-auto rounded-[20px] flex items-center justify-center mb-6 shadow-sm">
-                        <ShieldAlert className="w-8 h-8 text-[#DC2626]" />
+                <div className="acx-acx-card p-8 text-center max-w-md w-full border-t-4 border-[#DC2626]">
+                    <div className="w-16 h-16 bg-brand-danger/10 border border-brand-danger/30 mx-auto rounded-[20px] flex items-center justify-center mb-6 shadow-sm">
+                        <ShieldAlert className="w-8 h-8 text-brand-danger" />
                     </div>
                     <h2 className="text-[20px] font-bold text-text-primary mb-2 tracking-tight">Unauthorized Access</h2>
                     <p className="text-[13px] text-text-secondary">Only Super Admins have permission to view and manage users.</p>
@@ -96,33 +96,33 @@ export default function UserList() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
                 <div>
                     <h1 className="text-[28px] font-bold text-text-primary tracking-tight leading-tight flex items-center">
-                        <Users className="w-7 h-7 mr-3 text-[#14B8A6]" />
+                        <Users className="w-7 h-7 mr-3 text-brand-teal" />
                         Admin Users
                     </h1>
                     <p className="text-[13px] text-text-secondary mt-1">Manage system administrators and roles.</p>
                 </div>
                 <button 
                     onClick={() => setShowForm(!showForm)}
-                    className={showForm ? "inline-flex items-center px-4 py-2.5 bg-bg-card hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors shadow-sm" : "btn-primary flex items-center px-4 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]"}
+                    className={showForm ? "inline-flex items-center px-4 py-2.5 bg-bg-card hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors shadow-sm" : "acx-btn-primary flex items-center px-4 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]"}
                 >
                     {showForm ? 'Cancel' : <><UserPlus className="w-4 h-4 mr-2" /> Create User</>}
                 </button>
             </div>
 
             {showForm && (
-                <div className="card p-6 md:p-8 border border-[#4F46E5]/20 mb-6 relative overflow-hidden group">
-                    <div className="absolute -right-8 -top-8 text-[#4F46E5]/5 pointer-events-none transition-transform group-hover:scale-110 duration-700">
+                <div className="acx-acx-card p-6 md:p-8 border border-[var(--color-brand-primary)]/20 mb-6 relative overflow-hidden group">
+                    <div className="absolute -right-8 -top-8 text-[var(--color-brand-primary)]/5 pointer-events-none transition-transform group-hover:scale-110 duration-700">
                         <Shield className="w-48 h-48" />
                     </div>
                     <h2 className="text-[14px] font-bold text-text-primary mb-6 flex items-center relative z-10 tracking-tight">
-                        <UserPlus className="w-4 h-4 mr-2 text-[#4F46E5]" />
+                        <UserPlus className="w-4 h-4 mr-2 text-[var(--color-brand-primary)]" />
                         Add New Admin User
                     </h2>
                     <form onSubmit={handleCreate} className="space-y-6 max-w-2xl relative z-10">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">Full Name</label>
-                                <input required type="text" value={name} onChange={e => setName(e.target.value)} className="input-field rounded-xl text-[13px] bg-bg-main h-11" placeholder="John Doe" />
+                                <input required type="text" value={name} onChange={e => setName(e.target.value)} className="acx-input rounded-xl text-[13px] bg-bg-main h-11" placeholder="John Doe" />
                             </div>
                             <div>
                                 <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">Email Address</label>
@@ -130,7 +130,7 @@ export default function UserList() {
                                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                         <Mail className="h-4 w-4 text-text-muted" />
                                     </div>
-                                    <input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="input-field pl-11 rounded-xl text-[13px] bg-bg-main h-11" placeholder="admin@acrovix.com" />
+                                    <input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="acx-input pl-11 rounded-xl text-[13px] bg-bg-main h-11" placeholder="admin@acrovix.com" />
                                 </div>
                             </div>
                         </div>
@@ -141,7 +141,7 @@ export default function UserList() {
                                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                         <Lock className="h-4 w-4 text-text-muted" />
                                     </div>
-                                    <input required type="password" value={password} onChange={e => setPassword(e.target.value)} className="input-field pl-11 rounded-xl text-[13px] bg-bg-main h-11" placeholder="••••••••" />
+                                    <input required type="password" value={password} onChange={e => setPassword(e.target.value)} className="acx-input pl-11 rounded-xl text-[13px] bg-bg-main h-11" placeholder="••••••••" />
                                 </div>
                             </div>
                             <div>
@@ -150,7 +150,7 @@ export default function UserList() {
                                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                         <Shield className="h-4 w-4 text-text-muted" />
                                     </div>
-                                    <select value={role} onChange={e => setRole(e.target.value)} className="input-field pl-11 appearance-none rounded-xl text-[13px] bg-bg-main h-11 cursor-pointer">
+                                    <select value={role} onChange={e => setRole(e.target.value)} className="acx-input pl-11 appearance-none rounded-xl text-[13px] bg-bg-main h-11 cursor-pointer">
                                         <option value="SALES">Sales</option>
                                         <option value="SUPER_ADMIN">Super Admin</option>
                                     </select>
@@ -158,7 +158,7 @@ export default function UserList() {
                             </div>
                         </div>
                         <div className="pt-2">
-                            <button type="submit" className="btn-primary w-full sm:w-auto px-8 py-2.5 text-[13px] font-semibold shadow-[0_4px_14px_rgba(79,70,229,0.25)]">
+                            <button type="submit" className="acx-btn-primary w-full sm:w-auto px-8 py-2.5 text-[13px] font-semibold shadow-[0_4px_14px_rgba(79,70,229,0.25)]">
                                 Save User
                             </button>
                         </div>
@@ -166,19 +166,19 @@ export default function UserList() {
                 </div>
             )}
 
-            <div className="card flex flex-col">
-                <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-border-subtle">
+            <div className="acx-acx-card flex flex-col">
+                <div className="acx-table-container">
+                    <table className="acx-table">
                         <thead>
                             <tr>
-                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card rounded-tl-[24px]">Name</th>
-                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Email</th>
-                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Role</th>
-                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Status</th>
-                                <th className="px-6 py-4 text-right text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card rounded-tr-[24px]">Actions</th>
+                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-card rounded-tl-[24px]">Name</th>
+                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-card">Email</th>
+                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-card">Role</th>
+                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-card">Status</th>
+                                <th className="px-6 py-4 text-right text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-card rounded-tr-[24px]">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="bg-bg-card divide-y divide-border-subtle/40 rounded-b-[24px]">
+                        <tbody className="bg-bg-acx-card divide-y divide-border-subtle/40 rounded-b-[24px]">
                             {error ? (
                                 <tr>
                                     <td colSpan="5" className="px-6 py-20 text-center">
@@ -188,7 +188,7 @@ export default function UserList() {
                                             </div>
                                             <p className="text-[15px] font-bold text-text-primary">Failed to load users</p>
                                             <p className="text-[13px] text-text-secondary leading-relaxed">{error}</p>
-                                            <button onClick={fetchUsers} className="btn-primary mt-2">
+                                            <button onClick={fetchUsers} className="acx-btn-primary mt-2">
                                                 <RefreshCw className="w-4 h-4 mr-2" />
                                                 Retry
                                             </button>
@@ -199,7 +199,7 @@ export default function UserList() {
                                 <tr>
                                     <td colSpan="5" className="px-6 py-16 text-center">
                                         <div className="flex justify-center mb-4">
-                                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#14B8A6]"></div>
+                                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-teal"></div>
                                         </div>
                                         <p className="text-[13px] font-medium text-text-muted">Loading users...</p>
                                     </td>
@@ -224,7 +224,7 @@ export default function UserList() {
                                                 value={u.role} 
                                                 onChange={(e) => changeRole(u.id, e.target.value)}
                                                 disabled={u.email === currentUser.email}
-                                                className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md border border-border-subtle bg-bg-main text-text-primary appearance-none outline-none focus:border-[#14B8A6] disabled:opacity-50 disabled:border-transparent transition-colors cursor-pointer"
+                                                className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md border border-border-subtle bg-bg-main text-text-primary appearance-none outline-none focus:border-brand-teal disabled:opacity-50 disabled:border-transparent transition-colors cursor-pointer"
                                             >
                                                 <option value="SALES">Sales</option>
                                                 <option value="SUPER_ADMIN">Super Admin</option>
@@ -232,12 +232,12 @@ export default function UserList() {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap align-top">
                                             {u.enabled ? (
-                                                <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-[#059669]">
+                                                <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-brand-success">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5"></span>
                                                     Active
                                                 </span>
                                             ) : (
-                                                <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-[#DC2626]">
+                                                <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-brand-danger">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5"></span>
                                                     Disabled
                                                 </span>
@@ -247,7 +247,7 @@ export default function UserList() {
                                             <button 
                                                 onClick={() => toggleStatus(u.id, u.enabled)}
                                                 disabled={u.email === currentUser.email}
-                                                className={`text-[12px] font-semibold transition-colors ${u.enabled ? 'text-[#DC2626] hover:text-[#B91C1C]' : 'text-[#4F46E5] hover:text-[#4338CA]'} disabled:opacity-30 disabled:cursor-not-allowed`}
+                                                className={`text-[12px] font-semibold transition-colors ${u.enabled ? 'text-brand-danger hover:text-[#B91C1C]' : 'text-[var(--color-brand-primary)] hover:text-brand-primary/90'} disabled:opacity-30 disabled:cursor-not-allowed`}
                                             >
                                                 {u.enabled ? 'Disable' : 'Enable'}
                                             </button>

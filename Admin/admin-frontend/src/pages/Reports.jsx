@@ -144,10 +144,10 @@ export default function Reports() {
     return (
         <div className="p-6 max-w-7xl mx-auto space-y-6">
             {/* Header section */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-bg-card p-6 rounded-2xl border border-border-subtle shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-bg-acx-card p-6 rounded-2xl border border-border-subtle shadow-sm">
                 <div>
                     <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2.5">
-                        <BarChart3 className="w-7 h-7 text-[#0D9488]" />
+                        <BarChart3 className="w-7 h-7 text-brand-teal" />
                         Reports & Business Analytics
                     </h1>
                     <p className="text-sm text-text-secondary mt-1">
@@ -159,7 +159,7 @@ export default function Reports() {
                     <button
                         onClick={() => handleExportCsv(activeTab === 'CUSTOMERS' ? 'CUSTOMERS' : activeTab === 'QUOTATIONS' ? 'QUOTATIONS' : activeTab === 'PAYMENTS' ? 'PAYMENTS' : 'SUMMARY')}
                         disabled={isExporting || isLoading}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-[#0D9488] hover:bg-[#0B7A70] text-white text-sm font-medium rounded-xl transition-all shadow-sm disabled:opacity-50"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-brand-teal hover:bg-[#0B7A70] text-white text-sm font-medium rounded-xl transition-all shadow-sm disabled:opacity-50"
                     >
                         {isExporting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                         Export CSV
@@ -176,10 +176,10 @@ export default function Reports() {
             </div>
 
             {/* Date Range Filter Bar */}
-            <div className="bg-bg-card p-4 rounded-2xl border border-border-subtle shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="bg-bg-acx-card p-4 rounded-2xl border border-border-subtle shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex flex-wrap items-center gap-3">
                     <label className="text-xs font-semibold uppercase text-text-muted flex items-center gap-1.5">
-                        <Calendar className="w-4 h-4 text-[#0D9488]" />
+                        <Calendar className="w-4 h-4 text-brand-teal" />
                         Date Period:
                     </label>
                     <select
@@ -209,7 +209,7 @@ export default function Reports() {
                             />
                             <button
                                 type="submit"
-                                className="px-3 py-1.5 bg-[#0D9488] text-white text-xs font-semibold rounded-xl hover:bg-[#0B7A70] transition-colors"
+                                className="px-3 py-1.5 bg-brand-teal text-white text-xs font-semibold rounded-xl hover:bg-[#0B7A70] transition-colors"
                             >
                                 Apply
                             </button>
@@ -233,7 +233,7 @@ export default function Reports() {
 
             {/* ERROR STATE WITH RETRY */}
             {error ? (
-                <div className="bg-bg-card p-8 rounded-2xl border border-border-subtle shadow-sm text-center space-y-4">
+                <div className="bg-bg-acx-card p-8 rounded-2xl border border-border-subtle shadow-sm text-center space-y-4">
                     <div className="w-12 h-12 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center mx-auto">
                         <AlertCircle className="w-6 h-6" />
                     </div>
@@ -243,7 +243,7 @@ export default function Reports() {
                     </p>
                     <button
                         onClick={fetchAllReports}
-                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0D9488] text-white text-sm font-semibold rounded-xl hover:bg-[#0B7A70] transition-colors shadow-sm"
+                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-teal text-white text-sm font-semibold rounded-xl hover:bg-[#0B7A70] transition-colors shadow-sm"
                     >
                         <RefreshCw className="w-4 h-4" />
                         Retry
@@ -251,15 +251,15 @@ export default function Reports() {
                 </div>
             ) : isLoading ? (
                 /* LOADING STATE */
-                <div className="bg-bg-card p-12 rounded-2xl border border-border-subtle shadow-sm text-center space-y-4">
-                    <RefreshCw className="w-8 h-8 text-[#0D9488] animate-spin mx-auto" />
+                <div className="bg-bg-acx-card p-12 rounded-2xl border border-border-subtle shadow-sm text-center space-y-4">
+                    <RefreshCw className="w-8 h-8 text-brand-teal animate-spin mx-auto" />
                     <p className="text-sm font-medium text-text-secondary">Aggregating business performance metrics...</p>
                 </div>
             ) : (
                 <>
                     {/* KPI CARDS SUMMARY */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div className="bg-bg-card p-5 rounded-2xl border border-border-subtle shadow-sm">
+                        <div className="bg-bg-acx-card p-5 rounded-2xl border border-border-subtle shadow-sm">
                             <div className="flex items-center justify-between text-text-muted mb-2">
                                 <span className="text-xs font-semibold uppercase tracking-wider">Total Enquiries</span>
                                 <FileText className="w-5 h-5 text-blue-500" />
@@ -270,20 +270,20 @@ export default function Reports() {
                             <div className="text-xs text-text-muted mt-1">Total leads received</div>
                         </div>
 
-                        <div className="bg-bg-card p-5 rounded-2xl border border-border-subtle shadow-sm">
+                        <div className="bg-bg-acx-card p-5 rounded-2xl border border-border-subtle shadow-sm">
                             <div className="flex items-center justify-between text-text-muted mb-2">
                                 <span className="text-xs font-semibold uppercase tracking-wider">Quotation Value</span>
-                                <FileText className="w-5 h-5 text-[#0D9488]" />
+                                <FileText className="w-5 h-5 text-brand-teal" />
                             </div>
                             <div className="text-2xl font-bold text-text-primary">
                                 {formatCurrency(summary?.totalQuotationValue)}
                             </div>
                             <div className="text-xs text-text-muted mt-1">
-                                Accepted: <span className="text-[#0D9488] font-semibold">{formatCurrency(summary?.acceptedQuotationValue)}</span>
+                                Accepted: <span className="text-brand-teal font-semibold">{formatCurrency(summary?.acceptedQuotationValue)}</span>
                             </div>
                         </div>
 
-                        <div className="bg-bg-card p-5 rounded-2xl border border-border-subtle shadow-sm">
+                        <div className="bg-bg-acx-card p-5 rounded-2xl border border-border-subtle shadow-sm">
                             <div className="flex items-center justify-between text-text-muted mb-2">
                                 <span className="text-xs font-semibold uppercase tracking-wider">PO Value</span>
                                 <ShoppingCart className="w-5 h-5 text-indigo-500" />
@@ -296,7 +296,7 @@ export default function Reports() {
                             </div>
                         </div>
 
-                        <div className="bg-bg-card p-5 rounded-2xl border border-border-subtle shadow-sm">
+                        <div className="bg-bg-acx-card p-5 rounded-2xl border border-border-subtle shadow-sm">
                             <div className="flex items-center justify-between text-text-muted mb-2">
                                 <span className="text-xs font-semibold uppercase tracking-wider">Total Invoiced</span>
                                 <DollarSign className="w-5 h-5 text-emerald-500" />
@@ -309,7 +309,7 @@ export default function Reports() {
                             </div>
                         </div>
 
-                        <div className="bg-bg-card p-5 rounded-2xl border border-border-subtle shadow-sm">
+                        <div className="bg-bg-acx-card p-5 rounded-2xl border border-border-subtle shadow-sm">
                             <div className="flex items-center justify-between text-text-muted mb-2">
                                 <span className="text-xs font-semibold uppercase tracking-wider">Total Received</span>
                                 <CreditCard className="w-5 h-5 text-emerald-600" />
@@ -320,7 +320,7 @@ export default function Reports() {
                             <div className="text-xs text-text-muted mt-1">Recorded payments</div>
                         </div>
 
-                        <div className="bg-bg-card p-5 rounded-2xl border border-border-subtle shadow-sm">
+                        <div className="bg-bg-acx-card p-5 rounded-2xl border border-border-subtle shadow-sm">
                             <div className="flex items-center justify-between text-text-muted mb-2">
                                 <span className="text-xs font-semibold uppercase tracking-wider">Outstanding</span>
                                 <Clock className="w-5 h-5 text-amber-500" />
@@ -331,7 +331,7 @@ export default function Reports() {
                             <div className="text-xs text-text-muted mt-1">Balance to collect</div>
                         </div>
 
-                        <div className="bg-bg-card p-5 rounded-2xl border border-border-subtle shadow-sm">
+                        <div className="bg-bg-acx-card p-5 rounded-2xl border border-border-subtle shadow-sm">
                             <div className="flex items-center justify-between text-text-muted mb-2">
                                 <span className="text-xs font-semibold uppercase tracking-wider">Overdue</span>
                                 <AlertCircle className="w-5 h-5 text-red-500" />
@@ -358,7 +358,7 @@ export default function Reports() {
                                 onClick={() => setActiveTab(t.id)}
                                 className={`px-4 py-2.5 text-sm font-semibold whitespace-nowrap transition-colors border-b-2 -mb-px ${
                                     activeTab === t.id
-                                        ? 'border-[#0D9488] text-[#0D9488]'
+                                        ? 'border-[#0D9488] text-brand-teal'
                                         : 'border-transparent text-text-muted hover:text-text-primary'
                                 }`}
                             >
@@ -369,10 +369,10 @@ export default function Reports() {
 
                     {/* OVERVIEW / MONTHLY TRENDS */}
                     {activeTab === 'OVERVIEW' && (
-                        <div className="bg-bg-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-6">
+                        <div className="bg-bg-acx-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-6">
                             <div className="flex items-center justify-between">
                                 <h3 className="text-base font-bold text-text-primary flex items-center gap-2">
-                                    <TrendingUp className="w-5 h-5 text-[#0D9488]" />
+                                    <TrendingUp className="w-5 h-5 text-brand-teal" />
                                     Monthly Revenue & Quotation Trends
                                 </h3>
                                 <span className="text-xs text-text-muted">Values in INR (₹)</span>
@@ -403,7 +403,7 @@ export default function Reports() {
                                                         <span>{t.month}</span>
                                                         <div className="flex gap-4 text-xs font-normal text-text-muted">
                                                             <span>Quotations: <strong className="text-blue-500">{formatCurrency(t.quotationValue)}</strong></span>
-                                                            <span>Invoiced: <strong className="text-[#0D9488]">{formatCurrency(t.invoiceValue)}</strong></span>
+                                                            <span>Invoiced: <strong className="text-brand-teal">{formatCurrency(t.invoiceValue)}</strong></span>
                                                             <span>Received: <strong className="text-emerald-500">{formatCurrency(t.paymentValue)}</strong></span>
                                                         </div>
                                                     </div>
@@ -421,7 +421,7 @@ export default function Reports() {
                                                         <div className="flex items-center gap-2 text-xs">
                                                             <span className="w-16 text-text-muted font-medium text-[11px]">Invoiced</span>
                                                             <div className="flex-1 bg-border-subtle/40 h-2.5 rounded-full overflow-hidden">
-                                                                <div className="bg-[#0D9488] h-full rounded-full transition-all duration-500" style={{ width: `${iPct}%` }} />
+                                                                <div className="bg-brand-teal h-full rounded-full transition-all duration-500" style={{ width: `${iPct}%` }} />
                                                             </div>
                                                         </div>
 
@@ -445,7 +445,7 @@ export default function Reports() {
                     {/* QUOTATION ANALYTICS */}
                     {activeTab === 'QUOTATIONS' && quotations && (
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            <div className="lg:col-span-1 bg-bg-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-4">
+                            <div className="lg:col-span-1 bg-bg-acx-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-4">
                                 <h3 className="text-base font-bold text-text-primary border-b border-border-subtle pb-3">
                                     Quotation Financial Summary
                                 </h3>
@@ -469,7 +469,7 @@ export default function Reports() {
                                 </div>
                             </div>
 
-                            <div className="lg:col-span-2 bg-bg-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-4">
+                            <div className="lg:col-span-2 bg-bg-acx-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-4">
                                 <h3 className="text-base font-bold text-text-primary border-b border-border-subtle pb-3">
                                     Quotation Status Breakdown
                                 </h3>
@@ -480,7 +480,7 @@ export default function Reports() {
                                         { label: 'Accepted', count: quotations.acceptedCount, color: 'bg-emerald-500' },
                                         { label: 'Rejected', count: quotations.rejectedCount, color: 'bg-red-500' },
                                         { label: 'Revised', count: quotations.revisedCount, color: 'bg-amber-500' },
-                                        { label: 'Converted', count: quotations.convertedCount, color: 'bg-[#0D9488]' }
+                                        { label: 'Converted', count: quotations.convertedCount, color: 'bg-brand-teal' }
                                     ].map((st) => (
                                         <div key={st.label} className="p-4 bg-bg-main rounded-xl border border-border-subtle text-center space-y-1">
                                             <div className="text-xs font-semibold text-text-muted">{st.label}</div>
@@ -501,7 +501,7 @@ export default function Reports() {
                     {/* PURCHASE ORDERS */}
                     {activeTab === 'PURCHASE_ORDERS' && purchaseOrders && (
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            <div className="lg:col-span-1 bg-bg-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-4">
+                            <div className="lg:col-span-1 bg-bg-acx-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-4">
                                 <h3 className="text-base font-bold text-text-primary border-b border-border-subtle pb-3">
                                     PO Financial Summary
                                 </h3>
@@ -514,21 +514,21 @@ export default function Reports() {
                                         <span className="text-sm text-text-muted">Total PO Value</span>
                                         <span className="text-sm font-bold text-text-primary">{formatCurrency(purchaseOrders.totalPoValue)}</span>
                                     </div>
-                                    <div className="flex justify-between items-center py-1 text-[#0D9488]">
+                                    <div className="flex justify-between items-center py-1 text-brand-teal">
                                         <span className="text-sm font-medium">Verified / Active PO Value</span>
                                         <span className="text-sm font-bold">{formatCurrency(purchaseOrders.verifiedPoValue)}</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="lg:col-span-2 bg-bg-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-4">
+                            <div className="lg:col-span-2 bg-bg-acx-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-4">
                                 <h3 className="text-base font-bold text-text-primary border-b border-border-subtle pb-3">
                                     Purchase Order Status Lifecycle
                                 </h3>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                                     {[
                                         { label: 'Received', count: purchaseOrders.receivedCount, color: 'bg-blue-500' },
-                                        { label: 'Verified', count: purchaseOrders.verifiedCount, color: 'bg-[#0D9488]' },
+                                        { label: 'Verified', count: purchaseOrders.verifiedCount, color: 'bg-brand-teal' },
                                         { label: 'Partially Fulfilled', count: purchaseOrders.partiallyFulfilledCount, color: 'bg-amber-500' },
                                         { label: 'Fulfilled', count: purchaseOrders.fulfilledCount, color: 'bg-emerald-500' },
                                         { label: 'Cancelled', count: purchaseOrders.cancelledCount, color: 'bg-red-500' }
@@ -552,7 +552,7 @@ export default function Reports() {
                     {/* INVOICES */}
                     {activeTab === 'INVOICES' && invoices && (
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            <div className="lg:col-span-1 bg-bg-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-4">
+                            <div className="lg:col-span-1 bg-bg-acx-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-4">
                                 <h3 className="text-base font-bold text-text-primary border-b border-border-subtle pb-3">
                                     Invoice Financial Breakdown
                                 </h3>
@@ -592,7 +592,7 @@ export default function Reports() {
                                 </div>
                             </div>
 
-                            <div className="lg:col-span-2 bg-bg-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-4">
+                            <div className="lg:col-span-2 bg-bg-acx-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-4">
                                 <h3 className="text-base font-bold text-text-primary border-b border-border-subtle pb-3">
                                     Invoice Status Summary
                                 </h3>
@@ -623,7 +623,7 @@ export default function Reports() {
 
                     {/* PAYMENTS */}
                     {activeTab === 'PAYMENTS' && payments && (
-                        <div className="bg-bg-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-6">
+                        <div className="bg-bg-acx-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-6">
                             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-border-subtle pb-4">
                                 <div>
                                     <h3 className="text-base font-bold text-text-primary">Payment Collection Breakdown</h3>
@@ -647,7 +647,7 @@ export default function Reports() {
                                         <div key={mb.method} className="p-5 bg-bg-main rounded-xl border border-border-subtle space-y-3">
                                             <div className="flex justify-between items-center">
                                                 <span className="text-sm font-bold text-text-primary">{mb.method}</span>
-                                                <span className="text-xs font-semibold px-2 py-0.5 bg-[#0D9488]/10 text-[#0D9488] rounded-full">
+                                                <span className="text-xs font-semibold px-2 py-0.5 bg-brand-teal/10 text-brand-teal rounded-full">
                                                     {mb.count} payments
                                                 </span>
                                             </div>
@@ -660,7 +660,7 @@ export default function Reports() {
                                                     <span>{pct}%</span>
                                                 </div>
                                                 <div className="w-full bg-border-subtle h-2 rounded-full overflow-hidden">
-                                                    <div className="bg-[#0D9488] h-full rounded-full" style={{ width: `${pct}%` }} />
+                                                    <div className="bg-brand-teal h-full rounded-full" style={{ width: `${pct}%` }} />
                                                 </div>
                                             </div>
                                         </div>
@@ -672,7 +672,7 @@ export default function Reports() {
 
                     {/* CUSTOMERS */}
                     {activeTab === 'CUSTOMERS' && (
-                        <div className="bg-bg-card rounded-2xl border border-border-subtle shadow-sm overflow-hidden">
+                        <div className="bg-bg-acx-card rounded-2xl border border-border-subtle shadow-sm overflow-hidden">
                             <div className="p-6 border-b border-border-subtle flex justify-between items-center">
                                 <div>
                                     <h3 className="text-base font-bold text-text-primary">Customer Business Performance</h3>
@@ -685,7 +685,7 @@ export default function Reports() {
                                     No customer records found.
                                 </div>
                             ) : (
-                                <div className="overflow-x-auto">
+                                <div className="acx-table-container">
                                     <table className="w-full text-left border-collapse">
                                         <thead>
                                             <tr className="bg-bg-main border-b border-border-subtle text-[11px] font-semibold text-text-muted uppercase tracking-wider">

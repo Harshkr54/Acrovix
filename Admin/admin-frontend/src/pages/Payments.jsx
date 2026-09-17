@@ -337,7 +337,7 @@ export default function Payments() {
             </div>
 
             {/* Filter Bar */}
-            <div className="bg-bg-card border border-border-subtle rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="bg-bg-acx-card border border-border-subtle rounded-2xl p-5 shadow-sm space-y-4">
                 <form onSubmit={handleSearchSubmit} className="flex flex-wrap items-center gap-3">
                     {/* Search Input */}
                     <div className="relative flex-1 min-w-[240px]">
@@ -417,7 +417,7 @@ export default function Payments() {
             </div>
 
             {/* Table */}
-            <div className="bg-bg-card border border-border-subtle rounded-2xl overflow-hidden shadow-sm">
+            <div className="bg-bg-acx-card border border-border-subtle rounded-2xl overflow-hidden shadow-sm">
                 {loading ? (
                     <div className="p-12 text-center text-xs text-text-muted flex items-center justify-center gap-2">
                         <Loader2 className="w-4 h-4 animate-spin text-brand-primary" />
@@ -428,7 +428,7 @@ export default function Payments() {
                 ) : payments.length === 0 ? (
                     <div className="p-12 text-center text-xs text-text-muted">No payment records found matching criteria.</div>
                 ) : (
-                    <div className="overflow-x-auto">
+                    <div className="acx-table-container">
                         <table className="w-full text-left border-collapse text-xs">
                             <thead>
                                 <tr className="border-b border-border-subtle text-text-muted bg-bg-main/50 uppercase tracking-wider font-semibold">
@@ -542,7 +542,7 @@ export default function Payments() {
 
                 {/* Pagination Footer */}
                 {totalPages > 1 && (
-                    <div className="flex items-center justify-between px-6 py-4 border-t border-border-subtle bg-bg-card">
+                    <div className="flex items-center justify-between px-6 py-4 border-t border-border-subtle bg-bg-acx-card">
                         <div className="text-xs text-text-muted">
                             Showing page <span className="font-semibold text-text-primary">{page + 1}</span> of <span className="font-semibold text-text-primary">{totalPages}</span> ({totalElements} total entries)
                         </div>
@@ -569,7 +569,7 @@ export default function Payments() {
             {/* Record Payment Modal */}
             {isRecordModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-bg-card border border-border-subtle rounded-2xl w-full max-w-xl flex flex-col max-h-[92vh] overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+                    <div className="bg-bg-acx-card border border-border-subtle rounded-2xl w-full max-w-xl flex flex-col max-h-[92vh] overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
                         {/* Modal Header */}
                         <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle shrink-0">
                             <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
@@ -669,7 +669,7 @@ export default function Payments() {
                                         </div>
 
                                         <div className="grid grid-cols-3 gap-2 text-center pt-1 border-t border-border-subtle">
-                                            <div className="p-2 bg-bg-card rounded-lg border border-border-subtle">
+                                            <div className="p-2 bg-bg-acx-card rounded-lg border border-border-subtle">
                                                 <div className="text-[10px] text-text-muted font-medium">Invoice Total</div>
                                                 <div className="text-xs font-bold text-text-primary mt-0.5">
                                                     {formatCurrency(selectedInvoice.grandTotal || 0, selectedInvoice.currency, 2)}
@@ -801,7 +801,7 @@ export default function Payments() {
                                 </div>
                             </div>
 
-                            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border-subtle bg-bg-card shrink-0">
+                            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border-subtle bg-bg-acx-card shrink-0">
                                 <button
                                     type="button"
                                     onClick={() => setIsRecordModalOpen(false)}
@@ -825,7 +825,7 @@ export default function Payments() {
             {/* View Payment Details Modal */}
             {selectedPayment && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-bg-card border border-border-subtle rounded-2xl w-full max-w-lg flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+                    <div className="bg-bg-acx-card border border-border-subtle rounded-2xl w-full max-w-lg flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
                         <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle shrink-0">
                             <div>
                                 <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
@@ -925,7 +925,7 @@ export default function Payments() {
                             </div>
                         </div>
 
-                        <div className="flex items-center justify-between px-6 py-4 border-t border-border-subtle bg-bg-card shrink-0">
+                        <div className="flex items-center justify-between px-6 py-4 border-t border-border-subtle bg-bg-acx-card shrink-0">
                             {selectedPayment.status === 'RECORDED' ? (
                                 <button
                                     onClick={() => handleOpenCancelModal(selectedPayment)}
@@ -938,7 +938,7 @@ export default function Payments() {
                                 <button
                                     onClick={() => handleSendReceiptEmail(selectedPayment.id)}
                                     disabled={sendingReceiptId === selectedPayment.id}
-                                    className="px-4 py-2 bg-bg-card border border-border-subtle hover:bg-bg-main text-text-primary rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                                    className="px-4 py-2 bg-bg-acx-card border border-border-subtle hover:bg-bg-main text-text-primary rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 disabled:opacity-50"
                                 >
                                     {sendingReceiptId === selectedPayment.id ? (
                                         <><span className="animate-spin w-3.5 h-3.5 border-b-2 border-brand-primary rounded-full inline-block"></span> Sending...</>
@@ -961,7 +961,7 @@ export default function Payments() {
             {/* Cancel Payment Modal */}
             {cancellingPayment && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-bg-card border border-border-subtle rounded-2xl w-full max-w-md flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+                    <div className="bg-bg-acx-card border border-border-subtle rounded-2xl w-full max-w-md flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
                         <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle shrink-0">
                             <h2 className="text-base font-bold text-red-500 flex items-center gap-2">
                                 <AlertCircle className="w-5 h-5" /> Cancel Payment {cancellingPayment.paymentNumber}

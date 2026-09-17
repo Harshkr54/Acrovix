@@ -74,7 +74,7 @@ export default function CrmPipeline() {
     const pageHeaderAction = (
         <button
             onClick={() => setIsCreateModalOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#0D9488] hover:bg-[#0B7A70] text-white text-xs font-semibold rounded-xl transition-all shadow-sm"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-brand-teal hover:bg-[#0B7A70] text-white text-xs font-semibold rounded-xl transition-all shadow-sm"
         >
             <Plus className="w-4 h-4" />
             New Lead
@@ -119,7 +119,7 @@ export default function CrmPipeline() {
                             onClick={() => setMobileActiveStage(stage.key)}
                             className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border shrink-0 ${
                                 isActive 
-                                    ? 'bg-[#0D9488] text-white border-[#0D9488]' 
+                                    ? 'bg-brand-teal text-white border-[#0D9488]' 
                                     : 'bg-bg-card border-border-subtle text-text-secondary hover:text-text-primary'
                             }`}
                         >
@@ -187,14 +187,14 @@ export default function CrmPipeline() {
                                             className="p-3.5 bg-bg-main border border-border-subtle rounded-xl hover:border-[#0D9488] transition-all cursor-pointer shadow-sm space-y-2.5 group"
                                         >
                                             <div className="flex items-center justify-between">
-                                                <span className="text-[11px] font-mono font-bold text-[#0D9488] group-hover:underline">
+                                                <span className="text-[11px] font-mono font-bold text-brand-teal group-hover:underline">
                                                     {lead.leadNumber}
                                                 </span>
                                                 <StatusBadge status={lead.priority} />
                                             </div>
 
                                             <div>
-                                                <h4 className="text-xs font-bold text-text-primary group-hover:text-[#0D9488] transition-colors truncate">
+                                                <h4 className="text-xs font-bold text-text-primary group-hover:text-brand-teal transition-colors truncate">
                                                     {lead.fullName}
                                                 </h4>
                                                 {lead.companyName && (
