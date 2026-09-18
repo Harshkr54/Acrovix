@@ -47,8 +47,8 @@ export default function QuotationHistoryModal({ isOpen, onClose, quotation, onVi
 
     return (
         <div className="fixed inset-0 bg-text-primary/30 backdrop-blur-sm z-[90] flex items-center justify-center p-4">
-            <div className="acx-acx-card w-full max-w-4xl shadow-2xl relative animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
-                <div className="p-6 md:px-8 md:pt-8 md:pb-6 border-b border-border-subtle flex justify-between items-center bg-bg-acx-card rounded-t-[24px]">
+            <div className="acx-card w-full max-w-4xl shadow-2xl relative animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
+                <div className="p-6 md:px-8 md:pt-8 md:pb-6 border-b border-border-subtle flex justify-between items-center bg-bg-card rounded-t-[24px]">
                     <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 bg-indigo-50 border border-indigo-100 flex items-center justify-center rounded-[14px] text-indigo-600">
                             <History className="w-5 h-5" />
@@ -97,7 +97,7 @@ export default function QuotationHistoryModal({ isOpen, onClose, quotation, onVi
                                     <th className="px-6 py-4 text-right text-[11px] font-bold text-text-muted uppercase tracking-wider">Action</th>
                                 </tr>
                             </thead>
-                            <tbody className="bg-bg-acx-card divide-y divide-border-subtle">
+                            <tbody className="bg-bg-card divide-y divide-border-subtle">
                                 {history.map((ver) => (
                                     <tr key={ver.id} className={`hover:bg-bg-hover transition-colors ${ver.id === quotation.id ? 'bg-brand-primary/5' : ''}`}>
                                         <td className="px-6 py-4 whitespace-nowrap text-[13px] font-bold text-text-primary">
@@ -137,7 +137,7 @@ export default function QuotationHistoryModal({ isOpen, onClose, quotation, onVi
                     )}
                 </div>
 
-                <div className="p-6 border-t border-border-subtle bg-bg-acx-card rounded-b-[24px] flex justify-end">
+                <div className="p-6 border-t border-border-subtle bg-bg-card rounded-b-[24px] flex justify-end">
                     <button 
                         onClick={onClose}
                         className="px-5 py-2.5 bg-bg-main hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors shadow-sm"

@@ -98,7 +98,7 @@ export default function CrmFollowUps() {
             </div>
 
             {/* Main Content Area */}
-            <div className="bg-bg-acx-card border border-border-subtle rounded-2xl shadow-sm p-6 space-y-4">
+            <div className="bg-bg-card border border-border-subtle rounded-2xl shadow-sm p-6 space-y-4">
                 {loading ? (
                     <EmptyState loading message="Loading follow-ups schedule..." />
                 ) : error ? (

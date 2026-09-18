@@ -121,7 +121,7 @@ export default function CrmDashboard() {
 
             {/* Metrics Cards Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-bg-acx-acx-acx-acx-card border border-border-subtle rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
+                <div className="bg-bg-card border border-border-subtle rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
                     <div className="flex items-center justify-between">
                         <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">Total Leads</span>
                         <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
@@ -134,7 +134,7 @@ export default function CrmDashboard() {
                     </div>
                 </div>
 
-                <div className="bg-bg-acx-acx-acx-acx-card border border-border-subtle rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
+                <div className="bg-bg-card border border-border-subtle rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
                     <div className="flex items-center justify-between">
                         <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">Open Opportunities</span>
                         <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
@@ -147,7 +147,7 @@ export default function CrmDashboard() {
                     </div>
                 </div>
 
-                <div className="bg-bg-acx-acx-acx-acx-card border border-border-subtle rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
+                <div className="bg-bg-card border border-border-subtle rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
                     <div className="flex items-center justify-between">
                         <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">Pipeline Value</span>
                         <div className="w-9 h-9 rounded-xl bg-brand-teal/10 text-brand-teal flex items-center justify-center">
@@ -171,7 +171,7 @@ export default function CrmDashboard() {
                     </div>
                 </div>
 
-                <div className="bg-bg-acx-acx-acx-acx-card border border-border-subtle rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
+                <div className="bg-bg-card border border-border-subtle rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
                     <div className="flex items-center justify-between">
                         <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">Won Revenue</span>
                         <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
@@ -197,7 +197,7 @@ export default function CrmDashboard() {
             </div>
 
             {/* Pipeline Status Breakdown */}
-            <div className="bg-bg-acx-acx-acx-acx-card border border-border-subtle rounded-2xl p-6 shadow-sm">
+            <div className="bg-bg-card border border-border-subtle rounded-2xl p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                     <h2 className="text-base font-bold text-text-primary flex items-center gap-2">
                         <Kanban className="w-5 h-5 text-brand-teal" />
@@ -238,7 +238,7 @@ export default function CrmDashboard() {
             {/* Two Column Layout: Today's Follow-ups & Recent Leads */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Today's Follow-ups */}
-                <div className="bg-bg-acx-acx-acx-acx-card border border-border-subtle rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+                <div className="bg-bg-card border border-border-subtle rounded-2xl p-6 shadow-sm flex flex-col justify-between">
                     <div>
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="text-base font-bold text-text-primary flex items-center gap-2">
@@ -281,7 +281,7 @@ export default function CrmDashboard() {
                 </div>
 
                 {/* Recent Leads */}
-                <div className="bg-bg-acx-acx-acx-acx-card border border-border-subtle rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+                <div className="bg-bg-card border border-border-subtle rounded-2xl p-6 shadow-sm flex flex-col justify-between">
                     <div>
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="text-base font-bold text-text-primary flex items-center gap-2">

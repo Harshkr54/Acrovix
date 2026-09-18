@@ -169,7 +169,7 @@ export default function HeaderControls() {
                 </button>
 
                 {activeDropdown === 'docs' && (
-                    <div className="absolute right-0 mt-2 w-72 bg-bg-acx-card rounded-2xl shadow-lg border border-border-subtle overflow-hidden z-50 animate-in slide-in-from-top-2 duration-200">
+                    <div className="absolute right-0 mt-2 w-72 bg-bg-card rounded-2xl shadow-lg border border-border-subtle overflow-hidden z-50 animate-in slide-in-from-top-2 duration-200">
                         <div className="px-4 py-3 border-b border-border-subtle bg-bg-muted/30">
                             <h3 className="text-sm font-bold text-text-primary">Quick Access</h3>
                         </div>
@@ -256,7 +256,7 @@ export default function HeaderControls() {
             {/* Theme Toggle */}
             <button
                 onClick={toggleTheme}
-                className="w-10 h-10 rounded-full bg-bg-acx-card border border-border-subtle flex items-center justify-center text-text-muted hover:text-text-primary hover:shadow-sm transition-all"
+                className="w-10 h-10 rounded-full bg-bg-card border border-border-subtle flex items-center justify-center text-text-muted hover:text-text-primary hover:shadow-sm transition-all"
                 aria-label="Toggle Theme"
                 title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
             >
@@ -282,7 +282,7 @@ export default function HeaderControls() {
                 </button>
 
                 {activeDropdown === 'notifications' && (
-                    <div className="absolute right-0 mt-2 w-80 bg-bg-acx-card rounded-2xl shadow-lg border border-border-subtle overflow-hidden z-50 animate-in slide-in-from-top-2 duration-200">
+                    <div className="absolute right-0 mt-2 w-80 bg-bg-card rounded-2xl shadow-lg border border-border-subtle overflow-hidden z-50 animate-in slide-in-from-top-2 duration-200">
                         <div className="px-4 py-3 border-b border-border-subtle bg-bg-muted/30 flex justify-between items-center">
                             <h3 className="text-sm font-bold text-text-primary">Notifications</h3>
                             {unreadCount > 0 && (
@@ -355,7 +355,7 @@ export default function HeaderControls() {
                     setActiveDropdown(null);
                     navigate('/settings');
                 }}
-                className="hidden sm:flex w-10 h-10 rounded-full bg-bg-acx-card border border-border-subtle items-center justify-center text-text-muted hover:text-text-primary hover:shadow-sm transition-all"
+                className="hidden sm:flex w-10 h-10 rounded-full bg-bg-card border border-border-subtle items-center justify-center text-text-muted hover:text-text-primary hover:shadow-sm transition-all"
             >
                 <SettingsIcon className="w-4 h-4" />
             </button>
@@ -377,7 +377,7 @@ export default function HeaderControls() {
                 </div>
 
                 {activeDropdown === 'profile' && (
-                    <div className="absolute top-full right-0 mt-3 w-64 bg-bg-acx-card rounded-2xl shadow-lg border border-border-subtle overflow-hidden z-50 animate-in slide-in-from-top-2 duration-200">
+                    <div className="absolute top-full right-0 mt-3 w-64 bg-bg-card rounded-2xl shadow-lg border border-border-subtle overflow-hidden z-50 animate-in slide-in-from-top-2 duration-200">
                         <div className="px-4 py-4 border-b border-border-subtle bg-bg-muted/30">
                             <p className="text-sm font-bold text-text-primary truncate">{user?.name || 'Admin User'}</p>
                             <p className="text-[12px] text-text-secondary truncate mt-0.5">{user?.email}</p>

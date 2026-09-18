@@ -37,7 +37,7 @@ export default function AcceptRejectQuotationModal({ isOpen, onClose, quotation,
 
     return (
         <div className="fixed inset-0 bg-text-primary/30 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-            <div className="acx-acx-card p-6 md:p-8 max-w-md w-full shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+            <div className="acx-card p-6 md:p-8 max-w-md w-full shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
                 <div className="flex items-center space-x-3 mb-6">
                     <div className={`w-12 h-12 flex items-center justify-center rounded-[20px] shadow-sm border ${
                         isAccept ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : 'bg-red-50 border-red-200 text-red-600'
@@ -92,7 +92,7 @@ export default function AcceptRejectQuotationModal({ isOpen, onClose, quotation,
                     <button 
                         onClick={onClose} 
                         disabled={isSubmitting}
-                        className="px-4 py-2.5 bg-bg-acx-card hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors disabled:opacity-50"
+                        className="px-4 py-2.5 bg-bg-card hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors disabled:opacity-50"
                     >
                         Cancel
                     </button>

@@ -138,7 +138,7 @@ export default function Layout() {
             )}
 
             {/* Sidebar */}
-            <div className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-bg-card border-r border-border-subtle transition-all duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isCollapsed ? 'w-20' : 'w-64'} lg:relative lg:translate-x-0`}>
+            <div className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-white border-r border-border-subtle shadow-[4px_0_24px_rgba(11,25,44,0.02)] transition-all duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isCollapsed ? 'w-20' : 'w-64'} lg:relative lg:translate-x-0`}>
                 <div className="flex items-center justify-between h-[72px] px-4 border-b border-border-subtle/50">
                     {!isCollapsed ? (
                         <div className="flex items-center h-full flex-1 min-w-0 pr-2">
@@ -176,21 +176,21 @@ export default function Layout() {
                                             key={item.name}
                                             to={item.path}
                                             onClick={() => setIsSidebarOpen(false)}
-                                            className={`group relative flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
+                                            className={`group relative flex items-center px-3 py-2.5 text-[13.5px] font-medium rounded-xl transition-all duration-200 ${
                                                 isActive 
-                                                    ? 'bg-brand-teal/10 text-brand-navy shadow-sm' 
+                                                    ? 'bg-brand-primary/10 text-brand-primary font-semibold' 
                                                     : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
                                             } ${isCollapsed ? 'justify-center px-2' : ''}`}
                                         >
                                             {isActive && !isCollapsed && (
-                                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-brand-teal rounded-r-full shadow-[0_0_8px_rgba(13,148,136,0.5)]" />
+                                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-brand-primary rounded-r-full shadow-[0_0_8px_rgba(37,99,235,0.4)]" />
                                             )}
-                                            <Icon className={`w-5 h-5 flex-shrink-0 ${!isCollapsed && 'mr-3'} ${isActive ? 'text-brand-teal' : 'text-text-muted group-hover:text-brand-teal/70 transition-colors'}`} />
+                                            <Icon className={`w-5 h-5 flex-shrink-0 ${!isCollapsed && 'mr-3'} ${isActive ? 'text-brand-primary' : 'text-text-muted group-hover:text-brand-primary/70 transition-colors'}`} />
                                             {!isCollapsed && <span>{item.name}</span>}
                                             
                                             {/* CSS Tooltip */}
                                             {isCollapsed && (
-                                                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-[#102A43] text-white text-[11px] font-semibold rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-md">
+                                                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2.5 py-1.5 bg-white text-text-primary text-[11px] font-bold rounded-lg border border-border-subtle opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-lg">
                                                     {item.name}
                                                 </div>
                                             )}
@@ -214,21 +214,21 @@ export default function Layout() {
                                             key={item.name}
                                             to={item.path}
                                             onClick={() => setIsSidebarOpen(false)}
-                                            className={`group relative flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
+                                            className={`group relative flex items-center px-3 py-2.5 text-[13.5px] font-medium rounded-xl transition-all duration-200 ${
                                                 isActive 
-                                                    ? 'bg-brand-teal/10 text-brand-navy shadow-sm' 
+                                                    ? 'bg-brand-primary/10 text-brand-primary font-semibold' 
                                                     : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
                                             } ${isCollapsed ? 'justify-center px-2' : ''}`}
                                         >
                                             {isActive && !isCollapsed && (
-                                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-brand-teal rounded-r-full shadow-[0_0_8px_rgba(13,148,136,0.5)]" />
+                                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-brand-primary rounded-r-full shadow-[0_0_8px_rgba(37,99,235,0.4)]" />
                                             )}
-                                            <Icon className={`w-5 h-5 flex-shrink-0 ${!isCollapsed && 'mr-3'} ${isActive ? 'text-brand-teal' : 'text-text-muted group-hover:text-brand-teal/70 transition-colors'}`} />
+                                            <Icon className={`w-5 h-5 flex-shrink-0 ${!isCollapsed && 'mr-3'} ${isActive ? 'text-brand-primary' : 'text-text-muted group-hover:text-brand-primary/70 transition-colors'}`} />
                                             {!isCollapsed && <span>{item.name}</span>}
                                             
                                             {/* CSS Tooltip */}
                                             {isCollapsed && (
-                                                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-[#102A43] text-white text-[11px] font-semibold rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-md">
+                                                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2.5 py-1.5 bg-white text-text-primary text-[11px] font-bold rounded-lg border border-border-subtle opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-lg">
                                                     {item.name}
                                                 </div>
                                             )}
@@ -265,7 +265,7 @@ export default function Layout() {
                                                 
                                                 {/* CSS Tooltip */}
                                                 {isCollapsed && (
-                                                    <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-[#102A43] text-white text-[11px] font-semibold rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-md">
+                                                    <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2.5 py-1.5 bg-white text-text-primary text-[11px] font-bold rounded-lg border border-border-subtle opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-lg">
                                                         {item.name}
                                                     </div>
                                                 )}
@@ -288,21 +288,21 @@ export default function Layout() {
                                             key={item.name}
                                             to={item.path}
                                             onClick={() => setIsSidebarOpen(false)}
-                                            className={`group relative flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
+                                            className={`group relative flex items-center px-3 py-2.5 text-[13.5px] font-medium rounded-xl transition-all duration-200 ${
                                                 isActive 
-                                                    ? 'bg-brand-teal/10 text-brand-navy shadow-sm' 
+                                                    ? 'bg-brand-primary/10 text-brand-primary font-semibold' 
                                                     : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
                                             } ${isCollapsed ? 'justify-center px-2' : ''}`}
                                         >
                                             {isActive && !isCollapsed && (
-                                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-brand-teal rounded-r-full shadow-[0_0_8px_rgba(13,148,136,0.5)]" />
+                                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-brand-primary rounded-r-full shadow-[0_0_8px_rgba(37,99,235,0.4)]" />
                                             )}
-                                            <Icon className={`w-5 h-5 flex-shrink-0 ${!isCollapsed && 'mr-3'} ${isActive ? 'text-brand-teal' : 'text-text-muted group-hover:text-brand-teal/70 transition-colors'}`} />
+                                            <Icon className={`w-5 h-5 flex-shrink-0 ${!isCollapsed && 'mr-3'} ${isActive ? 'text-brand-primary' : 'text-text-muted group-hover:text-brand-primary/70 transition-colors'}`} />
                                             {!isCollapsed && <span>{item.name}</span>}
                                             
                                             {/* CSS Tooltip */}
                                             {isCollapsed && (
-                                                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-[#102A43] text-white text-[11px] font-semibold rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-md">
+                                                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2.5 py-1.5 bg-white text-text-primary text-[11px] font-bold rounded-lg border border-border-subtle opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-lg">
                                                     {item.name}
                                                 </div>
                                             )}
@@ -332,15 +332,18 @@ export default function Layout() {
                     </nav>
                 </div>
                 
-                <div className="p-4 border-t border-border-subtle/50">
+                <div className="p-4 border-t border-border-subtle/50 bg-bg-main/30">
                     {!isCollapsed && (
-                        <div className="mb-4 flex items-center px-2">
-                            <div className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center mr-3 text-brand-primary font-bold shadow-sm border border-brand-primary/20">
+                        <div className="mb-4 flex items-center p-2 rounded-xl hover:bg-bg-hover transition-colors cursor-pointer">
+                            <div className="w-9 h-9 rounded-full bg-brand-primary/10 flex items-center justify-center mr-3 text-brand-primary font-bold border border-brand-primary/20 shrink-0">
                                 {getInitials(user?.name)}
                             </div>
-                            <div className="overflow-hidden">
-                                <p className="text-sm font-semibold text-text-primary truncate leading-tight">{user?.name || 'Admin User'}</p>
-                                <p className="text-[11px] text-text-muted font-medium uppercase tracking-wider truncate leading-tight mt-0.5">{user?.role?.replace('_', ' ')}</p>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-[13px] font-bold text-text-primary truncate">{user?.name || 'Admin User'}</p>
+                                <p className="text-[10px] text-text-muted font-bold uppercase tracking-wider truncate">{user?.role?.replace('_', ' ')}</p>
+                            </div>
+                            <div className="shrink-0 text-text-muted">
+                                <MoreHorizontal className="w-4 h-4" />
                             </div>
                         </div>
                     )}
@@ -353,7 +356,7 @@ export default function Layout() {
                         
                         {/* CSS Tooltip */}
                         {isCollapsed && (
-                            <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-[#102A43] text-white text-[11px] font-semibold rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-md">
+                            <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2.5 py-1.5 bg-white text-text-primary text-[11px] font-bold rounded-lg border border-border-subtle opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-lg">
                                 Sign out
                             </div>
                         )}
@@ -386,7 +389,7 @@ export default function Layout() {
                                     navigate('/');
                                 }
                             }}
-                            className="hidden sm:flex items-center justify-center w-9 h-9 mr-4 rounded-xl text-text-muted hover:bg-bg-acx-card hover:shadow-sm hover:text-text-primary transition-all border border-transparent hover:border-border-subtle bg-bg-main"
+                            className="hidden sm:flex items-center justify-center w-9 h-9 mr-4 rounded-xl text-text-muted hover:bg-bg-card hover:shadow-sm hover:text-text-primary transition-all border border-transparent hover:border-border-subtle bg-bg-main"
                             title="Go Back"
                         >
                             <ArrowLeft className="w-5 h-5" />
@@ -403,8 +406,8 @@ export default function Layout() {
                             </div>
                             <input
                                 type="text"
-                                className="w-full pl-11 pr-10 py-2.5 bg-white border border-border-subtle rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-teal/20 focus:border-brand-teal transition-all shadow-sm text-text-primary placeholder-text-muted"
-                                placeholder="Search enquiries, quotations..."
+                                className="w-full pl-11 pr-10 py-2.5 bg-white border border-border-subtle rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all shadow-[0_2px_12px_rgba(11,25,44,0.03)] text-text-primary placeholder-text-muted font-medium"
+                                placeholder="Search anything..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 onFocus={() => { if (searchQuery.trim() && (searchResults.enquiries.length > 0 || searchResults.quotations.length > 0)) setSearchDropdownOpen(true) }}
@@ -420,7 +423,7 @@ export default function Layout() {
 
                             {/* Dropdown Overlay */}
                             {searchDropdownOpen && (
-                                <div className="absolute top-full left-0 right-0 mt-2 bg-bg-acx-card border border-border-subtle rounded-xl shadow-lg overflow-hidden z-50 max-h-[70vh] overflow-y-auto">
+                                <div className="absolute top-full left-0 right-0 mt-2 bg-bg-card border border-border-subtle rounded-xl shadow-lg overflow-hidden z-50 max-h-[70vh] overflow-y-auto">
                                     {(searchResults.quotations.length === 0 && searchResults.enquiries.length === 0) ? (
                                         <div className="p-4 text-center text-text-muted text-sm">
                                             No results found for "{searchQuery}"

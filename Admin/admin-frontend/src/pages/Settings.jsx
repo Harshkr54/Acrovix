@@ -201,7 +201,7 @@ export default function Settings() {
                     {activeTab === 'profile' && (
                         <>
                             {/* Profile Preferences */}
-                            <div className="acx-acx-card p-6">
+                            <div className="acx-card p-6">
                                 <div className="flex items-center gap-3 mb-6">
                                     <div className="w-10 h-10 rounded-full bg-brand-primary/10 flex items-center justify-center">
                                         <User className="w-5 h-5 text-brand-primary" />
@@ -227,7 +227,7 @@ export default function Settings() {
                                             value={name} 
                                             onChange={e => setName(e.target.value)}
                                             required
-                                            className="w-full px-4 py-2 bg-bg-main focus:bg-bg-acx-card border border-border-subtle focus:border-[var(--color-brand-primary)] rounded-lg text-sm text-text-primary outline-none transition-all"
+                                            className="w-full px-4 py-2 bg-bg-main focus:bg-bg-card border border-border-subtle focus:border-[var(--color-brand-primary)] rounded-lg text-sm text-text-primary outline-none transition-all"
                                         />
                                     </div>
                                     <div>
@@ -237,7 +237,7 @@ export default function Settings() {
                                             value={email} 
                                             onChange={e => setEmail(e.target.value)}
                                             required
-                                            className="w-full px-4 py-2 bg-bg-main focus:bg-bg-acx-card border border-border-subtle focus:border-[var(--color-brand-primary)] rounded-lg text-sm text-text-primary outline-none transition-all"
+                                            className="w-full px-4 py-2 bg-bg-main focus:bg-bg-card border border-border-subtle focus:border-[var(--color-brand-primary)] rounded-lg text-sm text-text-primary outline-none transition-all"
                                         />
                                     </div>
                                     <div>
@@ -262,7 +262,7 @@ export default function Settings() {
                             </div>
 
                             {/* Change Password */}
-                            <div className="acx-acx-card p-6">
+                            <div className="acx-card p-6">
                                 <div className="flex items-center gap-3 mb-6">
                                     <div className="w-10 h-10 rounded-full bg-brand-danger/10 flex items-center justify-center">
                                         <Lock className="w-5 h-5 text-brand-danger" />
@@ -289,7 +289,7 @@ export default function Settings() {
                                                 value={currentPassword} 
                                                 onChange={e => setCurrentPassword(e.target.value)}
                                                 required
-                                                className="w-full pl-4 pr-11 py-2 bg-bg-main focus:bg-bg-acx-card border border-border-subtle focus:border-[var(--color-brand-primary)] rounded-lg text-sm text-text-primary outline-none transition-all"
+                                                className="w-full pl-4 pr-11 py-2 bg-bg-main focus:bg-bg-card border border-border-subtle focus:border-[var(--color-brand-primary)] rounded-lg text-sm text-text-primary outline-none transition-all"
                                             />
                                             <button
                                                 type="button"
@@ -309,7 +309,7 @@ export default function Settings() {
                                                 onChange={e => setNewPassword(e.target.value)}
                                                 required
                                                 minLength={8}
-                                                className="w-full pl-4 pr-11 py-2 bg-bg-main focus:bg-bg-acx-card border border-border-subtle focus:border-[var(--color-brand-primary)] rounded-lg text-sm text-text-primary outline-none transition-all"
+                                                className="w-full pl-4 pr-11 py-2 bg-bg-main focus:bg-bg-card border border-border-subtle focus:border-[var(--color-brand-primary)] rounded-lg text-sm text-text-primary outline-none transition-all"
                                             />
                                             <button
                                                 type="button"
@@ -329,7 +329,7 @@ export default function Settings() {
                                                 onChange={e => setConfirmPassword(e.target.value)}
                                                 required
                                                 minLength={8}
-                                                className="w-full pl-4 pr-11 py-2 bg-bg-main focus:bg-bg-acx-card border border-border-subtle focus:border-[var(--color-brand-primary)] rounded-lg text-sm text-text-primary outline-none transition-all"
+                                                className="w-full pl-4 pr-11 py-2 bg-bg-main focus:bg-bg-card border border-border-subtle focus:border-[var(--color-brand-primary)] rounded-lg text-sm text-text-primary outline-none transition-all"
                                             />
                                             <button
                                                 type="button"
@@ -355,7 +355,7 @@ export default function Settings() {
                             </div>
                             
                             {/* Appearance */}
-                            <div className="acx-acx-card p-6">
+                            <div className="acx-card p-6">
                                 <div className="flex items-center gap-3 mb-6">
                                     <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center">
                                         <Sun className="w-5 h-5 text-purple-600" />
@@ -387,7 +387,7 @@ export default function Settings() {
                     )}
 
                     {activeTab === 'company' && authUser?.role === 'SUPER_ADMIN' && (
-                        <div className="acx-acx-card p-6">
+                        <div className="acx-card p-6">
                             <div className="flex items-center gap-3 mb-6">
                                 <div className="w-10 h-10 rounded-full bg-[#E0F2FE] flex items-center justify-center">
                                     <Building className="w-5 h-5 text-[#0284C7]" />
@@ -523,7 +523,7 @@ export default function Settings() {
 
                 {/* Sidebar (System Info) */}
                 <div className="md:col-span-1 space-y-6">
-                    <div className="acx-acx-card p-6">
+                    <div className="acx-card p-6">
                         <div className="flex items-center gap-3 mb-6">
                             <div className="w-10 h-10 rounded-full bg-brand-success/10 flex items-center justify-center">
                                 <SettingsIcon className="w-5 h-5 text-brand-success" />

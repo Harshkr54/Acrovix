@@ -159,7 +159,7 @@ export default function CrmLeadDetails() {
             </div>
 
             {/* Sales Lifecycle Visual Progress */}
-            <div className="bg-bg-acx-card border border-border-subtle rounded-2xl p-6 shadow-sm">
+            <div className="bg-bg-card border border-border-subtle rounded-2xl p-6 shadow-sm">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-text-muted mb-4">Sales Lifecycle Stage</h3>
                 {isLost ? (
                     <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-center justify-between">
@@ -201,7 +201,7 @@ export default function CrmLeadDetails() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left 2 Columns: Lead & Contact Info */}
                 <div className="lg:col-span-2 space-y-6">
-                    <div className="bg-bg-acx-card border border-border-subtle rounded-2xl p-6 shadow-sm space-y-6">
+                    <div className="bg-bg-card border border-border-subtle rounded-2xl p-6 shadow-sm space-y-6">
                         <h2 className="text-base font-bold text-text-primary flex items-center gap-2 border-b border-border-subtle pb-3">
                             <Target className="w-5 h-5 text-brand-teal" />
                             Lead Information
@@ -249,7 +249,7 @@ export default function CrmLeadDetails() {
                     </div>
 
                     {/* Follow-ups List Section */}
-                    <div className="bg-bg-acx-card border border-border-subtle rounded-2xl p-6 shadow-sm space-y-4">
+                    <div className="bg-bg-card border border-border-subtle rounded-2xl p-6 shadow-sm space-y-4">
                         <div className="flex items-center justify-between border-b border-border-subtle pb-3">
                             <h2 className="text-base font-bold text-text-primary flex items-center gap-2">
                                 <Calendar className="w-5 h-5 text-amber-500" />
@@ -328,7 +328,7 @@ export default function CrmLeadDetails() {
 
                 {/* Right 1 Column: Deal Metrics & Metadata */}
                 <div className="space-y-6">
-                    <div className="bg-bg-acx-card border border-border-subtle rounded-2xl p-6 shadow-sm space-y-4">
+                    <div className="bg-bg-card border border-border-subtle rounded-2xl p-6 shadow-sm space-y-4">
                         <h3 className="text-xs font-bold uppercase tracking-wider text-text-muted border-b border-border-subtle pb-2">
                             Deal Metrics & Ownership
                         </h3>

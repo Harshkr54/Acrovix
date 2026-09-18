@@ -102,7 +102,7 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
 
     return (
         <div className="fixed inset-0 bg-text-primary/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="acx-acx-card p-6 md:p-8 max-w-lg w-full border border-border-subtle shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+            <div className="acx-card p-6 md:p-8 max-w-lg w-full border border-border-subtle shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
                 {/* Close Button */}
                 <button
                     onClick={handleClose}
@@ -122,7 +122,7 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                             {/* Option 1: From Website Enquiry */}
                             <button
                                 onClick={handleSelectEnquiry}
-                                className="w-full text-left p-5 border border-border-subtle hover:border-[var(--color-brand-primary)]/40 bg-bg-acx-card hover:bg-[var(--color-brand-primary)]/[0.02] rounded-2xl transition-all duration-200 group flex items-start space-x-4 shadow-sm"
+                                className="w-full text-left p-5 border border-border-subtle hover:border-[var(--color-brand-primary)]/40 bg-bg-card hover:bg-[var(--color-brand-primary)]/[0.02] rounded-2xl transition-all duration-200 group flex items-start space-x-4 shadow-sm"
                             >
                                 <div className="w-11 h-11 rounded-xl bg-[var(--color-brand-primary)]/10 flex items-center justify-center text-[var(--color-brand-primary)] group-hover:scale-105 transition-transform flex-shrink-0">
                                     <Globe className="w-5 h-5" />
@@ -143,7 +143,7 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                             {/* Option 2: Direct / Manual Quotation */}
                             <button
                                 onClick={() => setStep(2)}
-                                className="w-full text-left p-5 border border-border-subtle hover:border-brand-teal/40 bg-bg-acx-card hover:bg-[#14B8A6]/[0.02] rounded-2xl transition-all duration-200 group flex items-start space-x-4 shadow-sm"
+                                className="w-full text-left p-5 border border-border-subtle hover:border-brand-teal/40 bg-bg-card hover:bg-[#14B8A6]/[0.02] rounded-2xl transition-all duration-200 group flex items-start space-x-4 shadow-sm"
                             >
                                 <div className="w-11 h-11 rounded-xl bg-[#14B8A6]/10 flex items-center justify-center text-brand-teal group-hover:scale-105 transition-transform flex-shrink-0">
                                     <UserPlus className="w-5 h-5" />
@@ -300,7 +300,7 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                                     type="button"
                                     onClick={() => setStep(1)}
                                     disabled={isCreating}
-                                    className="px-4 py-2.5 bg-bg-acx-card hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors disabled:opacity-50"
+                                    className="px-4 py-2.5 bg-bg-card hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors disabled:opacity-50"
                                 >
                                     Back
                                 </button>

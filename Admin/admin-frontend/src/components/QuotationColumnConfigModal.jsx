@@ -124,7 +124,7 @@ export default function QuotationColumnConfigModal({ isOpen, onClose, activeConf
 
     return (
         <div className="fixed inset-0 bg-text-primary/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-            <div className="acx-acx-card p-6 md:p-8 max-w-2xl w-full border border-border-subtle shadow-2xl relative animate-in fade-in zoom-in-95 duration-200 my-8">
+            <div className="acx-card p-6 md:p-8 max-w-2xl w-full border border-border-subtle shadow-2xl relative animate-in fade-in zoom-in-95 duration-200 my-8">
                 <button
                     onClick={onClose}
                     className="absolute top-5 right-5 p-2 text-text-muted hover:text-text-primary hover:bg-bg-hover rounded-xl transition-colors"
@@ -214,12 +214,12 @@ export default function QuotationColumnConfigModal({ isOpen, onClose, activeConf
                                 value={newColumnName}
                                 onChange={(e) => { setNewColumnName(e.target.value); setError(null); }}
                                 placeholder="Column Name (e.g. Warranty)"
-                                className="flex-1 bg-bg-acx-card border border-border-subtle focus:border-[var(--color-brand-primary)] rounded-lg px-3 py-2 text-[13px] font-medium text-text-primary outline-none"
+                                className="flex-1 bg-bg-card border border-border-subtle focus:border-[var(--color-brand-primary)] rounded-lg px-3 py-2 text-[13px] font-medium text-text-primary outline-none"
                             />
                             <select 
                                 value={newColumnType}
                                 onChange={(e) => setNewColumnType(e.target.value)}
-                                className="w-32 bg-bg-acx-card border border-border-subtle focus:border-[var(--color-brand-primary)] rounded-lg px-3 py-2 text-[13px] font-medium text-text-primary outline-none"
+                                className="w-32 bg-bg-card border border-border-subtle focus:border-[var(--color-brand-primary)] rounded-lg px-3 py-2 text-[13px] font-medium text-text-primary outline-none"
                             >
                                 <option value="TEXT">Text</option>
                                 <option value="NUMBER">Number</option>
@@ -228,7 +228,7 @@ export default function QuotationColumnConfigModal({ isOpen, onClose, activeConf
                             <button 
                                 onClick={handleAddCustomColumn}
                                 disabled={!newColumnName.trim()}
-                                className="inline-flex items-center justify-center px-4 py-2 bg-bg-acx-card hover:bg-bg-hover border border-border-subtle rounded-lg text-[13px] font-semibold text-text-primary transition-colors disabled:opacity-50"
+                                className="inline-flex items-center justify-center px-4 py-2 bg-bg-card hover:bg-bg-hover border border-border-subtle rounded-lg text-[13px] font-semibold text-text-primary transition-colors disabled:opacity-50"
                             >
                                 <Plus className="w-4 h-4 mr-1.5" /> Add
                             </button>
@@ -244,7 +244,7 @@ export default function QuotationColumnConfigModal({ isOpen, onClose, activeConf
                 <div className="flex items-center justify-end space-x-3 mt-8 pt-4 border-t border-border-subtle/50">
                     <button
                         onClick={onClose}
-                        className="px-4 py-2.5 bg-bg-acx-card hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors"
+                        className="px-4 py-2.5 bg-bg-card hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors"
                     >
                         Cancel
                     </button>

@@ -159,7 +159,7 @@ export default function CrmLeads() {
             />
 
             {/* Filter & Search Bar */}
-            <div className="bg-bg-acx-card border border-border-subtle rounded-2xl p-4 shadow-sm space-y-3">
+            <div className="bg-bg-card border border-border-subtle rounded-2xl p-4 shadow-sm space-y-3">
                 <form onSubmit={handleSearchSubmit} className="flex items-center gap-2">
                     <div className="relative flex-1">
                         <Search className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
@@ -234,7 +234,7 @@ export default function CrmLeads() {
             </div>
 
             {/* Leads Table Container */}
-            <div className="bg-bg-acx-card border border-border-subtle rounded-2xl shadow-sm overflow-hidden">
+            <div className="bg-bg-card border border-border-subtle rounded-2xl shadow-sm overflow-hidden">
                 {loading ? (
                     <EmptyState loading message="Loading CRM leads..." />
                 ) : error ? (

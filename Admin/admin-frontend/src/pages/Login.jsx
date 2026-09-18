@@ -46,7 +46,7 @@ export default function Login() {
                 <div className="absolute bottom-[10%] -right-[10%] w-[30%] h-[30%] rounded-full bg-[var(--color-brand-primary)]/10 blur-[100px]" />
             </div>
 
-            <div className="max-w-md w-full space-y-8 bg-bg-acx-card p-8 sm:p-12 rounded-[32px] shadow-xl border border-border-subtle relative z-10">
+            <div className="max-w-md w-full space-y-8 bg-bg-card p-8 sm:p-12 rounded-[32px] shadow-xl border border-border-subtle relative z-10">
                 <div className="flex flex-col items-center">
                     <div className="w-20 h-20 bg-bg-main rounded-[24px] flex items-center justify-center border border-border-subtle shadow-sm mb-6">
                         <Shield className="w-10 h-10 text-brand-teal" />

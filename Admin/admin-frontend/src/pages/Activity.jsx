@@ -74,7 +74,7 @@ export default function Activity() {
             </div>
 
             {/* Main Content Area */}
-            <div className="acx-acx-card flex flex-col min-h-[400px]">
+            <div className="acx-card flex flex-col min-h-[400px]">
                 {error ? (
                     <div className="p-12 flex flex-col items-center justify-center text-center">
                         <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mb-4">
@@ -151,7 +151,7 @@ export default function Activity() {
                         </div>
 
                         {/* Pagination Footer */}
-                        <div className="px-6 py-4 border-t border-border-subtle/50 flex flex-col sm:flex-row items-center justify-between rounded-b-[24px] bg-bg-acx-card">
+                        <div className="px-6 py-4 border-t border-border-subtle/50 flex flex-col sm:flex-row items-center justify-between rounded-b-[24px] bg-bg-card">
                             <p className="text-[12px] text-text-muted font-medium mb-4 sm:mb-0">
                                 Showing <span className="font-bold text-text-primary">{totalElements === 0 ? 0 : currentPage * itemsPerPage + 1}</span> to <span className="font-bold text-text-primary">{Math.min((currentPage + 1) * itemsPerPage, totalElements)}</span> of <span className="font-bold text-text-primary">{totalElements}</span> activities
                             </p>
@@ -159,7 +159,7 @@ export default function Activity() {
                                 <button
                                     disabled={currentPage === 0 || isLoading}
                                     onClick={() => setCurrentPage(p => p - 1)}
-                                    className="inline-flex items-center px-3 py-1.5 bg-bg-acx-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-lg text-[12px] font-semibold text-text-primary transition-colors shadow-sm"
+                                    className="inline-flex items-center px-3 py-1.5 bg-bg-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-lg text-[12px] font-semibold text-text-primary transition-colors shadow-sm"
                                 >
                                     <ChevronLeft className="w-3.5 h-3.5 mr-1" />
                                     Prev
@@ -167,7 +167,7 @@ export default function Activity() {
                                 <button
                                     disabled={currentPage >= totalPages - 1 || isLoading}
                                     onClick={() => setCurrentPage(p => p + 1)}
-                                    className="inline-flex items-center px-3 py-1.5 bg-bg-acx-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-lg text-[12px] font-semibold text-text-primary transition-colors shadow-sm"
+                                    className="inline-flex items-center px-3 py-1.5 bg-bg-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-lg text-[12px] font-semibold text-text-primary transition-colors shadow-sm"
                                 >
                                     Next
                                     <ChevronRight className="w-3.5 h-3.5 ml-1" />

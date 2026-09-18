@@ -80,11 +80,11 @@ export default function EnquiryDetailModal({ isOpen, onClose, enquiry, onStatusU
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in-50 duration-200">
             <div 
-                className="bg-bg-acx-card border border-border-subtle rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200"
+                className="bg-bg-card border border-border-subtle rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Modal Header */}
-                <div className="px-6 py-5 border-b border-border-subtle flex items-center justify-between bg-bg-acx-card">
+                <div className="px-6 py-5 border-b border-border-subtle flex items-center justify-between bg-bg-card">
                     <div className="flex items-center gap-3">
                         <div className="p-2.5 bg-brand-primary/10 dark:bg-[#312E81]/30 rounded-2xl">
                             <Inbox className="w-5 h-5 text-[var(--color-brand-primary)]" />
@@ -189,7 +189,7 @@ export default function EnquiryDetailModal({ isOpen, onClose, enquiry, onStatusU
                             <Briefcase className="w-3.5 h-3.5 text-[var(--color-brand-primary)]" />
                             Project Requirement
                         </h3>
-                        <p className="text-xs text-text-primary leading-relaxed whitespace-pre-wrap font-sans bg-bg-acx-card p-3 rounded-xl border border-border-subtle/50">
+                        <p className="text-xs text-text-primary leading-relaxed whitespace-pre-wrap font-sans bg-bg-card p-3 rounded-xl border border-border-subtle/50">
                             {enquiry.projectRequirement || 'No additional project requirements described.'}
                         </p>
                     </div>
@@ -216,7 +216,7 @@ export default function EnquiryDetailModal({ isOpen, onClose, enquiry, onStatusU
                         ) : quotations.length > 0 ? (
                             <div className="space-y-2">
                                 {quotations.map(q => (
-                                    <div key={q.id} className="flex items-center justify-between p-3 bg-bg-acx-card rounded-xl border border-border-subtle text-xs">
+                                    <div key={q.id} className="flex items-center justify-between p-3 bg-bg-card rounded-xl border border-border-subtle text-xs">
                                         <div>
                                             <span className="font-mono font-bold text-text-primary mr-2">{q.quotationNumber}</span>
                                             <span className="text-text-muted font-medium">({q.status})</span>
@@ -236,7 +236,7 @@ export default function EnquiryDetailModal({ isOpen, onClose, enquiry, onStatusU
                                 ))}
                             </div>
                         ) : (
-                            <div className="text-xs text-text-muted flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-bg-acx-card rounded-xl border border-border-subtle">
+                            <div className="text-xs text-text-muted flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-bg-card rounded-xl border border-border-subtle">
                                 <span>No quotation created for this enquiry yet.</span>
                                 <div className="flex items-center gap-2">
                                     <Link
@@ -254,7 +254,7 @@ export default function EnquiryDetailModal({ isOpen, onClose, enquiry, onStatusU
                 </div>
 
                 {/* Modal Footer / Status Update Controls */}
-                <div className="px-6 py-4 border-t border-border-subtle bg-bg-acx-card flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="px-6 py-4 border-t border-border-subtle bg-bg-card flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-2">
                         <span className="text-xs font-bold text-text-muted uppercase">Status:</span>
                         <div className="flex flex-wrap items-center gap-1.5">

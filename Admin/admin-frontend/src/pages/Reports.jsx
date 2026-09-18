@@ -144,7 +144,7 @@ export default function Reports() {
     return (
         <div className="p-6 max-w-7xl mx-auto space-y-6">
             {/* Header section */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-bg-acx-card p-6 rounded-2xl border border-border-subtle shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-bg-card p-6 rounded-2xl border border-border-subtle shadow-sm">
                 <div>
                     <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2.5">
                         <BarChart3 className="w-7 h-7 text-brand-teal" />
@@ -176,7 +176,7 @@ export default function Reports() {
             </div>
 
             {/* Date Range Filter Bar */}
-            <div className="bg-bg-acx-card p-4 rounded-2xl border border-border-subtle shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="bg-bg-card p-4 rounded-2xl border border-border-subtle shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex flex-wrap items-center gap-3">
                     <label className="text-xs font-semibold uppercase text-text-muted flex items-center gap-1.5">
                         <Calendar className="w-4 h-4 text-brand-teal" />
@@ -233,7 +233,7 @@ export default function Reports() {
 
             {/* ERROR STATE WITH RETRY */}
             {error ? (
-                <div className="bg-bg-acx-card p-8 rounded-2xl border border-border-subtle shadow-sm text-center space-y-4">
+                <div className="bg-bg-card p-8 rounded-2xl border border-border-subtle shadow-sm text-center space-y-4">
                     <div className="w-12 h-12 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center mx-auto">
                         <AlertCircle className="w-6 h-6" />
                     </div>
@@ -251,7 +251,7 @@ export default function Reports() {
                 </div>
             ) : isLoading ? (
                 /* LOADING STATE */
-                <div className="bg-bg-acx-card p-12 rounded-2xl border border-border-subtle shadow-sm text-center space-y-4">
+                <div className="bg-bg-card p-12 rounded-2xl border border-border-subtle shadow-sm text-center space-y-4">
                     <RefreshCw className="w-8 h-8 text-brand-teal animate-spin mx-auto" />
                     <p className="text-sm font-medium text-text-secondary">Aggregating business performance metrics...</p>
                 </div>
@@ -259,7 +259,7 @@ export default function Reports() {
                 <>
                     {/* KPI CARDS SUMMARY */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div className="bg-bg-acx-card p-5 rounded-2xl border border-border-subtle shadow-sm">
+                        <div className="bg-bg-card p-5 rounded-2xl border border-border-subtle shadow-sm">
                             <div className="flex items-center justify-between text-text-muted mb-2">
                                 <span className="text-xs font-semibold uppercase tracking-wider">Total Enquiries</span>
                                 <FileText className="w-5 h-5 text-blue-500" />
@@ -270,7 +270,7 @@ export default function Reports() {
                             <div className="text-xs text-text-muted mt-1">Total leads received</div>
                         </div>
 
-                        <div className="bg-bg-acx-card p-5 rounded-2xl border border-border-subtle shadow-sm">
+                        <div className="bg-bg-card p-5 rounded-2xl border border-border-subtle shadow-sm">
                             <div className="flex items-center justify-between text-text-muted mb-2">
                                 <span className="text-xs font-semibold uppercase tracking-wider">Quotation Value</span>
                                 <FileText className="w-5 h-5 text-brand-teal" />
@@ -283,7 +283,7 @@ export default function Reports() {
                             </div>
                         </div>
 
-                        <div className="bg-bg-acx-card p-5 rounded-2xl border border-border-subtle shadow-sm">
+                        <div className="bg-bg-card p-5 rounded-2xl border border-border-subtle shadow-sm">
                             <div className="flex items-center justify-between text-text-muted mb-2">
                                 <span className="text-xs font-semibold uppercase tracking-wider">PO Value</span>
                                 <ShoppingCart className="w-5 h-5 text-indigo-500" />
@@ -296,7 +296,7 @@ export default function Reports() {
                             </div>
                         </div>
 
-                        <div className="bg-bg-acx-card p-5 rounded-2xl border border-border-subtle shadow-sm">
+                        <div className="bg-bg-card p-5 rounded-2xl border border-border-subtle shadow-sm">
                             <div className="flex items-center justify-between text-text-muted mb-2">
                                 <span className="text-xs font-semibold uppercase tracking-wider">Total Invoiced</span>
                                 <DollarSign className="w-5 h-5 text-emerald-500" />
@@ -309,7 +309,7 @@ export default function Reports() {
                             </div>
                         </div>
 
-                        <div className="bg-bg-acx-card p-5 rounded-2xl border border-border-subtle shadow-sm">
+                        <div className="bg-bg-card p-5 rounded-2xl border border-border-subtle shadow-sm">
                             <div className="flex items-center justify-between text-text-muted mb-2">
                                 <span className="text-xs font-semibold uppercase tracking-wider">Total Received</span>
                                 <CreditCard className="w-5 h-5 text-emerald-600" />
@@ -320,7 +320,7 @@ export default function Reports() {
                             <div className="text-xs text-text-muted mt-1">Recorded payments</div>
                         </div>
 
-                        <div className="bg-bg-acx-card p-5 rounded-2xl border border-border-subtle shadow-sm">
+                        <div className="bg-bg-card p-5 rounded-2xl border border-border-subtle shadow-sm">
                             <div className="flex items-center justify-between text-text-muted mb-2">
                                 <span className="text-xs font-semibold uppercase tracking-wider">Outstanding</span>
                                 <Clock className="w-5 h-5 text-amber-500" />
@@ -331,7 +331,7 @@ export default function Reports() {
                             <div className="text-xs text-text-muted mt-1">Balance to collect</div>
                         </div>
 
-                        <div className="bg-bg-acx-card p-5 rounded-2xl border border-border-subtle shadow-sm">
+                        <div className="bg-bg-card p-5 rounded-2xl border border-border-subtle shadow-sm">
                             <div className="flex items-center justify-between text-text-muted mb-2">
                                 <span className="text-xs font-semibold uppercase tracking-wider">Overdue</span>
                                 <AlertCircle className="w-5 h-5 text-red-500" />
@@ -369,7 +369,7 @@ export default function Reports() {
 
                     {/* OVERVIEW / MONTHLY TRENDS */}
                     {activeTab === 'OVERVIEW' && (
-                        <div className="bg-bg-acx-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-6">
+                        <div className="bg-bg-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-6">
                             <div className="flex items-center justify-between">
                                 <h3 className="text-base font-bold text-text-primary flex items-center gap-2">
                                     <TrendingUp className="w-5 h-5 text-brand-teal" />
@@ -445,7 +445,7 @@ export default function Reports() {
                     {/* QUOTATION ANALYTICS */}
                     {activeTab === 'QUOTATIONS' && quotations && (
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            <div className="lg:col-span-1 bg-bg-acx-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-4">
+                            <div className="lg:col-span-1 bg-bg-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-4">
                                 <h3 className="text-base font-bold text-text-primary border-b border-border-subtle pb-3">
                                     Quotation Financial Summary
                                 </h3>
@@ -469,7 +469,7 @@ export default function Reports() {
                                 </div>
                             </div>
 
-                            <div className="lg:col-span-2 bg-bg-acx-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-4">
+                            <div className="lg:col-span-2 bg-bg-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-4">
                                 <h3 className="text-base font-bold text-text-primary border-b border-border-subtle pb-3">
                                     Quotation Status Breakdown
                                 </h3>
@@ -501,7 +501,7 @@ export default function Reports() {
                     {/* PURCHASE ORDERS */}
                     {activeTab === 'PURCHASE_ORDERS' && purchaseOrders && (
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            <div className="lg:col-span-1 bg-bg-acx-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-4">
+                            <div className="lg:col-span-1 bg-bg-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-4">
                                 <h3 className="text-base font-bold text-text-primary border-b border-border-subtle pb-3">
                                     PO Financial Summary
                                 </h3>
@@ -521,7 +521,7 @@ export default function Reports() {
                                 </div>
                             </div>
 
-                            <div className="lg:col-span-2 bg-bg-acx-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-4">
+                            <div className="lg:col-span-2 bg-bg-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-4">
                                 <h3 className="text-base font-bold text-text-primary border-b border-border-subtle pb-3">
                                     Purchase Order Status Lifecycle
                                 </h3>
@@ -552,7 +552,7 @@ export default function Reports() {
                     {/* INVOICES */}
                     {activeTab === 'INVOICES' && invoices && (
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            <div className="lg:col-span-1 bg-bg-acx-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-4">
+                            <div className="lg:col-span-1 bg-bg-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-4">
                                 <h3 className="text-base font-bold text-text-primary border-b border-border-subtle pb-3">
                                     Invoice Financial Breakdown
                                 </h3>
@@ -592,7 +592,7 @@ export default function Reports() {
                                 </div>
                             </div>
 
-                            <div className="lg:col-span-2 bg-bg-acx-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-4">
+                            <div className="lg:col-span-2 bg-bg-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-4">
                                 <h3 className="text-base font-bold text-text-primary border-b border-border-subtle pb-3">
                                     Invoice Status Summary
                                 </h3>
@@ -623,7 +623,7 @@ export default function Reports() {
 
                     {/* PAYMENTS */}
                     {activeTab === 'PAYMENTS' && payments && (
-                        <div className="bg-bg-acx-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-6">
+                        <div className="bg-bg-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-6">
                             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-border-subtle pb-4">
                                 <div>
                                     <h3 className="text-base font-bold text-text-primary">Payment Collection Breakdown</h3>
@@ -672,7 +672,7 @@ export default function Reports() {
 
                     {/* CUSTOMERS */}
                     {activeTab === 'CUSTOMERS' && (
-                        <div className="bg-bg-acx-card rounded-2xl border border-border-subtle shadow-sm overflow-hidden">
+                        <div className="bg-bg-card rounded-2xl border border-border-subtle shadow-sm overflow-hidden">
                             <div className="p-6 border-b border-border-subtle flex justify-between items-center">
                                 <div>
                                     <h3 className="text-base font-bold text-text-primary">Customer Business Performance</h3>

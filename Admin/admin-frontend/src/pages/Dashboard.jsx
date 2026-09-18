@@ -250,13 +250,13 @@ export default function Dashboard() {
                     >
                         <Filter className="w-4 h-4" />
                         {hasActiveFilters && (
-                            <span className="w-2.5 h-2.5 rounded-full bg-[var(--color-brand-primary)] absolute top-1.5 right-1.5 ring-2 ring-bg-acx-acx-acx-acx-card" />
+                            <span className="w-2.5 h-2.5 rounded-full bg-[var(--color-brand-primary)] absolute top-1.5 right-1.5 ring-2 ring-bg-acx-card" />
                         )}
                     </button>
 
                     {/* Filter Popover */}
                     {isFilterOpen && (
-                        <div className="absolute right-0 top-12 w-80 sm:w-96 bg-bg-acx-acx-acx-acx-card rounded-2xl shadow-xl border border-border-subtle p-5 z-50 animate-in slide-in-from-top-2 duration-200">
+                        <div className="absolute right-0 top-12 w-80 sm:w-96 bg-bg-card rounded-2xl shadow-xl border border-border-subtle p-5 z-50 animate-in slide-in-from-top-2 duration-200">
                             <div className="flex items-center justify-between pb-3 border-b border-border-subtle mb-4">
                                 <div className="flex items-center gap-2">
                                     <Filter className="w-4 h-4 text-[var(--color-brand-primary)]" />
@@ -274,7 +274,7 @@ export default function Dashboard() {
                                     <select
                                         value={draftFilters.dateRange}
                                         onChange={e => setDraftFilters({ ...draftFilters, dateRange: e.target.value })}
-                                        className="w-full px-3 py-2 bg-bg-main focus:bg-bg-acx-acx-acx-acx-card border border-border-subtle focus:border-[var(--color-brand-primary)] rounded-xl text-xs text-text-primary outline-none transition-all"
+                                        className="w-full px-3 py-2 bg-bg-main focus:bg-bg-card border border-border-subtle focus:border-[var(--color-brand-primary)] rounded-xl text-xs text-text-primary outline-none transition-all"
                                     >
                                         <option value="ALL_TIME">All Time</option>
                                         <option value="TODAY">Today</option>
@@ -295,7 +295,7 @@ export default function Dashboard() {
                                                 type="date"
                                                 value={draftFilters.fromDate}
                                                 onChange={e => setDraftFilters({ ...draftFilters, fromDate: e.target.value })}
-                                                className="w-full px-2.5 py-1.5 bg-bg-acx-acx-acx-acx-card border border-border-subtle rounded-lg text-xs text-text-primary outline-none"
+                                                className="w-full px-2.5 py-1.5 bg-bg-card border border-border-subtle rounded-lg text-xs text-text-primary outline-none"
                                             />
                                         </div>
                                         <div>
@@ -304,7 +304,7 @@ export default function Dashboard() {
                                                 type="date"
                                                 value={draftFilters.toDate}
                                                 onChange={e => setDraftFilters({ ...draftFilters, toDate: e.target.value })}
-                                                className="w-full px-2.5 py-1.5 bg-bg-acx-acx-acx-acx-card border border-border-subtle rounded-lg text-xs text-text-primary outline-none"
+                                                className="w-full px-2.5 py-1.5 bg-bg-card border border-border-subtle rounded-lg text-xs text-text-primary outline-none"
                                             />
                                         </div>
                                         {draftFilters.fromDate && draftFilters.toDate && draftFilters.fromDate > draftFilters.toDate && (
@@ -319,7 +319,7 @@ export default function Dashboard() {
                                     <select
                                         value={draftFilters.enquiryStatus}
                                         onChange={e => setDraftFilters({ ...draftFilters, enquiryStatus: e.target.value })}
-                                        className="w-full px-3 py-2 bg-bg-main focus:bg-bg-acx-acx-acx-acx-card border border-border-subtle focus:border-[var(--color-brand-primary)] rounded-xl text-xs text-text-primary outline-none transition-all"
+                                        className="w-full px-3 py-2 bg-bg-main focus:bg-bg-card border border-border-subtle focus:border-[var(--color-brand-primary)] rounded-xl text-xs text-text-primary outline-none transition-all"
                                     >
                                         <option value="ALL">All Statuses</option>
                                         <option value="NEW">New</option>
@@ -336,7 +336,7 @@ export default function Dashboard() {
                                     <select
                                         value={draftFilters.quotationStatus}
                                         onChange={e => setDraftFilters({ ...draftFilters, quotationStatus: e.target.value })}
-                                        className="w-full px-3 py-2 bg-bg-main focus:bg-bg-acx-acx-acx-acx-card border border-border-subtle focus:border-[var(--color-brand-primary)] rounded-xl text-xs text-text-primary outline-none transition-all"
+                                        className="w-full px-3 py-2 bg-bg-main focus:bg-bg-card border border-border-subtle focus:border-[var(--color-brand-primary)] rounded-xl text-xs text-text-primary outline-none transition-all"
                                     >
                                         <option value="ALL">All Statuses</option>
                                         <option value="DRAFT">Draft</option>
@@ -361,7 +361,7 @@ export default function Dashboard() {
                                     <button
                                         type="submit"
                                         disabled={draftFilters.dateRange === 'CUSTOM' && Boolean(draftFilters.fromDate && draftFilters.toDate && draftFilters.fromDate > draftFilters.toDate)}
-                                        className="acx-acx-acx-acx-btn-primary px-5 py-2 shadow-sm text-xs font-semibold disabled:opacity-50"
+                                        className="acx-btn-primary px-5 py-2 shadow-sm text-xs font-semibold disabled:opacity-50"
                                     >
                                         Apply Filters
                                     </button>
@@ -370,7 +370,7 @@ export default function Dashboard() {
                         </div>
                     )}
 
-                    <button onClick={() => setIsCreateModalOpen(true)} className="acx-acx-acx-acx-btn-primary flex items-center px-4 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]">
+                    <button onClick={() => setIsCreateModalOpen(true)} className="acx-btn-primary flex items-center px-4 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]">
                         <Plus className="w-4 h-4 mr-2" />
                         Create Quotation
                     </button>
@@ -379,13 +379,13 @@ export default function Dashboard() {
             </div>
 
             {error ? (
-                <div className="flex flex-col items-center justify-center min-h-[300px] bg-bg-acx-acx-acx-acx-card rounded-[24px] border border-border-subtle text-center px-4">
+                <div className="flex flex-col items-center justify-center min-h-[300px] bg-bg-card rounded-[24px] border border-border-subtle text-center px-4">
                     <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4">
                         <AlertCircle className="w-8 h-8 text-red-500" />
                     </div>
                     <h3 className="text-lg font-bold text-text-primary mb-2">Failed to Load Dashboard</h3>
                     <p className="text-sm text-text-secondary mb-6">{error}</p>
-                    <button onClick={() => fetchDashboardData(appliedFilters)} className="acx-acx-acx-acx-btn-primary flex items-center shadow-sm">
+                    <button onClick={() => fetchDashboardData(appliedFilters)} className="acx-btn-primary flex items-center shadow-sm">
                         <RefreshCw className="w-4 h-4 mr-2" />
                         Retry
                     </button>
@@ -395,7 +395,7 @@ export default function Dashboard() {
                     {/* KPI Cards Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
                         {/* Total Enquiries KPI */}
-                        <div className="acx-acx-acx-acx-acx-card p-6 flex flex-col justify-between">
+                        <div className="acx-card p-6 flex flex-col justify-between">
                             <div className="flex justify-between items-start mb-2">
                                 <span className="text-[13px] font-semibold text-text-secondary">Total Enquiries</span>
                                 <div className="p-2 bg-brand-primary/10 rounded-xl">
@@ -413,7 +413,7 @@ export default function Dashboard() {
                         </div>
 
                         {/* New Enquiries KPI */}
-                        <div className="acx-acx-acx-acx-acx-card p-6 flex flex-col justify-between">
+                        <div className="acx-card p-6 flex flex-col justify-between">
                             <div className="flex justify-between items-start mb-2">
                                 <span className="text-[13px] font-semibold text-text-secondary">New Enquiries</span>
                                 <div className="p-2 bg-brand-teal/10 rounded-xl">
@@ -431,7 +431,7 @@ export default function Dashboard() {
                         </div>
 
                         {/* Total Quotations KPI */}
-                        <div className="acx-acx-acx-acx-acx-card p-6 flex flex-col justify-between">
+                        <div className="acx-card p-6 flex flex-col justify-between">
                             <div className="flex justify-between items-start mb-2">
                                 <span className="text-[13px] font-semibold text-text-secondary">Total Quotations</span>
                                 <div className="p-2 bg-purple-50 rounded-xl">
@@ -449,7 +449,7 @@ export default function Dashboard() {
                         </div>
 
                         {/* Accepted Quotations KPI */}
-                        <div className="acx-acx-acx-acx-acx-card p-6 flex flex-col justify-between">
+                        <div className="acx-card p-6 flex flex-col justify-between">
                             <div className="flex justify-between items-start mb-2">
                                 <span className="text-[13px] font-semibold text-text-secondary">Accepted Quotations</span>
                                 <div className="p-2 bg-brand-success/10 rounded-xl">
@@ -469,7 +469,7 @@ export default function Dashboard() {
 
                     {/* Financial & Receivables KPI Row */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-                        <div className="acx-acx-acx-acx-acx-card p-6 flex flex-col justify-between border-l-4 border-l-blue-500">
+                        <div className="acx-card p-6 flex flex-col justify-between border-l-4 border-l-blue-500">
                             <div className="flex justify-between items-start mb-2">
                                 <span className="text-[13px] font-semibold text-text-secondary">Total Invoiced</span>
                                 <div className="p-2 bg-blue-500/10 rounded-xl">
@@ -486,7 +486,7 @@ export default function Dashboard() {
                             </div>
                         </div>
 
-                        <div className="acx-acx-acx-acx-acx-card p-6 flex flex-col justify-between border-l-4 border-l-emerald-500">
+                        <div className="acx-card p-6 flex flex-col justify-between border-l-4 border-l-emerald-500">
                             <div className="flex justify-between items-start mb-2">
                                 <span className="text-[13px] font-semibold text-emerald-600 dark:text-emerald-400">Total Received</span>
                                 <div className="p-2 bg-emerald-500/10 rounded-xl">
@@ -503,7 +503,7 @@ export default function Dashboard() {
                             </div>
                         </div>
 
-                        <div className="acx-acx-acx-acx-acx-card p-6 flex flex-col justify-between border-l-4 border-l-amber-500">
+                        <div className="acx-card p-6 flex flex-col justify-between border-l-4 border-l-amber-500">
                             <div className="flex justify-between items-start mb-2">
                                 <span className="text-[13px] font-semibold text-amber-600 dark:text-amber-400">Outstanding Balance</span>
                                 <div className="p-2 bg-amber-500/10 rounded-xl">
@@ -520,7 +520,7 @@ export default function Dashboard() {
                             </div>
                         </div>
 
-                        <div className="acx-acx-acx-acx-acx-card p-6 flex flex-col justify-between border-l-4 border-l-red-500">
+                        <div className="acx-card p-6 flex flex-col justify-between border-l-4 border-l-red-500">
                             <div className="flex justify-between items-start mb-2">
                                 <span className="text-[13px] font-semibold text-red-500">Overdue Balance</span>
                                 <div className="p-2 bg-red-500/10 rounded-xl">
@@ -544,10 +544,10 @@ export default function Dashboard() {
                         
                         {/* Left Column: Analytics Chart (2/3 width) */}
                         <div className="lg:col-span-2">
-                            <div className="acx-acx-acx-acx-acx-card p-6 flex flex-col h-full min-h-[360px]">
+                            <div className="acx-card p-6 flex flex-col h-full min-h-[360px]">
                                 <div className="flex items-center justify-between mb-6">
                                     <h2 className="text-base font-bold text-text-primary tracking-tight">Enquiries Overview</h2>
-                                    <div className="flex items-center px-3 py-1.5 rounded-lg border border-border-subtle bg-bg-acx-acx-acx-acx-card text-xs font-semibold text-text-secondary">
+                                    <div className="flex items-center px-3 py-1.5 rounded-lg border border-border-subtle bg-bg-card text-xs font-semibold text-text-secondary">
                                         <Clock className="w-3.5 h-3.5 mr-2 text-text-muted" />
                                         {getChartTrendLabel(appliedFilters.dateRange)}
                                     </div>
@@ -621,7 +621,7 @@ export default function Dashboard() {
 
                         {/* Right Column: Recent Activity Timeline (1/3 width) */}
                         <div className="lg:col-span-1">
-                            <div className="acx-acx-acx-acx-acx-card h-full flex flex-col min-h-[360px]">
+                            <div className="acx-card h-full flex flex-col min-h-[360px]">
                                 <div className="px-6 py-5 flex items-center justify-between">
                                     <h2 className="text-base font-bold text-text-primary tracking-tight">Recent Activity</h2>
                                     <Link to="/activity" className="text-[12px] font-semibold text-[var(--color-brand-primary)] hover:text-brand-primary/90 transition-colors flex items-center">
@@ -684,7 +684,7 @@ export default function Dashboard() {
                     </div>
 
                     {/* Recent Enquiries Table */}
-                    <div className="acx-acx-acx-acx-acx-card flex flex-col">
+                    <div className="acx-card flex flex-col">
                         <div className="px-6 py-5 flex items-center justify-between border-b border-border-subtle">
                             <h2 className="text-base font-bold text-text-primary tracking-tight">Recent Enquiries</h2>
                             <Link to="/enquiries" className="text-[12px] font-semibold text-[var(--color-brand-primary)] hover:text-brand-primary/90 transition-colors flex items-center">
@@ -693,23 +693,23 @@ export default function Dashboard() {
                         </div>
                         <div className="acx-table-container">
                             {isLoading ? (
-                                <div className="flex justify-center items-center py-12 bg-bg-acx-acx-acx-acx-card rounded-b-[24px]">
+                                <div className="flex justify-center items-center py-12 bg-bg-card rounded-b-[24px]">
                                     <Loader2 className="w-6 h-6 animate-spin text-[var(--color-brand-primary)]" />
                                 </div>
                             ) : stats?.recentEnquiries && stats.recentEnquiries.length > 0 ? (
                                 <table className="acx-table">
                                     <thead>
                                         <tr>
-                                            <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-acx-acx-acx-card rounded-bl-[24px]">#</th>
-                                            <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-acx-acx-acx-card">Client</th>
-                                            <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-acx-acx-acx-card">Company</th>
-                                            <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-acx-acx-acx-card">Service</th>
-                                            <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-acx-acx-acx-card">Status</th>
-                                            <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-acx-acx-acx-card">Date</th>
-                                            <th className="px-6 py-4 text-center text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-acx-acx-acx-card rounded-br-[24px]">Actions</th>
+                                            <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card rounded-bl-[24px]">#</th>
+                                            <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Client</th>
+                                            <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Company</th>
+                                            <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Service</th>
+                                            <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Status</th>
+                                            <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Date</th>
+                                            <th className="px-6 py-4 text-center text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card rounded-br-[24px]">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="bg-bg-acx-acx-acx-acx-card divide-y divide-border-subtle/40">
+                                    <tbody className="bg-bg-card divide-y divide-border-subtle/40">
                                         {stats.recentEnquiries.map((enq) => (
                                             <tr 
                                                 key={enq.id} 
@@ -859,7 +859,7 @@ export default function Dashboard() {
                                     </tbody>
                                 </table>
                             ) : (
-                                <div className="px-6 py-16 flex flex-col items-center justify-center bg-bg-acx-acx-acx-acx-card rounded-b-[24px]">
+                                <div className="px-6 py-16 flex flex-col items-center justify-center bg-bg-card rounded-b-[24px]">
                                     <div className="w-12 h-12 rounded-full bg-bg-muted flex items-center justify-center mb-4">
                                         <Inbox className="w-5 h-5 text-text-muted" />
                                     </div>

@@ -48,7 +48,7 @@ export default function CreatePurchaseOrderModal({ isOpen, onClose, quotation, o
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-text-primary/20 backdrop-blur-sm">
-            <div className="bg-bg-acx-card border border-border-subtle rounded-xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-bg-card border border-border-subtle rounded-xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                 <div className="p-4 border-b border-border-subtle flex justify-between items-center bg-bg-main/50">
                     <div className="flex items-center gap-2">
                         <ShoppingCart className="w-5 h-5 text-brand-primary" />
@@ -135,7 +135,7 @@ export default function CreatePurchaseOrderModal({ isOpen, onClose, quotation, o
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-2 bg-bg-main border border-border-subtle text-text-primary rounded-lg text-sm font-medium hover:bg-bg-acx-card transition-colors"
+                            className="px-4 py-2 bg-bg-main border border-border-subtle text-text-primary rounded-lg text-sm font-medium hover:bg-bg-card transition-colors"
                         >
                             Cancel
                         </button>

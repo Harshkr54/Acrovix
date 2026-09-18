@@ -584,7 +584,7 @@ export default function QuotationBuilder() {
                     {isTrashError ? "This quotation is in Trash or no longer exists. Please restore it from the Trash section before editing." : error}
                 </p>
                 <div className="flex items-center space-x-3">
-                    <button onClick={() => navigate('/quotations')} className="inline-flex items-center px-4 py-2.5 bg-bg-acx-card hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors shadow-sm">
+                    <button onClick={() => navigate('/quotations')} className="inline-flex items-center px-4 py-2.5 bg-bg-card hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors shadow-sm">
                         Back to Quotations
                     </button>
                     {isTrashError ? (
@@ -639,7 +639,7 @@ export default function QuotationBuilder() {
                     <button 
                         onClick={handleSaveDraft} 
                         disabled={isSaving || isSending}
-                        className="inline-flex items-center justify-center px-4 py-2.5 bg-bg-acx-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors shadow-sm"
+                        className="inline-flex items-center justify-center px-4 py-2.5 bg-bg-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors shadow-sm"
                     >
                         {isSaving ? <><span className="animate-spin w-4 h-4 border-b-2 border-text-primary rounded-full mr-2"></span> Saving</> : <><Save className="mr-2 h-4 w-4 text-text-secondary" /> Save Draft</>}
                     </button>
@@ -662,7 +662,7 @@ export default function QuotationBuilder() {
             )}
 
             {/* Client Details Card */}
-            <div className="acx-acx-card p-6 md:p-8">
+            <div className="acx-card p-6 md:p-8">
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center text-[11px] font-bold text-text-secondary uppercase tracking-wider">
                         <User className="w-4 h-4 mr-2" />
@@ -694,7 +694,7 @@ export default function QuotationBuilder() {
                             className="w-full bg-bg-main border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
                         />
                         {isCustomerDropdownOpen && (
-                            <div className="absolute z-50 w-full mt-1 bg-bg-acx-card border border-border-subtle rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                            <div className="absolute z-50 w-full mt-1 bg-bg-card border border-border-subtle rounded-xl shadow-lg max-h-48 overflow-y-auto">
                                 {isLoadingCustomers ? (
                                     <div className="p-3 text-[12px] text-text-muted text-center">Loading...</div>
                                 ) : customers.length === 0 ? (
@@ -778,7 +778,7 @@ export default function QuotationBuilder() {
             </div>
 
             {/* Gemini Import */}
-            <div className="acx-acx-card p-6 md:p-8 border border-[#7C3AED]/20 relative overflow-hidden group">
+            <div className="acx-card p-6 md:p-8 border border-[#7C3AED]/20 relative overflow-hidden group">
                 <div className="absolute -right-8 -top-8 text-purple-600/5 pointer-events-none transition-transform group-hover:scale-110 duration-700">
                     <Wand2 className="w-48 h-48" />
                 </div>
@@ -810,8 +810,8 @@ export default function QuotationBuilder() {
             </div>
 
             {/* Item Editor */}
-            <div className="acx-acx-card overflow-hidden flex flex-col">
-                <div className="px-6 py-5 border-b border-border-subtle flex justify-between items-center bg-bg-acx-card">
+            <div className="acx-card overflow-hidden flex flex-col">
+                <div className="px-6 py-5 border-b border-border-subtle flex justify-between items-center bg-bg-card">
                     <div>
                         <h2 className="text-base font-bold text-text-primary tracking-tight flex items-center">
                             <Hash className="w-4 h-4 mr-2 text-text-secondary" /> Line Items
@@ -844,10 +844,10 @@ export default function QuotationBuilder() {
                             }}
                             onFocus={() => setIsCatalogDropdownOpen(true)}
                             onBlur={() => setTimeout(() => setIsCatalogDropdownOpen(false), 200)}
-                            className="w-full bg-bg-acx-card border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
+                            className="w-full bg-bg-card border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
                         />
                         {isCatalogDropdownOpen && (
-                            <div className="absolute z-50 w-full mt-1 bg-bg-acx-card border border-border-subtle rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                            <div className="absolute z-50 w-full mt-1 bg-bg-card border border-border-subtle rounded-xl shadow-lg max-h-48 overflow-y-auto">
                                 {isLoadingCatalog ? (
                                     <div className="p-3 text-[12px] text-text-muted text-center">Loading...</div>
                                 ) : catalogItems.length === 0 ? (
@@ -883,10 +883,10 @@ export default function QuotationBuilder() {
                                         {config.displayName}
                                     </th>
                                 ))}
-                                <th className="px-2 py-4 text-center text-[11px] font-bold text-text-muted uppercase tracking-wider w-[5%] bg-bg-acx-card">Actions</th>
+                                <th className="px-2 py-4 text-center text-[11px] font-bold text-text-muted uppercase tracking-wider w-[5%] bg-bg-card">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-border-subtle/40 bg-bg-acx-card">
+                        <tbody className="divide-y divide-border-subtle/40 bg-bg-card">
                             {items.map((item, index) => {
                                 const qty = parseFloat(item.quantity) || 0;
                                 const lp = parseFloat(item.listPrice) || 0;
@@ -1006,7 +1006,7 @@ export default function QuotationBuilder() {
                 </div>
                 
                 {/* Add Item Row */}
-                <div className="p-5 border-t border-border-subtle/50 bg-bg-acx-card rounded-b-[24px] flex justify-between items-center">
+                <div className="p-5 border-t border-border-subtle/50 bg-bg-card rounded-b-[24px] flex justify-between items-center">
                     <button onClick={addItem} className="inline-flex items-center px-4 py-2.5 bg-bg-main hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors shadow-sm">
                         <Plus className="w-4 h-4 mr-2 text-[var(--color-brand-primary)]" />
                         Add Item
@@ -1020,7 +1020,7 @@ export default function QuotationBuilder() {
 
             {/* Totals Preview - Light Summary Panel */}
             <div className="flex flex-col md:flex-row md:justify-end">
-                <div className="acx-card p-8 w-full md:max-w-[420px] bg-bg-acx-card border border-border-subtle shadow-sm relative overflow-hidden">
+                <div className="acx-card p-8 w-full md:max-w-[420px] bg-bg-card border border-border-subtle shadow-sm relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--color-brand-primary)]/5 rounded-full -mr-16 -mt-16 blur-2xl pointer-events-none"></div>
                     <div className="absolute bottom-0 left-0 w-32 h-32 bg-[#14B8A6]/5 rounded-full -ml-16 -mb-16 blur-2xl pointer-events-none"></div>
                     

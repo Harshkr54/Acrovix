@@ -225,7 +225,7 @@ export default function EnquiryList() {
             )}
 
             {/* Toolbar */}
-            <div className="acx-acx-card p-4 flex flex-col md:flex-row md:items-center gap-4">
+            <div className="acx-card p-4 flex flex-col md:flex-row md:items-center gap-4">
                 <div className="relative flex-1 min-w-[200px]">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                         <Search className="h-4 w-4 text-text-muted" />
@@ -290,20 +290,20 @@ export default function EnquiryList() {
             </div>
             
             {/* Table */}
-            <div className="acx-acx-card flex flex-col">
+            <div className="acx-card flex flex-col">
                 <div className="acx-table-container">
                     <table className="acx-table">
                         <thead>
                             <tr>
-                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-card rounded-tl-[24px]">Reference</th>
-                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-card">Client details</th>
-                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-card hidden md:table-cell">Requirement</th>
-                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-card">Status</th>
-                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-card">Date</th>
-                                <th className="px-6 py-4 text-center text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-card rounded-tr-[24px]">Actions</th>
+                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card rounded-tl-[24px]">Reference</th>
+                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Client details</th>
+                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card hidden md:table-cell">Requirement</th>
+                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Status</th>
+                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Date</th>
+                                <th className="px-6 py-4 text-center text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card rounded-tr-[24px]">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="bg-bg-acx-card divide-y divide-border-subtle/40">
+                        <tbody className="bg-bg-card divide-y divide-border-subtle/40">
                             {error ? (
                                 <tr>
                                     <td colSpan="6" className="px-6 py-20 text-center">
@@ -407,7 +407,7 @@ export default function EnquiryList() {
                                                 <div
                                                     ref={actionMenuRef}
                                                     style={actionMenuPosition}
-                                                    className="w-52 bg-bg-acx-card rounded-2xl shadow-xl border border-border-subtle p-2 animate-in fade-in-50 zoom-in-95 duration-150 text-left"
+                                                    className="w-52 bg-bg-card rounded-2xl shadow-xl border border-border-subtle p-2 animate-in fade-in-50 zoom-in-95 duration-150 text-left"
                                                     onClick={(e) => e.stopPropagation()}
                                                 >
                                                     {/* OPEN SECTION */}
@@ -522,7 +522,7 @@ export default function EnquiryList() {
                             <button 
                                 disabled={currentPage === 0}
                                 onClick={() => setCurrentPage(p => p - 1)}
-                                className="inline-flex items-center px-3 py-1.5 bg-bg-acx-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-lg text-[12px] font-semibold text-text-primary transition-colors shadow-sm"
+                                className="inline-flex items-center px-3 py-1.5 bg-bg-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-lg text-[12px] font-semibold text-text-primary transition-colors shadow-sm"
                             >
                                 <ChevronLeft className="w-3.5 h-3.5 mr-1" />
                                 Prev
@@ -530,7 +530,7 @@ export default function EnquiryList() {
                             <button 
                                 disabled={currentPage >= totalPages - 1}
                                 onClick={() => setCurrentPage(p => p + 1)}
-                                className="inline-flex items-center px-3 py-1.5 bg-bg-acx-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-lg text-[12px] font-semibold text-text-primary transition-colors shadow-sm"
+                                className="inline-flex items-center px-3 py-1.5 bg-bg-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-lg text-[12px] font-semibold text-text-primary transition-colors shadow-sm"
                             >
                                 Next
                                 <ChevronRight className="w-3.5 h-3.5 ml-1" />

@@ -85,7 +85,7 @@ export default function SendQuotationModal({ isOpen, onClose, initialEmail, onSe
             className="fixed inset-0 bg-text-primary/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
             onKeyDown={handleKeyDown}
         >
-            <div className="acx-acx-card p-6 md:p-8 max-w-lg w-full border border-border-subtle shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+            <div className="acx-card p-6 md:p-8 max-w-lg w-full border border-border-subtle shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
                 {/* Close Button */}
                 <button
                     onClick={handleClose}
@@ -144,7 +144,7 @@ export default function SendQuotationModal({ isOpen, onClose, initialEmail, onSe
                                         <button 
                                             onClick={handleCancelEdit}
                                             disabled={isSending}
-                                            className="px-3 py-1.5 bg-bg-acx-card hover:bg-bg-hover border border-border-subtle rounded-lg text-[12px] font-semibold text-text-primary transition-colors disabled:opacity-50"
+                                            className="px-3 py-1.5 bg-bg-card hover:bg-bg-hover border border-border-subtle rounded-lg text-[12px] font-semibold text-text-primary transition-colors disabled:opacity-50"
                                         >
                                             Cancel
                                         </button>
@@ -178,7 +178,7 @@ export default function SendQuotationModal({ isOpen, onClose, initialEmail, onSe
                     <button
                         onClick={handleClose}
                         disabled={isSending}
-                        className="px-4 py-2.5 bg-bg-acx-card hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors disabled:opacity-50"
+                        className="px-4 py-2.5 bg-bg-card hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors disabled:opacity-50"
                     >
                         Cancel
                     </button>

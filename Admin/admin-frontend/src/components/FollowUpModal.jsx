@@ -96,7 +96,7 @@ export default function FollowUpModal({ isOpen, onClose, mode = 'CREATE', leadId
 
     return (
         <div className="fixed inset-0 bg-text-primary/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-bg-acx-card border border-border-subtle rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="bg-bg-card border border-border-subtle rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-bg-main">
                     <div className="flex items-center gap-2.5">
                         {mode === 'COMPLETE' ? (

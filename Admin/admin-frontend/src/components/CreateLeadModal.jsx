@@ -124,7 +124,7 @@ export default function CreateLeadModal({ isOpen, onClose, onSuccess, initialEnq
 
     return (
         <div className="fixed inset-0 bg-text-primary/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-            <div className="bg-bg-acx-card border border-border-subtle rounded-2xl shadow-xl w-full max-w-2xl my-8 overflow-hidden">
+            <div className="bg-bg-card border border-border-subtle rounded-2xl shadow-xl w-full max-w-2xl my-8 overflow-hidden">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-bg-main">
                     <div className="flex items-center gap-2.5">
                         <Target className="w-5 h-5 text-brand-teal" />

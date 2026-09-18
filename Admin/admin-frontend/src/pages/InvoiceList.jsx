@@ -89,7 +89,7 @@ export default function InvoiceList() {
                 </div>
             </div>
 
-            <div className="bg-bg-acx-card border border-border-subtle rounded-xl overflow-hidden shadow-sm">
+            <div className="bg-bg-card border border-border-subtle rounded-xl overflow-hidden shadow-sm">
                 <div className="p-4 border-b border-border-subtle flex gap-4 items-center bg-bg-main/50">
                     <div className="relative flex-1 max-w-md">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted w-4 h-4" />
@@ -188,14 +188,14 @@ export default function InvoiceList() {
                             <button
                                 onClick={() => setPage(p => Math.max(0, p - 1))}
                                 disabled={page === 0}
-                                className="px-3 py-1 rounded border border-border-subtle hover:bg-bg-acx-card disabled:opacity-50 text-sm"
+                                className="px-3 py-1 rounded border border-border-subtle hover:bg-bg-card disabled:opacity-50 text-sm"
                             >
                                 Previous
                             </button>
                             <button
                                 onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
                                 disabled={page === totalPages - 1}
-                                className="px-3 py-1 rounded border border-border-subtle hover:bg-bg-acx-card disabled:opacity-50 text-sm"
+                                className="px-3 py-1 rounded border border-border-subtle hover:bg-bg-card disabled:opacity-50 text-sm"
                             >
                                 Next
                             </button>

@@ -99,7 +99,7 @@ export default function CustomerMaster() {
     if (!['SUPER_ADMIN', 'SALES'].includes(currentUser?.role)) {
         return (
             <div className="flex flex-col items-center justify-center h-[70vh]">
-                <div className="acx-acx-card p-8 text-center max-w-md w-full border-t-4 border-[#DC2626]">
+                <div className="acx-card p-8 text-center max-w-md w-full border-t-4 border-[#DC2626]">
                     <div className="w-16 h-16 bg-brand-danger/10 border border-brand-danger/30 mx-auto rounded-[20px] flex items-center justify-center mb-6 shadow-sm">
                         <ShieldAlert className="w-8 h-8 text-brand-danger" />
                     </div>
@@ -135,7 +135,7 @@ export default function CustomerMaster() {
 
             {/* Form Drawer / Card */}
             {showForm && (
-                <div className="acx-acx-card p-6 border border-brand-teal/20 mb-6 relative overflow-hidden">
+                <div className="acx-card p-6 border border-brand-teal/20 mb-6 relative overflow-hidden">
                     <div className="absolute top-4 right-4">
                         <button onClick={resetForm} className="text-text-muted hover:text-text-primary"><X className="w-5 h-5"/></button>
                     </div>
@@ -209,20 +209,20 @@ export default function CustomerMaster() {
                 </div>
             )}
 
-            <div className="acx-acx-card flex flex-col">
+            <div className="acx-card flex flex-col">
                 <div className="acx-table-container">
                     <table className="acx-table">
                         <thead>
                             <tr>
-                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-card rounded-tl-[24px]">Code / Name</th>
-                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-card">Company / GSTIN</th>
-                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-card">Contact Info</th>
-                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-card">Currency</th>
-                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-card">Status</th>
-                                <th className="px-6 py-4 text-right text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-card rounded-tr-[24px]">Actions</th>
+                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card rounded-tl-[24px]">Code / Name</th>
+                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Company / GSTIN</th>
+                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Contact Info</th>
+                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Currency</th>
+                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Status</th>
+                                <th className="px-6 py-4 text-right text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card rounded-tr-[24px]">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="bg-bg-acx-card divide-y divide-border-subtle/40 rounded-b-[24px]">
+                        <tbody className="bg-bg-card divide-y divide-border-subtle/40 rounded-b-[24px]">
                             {error ? (
                                 <tr>
                                     <td colSpan="6" className="px-6 py-20 text-center">

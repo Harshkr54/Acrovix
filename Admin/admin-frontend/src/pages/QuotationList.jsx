@@ -289,7 +289,7 @@ export default function QuotationList() {
     if (!isLoading && quotations.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center h-[70vh] text-center max-w-md mx-auto">
-                <div className="w-24 h-24 bg-bg-acx-card border border-border-subtle flex items-center justify-center rounded-[28px] mb-8 shadow-sm">
+                <div className="w-24 h-24 bg-bg-card border border-border-subtle flex items-center justify-center rounded-[28px] mb-8 shadow-sm">
                     <FileText className="w-10 h-10 text-text-muted" />
                 </div>
                 <h2 className="text-[24px] font-bold text-text-primary mb-3 tracking-tight">No quotations yet</h2>
@@ -320,20 +320,20 @@ export default function QuotationList() {
             </div>
 
             {/* Table */}
-            <div className="acx-acx-card flex flex-col">
+            <div className="acx-card flex flex-col">
                 <div className="acx-table-container">
                     <table className="acx-table">
                         <thead>
                             <tr>
-                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-card rounded-tl-[24px]">Quotation No.</th>
-                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-card">Client</th>
-                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-card">Amount</th>
-                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-card">Status</th>
-                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-card hidden sm:table-cell">Created</th>
-                                <th className="px-6 py-4 text-center text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-acx-card rounded-tr-[24px]">Actions</th>
+                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card rounded-tl-[24px]">Quotation No.</th>
+                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Client</th>
+                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Amount</th>
+                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Status</th>
+                                <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card hidden sm:table-cell">Created</th>
+                                <th className="px-6 py-4 text-center text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card rounded-tr-[24px]">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="bg-bg-acx-card divide-y divide-border-subtle/40">
+                        <tbody className="bg-bg-card divide-y divide-border-subtle/40">
                             {quotations.map((q) => (
                                 <tr key={q.id} className="hover:bg-bg-hover transition-colors group">
                                     <td className="px-6 py-4 whitespace-nowrap text-[13px] font-bold text-text-primary align-top">
@@ -368,7 +368,7 @@ export default function QuotationList() {
                                             <button
                                                 onClick={() => handleViewPdf(q.id)}
                                                 disabled={downloadingPdfId === q.id}
-                                                className="inline-flex items-center px-3 py-1.5 bg-bg-acx-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-xl text-[12px] font-semibold text-text-primary transition-colors shadow-sm"
+                                                className="inline-flex items-center px-3 py-1.5 bg-bg-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-xl text-[12px] font-semibold text-text-primary transition-colors shadow-sm"
                                                 title="View PDF"
                                             >
                                                 {downloadingPdfId === q.id ? (
@@ -398,7 +398,7 @@ export default function QuotationList() {
                         <button 
                             disabled={currentPage === 0 || isLoading}
                             onClick={() => setCurrentPage(p => p - 1)}
-                            className="inline-flex items-center px-3 py-1.5 bg-bg-acx-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-lg text-[12px] font-semibold text-text-primary transition-colors shadow-sm"
+                            className="inline-flex items-center px-3 py-1.5 bg-bg-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-lg text-[12px] font-semibold text-text-primary transition-colors shadow-sm"
                         >
                             <ChevronLeft className="w-3.5 h-3.5 mr-1" />
                             Prev
@@ -406,7 +406,7 @@ export default function QuotationList() {
                         <button 
                             disabled={currentPage >= totalPages - 1 || isLoading}
                             onClick={() => setCurrentPage(p => p + 1)}
-                            className="inline-flex items-center px-3 py-1.5 bg-bg-acx-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-lg text-[12px] font-semibold text-text-primary transition-colors shadow-sm"
+                            className="inline-flex items-center px-3 py-1.5 bg-bg-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-lg text-[12px] font-semibold text-text-primary transition-colors shadow-sm"
                         >
                             Next
                             <ChevronRight className="w-3.5 h-3.5 ml-1" />
@@ -418,7 +418,7 @@ export default function QuotationList() {
             {/* Trash Confirmation Modal */}
             {trashModalQuotation && (
                 <div className="fixed inset-0 bg-text-primary/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="acx-acx-card p-6 md:p-8 max-w-md w-full border border-border-subtle shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+                    <div className="acx-card p-6 md:p-8 max-w-md w-full border border-border-subtle shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
                         <div className="w-12 h-12 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 rounded-2xl flex items-center justify-center mb-5 text-amber-600 dark:text-amber-400">
                             <Trash2 className="w-6 h-6" />
                         </div>
@@ -430,7 +430,7 @@ export default function QuotationList() {
                             <button
                                 onClick={() => setTrashModalQuotation(null)}
                                 disabled={isDeleting}
-                                className="px-4 py-2.5 bg-bg-acx-card hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors disabled:opacity-50"
+                                className="px-4 py-2.5 bg-bg-card hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors disabled:opacity-50"
                             >
                                 Cancel
                             </button>
