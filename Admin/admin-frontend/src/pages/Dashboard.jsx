@@ -638,19 +638,6 @@ export default function Dashboard() {
                                                     return { x, y };
                                                 });
                                                 
-                                                const areaPath = `M 0 100 L ${points[0]?.x} ${points[0]?.y} ` +
-                                                    points.slice(1).map((p, i) => {
-                                                        const prev = points[i];
-                                                        return `C ${prev.x + (p.x - prev.x) / 2} ${prev.y} ${prev.x + (p.x - prev.x) / 2} ${p.y} ${p.x} ${p.y}`;
-                                                    }).join(' ') +
-                                                    ` L 100 100 Z`;
-
-                                                const linePath = `M ${points[0]?.x} ${points[0]?.y} ` +
-                                                    points.slice(1).map((p, i) => {
-                                                        const prev = points[i];
-                                                        return `C ${prev.x + (p.x - prev.x) / 2} ${prev.y} ${prev.x + (p.x - prev.x) / 2} ${p.y} ${p.x} ${p.y}`;
-                                                    }).join(' ');
-
                                                 return (
                                                     <div className="flex-1 relative flex mt-6">
                                                         {/* Y Axis & Horizontal Grids */}
@@ -665,37 +652,32 @@ export default function Dashboard() {
 
                                                         {/* Chart Content Area */}
                                                         <div className="flex-1 relative ml-[40px]">
-                                                            {/* SVG Trend Line Overlay */}
-                                                            <div className="absolute inset-0 pointer-events-none z-10">
-                                                                <svg className="w-full h-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
-                                                                    <defs>
-                                                                        <linearGradient id="trendGradient" x1="0" x2="0" y1="0" y2="1">
-                                                                            <stop offset="0%" stopColor="#818CF8" stopOpacity="0.15"/>
-                                                                            <stop offset="100%" stopColor="#818CF8" stopOpacity="0"/>
-                                                                        </linearGradient>
-                                                                    </defs>
-                                                                    <path d={areaPath} fill="url(#trendGradient)" vectorEffect="non-scaling-stroke" />
-                                                                    <path d={linePath} fill="none" stroke="#C7D2FE" strokeWidth="2.5" vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" />
-                                                                    {points.map((p, i) => (
-                                                                        <circle key={i} cx={p.x} cy={p.y} r="3" fill="#fff" stroke="#A5B4FC" strokeWidth="2" vectorEffect="non-scaling-stroke" />
-                                                                    ))}
-                                                                </svg>
-                                                            </div>
 
                                                             {/* Bars Container */}
                                                             <div className="absolute inset-0 flex items-end">
                                                                 {overviewData.map((item, idx) => {
+                                                                    // We ensure the bar is at least 1% high so the color is visible
                                                                     const totalHeightPct = Math.max(1, (item.totalEnquiries / niceMax) * 100);
                                                                     const newHeightPct = Math.max(1, (item.newEnquiries / niceMax) * 100);
                                                                     
+                                                                    // Dynamic tooltip positioning to prevent clipping
+                                                                    const maxBarHeight = Math.max(totalHeightPct, newHeightPct);
+                                                                    const horizontalClass = idx >= overviewData.length / 2 ? "right-[50%] mr-2" : "left-[50%] ml-2";
+                                                                    const verticalStyle = maxBarHeight > 60 
+                                                                        ? { top: `${100 - maxBarHeight + 5}%` } 
+                                                                        : { bottom: `${maxBarHeight + 5}%` };
+                                                                    
                                                                     return (
                                                                         <div key={idx} className="flex-1 h-full flex flex-col justify-end items-center group relative z-20">
-                                                                            {/* Tooltip */}
-                                                                            <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-[calc(100%+10px)] bg-white border border-border-subtle p-3 rounded-[16px] shadow-[0_8px_30px_rgba(0,0,0,0.08)] pointer-events-none w-[170px] z-30">
-                                                                                <div className="text-[13px] font-bold text-text-primary mb-2.5">{item.month}</div>
-                                                                                <div className="flex justify-between items-center mb-1.5">
+                                                                            {/* Premium Tooltip */}
+                                                                            <div 
+                                                                                className={`opacity-0 group-hover:opacity-100 transition-opacity absolute bg-white border border-border-subtle p-3.5 rounded-[16px] shadow-[0_8px_30px_rgba(0,0,0,0.12)] pointer-events-none w-[170px] z-50 ${horizontalClass}`}
+                                                                                style={verticalStyle}
+                                                                            >
+                                                                                <div className="text-[14px] font-bold text-[#1E293B] mb-3">{item.month}</div>
+                                                                                <div className="flex justify-between items-center mb-2">
                                                                                     <div className="flex items-center gap-2">
-                                                                                        <div className="w-2.5 h-2.5 rounded-full bg-[#3B82F6]"></div>
+                                                                                        <div className="w-2.5 h-2.5 rounded-full bg-[#2563EB]"></div>
                                                                                         <span className="text-[12px] font-medium text-text-secondary">New Enquiries</span>
                                                                                     </div>
                                                                                     <span className="text-[13px] font-bold text-text-primary">{item.newEnquiries}</span>
@@ -713,7 +695,7 @@ export default function Dashboard() {
                                                                             <div className="w-[44px] max-w-full flex items-end justify-center gap-[4px] h-full cursor-pointer transition-transform group-hover:-translate-y-1">
                                                                                 {/* New Enquiries Bar */}
                                                                                 <div
-                                                                                    className="w-1/2 bg-[#3B82F6] rounded-t-[6px] relative"
+                                                                                    className="w-[20px] bg-[#2563EB] rounded-t-[6px] relative"
                                                                                     style={{ height: `${newHeightPct}%` }}
                                                                                 >
                                                                                     {item.newEnquiries > 0 && (
@@ -724,7 +706,7 @@ export default function Dashboard() {
                                                                                 </div>
                                                                                 {/* Total Enquiries Bar */}
                                                                                 <div
-                                                                                    className="w-1/2 bg-[#A5B4FC] rounded-t-[6px] relative"
+                                                                                    className="w-[20px] bg-[#A5B4FC] rounded-t-[6px] relative"
                                                                                     style={{ height: `${totalHeightPct}%` }}
                                                                                 >
                                                                                     {item.totalEnquiries > 0 && (
@@ -761,9 +743,9 @@ export default function Dashboard() {
                                 </div>
                                 
                                 {/* Legend */}
-                                <div className="flex items-center justify-center gap-8 mt-12 relative">
+                                <div className="flex items-center justify-center gap-8 mt-10 relative">
                                     <div className="flex items-center">
-                                        <div className="w-3 h-3 rounded-full bg-[#3B82F6] mr-2"></div>
+                                        <div className="w-3 h-3 rounded-full bg-[#2563EB] mr-2"></div>
                                         <span className="text-[13px] font-medium text-text-secondary">New Enquiries</span>
                                     </div>
                                     <div className="flex items-center">
