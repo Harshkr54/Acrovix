@@ -159,7 +159,7 @@ export default function Reports() {
                     <button
                         onClick={() => handleExportCsv(activeTab === 'CUSTOMERS' ? 'CUSTOMERS' : activeTab === 'QUOTATIONS' ? 'QUOTATIONS' : activeTab === 'PAYMENTS' ? 'PAYMENTS' : 'SUMMARY')}
                         disabled={isExporting || isLoading}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-brand-teal hover:bg-[#0B7A70] text-white text-sm font-medium rounded-xl transition-all shadow-sm disabled:opacity-50"
+                        className="btn btn-primary btn-md"
                     >
                         {isExporting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                         Export CSV
@@ -167,7 +167,7 @@ export default function Reports() {
                     <button
                         onClick={fetchAllReports}
                         disabled={isLoading}
-                        className="p-2 border border-border-subtle rounded-xl text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors"
+                        className="btn btn-primary btn-icon"
                         title="Refresh Report Data"
                     >
                         <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -209,7 +209,7 @@ export default function Reports() {
                             />
                             <button
                                 type="submit"
-                                className="px-3 py-1.5 bg-brand-teal text-white text-xs font-semibold rounded-xl hover:bg-[#0B7A70] transition-colors"
+                                className="btn btn-primary btn-sm"
                             >
                                 Apply
                             </button>
@@ -243,7 +243,7 @@ export default function Reports() {
                     </p>
                     <button
                         onClick={fetchAllReports}
-                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-teal text-white text-sm font-semibold rounded-xl hover:bg-[#0B7A70] transition-colors shadow-sm"
+                        className="btn btn-primary btn-md"
                     >
                         <RefreshCw className="w-4 h-4" />
                         Retry
@@ -369,7 +369,7 @@ export default function Reports() {
 
                     {/* OVERVIEW / MONTHLY TRENDS */}
                     {activeTab === 'OVERVIEW' && (
-                        <div className="bg-bg-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-6">
+                        <div className="btn btn-secondary btn-md">
                             <div className="flex items-center justify-between">
                                 <h3 className="text-base font-bold text-text-primary flex items-center gap-2">
                                     <TrendingUp className="w-5 h-5 text-brand-teal" />

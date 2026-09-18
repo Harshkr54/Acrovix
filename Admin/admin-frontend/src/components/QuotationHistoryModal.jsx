@@ -62,7 +62,7 @@ export default function QuotationHistoryModal({ isOpen, onClose, quotation, onVi
                     </div>
                     <button 
                         onClick={onClose}
-                        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-bg-hover text-text-secondary transition-colors"
+                        className="btn btn-secondary btn-icon"
                     >
                         &times;
                     </button>
@@ -78,7 +78,7 @@ export default function QuotationHistoryModal({ isOpen, onClose, quotation, onVi
                         <div className="p-8 flex flex-col items-center text-center">
                             <AlertCircle className="w-10 h-10 text-red-500 mb-3" />
                             <p className="text-[14px] font-medium text-red-600 mb-4">{error}</p>
-                            <button onClick={loadHistory} className="acx-btn-primary px-4 py-2 text-[12px]">Retry</button>
+                            <button onClick={loadHistory} className="btn btn-primary btn-md">Retry</button>
                         </div>
                     ) : history.length === 0 ? (
                         <div className="py-16 flex flex-col items-center text-center">
@@ -124,9 +124,9 @@ export default function QuotationHistoryModal({ isOpen, onClose, quotation, onVi
                                         <td className="px-6 py-4 whitespace-nowrap text-right">
                                             <button
                                                 onClick={() => onViewPdf(ver.id)}
-                                                className="inline-flex items-center text-brand-primary hover:text-brand-primary/80 text-[12px] font-semibold transition-colors"
+                                                className="btn btn-primary btn-md"
                                             >
-                                                <ExternalLink className="w-3.5 h-3.5 mr-1" />
+                                                <ExternalLink className="w-3.5 h-3.5 " />
                                                 View PDF
                                             </button>
                                         </td>
@@ -140,7 +140,7 @@ export default function QuotationHistoryModal({ isOpen, onClose, quotation, onVi
                 <div className="p-6 border-t border-border-subtle bg-bg-card rounded-b-[24px] flex justify-end">
                     <button 
                         onClick={onClose}
-                        className="px-5 py-2.5 bg-bg-main hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors shadow-sm"
+                        className="btn btn-primary btn-md"
                     >
                         Close
                     </button>

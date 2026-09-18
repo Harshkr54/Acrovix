@@ -313,8 +313,8 @@ export default function EnquiryList() {
                                             </div>
                                             <p className="text-[15px] font-bold text-text-primary">Failed to load enquiries</p>
                                             <p className="text-[13px] text-text-secondary leading-relaxed">{error}</p>
-                                            <button onClick={fetchEnquiries} className="acx-btn-primary mt-2">
-                                                <RefreshCw className="w-4 h-4 mr-2" />
+                                            <button onClick={fetchEnquiries} className="btn btn-primary btn-md mt-2">
+                                                <RefreshCw className="w-4 h-4 " />
                                                 Retry
                                             </button>
                                         </div>
@@ -381,7 +381,7 @@ export default function EnquiryList() {
                                                     <option value="CLOSED">CLOSED</option>
                                                 </select>
                                                 <span className={`inline-flex items-center text-[10px] font-bold uppercase tracking-wider ${getStatusStyle(enq.status)}`}>
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5"></span>
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-current "></span>
                                                     {getStatusLabel(enq.status)}
                                                 </span>
                                             </div>
@@ -400,7 +400,7 @@ export default function EnquiryList() {
                                                 title="More actions"
                                                 aria-label="More actions"
                                             >
-                                                <MoreHorizontal className="w-4 h-4 pointer-events-none" />
+                                                <MoreHorizontal className="btn btn-secondary btn-md" />
                                             </button>
 
                                             {activeActionMenuId === enq.id && createPortal(
@@ -420,9 +420,9 @@ export default function EnquiryList() {
                                                             setActiveActionMenuId(null);
                                                             handleOpenEnquiry(enq);
                                                         }}
-                                                        className="flex items-center w-full px-3 py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover rounded-xl transition-colors"
+                                                        className="btn btn-primary btn-sm w-full"
                                                     >
-                                                        <Eye className="w-3.5 h-3.5 mr-2 text-[var(--color-brand-primary)]" />
+                                                        <Eye className="w-3.5 h-3.5 text-[var(--color-brand-primary)]" />
                                                         Open Enquiry
                                                     </button>
 
@@ -437,7 +437,7 @@ export default function EnquiryList() {
                                                         onClick={() => setActiveActionMenuId(null)}
                                                         className="flex items-center w-full px-3 py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover rounded-xl transition-colors"
                                                     >
-                                                        <Plus className="w-3.5 h-3.5 mr-2 text-brand-success" />
+                                                        <Plus className="w-3.5 h-3.5 text-brand-success" />
                                                         Create Quotation
                                                     </Link>
 
@@ -448,7 +448,7 @@ export default function EnquiryList() {
                                                                 onClick={() => setActiveActionMenuId(null)}
                                                                 className="flex items-center w-full px-3 py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover rounded-xl transition-colors"
                                                             >
-                                                                <FileText className="w-3.5 h-3.5 mr-2 text-purple-600" />
+                                                                <FileText className="w-3.5 h-3.5 text-purple-600" />
                                                                 Open Quotation
                                                             </Link>
                                                         ) : (
@@ -458,10 +458,10 @@ export default function EnquiryList() {
                                                                     setActiveActionMenuId(null);
                                                                     handleOpenEnquiry(enq);
                                                                 }}
-                                                                className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover rounded-xl transition-colors"
+                                                                className="btn btn-primary btn-sm w-full"
                                                             >
                                                                 <span className="flex items-center">
-                                                                    <FileText className="w-3.5 h-3.5 mr-2 text-purple-600" />
+                                                                    <FileText className="w-3.5 h-3.5 text-purple-600" />
                                                                     Open Quotation
                                                                 </span>
                                                                 <span className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full font-bold">
@@ -492,7 +492,7 @@ export default function EnquiryList() {
                                                                     : 'text-text-secondary hover:bg-bg-hover font-medium'
                                                             }`}
                                                         >
-                                                            <span className="flex items-center">
+                                                            <span className="btn btn-secondary btn-md">
                                                                 <span className={`w-1.5 h-1.5 rounded-full mr-2 ${getStatusStyle(st).replace('text-', 'bg-')}`} />
                                                                 {getStatusLabel(st)}
                                                             </span>
@@ -522,18 +522,18 @@ export default function EnquiryList() {
                             <button 
                                 disabled={currentPage === 0}
                                 onClick={() => setCurrentPage(p => p - 1)}
-                                className="inline-flex items-center px-3 py-1.5 bg-bg-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-lg text-[12px] font-semibold text-text-primary transition-colors shadow-sm"
+                                className="btn btn-secondary btn-sm"
                             >
-                                <ChevronLeft className="w-3.5 h-3.5 mr-1" />
+                                <ChevronLeft className="w-3.5 h-3.5 " />
                                 Prev
                             </button>
                             <button 
                                 disabled={currentPage >= totalPages - 1}
                                 onClick={() => setCurrentPage(p => p + 1)}
-                                className="inline-flex items-center px-3 py-1.5 bg-bg-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-lg text-[12px] font-semibold text-text-primary transition-colors shadow-sm"
+                                className="btn btn-secondary btn-sm"
                             >
                                 Next
-                                <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                                <ChevronRight className="w-3.5 h-3.5 " />
                             </button>
                         </div>
                     </div>

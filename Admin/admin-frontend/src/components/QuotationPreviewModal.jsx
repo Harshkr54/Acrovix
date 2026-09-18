@@ -38,13 +38,13 @@ export default function QuotationPreviewModal({
                                 download={emailDetails?.filename || 'quotation-preview.pdf'}
                                 className="acx-btn-secondary text-[13px]"
                             >
-                                <Download className="w-4 h-4 mr-2" />
+                                <Download className="w-4 h-4 " />
                                 Download PDF
                             </a>
                         )}
                         <button 
                             onClick={onClose}
-                            className="p-2 text-text-muted hover:text-text-primary hover:bg-bg-hover rounded-lg transition-colors"
+                            className="btn btn-primary btn-icon"
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -79,7 +79,7 @@ export default function QuotationPreviewModal({
                     </div>
 
                     {/* Right Content Area */}
-                    <div className="flex-1 bg-bg-main relative overflow-hidden flex flex-col">
+                    <div className="btn btn-secondary btn-md">
                         {isLoading && (
                             <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-bg-card/80 backdrop-blur-sm">
                                 <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-primary mb-4"></div>
@@ -96,9 +96,9 @@ export default function QuotationPreviewModal({
                                 <p className="text-[13px] text-text-secondary max-w-md text-center mb-6">{error}</p>
                                 <button 
                                     onClick={onRetry}
-                                    className="acx-btn-primary"
+                                    className="btn btn-primary btn-md"
                                 >
-                                    <RefreshCw className="w-4 h-4 mr-2" />
+                                    <RefreshCw className="w-4 h-4 " />
                                     Try Again
                                 </button>
                             </div>
@@ -164,7 +164,7 @@ export default function QuotationPreviewModal({
                                             <div className="bg-slate-50 border-t border-slate-200 p-4">
                                                 <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3">1 Attachment</h4>
                                                 <div className="inline-flex items-center px-4 py-3 bg-white border border-slate-200 rounded-lg shadow-sm">
-                                                    <div className="w-8 h-8 bg-red-50 rounded flex items-center justify-center mr-3">
+                                                    <div className="w-8 h-8 bg-red-50 rounded flex items-center justify-center ">
                                                         <FileText className="w-4 h-4 text-red-500" />
                                                     </div>
                                                     <div>

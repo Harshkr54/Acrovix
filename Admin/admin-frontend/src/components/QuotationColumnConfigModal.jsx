@@ -127,7 +127,7 @@ export default function QuotationColumnConfigModal({ isOpen, onClose, activeConf
             <div className="acx-card p-6 md:p-8 max-w-2xl w-full border border-border-subtle shadow-2xl relative animate-in fade-in zoom-in-95 duration-200 my-8">
                 <button
                     onClick={onClose}
-                    className="absolute top-5 right-5 p-2 text-text-muted hover:text-text-primary hover:bg-bg-hover rounded-xl transition-colors"
+                    className="btn btn-primary btn-icon absolute top-5 right-5 inset-y-0 right-0 pr-3"
                     aria-label="Close modal"
                 >
                     <X className="w-5 h-5" />
@@ -177,8 +177,8 @@ export default function QuotationColumnConfigModal({ isOpen, onClose, activeConf
                                     
                                     <div className="flex items-center space-x-2">
                                         <div className="flex flex-col space-y-0.5 mr-2">
-                                            <button onClick={() => moveUp(index)} disabled={index === 0} className="text-text-muted hover:text-text-primary disabled:opacity-30"><ArrowUp className="w-3.5 h-3.5"/></button>
-                                            <button onClick={() => moveDown(index)} disabled={index === configs.length - 1} className="text-text-muted hover:text-text-primary disabled:opacity-30"><ArrowDown className="w-3.5 h-3.5"/></button>
+                                            <button onClick={() => moveUp(index)} disabled={index === 0} className="btn btn-primary btn-md"><ArrowUp className="w-3.5 h-3.5"/></button>
+                                            <button onClick={() => moveDown(index)} disabled={index === configs.length - 1} className="btn btn-primary btn-md"><ArrowDown className="w-3.5 h-3.5"/></button>
                                         </div>
                                         
                                         <button 
@@ -186,13 +186,13 @@ export default function QuotationColumnConfigModal({ isOpen, onClose, activeConf
                                             className={`p-1.5 rounded-lg transition-colors ${config.visible ? 'text-brand-teal hover:bg-[#14B8A6]/10' : 'text-text-muted hover:bg-bg-hover'}`}
                                             title={config.visible ? "Hide Column" : "Show Column"}
                                         >
-                                            {config.visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                                            {config.visible ? <Eye className="btn btn-secondary btn-md" /> : <EyeOff className="w-4 h-4" />}
                                         </button>
                                         
                                         {config.isCustom && (
                                             <button 
                                                 onClick={() => removeCustomColumn(index)}
-                                                className="p-1.5 text-brand-danger hover:bg-[#DC2626]/10 rounded-lg transition-colors ml-1"
+                                                className="btn btn-danger btn-icon"
                                                 title="Remove Custom Column"
                                             >
                                                 <Trash2 className="w-4 h-4" />
@@ -228,9 +228,9 @@ export default function QuotationColumnConfigModal({ isOpen, onClose, activeConf
                             <button 
                                 onClick={handleAddCustomColumn}
                                 disabled={!newColumnName.trim()}
-                                className="inline-flex items-center justify-center px-4 py-2 bg-bg-card hover:bg-bg-hover border border-border-subtle rounded-lg text-[13px] font-semibold text-text-primary transition-colors disabled:opacity-50"
+                                className="btn btn-primary btn-md"
                             >
-                                <Plus className="w-4 h-4 mr-1.5" /> Add
+                                <Plus className="w-4 h-4 " /> Add
                             </button>
                         </div>
                         {error && (
@@ -244,13 +244,13 @@ export default function QuotationColumnConfigModal({ isOpen, onClose, activeConf
                 <div className="flex items-center justify-end space-x-3 mt-8 pt-4 border-t border-border-subtle/50">
                     <button
                         onClick={onClose}
-                        className="px-4 py-2.5 bg-bg-card hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors"
+                        className="btn btn-primary btn-md"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleApply}
-                        className="acx-btn-primary flex items-center px-6 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]"
+                        className="btn btn-primary btn-md"
                     >
                         Apply Config
                     </button>

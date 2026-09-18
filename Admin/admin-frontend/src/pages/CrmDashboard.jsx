@@ -88,21 +88,21 @@ export default function CrmDashboard() {
         <div className="flex items-center gap-2">
             <button
                 onClick={() => navigate('/crm/pipeline')}
-                className="hidden sm:inline-flex items-center gap-2 px-4 py-2 border border-border-subtle rounded-xl text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors"
+                className="btn btn-primary btn-sm hidden sm:inline-flex"
             >
                 <Kanban className="w-4 h-4 text-brand-teal" />
                 Pipeline
             </button>
             <button
                 onClick={() => navigate('/crm/follow-ups')}
-                className="hidden sm:inline-flex items-center gap-2 px-4 py-2 border border-border-subtle rounded-xl text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors"
+                className="btn btn-primary btn-sm hidden sm:inline-flex"
             >
                 <Calendar className="w-4 h-4 text-amber-500" />
                 Follow-ups
             </button>
             <button
                 onClick={() => setIsCreateLeadOpen(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-brand-teal hover:bg-[#0B7A70] text-white text-xs font-semibold rounded-xl transition-all shadow-sm"
+                className="btn btn-primary btn-sm"
             >
                 <Plus className="w-4 h-4" />
                 New Lead
@@ -205,7 +205,7 @@ export default function CrmDashboard() {
                     </h2>
                     <button
                         onClick={() => navigate('/crm/pipeline')}
-                        className="text-xs font-semibold text-brand-teal hover:underline flex items-center gap-1"
+                        className="btn btn-link btn-icon"
                     >
                         View Full Pipeline <ArrowRight className="w-3.5 h-3.5" />
                     </button>
@@ -247,7 +247,7 @@ export default function CrmDashboard() {
                             </h2>
                             <button
                                 onClick={() => navigate('/crm/follow-ups')}
-                                className="text-xs font-semibold text-brand-teal hover:underline flex items-center gap-1"
+                                className="btn btn-link btn-icon"
                             >
                                 All Follow-ups <ArrowRight className="w-3.5 h-3.5" />
                             </button>
@@ -290,7 +290,7 @@ export default function CrmDashboard() {
                             </h2>
                             <button
                                 onClick={() => navigate('/crm/leads')}
-                                className="text-xs font-semibold text-brand-teal hover:underline flex items-center gap-1"
+                                className="btn btn-link btn-icon"
                             >
                                 View All Leads <ArrowRight className="w-3.5 h-3.5" />
                             </button>

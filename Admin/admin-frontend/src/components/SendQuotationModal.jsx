@@ -90,7 +90,7 @@ export default function SendQuotationModal({ isOpen, onClose, initialEmail, onSe
                 <button
                     onClick={handleClose}
                     disabled={isSending}
-                    className="absolute top-5 right-5 p-2 text-text-muted hover:text-text-primary hover:bg-bg-hover rounded-xl transition-colors disabled:opacity-50"
+                    className="btn btn-primary btn-icon absolute top-5 right-5 inset-y-0 right-0 pr-3"
                     aria-label="Close modal"
                 >
                     <X className="w-5 h-5" />
@@ -120,10 +120,10 @@ export default function SendQuotationModal({ isOpen, onClose, initialEmail, onSe
                                     <button 
                                         onClick={handleEditClick}
                                         disabled={isSending}
-                                        className="text-[12px] font-semibold text-[var(--color-brand-primary)] hover:text-[var(--color-brand-primary)]/80 flex items-center transition-colors disabled:opacity-50"
+                                        className="btn btn-primary btn-md"
                                         aria-label="Edit email"
                                     >
-                                        Edit <Edit2 className="w-3.5 h-3.5 ml-1" />
+                                        Edit <Edit2 className="w-3.5 h-3.5 " />
                                     </button>
                                 </div>
                             ) : (
@@ -144,16 +144,16 @@ export default function SendQuotationModal({ isOpen, onClose, initialEmail, onSe
                                         <button 
                                             onClick={handleCancelEdit}
                                             disabled={isSending}
-                                            className="px-3 py-1.5 bg-bg-card hover:bg-bg-hover border border-border-subtle rounded-lg text-[12px] font-semibold text-text-primary transition-colors disabled:opacity-50"
+                                            className="btn btn-secondary btn-sm"
                                         >
                                             Cancel
                                         </button>
                                         <button 
                                             onClick={handleSaveEdit}
                                             disabled={isSending}
-                                            className="inline-flex items-center px-3 py-1.5 bg-[var(--color-brand-primary)] hover:bg-[var(--color-brand-primary)]/90 text-white rounded-lg text-[12px] font-semibold transition-colors disabled:opacity-50"
+                                            className="btn btn-primary btn-sm"
                                         >
-                                            <Check className="w-3.5 h-3.5 mr-1" /> Save
+                                            <Check className="w-3.5 h-3.5 " /> Save
                                         </button>
                                     </div>
                                 </div>
@@ -178,17 +178,17 @@ export default function SendQuotationModal({ isOpen, onClose, initialEmail, onSe
                     <button
                         onClick={handleClose}
                         disabled={isSending}
-                        className="px-4 py-2.5 bg-bg-card hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors disabled:opacity-50"
+                        className="btn btn-primary btn-md"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleSend}
                         disabled={isSending || isEditingEmail}
-                        className="acx-btn-primary flex items-center px-5 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)] disabled:opacity-50"
+                        className="btn btn-primary btn-md"
                     >
                         {isSending ? (
-                            <><span className="animate-spin w-4 h-4 border-b-2 border-white rounded-full mr-2"></span> Sending...</>
+                            <><span className="animate-spin w-4 h-4 border-b-2 border-white rounded-full "></span> Sending...</>
                         ) : (
                             <>Send Quotation &rarr;</>
                         )}

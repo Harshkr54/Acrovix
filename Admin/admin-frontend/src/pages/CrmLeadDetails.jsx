@@ -86,7 +86,7 @@ export default function CrmLeadDetails() {
             <div className="space-y-6">
                 <button
                     onClick={() => navigate('/crm/leads')}
-                    className="inline-flex items-center gap-2 text-xs font-semibold text-text-muted hover:text-text-primary transition-colors"
+                    className="btn btn-primary btn-icon"
                 >
                     <ArrowLeft className="w-4 h-4" /> Back to Leads
                 </button>
@@ -100,7 +100,7 @@ export default function CrmLeadDetails() {
             <div className="space-y-6">
                 <button
                     onClick={() => navigate('/crm/leads')}
-                    className="inline-flex items-center gap-2 text-xs font-semibold text-text-muted hover:text-text-primary transition-colors"
+                    className="btn btn-primary btn-icon"
                 >
                     <ArrowLeft className="w-4 h-4" /> Back to Leads
                 </button>
@@ -119,7 +119,7 @@ export default function CrmLeadDetails() {
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => navigate('/crm/leads')}
-                        className="p-2 border border-border-subtle rounded-xl text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors"
+                        className="btn btn-primary btn-icon"
                     >
                         <ArrowLeft className="w-4 h-4" />
                     </button>
@@ -136,21 +136,21 @@ export default function CrmLeadDetails() {
                 <div className="flex items-center gap-2">
                     <button
                         onClick={() => setIsStatusModalOpen(true)}
-                        className="inline-flex items-center gap-1.5 px-3 py-2 border border-border-subtle rounded-xl text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors"
+                        className="btn btn-primary btn-icon"
                     >
                         <RefreshCw className="w-3.5 h-3.5 text-amber-500" />
                         Status
                     </button>
                     <button
                         onClick={() => setIsAssignModalOpen(true)}
-                        className="inline-flex items-center gap-1.5 px-3 py-2 border border-border-subtle rounded-xl text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors"
+                        className="btn btn-primary btn-icon"
                     >
                         <UserCheck className="w-3.5 h-3.5 text-blue-500" />
                         Assign
                     </button>
                     <button
                         onClick={() => setFollowUpModalState({ isOpen: true, mode: 'CREATE', followUp: null })}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand-teal hover:bg-[#0B7A70] text-white text-xs font-semibold rounded-xl transition-all shadow-sm"
+                        className="btn btn-primary btn-icon"
                     >
                         <Plus className="w-3.5 h-3.5" />
                         Add Follow-up
@@ -257,7 +257,7 @@ export default function CrmLeadDetails() {
                             </h2>
                             <button
                                 onClick={() => setFollowUpModalState({ isOpen: true, mode: 'CREATE', followUp: null })}
-                                className="text-xs font-bold text-brand-teal hover:underline flex items-center gap-1"
+                                className="btn btn-link btn-icon"
                             >
                                 <Plus className="w-3.5 h-3.5" /> Schedule Follow-up
                             </button>
@@ -300,19 +300,19 @@ export default function CrmLeadDetails() {
                                                 <div className="flex items-center justify-end gap-2 pt-2 border-t border-border-subtle/50">
                                                     <button
                                                         onClick={() => setFollowUpModalState({ isOpen: true, mode: 'EDIT', followUp: fu })}
-                                                        className="px-2.5 py-1 text-[11px] font-semibold text-text-secondary hover:text-text-primary border border-border-subtle rounded-lg hover:bg-bg-hover transition-colors"
+                                                        className="btn btn-primary btn-md"
                                                     >
                                                         Edit
                                                     </button>
                                                     <button
                                                         onClick={() => setFollowUpModalState({ isOpen: true, mode: 'CANCEL', followUp: fu })}
-                                                        className="px-2.5 py-1 text-[11px] font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 border border-rose-500/20 rounded-lg transition-colors"
+                                                        className="btn btn-danger btn-md"
                                                     >
                                                         Cancel
                                                     </button>
                                                     <button
                                                         onClick={() => setFollowUpModalState({ isOpen: true, mode: 'COMPLETE', followUp: fu })}
-                                                        className="px-3 py-1 text-[11px] font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors shadow-sm"
+                                                        className="btn btn-success btn-md"
                                                     >
                                                         Mark Complete
                                                     </button>

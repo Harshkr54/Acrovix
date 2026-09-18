@@ -335,7 +335,7 @@ export default function InvoiceDetail() {
         <div className="p-8 text-center max-w-md mx-auto my-12 bg-bg-card border border-border-subtle rounded-2xl p-6">
             <h3 className="text-base font-bold text-text-primary mb-1">Failed to Load Invoice</h3>
             <p className="text-xs text-text-muted mb-4">{error}</p>
-            <button onClick={fetchInvoice} className="px-4 py-2 bg-brand-primary text-white rounded-xl text-xs font-semibold hover:bg-brand-secondary transition-colors">
+            <button onClick={fetchInvoice} className="btn btn-primary btn-sm">
                 Retry
             </button>
         </div>
@@ -361,7 +361,7 @@ export default function InvoiceDetail() {
             <div className="flex items-center gap-4 mb-6">
                 <button 
                     onClick={() => navigate('/invoices')}
-                    className="p-2 hover:bg-bg-main rounded-full transition-colors text-text-muted hover:text-text-primary"
+                    className="btn btn-primary btn-icon"
                 >
                     <ArrowLeft className="w-5 h-5" />
                 </button>
@@ -387,21 +387,21 @@ export default function InvoiceDetail() {
                     {invoice.status === 'DRAFT' && (
                         <button 
                             onClick={handleOpenEditModal}
-                            className="px-4 py-2 bg-bg-card border border-border-subtle hover:bg-bg-main text-text-primary rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                            className="btn btn-primary btn-md"
                         >
                             <Edit3 className="w-4 h-4 text-brand-primary" /> Edit Details
                         </button>
                     )}
                     <button 
                         onClick={handleDownloadPdf}
-                        className="px-4 py-2 bg-bg-card border border-border-subtle hover:bg-bg-main text-text-primary rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                        className="btn btn-primary btn-md"
                     >
                         <Download className="w-4 h-4" /> PDF
                     </button>
                     <button 
                         onClick={handleSendEmail}
                         disabled={sendingEmail || actionLoading}
-                        className="px-4 py-2 bg-bg-card border border-border-subtle hover:bg-bg-main text-text-primary rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
+                        className="btn btn-primary btn-md"
                     >
                         {sendingEmail ? (
                             <><span className="animate-spin w-4 h-4 border-b-2 border-brand-primary rounded-full"></span> Sending...</>
@@ -412,7 +412,7 @@ export default function InvoiceDetail() {
                     {isRecordPaymentEligible && (
                         <button 
                             onClick={handleOpenRecordPaymentModal}
-                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-sm"
+                            className="btn btn-success btn-md"
                         >
                             <CreditCard className="w-4 h-4" /> Record Payment
                         </button>
@@ -421,7 +421,7 @@ export default function InvoiceDetail() {
                         <button 
                             onClick={handleIssue}
                             disabled={actionLoading}
-                            className="px-4 py-2 bg-brand-primary hover:bg-brand-secondary text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+                            className="btn btn-primary btn-md"
                         >
                             <CheckCircle className="w-4 h-4" /> Issue Invoice
                         </button>
@@ -430,7 +430,7 @@ export default function InvoiceDetail() {
                         <button 
                             onClick={handleCancel}
                             disabled={actionLoading}
-                            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                            className="btn btn-danger btn-md"
                         >
                             Cancel
                         </button>
@@ -439,7 +439,7 @@ export default function InvoiceDetail() {
                         <button 
                             onClick={handleConvertToTaxInvoice}
                             disabled={actionLoading}
-                            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                            className="btn btn-secondary btn-md"
                         >
                             Convert to Tax Invoice
                         </button>
@@ -458,7 +458,7 @@ export default function InvoiceDetail() {
                         {isRecordPaymentEligible && (
                             <button 
                                 onClick={handleOpenRecordPaymentModal}
-                                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5"
+                                className="btn btn-success btn-md"
                             >
                                 <Plus className="w-3.5 h-3.5" /> Record Payment
                             </button>
@@ -502,7 +502,7 @@ export default function InvoiceDetail() {
                             {invoice.status === 'DRAFT' && (
                                 <button 
                                     onClick={handleOpenEditModal}
-                                    className="text-xs text-brand-primary hover:underline flex items-center gap-1 font-medium"
+                                    className="btn btn-primary btn-icon"
                                 >
                                     <Edit3 className="w-3.5 h-3.5" /> Edit
                                 </button>
@@ -618,7 +618,7 @@ export default function InvoiceDetail() {
                                                         <div className="flex items-center justify-end gap-2">
                                                             <button 
                                                                 onClick={() => handleDownloadReceipt(p.id, p.paymentNumber)}
-                                                                className="p-1 hover:bg-bg-main text-text-muted hover:text-text-primary rounded transition-colors"
+                                                                className="btn btn-primary btn-icon"
                                                                 title="Download Receipt PDF"
                                                             >
                                                                 <Download className="w-3.5 h-3.5" />
@@ -626,7 +626,7 @@ export default function InvoiceDetail() {
                                                             {p.status === 'RECORDED' && (
                                                                 <button 
                                                                     onClick={() => handleOpenCancelModal(p.id)}
-                                                                    className="px-2 py-1 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded text-[11px] font-medium transition-colors"
+                                                                    className="btn btn-danger btn-md"
                                                                 >
                                                                     Cancel
                                                                 </button>
@@ -651,7 +651,7 @@ export default function InvoiceDetail() {
                             {invoice.status === 'DRAFT' && (
                                 <button 
                                     onClick={handleOpenEditModal}
-                                    className="text-xs text-brand-primary hover:underline flex items-center gap-1 font-medium"
+                                    className="btn btn-primary btn-icon"
                                 >
                                     <Edit3 className="w-3.5 h-3.5" /> Edit
                                 </button>
@@ -712,7 +712,7 @@ export default function InvoiceDetail() {
                             </h2>
                             <button 
                                 onClick={() => setIsRecordPaymentModalOpen(false)}
-                                className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-main transition-colors"
+                                className="btn btn-primary btn-icon"
                             >
                                 <X className="w-5 h-5" />
                             </button>
@@ -834,14 +834,14 @@ export default function InvoiceDetail() {
                                 <button
                                     type="button"
                                     onClick={() => setIsRecordPaymentModalOpen(false)}
-                                    className="px-4 py-2 border border-border-subtle text-text-muted hover:text-text-primary rounded-lg text-sm font-medium transition-colors"
+                                    className="btn btn-primary btn-md"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={recordingPayment}
-                                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
+                                    className="btn btn-success btn-md"
                                 >
                                     {recordingPayment ? 'Recording...' : 'Record Payment'}
                                 </button>
@@ -861,7 +861,7 @@ export default function InvoiceDetail() {
                             </h2>
                             <button 
                                 onClick={() => setCancellingPaymentId(null)}
-                                className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-main transition-colors"
+                                className="btn btn-primary btn-icon"
                             >
                                 <X className="w-5 h-5" />
                             </button>
@@ -894,14 +894,14 @@ export default function InvoiceDetail() {
                                 <button
                                     type="button"
                                     onClick={() => setCancellingPaymentId(null)}
-                                    className="px-4 py-2 border border-border-subtle text-text-muted hover:text-text-primary rounded-lg text-sm font-medium transition-colors"
+                                    className="btn btn-primary btn-md"
                                 >
                                     Close
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={submittingCancel}
-                                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                                    className="btn btn-danger btn-md"
                                 >
                                     {submittingCancel ? 'Cancelling...' : 'Confirm Cancellation'}
                                 </button>
@@ -922,7 +922,7 @@ export default function InvoiceDetail() {
                             </h2>
                             <button 
                                 onClick={() => setIsEditModalOpen(false)}
-                                className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-main transition-colors"
+                                className="btn btn-primary btn-icon"
                             >
                                 <X className="w-5 h-5" />
                             </button>
@@ -1040,14 +1040,14 @@ export default function InvoiceDetail() {
                                 <button
                                     type="button"
                                     onClick={() => setIsEditModalOpen(false)}
-                                    className="px-4 py-2 border border-border-subtle text-text-muted hover:text-text-primary rounded-lg text-sm font-medium transition-colors"
+                                    className="btn btn-primary btn-md"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={savingEdit}
-                                    className="px-4 py-2 bg-brand-primary hover:bg-brand-secondary text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
+                                    className="btn btn-primary btn-md"
                                 >
                                     {savingEdit ? 'Saving...' : 'Save Changes'}
                                 </button>

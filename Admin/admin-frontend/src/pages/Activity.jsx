@@ -82,8 +82,8 @@ export default function Activity() {
                         </div>
                         <h3 className="text-base font-bold text-text-primary mb-1">Failed to load activity logs</h3>
                         <p className="text-xs text-text-secondary mb-6 max-w-sm">{error}</p>
-                        <button onClick={fetchActivities} className="acx-btn-primary flex items-center shadow-sm text-xs py-2 px-4">
-                            <RefreshCw className="w-4 h-4 mr-2" />
+                        <button onClick={fetchActivities} className="btn btn-primary btn-sm">
+                            <RefreshCw className="w-4 h-4 " />
                             Retry
                         </button>
                     </div>
@@ -159,18 +159,18 @@ export default function Activity() {
                                 <button
                                     disabled={currentPage === 0 || isLoading}
                                     onClick={() => setCurrentPage(p => p - 1)}
-                                    className="inline-flex items-center px-3 py-1.5 bg-bg-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-lg text-[12px] font-semibold text-text-primary transition-colors shadow-sm"
+                                    className="btn btn-secondary btn-sm"
                                 >
-                                    <ChevronLeft className="w-3.5 h-3.5 mr-1" />
+                                    <ChevronLeft className="w-3.5 h-3.5 " />
                                     Prev
                                 </button>
                                 <button
                                     disabled={currentPage >= totalPages - 1 || isLoading}
                                     onClick={() => setCurrentPage(p => p + 1)}
-                                    className="inline-flex items-center px-3 py-1.5 bg-bg-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-lg text-[12px] font-semibold text-text-primary transition-colors shadow-sm"
+                                    className="btn btn-secondary btn-sm"
                                 >
                                     Next
-                                    <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                                    <ChevronRight className="w-3.5 h-3.5 " />
                                 </button>
                             </div>
                         </div>

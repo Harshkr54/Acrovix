@@ -119,7 +119,7 @@ export default function CustomerMaster() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
                 <div>
                     <h1 className="text-[28px] font-bold text-text-primary tracking-tight leading-tight flex items-center">
-                        <UsersRound className="w-7 h-7 mr-3 text-brand-teal" />
+                        <UsersRound className="w-7 h-7 text-brand-teal" />
                         Customers
                     </h1>
                     <p className="text-[13px] text-text-secondary mt-1">Manage customer database and billing information.</p>
@@ -131,7 +131,7 @@ export default function CustomerMaster() {
                     }}
                     className={showForm ? "inline-flex items-center px-4 py-2.5 bg-bg-card hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors shadow-sm" : "acx-btn-primary flex items-center px-4 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]"}
                 >
-                    {showForm ? 'Cancel' : <><Plus className="w-4 h-4 mr-2" /> Add Customer</>}
+                    {showForm ? 'Cancel' : <><Plus className="btn btn-secondary btn-md mr-2" /> Add Customer</>}
                 </button>
             </div>
 
@@ -139,10 +139,10 @@ export default function CustomerMaster() {
             {showForm && (
                 <div className="acx-card p-6 border border-brand-teal/20 mb-6 relative overflow-hidden">
                     <div className="absolute top-4 right-4">
-                        <button onClick={resetForm} className="text-text-muted hover:text-text-primary"><X className="w-5 h-5"/></button>
+                        <button onClick={resetForm} className="btn btn-primary btn-md"><X className="w-5 h-5"/></button>
                     </div>
                     <h2 className="text-[16px] font-bold text-text-primary mb-6 flex items-center tracking-tight">
-                        <UsersRound className="w-5 h-5 mr-2 text-brand-teal" />
+                        <UsersRound className="w-5 h-5 text-brand-teal" />
                         {editingId ? 'Edit Customer' : 'Add New Customer'}
                     </h2>
                     <form onSubmit={handleSubmit} className="space-y-6">
@@ -203,7 +203,7 @@ export default function CustomerMaster() {
                             </div>
                         </div>
                         <div className="pt-2 flex justify-end">
-                            <button type="submit" className="acx-btn-primary px-8 py-2.5 text-[13px] font-semibold shadow-[0_4px_14px_rgba(20,184,166,0.25)] bg-brand-teal hover:bg-[#0F766E] border-transparent">
+                            <button type="submit" className="btn btn-primary btn-md">
                                 {editingId ? 'Update Customer' : 'Save Customer'}
                             </button>
                         </div>
@@ -234,8 +234,8 @@ export default function CustomerMaster() {
                                             </div>
                                             <p className="text-[15px] font-bold text-text-primary">Failed to load customers</p>
                                             <p className="text-[13px] text-text-secondary leading-relaxed">{error}</p>
-                                            <button onClick={fetchCustomersList} className="acx-btn-primary mt-2">
-                                                <RefreshCw className="w-4 h-4 mr-2" />
+                                            <button onClick={fetchCustomersList} className="btn btn-primary btn-md mt-2">
+                                                <RefreshCw className="w-4 h-4 " />
                                                 Retry
                                             </button>
                                         </div>
@@ -268,8 +268,8 @@ export default function CustomerMaster() {
                                             {c.gstin && <div className="text-[11px] text-text-secondary mt-0.5 tracking-wider">{c.gstin}</div>}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap align-top">
-                                            <div className="text-text-secondary text-[13px] font-medium flex items-center"><Mail className="w-3 h-3 mr-1.5"/>{c.email}</div>
-                                            {c.phone && <div className="text-text-secondary text-[12px] mt-1 flex items-center"><Phone className="w-3 h-3 mr-1.5"/>{c.phone}</div>}
+                                            <div className="text-text-secondary text-[13px] font-medium flex items-center"><Mail className="w-3 h-3 "/>{c.email}</div>
+                                            {c.phone && <div className="text-text-secondary text-[12px] mt-1 flex items-center"><Phone className="w-3 h-3 "/>{c.phone}</div>}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap align-top">
                                             <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-text-primary bg-bg-main border border-border-subtle px-2 py-1 rounded-md">
@@ -290,13 +290,13 @@ export default function CustomerMaster() {
                                         <td className="px-6 py-4 whitespace-nowrap align-top text-right">
                                             <button 
                                                 onClick={() => navigate(`/customers/${c.id}/360`)}
-                                                className="text-[12px] font-semibold text-brand-teal hover:text-brand-teal transition-colors mr-4"
+                                                className="btn btn-ghost btn-md"
                                             >
                                                 360 View
                                             </button>
                                             <button 
                                                 onClick={() => handleEdit(c)}
-                                                className="text-[12px] font-semibold text-text-secondary hover:text-text-primary transition-colors mr-4"
+                                                className="btn btn-primary btn-md"
                                             >
                                                 Edit
                                             </button>

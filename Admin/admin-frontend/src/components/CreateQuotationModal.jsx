@@ -106,7 +106,7 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                 {/* Close Button */}
                 <button
                     onClick={handleClose}
-                    className="absolute top-5 right-5 p-2 text-text-muted hover:text-text-primary hover:bg-bg-hover rounded-xl transition-colors"
+                    className="btn btn-primary btn-icon absolute top-5 right-5 inset-y-0 right-0 pr-3"
                 >
                     <X className="w-5 h-5" />
                 </button>
@@ -122,7 +122,7 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                             {/* Option 1: From Website Enquiry */}
                             <button
                                 onClick={handleSelectEnquiry}
-                                className="w-full text-left p-5 border border-border-subtle hover:border-[var(--color-brand-primary)]/40 bg-bg-card hover:bg-[var(--color-brand-primary)]/[0.02] rounded-2xl transition-all duration-200 group flex items-start space-x-4 shadow-sm"
+                                className="btn btn-primary btn-md w-full"
                             >
                                 <div className="w-11 h-11 rounded-xl bg-[var(--color-brand-primary)]/10 flex items-center justify-center text-[var(--color-brand-primary)] group-hover:scale-105 transition-transform flex-shrink-0">
                                     <Globe className="w-5 h-5" />
@@ -143,7 +143,7 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                             {/* Option 2: Direct / Manual Quotation */}
                             <button
                                 onClick={() => setStep(2)}
-                                className="w-full text-left p-5 border border-border-subtle hover:border-brand-teal/40 bg-bg-card hover:bg-[#14B8A6]/[0.02] rounded-2xl transition-all duration-200 group flex items-start space-x-4 shadow-sm"
+                                className="btn btn-secondary btn-md w-full"
                             >
                                 <div className="w-11 h-11 rounded-xl bg-[#14B8A6]/10 flex items-center justify-center text-brand-teal group-hover:scale-105 transition-transform flex-shrink-0">
                                     <UserPlus className="w-5 h-5" />
@@ -167,7 +167,7 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                         <div className="flex items-center space-x-3 mb-6">
                             <button
                                 onClick={() => setStep(1)}
-                                className="p-1.5 text-text-muted hover:text-text-primary hover:bg-bg-hover rounded-lg transition-colors"
+                                className="btn btn-primary btn-icon"
                             >
                                 <ArrowLeft className="w-4 h-4" />
                             </button>
@@ -300,19 +300,19 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                                     type="button"
                                     onClick={() => setStep(1)}
                                     disabled={isCreating}
-                                    className="px-4 py-2.5 bg-bg-card hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors disabled:opacity-50"
+                                    className="btn btn-primary btn-md"
                                 >
                                     Back
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={isCreating}
-                                    className="acx-btn-primary flex items-center px-5 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)] disabled:opacity-50"
+                                    className="btn btn-primary btn-md"
                                 >
                                     {isCreating ? (
-                                        <><span className="animate-spin w-4 h-4 border-b-2 border-white rounded-full mr-2"></span> Creating...</>
+                                        <><span className="animate-spin w-4 h-4 border-b-2 border-white rounded-full "></span> Creating...</>
                                     ) : (
-                                        <><Plus className="w-4 h-4 mr-2" /> Create & Open Builder</>
+                                        <><Plus className="w-4 h-4 " /> Create & Open Builder</>
                                     )}
                                 </button>
                             </div>

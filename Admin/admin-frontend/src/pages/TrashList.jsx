@@ -86,7 +86,7 @@ export default function TrashList() {
                 </div>
                 <h2 className="text-[20px] font-bold text-text-primary mb-2 tracking-tight">Failed to load Trash</h2>
                 <p className="text-text-secondary mb-6 text-[13px] leading-relaxed">{error}</p>
-                <button onClick={fetchTrashQuotations} className="acx-btn-primary flex items-center px-4 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]">
+                <button onClick={fetchTrashQuotations} className="btn btn-primary btn-md">
                     Try Again
                 </button>
             </div>
@@ -111,7 +111,7 @@ export default function TrashList() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
                 <div>
                     <h1 className="text-[28px] font-bold text-text-primary tracking-tight leading-tight flex items-center">
-                        <Trash2 className="w-7 h-7 mr-3 text-amber-500" />
+                        <Trash2 className="w-7 h-7 text-amber-500" />
                         Trash
                     </h1>
                     <p className="text-[13px] text-text-secondary mt-1">Deleted quotation drafts</p>
@@ -136,7 +136,7 @@ export default function TrashList() {
                                 <tr key={q.id} className="hover:bg-bg-hover transition-colors group">
                                     <td className="px-6 py-4 whitespace-nowrap text-[13px] font-bold text-text-primary align-top">
                                         <div className="flex items-center">
-                                            <File className="w-4 h-4 mr-2.5 text-text-muted" />
+                                            <File className="w-4 h-4 text-text-muted" />
                                             <span>{q.quotationNumber}</span>
                                         </div>
                                     </td>
@@ -157,20 +157,20 @@ export default function TrashList() {
                                             <button
                                                 onClick={() => handleRestore(q.id)}
                                                 disabled={restoringId === q.id}
-                                                className="inline-flex items-center text-brand-teal hover:text-[#0F766E] font-semibold text-[12px] transition-colors disabled:opacity-50"
+                                                className="btn btn-ghost btn-md"
                                             >
                                                 {restoringId === q.id ? (
-                                                    <><span className="animate-spin w-3 h-3 border-b-2 border-[#0D9488] rounded-full mr-1.5"></span> Restoring...</>
+                                                    <><span className="animate-spin w-3 h-3 border-b-2 border-[#0D9488] rounded-full "></span> Restoring...</>
                                                 ) : (
-                                                    <><RotateCcw className="w-3.5 h-3.5 mr-1" /> Restore</>
+                                                    <><RotateCcw className="w-3.5 h-3.5 " /> Restore</>
                                                 )}
                                             </button>
                                             {user?.role === 'SUPER_ADMIN' && (
                                                 <button
                                                     onClick={() => setPermanentModalQuotation(q)}
-                                                    className="inline-flex items-center text-brand-danger hover:text-[#B91C1C] font-semibold text-[12px] transition-colors"
+                                                    className="btn btn-ghost btn-md text-brand-danger"
                                                 >
-                                                    <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete Permanently
+                                                    <Trash2 className="w-3.5 h-3.5 " /> Delete Permanently
                                                 </button>
                                             )}
                                         </div>
@@ -190,16 +190,16 @@ export default function TrashList() {
                         <button 
                             disabled={currentPage === 0 || isLoading}
                             onClick={() => setCurrentPage(p => p - 1)}
-                            className="inline-flex items-center px-3 py-1.5 bg-bg-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-lg text-[12px] font-semibold text-text-primary transition-colors shadow-sm"
+                            className="btn btn-secondary btn-sm"
                         >
-                            <ChevronLeft className="w-3.5 h-3.5 mr-1" /> Prev
+                            <ChevronLeft className="w-3.5 h-3.5 " /> Prev
                         </button>
                         <button 
                             disabled={currentPage >= totalPages - 1 || isLoading}
                             onClick={() => setCurrentPage(p => p + 1)}
-                            className="inline-flex items-center px-3 py-1.5 bg-bg-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-lg text-[12px] font-semibold text-text-primary transition-colors shadow-sm"
+                            className="btn btn-secondary btn-sm"
                         >
-                            Next <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                            Next <ChevronRight className="w-3.5 h-3.5 " />
                         </button>
                     </div>
                 </div>
@@ -220,17 +220,17 @@ export default function TrashList() {
                             <button
                                 onClick={() => setPermanentModalQuotation(null)}
                                 disabled={isDeletingPermanently}
-                                className="px-4 py-2.5 bg-bg-card hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors disabled:opacity-50"
+                                className="btn btn-primary btn-md"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handlePermanentDelete}
                                 disabled={isDeletingPermanently}
-                                className="px-4 py-2.5 bg-[#DC2626] hover:bg-[#B91C1C] text-white rounded-xl text-[13px] font-semibold transition-colors shadow-sm disabled:opacity-50 flex items-center"
+                                className="btn btn-danger btn-md"
                             >
                                 {isDeletingPermanently ? (
-                                    <><span className="animate-spin w-3.5 h-3.5 border-b-2 border-white rounded-full mr-2"></span> Deleting...</>
+                                    <><span className="animate-spin w-3.5 h-3.5 border-b-2 border-white rounded-full "></span> Deleting...</>
                                 ) : (
                                     'Delete Permanently'
                                 )}

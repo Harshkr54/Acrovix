@@ -145,7 +145,7 @@ export default function Receivables() {
                     </div>
                     <button
                         type="submit"
-                        className="px-4 py-2 bg-brand-primary text-white rounded-xl text-xs font-semibold hover:bg-brand-secondary transition-colors"
+                        className="btn btn-primary btn-sm"
                     >
                         Filter
                     </button>
@@ -229,7 +229,7 @@ export default function Receivables() {
                                         <td className="p-4 text-right">
                                             <button
                                                 onClick={() => navigate(`/invoices?search=${encodeURIComponent(r.customerName)}`)}
-                                                className="px-3 py-1.5 bg-bg-main border border-border-subtle hover:bg-brand-primary hover:text-white hover:border-brand-primary rounded-lg text-xs font-medium transition-colors inline-flex items-center gap-1"
+                                                className="btn btn-primary btn-icon"
                                             >
                                                 <span>View Invoices</span>
                                                 <ArrowUpRight className="w-3 h-3" />

@@ -108,7 +108,7 @@ export default function FollowUpModal({ isOpen, onClose, mode = 'CREATE', leadId
                         )}
                         <h2 className="text-lg font-bold text-text-primary">{getTitle()}</h2>
                     </div>
-                    <button onClick={onClose} className="p-1 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors">
+                    <button onClick={onClose} className="btn btn-primary btn-icon">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -140,7 +140,7 @@ export default function FollowUpModal({ isOpen, onClose, mode = 'CREATE', leadId
                                                         : 'bg-bg-main border-border-subtle text-text-secondary hover:border-text-muted'
                                                 }`}
                                             >
-                                                <IconComp className="w-3.5 h-3.5" />
+                                                <IconComp className="btn btn-secondary btn-md" />
                                                 {t.label}
                                             </button>
                                         );
@@ -195,7 +195,7 @@ export default function FollowUpModal({ isOpen, onClose, mode = 'CREATE', leadId
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-2 text-sm font-semibold border border-border-subtle rounded-xl text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors"
+                            className="btn btn-primary btn-md"
                         >
                             Cancel
                         </button>
@@ -208,7 +208,7 @@ export default function FollowUpModal({ isOpen, onClose, mode = 'CREATE', leadId
                                     : 'bg-brand-teal hover:bg-[#0B7A70]'
                             }`}
                         >
-                            {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                            {isLoading && <Loader2 className="btn btn-secondary btn-md" />}
                             {mode === 'CREATE' && 'Schedule Follow-up'}
                             {mode === 'EDIT' && 'Save Changes'}
                             {mode === 'COMPLETE' && 'Complete Follow-up'}

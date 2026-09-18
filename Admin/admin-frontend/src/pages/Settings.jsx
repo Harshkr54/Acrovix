@@ -173,7 +173,7 @@ export default function Settings() {
         <div className="max-w-4xl mx-auto space-y-6 pb-12 pt-2">
             <div>
                 <h1 className="text-[28px] font-bold text-text-primary tracking-tight leading-tight flex items-center">
-                    <SettingsIcon className="w-7 h-7 mr-3 text-[var(--color-brand-primary)]" />
+                    <SettingsIcon className="w-7 h-7 text-[var(--color-brand-primary)]" />
                     Settings
                 </h1>
                 <p className="text-[13px] text-text-secondary mt-1">Manage your account preferences and application settings.</p>
@@ -196,7 +196,7 @@ export default function Settings() {
                 )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
+            <div className="btn btn-secondary btn-md mt-4">
                 <div className="md:col-span-2 space-y-6">
                     {activeTab === 'profile' && (
                         <>
@@ -252,9 +252,9 @@ export default function Settings() {
                                         <button 
                                             type="submit" 
                                             disabled={isSavingProfile || (name === profile?.name && email === profile?.email)}
-                                            className="acx-btn-primary px-6 py-2 shadow-sm disabled:opacity-50"
+                                            className="btn btn-primary btn-md"
                                         >
-                                            {isSavingProfile ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                                            {isSavingProfile ? <Loader2 className="w-4 h-4 animate-spin " /> : <Save className="w-4 h-4 " />}
                                             Save Profile
                                         </button>
                                     </div>
@@ -294,7 +294,7 @@ export default function Settings() {
                                             <button
                                                 type="button"
                                                 onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-1 rounded-md transition-colors focus:outline-none"
+                                                className="btn btn-primary btn-icon absolute top-5 right-5 inset-y-0 right-0 pr-3"
                                             >
                                                 {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                             </button>
@@ -314,7 +314,7 @@ export default function Settings() {
                                             <button
                                                 type="button"
                                                 onClick={() => setShowNewPassword(!showNewPassword)}
-                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-1 rounded-md transition-colors focus:outline-none"
+                                                className="btn btn-primary btn-icon absolute top-5 right-5 inset-y-0 right-0 pr-3"
                                             >
                                                 {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                             </button>
@@ -334,7 +334,7 @@ export default function Settings() {
                                             <button
                                                 type="button"
                                                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-1 rounded-md transition-colors focus:outline-none"
+                                                className="btn btn-primary btn-icon absolute top-5 right-5 inset-y-0 right-0 pr-3"
                                             >
                                                 {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                             </button>
@@ -345,9 +345,9 @@ export default function Settings() {
                                         <button 
                                             type="submit" 
                                             disabled={isSavingPassword || !currentPassword || !newPassword || !confirmPassword}
-                                            className="acx-btn-primary px-6 py-2 shadow-sm disabled:opacity-50"
+                                            className="btn btn-primary btn-md"
                                         >
-                                            {isSavingPassword ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Lock className="w-4 h-4 mr-2" />}
+                                            {isSavingPassword ? <Loader2 className="w-4 h-4 animate-spin " /> : <Lock className="w-4 h-4 " />}
                                             Change Password
                                         </button>
                                     </div>
@@ -373,7 +373,7 @@ export default function Settings() {
                                     </div>
                                     <button 
                                         onClick={toggleTheme}
-                                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-bg-muted hover:bg-bg-hover transition-colors border border-border-subtle text-sm font-medium text-text-primary cursor-pointer"
+                                        className="btn btn-primary btn-md"
                                     >
                                         {theme === 'dark' ? (
                                             <><Moon className="w-4 h-4" /> Dark Mode</>
@@ -409,7 +409,7 @@ export default function Settings() {
                                 {/* Company Info */}
                                 <div>
                                     <h3 className="text-[13px] font-bold text-text-primary mb-4 flex items-center border-b border-border-subtle pb-2">
-                                        <Building className="w-4 h-4 mr-2 text-text-muted" /> Company Information
+                                        <Building className="w-4 h-4 text-text-muted" /> Company Information
                                     </h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
@@ -450,7 +450,7 @@ export default function Settings() {
                                 {/* Bank Details */}
                                 <div>
                                     <h3 className="text-[13px] font-bold text-text-primary mb-4 flex items-center border-b border-border-subtle pb-2">
-                                        <Landmark className="w-4 h-4 mr-2 text-text-muted" /> Bank Details
+                                        <Landmark className="w-4 h-4 text-text-muted" /> Bank Details
                                     </h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
@@ -475,7 +475,7 @@ export default function Settings() {
                                 {/* Document Defaults */}
                                 <div>
                                     <h3 className="text-[13px] font-bold text-text-primary mb-4 flex items-center border-b border-border-subtle pb-2">
-                                        <FileText className="w-4 h-4 mr-2 text-text-muted" /> Document Defaults
+                                        <FileText className="w-4 h-4 text-text-muted" /> Document Defaults
                                     </h3>
                                     <div className="grid grid-cols-1 gap-4">
                                         <div>
@@ -492,7 +492,7 @@ export default function Settings() {
                                 {/* Branding */}
                                 <div>
                                     <h3 className="text-[13px] font-bold text-text-primary mb-4 flex items-center border-b border-border-subtle pb-2">
-                                        <Image className="w-4 h-4 mr-2 text-text-muted" /> Branding
+                                        <Image className="w-4 h-4 text-text-muted" /> Branding
                                     </h3>
                                     <div className="grid grid-cols-1 gap-4">
                                         <div>
@@ -510,9 +510,9 @@ export default function Settings() {
                                     <button 
                                         type="submit" 
                                         disabled={isSavingCompany}
-                                        className="acx-btn-primary px-6 py-2.5 mt-4 shadow-sm disabled:opacity-50"
+                                        className="btn btn-primary btn-md mt-4"
                                     >
-                                        {isSavingCompany ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                                        {isSavingCompany ? <Loader2 className="w-4 h-4 animate-spin " /> : <Save className="w-4 h-4 " />}
                                         Save Company Settings
                                     </button>
                                 </div>

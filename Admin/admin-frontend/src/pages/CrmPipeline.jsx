@@ -95,7 +95,7 @@ export default function CrmPipeline() {
     const pageHeaderAction = (
         <button
             onClick={() => setIsCreateModalOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-brand-teal hover:bg-[#0B7A70] text-white text-xs font-semibold rounded-xl transition-all shadow-sm"
+            className="btn btn-primary btn-sm"
         >
             <Plus className="w-4 h-4" />
             New Lead

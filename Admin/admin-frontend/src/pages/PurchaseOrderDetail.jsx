@@ -124,7 +124,7 @@ export default function PurchaseOrderDetail() {
             <div className="flex items-center gap-4 mb-6">
                 <button 
                     onClick={() => navigate('/purchase-orders')}
-                    className="p-2 hover:bg-bg-main rounded-full transition-colors text-text-muted hover:text-text-primary"
+                    className="btn btn-primary btn-icon"
                 >
                     <ArrowLeft className="w-5 h-5" />
                 </button>
@@ -140,7 +140,7 @@ export default function PurchaseOrderDetail() {
                 <div className="flex items-center gap-3">
                     <button 
                         onClick={handleDownloadPdf}
-                        className="px-4 py-2 bg-bg-card border border-border-subtle hover:bg-bg-main text-text-primary rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                        className="btn btn-primary btn-md"
                     >
                         <Download className="w-4 h-4" /> PDF
                     </button>
@@ -148,7 +148,7 @@ export default function PurchaseOrderDetail() {
                         <button 
                             onClick={handleVerify}
                             disabled={actionLoading}
-                            className="px-4 py-2 bg-brand-primary hover:bg-brand-secondary text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+                            className="btn btn-primary btn-md"
                         >
                             <CheckCircle className="w-4 h-4" /> Verify
                         </button>
@@ -157,7 +157,7 @@ export default function PurchaseOrderDetail() {
                         <button 
                             onClick={handleCreateTaxInvoice}
                             disabled={actionLoading}
-                            className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+                            className="btn btn-success btn-md"
                         >
                             <FileText className="w-4 h-4" /> Create Tax Invoice
                         </button>
@@ -165,7 +165,7 @@ export default function PurchaseOrderDetail() {
                     {['VERIFIED', 'PARTIALLY_FULFILLED'].includes(order.status) && (
                         <button 
                             onClick={() => { setNewStatus(''); setStatusModalOpen(true); }}
-                            className="px-4 py-2 bg-bg-card border border-border-subtle hover:bg-bg-main text-text-primary rounded-lg text-sm font-medium transition-colors"
+                            className="btn btn-primary btn-md"
                         >
                             Update Status
                         </button>
@@ -233,7 +233,7 @@ export default function PurchaseOrderDetail() {
                                 <label className="text-xs text-text-muted">Quotation Number</label>
                                 <button 
                                     onClick={() => navigate(`/quotations?search=${order.quotationNumber}`)}
-                                    className="block font-medium text-brand-primary hover:underline mt-1 text-left"
+                                    className="btn btn-primary btn-md"
                                 >
                                     {order.quotationNumber}
                                 </button>
@@ -277,7 +277,7 @@ export default function PurchaseOrderDetail() {
                     <div className="bg-bg-card border border-border-subtle rounded-xl shadow-xl w-full max-w-md overflow-hidden">
                         <div className="p-4 border-b border-border-subtle flex justify-between items-center bg-bg-main/50">
                             <h2 className="text-lg font-bold text-text-primary">Update Status</h2>
-                            <button onClick={() => setStatusModalOpen(false)} className="text-text-muted hover:text-text-primary">
+                            <button onClick={() => setStatusModalOpen(false)} className="btn btn-primary btn-md">
                                 <XCircle className="w-5 h-5" />
                             </button>
                         </div>
@@ -312,14 +312,14 @@ export default function PurchaseOrderDetail() {
                                 <button 
                                     type="button" 
                                     onClick={() => setStatusModalOpen(false)}
-                                    className="px-4 py-2 bg-bg-main border border-border-subtle text-text-primary rounded-lg text-sm font-medium"
+                                    className="btn btn-primary btn-md"
                                 >
                                     Cancel
                                 </button>
                                 <button 
                                     type="submit" 
                                     disabled={actionLoading || !newStatus}
-                                    className="px-4 py-2 bg-brand-primary hover:bg-brand-secondary text-white rounded-lg text-sm font-medium disabled:opacity-50"
+                                    className="btn btn-primary btn-md"
                                 >
                                     {actionLoading ? 'Updating...' : 'Update Status'}
                                 </button>

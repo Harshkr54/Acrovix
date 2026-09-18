@@ -584,16 +584,16 @@ export default function QuotationBuilder() {
                     {isTrashError ? "This quotation is in Trash or no longer exists. Please restore it from the Trash section before editing." : error}
                 </p>
                 <div className="flex items-center space-x-3">
-                    <button onClick={() => navigate('/quotations')} className="inline-flex items-center px-4 py-2.5 bg-bg-card hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors shadow-sm">
+                    <button onClick={() => navigate('/quotations')} className="btn btn-primary btn-md">
                         Back to Quotations
                     </button>
                     {isTrashError ? (
-                        <button onClick={() => navigate('/trash')} className="acx-btn-primary flex items-center px-4 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]">
+                        <button onClick={() => navigate('/trash')} className="btn btn-primary btn-md">
                             Go to Trash
                         </button>
                     ) : (
-                        <button onClick={initializeBuilder} className="acx-btn-primary flex items-center px-4 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]">
-                            <RefreshCw className="w-4 h-4 mr-2" />
+                        <button onClick={initializeBuilder} className="btn btn-primary btn-md">
+                            <RefreshCw className="w-4 h-4 " />
                             Retry
                         </button>
                     )}
@@ -639,16 +639,16 @@ export default function QuotationBuilder() {
                     <button 
                         onClick={handleSaveDraft} 
                         disabled={isSaving || isSending}
-                        className="inline-flex items-center justify-center px-4 py-2.5 bg-bg-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors shadow-sm"
+                        className="btn btn-primary btn-md"
                     >
-                        {isSaving ? <><span className="animate-spin w-4 h-4 border-b-2 border-text-primary rounded-full mr-2"></span> Saving</> : <><Save className="mr-2 h-4 w-4 text-text-secondary" /> Save Draft</>}
+                        {isSaving ? <><span className="animate-spin w-4 h-4 border-b-2 border-text-primary rounded-full "></span> Saving</> : <><Save className="mr-2 h-4 w-4 text-text-secondary" /> Save Draft</>}
                     </button>
                     <button 
                         onClick={handleSend} 
                         disabled={isSending || isSaving}
-                        className="acx-btn-primary flex items-center px-5 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)] disabled:opacity-50"
+                        className="btn btn-primary btn-md"
                     >
-                        {isSending ? <><span className="animate-spin w-4 h-4 border-b-2 border-white rounded-full mr-2"></span> Sending...</> : <><Send className="mr-2 h-4 w-4" /> Send Quotation</>}
+                        {isSending ? <><span className="animate-spin w-4 h-4 border-b-2 border-white rounded-full "></span> Sending...</> : <><Send className="mr-2 h-4 w-4" /> Send Quotation</>}
                     </button>
                 </div>
             </div>
@@ -665,7 +665,7 @@ export default function QuotationBuilder() {
             <div className="acx-card p-6 md:p-8">
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center text-[11px] font-bold text-text-secondary uppercase tracking-wider">
-                        <User className="w-4 h-4 mr-2" />
+                        <User className="w-4 h-4 " />
                         Client Details &amp; Source
                     </div>
                     {enquiry?.referenceId ? (
@@ -797,7 +797,7 @@ export default function QuotationBuilder() {
                         <button 
                             onClick={handleParseText}
                             disabled={isParsing || !roughText.trim()}
-                            className="w-full h-11 flex justify-center items-center px-4 border border-[#7C3AED]/30 rounded-xl text-[13px] font-semibold text-purple-600 bg-[#7C3AED]/5 hover:bg-[#7C3AED]/10 disabled:opacity-50 transition-colors shadow-sm"
+                            className="btn btn-secondary btn-md w-full"
                         >
                             {isParsing ? (
                                 <><span className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-current mr-2"></span> Parsing</>
@@ -814,19 +814,19 @@ export default function QuotationBuilder() {
                 <div className="px-6 py-5 border-b border-border-subtle flex justify-between items-center bg-bg-card">
                     <div>
                         <h2 className="text-base font-bold text-text-primary tracking-tight flex items-center">
-                            <Hash className="w-4 h-4 mr-2 text-text-secondary" /> Line Items
+                            <Hash className="w-4 h-4 text-text-secondary" /> Line Items
                         </h2>
                         <p className="text-[12px] text-text-muted mt-1">Add products or services to this quotation</p>
                     </div>
                     <div className="flex space-x-2">
-                        <button onClick={handlePreview} className="inline-flex items-center px-4 py-2 border border-border-subtle hover:bg-bg-hover rounded-xl text-[12px] font-semibold text-text-primary transition-colors shadow-sm">
-                            <Eye className="w-4 h-4 mr-2" /> Preview
+                        <button onClick={handlePreview} className="btn btn-primary btn-md">
+                            <Eye className="w-4 h-4 " /> Preview
                         </button>
-                        <button onClick={() => setIsConfigModalOpen(true)} className="inline-flex items-center px-4 py-2 border border-border-subtle hover:bg-bg-hover rounded-xl text-[12px] font-semibold text-text-primary transition-colors shadow-sm">
-                            <Settings className="w-4 h-4 mr-2" /> Configure Columns
+                        <button onClick={() => setIsConfigModalOpen(true)} className="btn btn-primary btn-md">
+                            <Settings className="w-4 h-4 " /> Configure Columns
                         </button>
-                        <button onClick={handleDownloadTemplate} className="inline-flex items-center px-4 py-2 border border-[var(--color-brand-primary)]/30 bg-[var(--color-brand-primary)]/5 hover:bg-[var(--color-brand-primary)]/10 rounded-xl text-[12px] font-semibold text-[var(--color-brand-primary)] transition-colors shadow-sm">
-                            <Download className="w-4 h-4 mr-2" /> Download Template
+                        <button onClick={handleDownloadTemplate} className="btn btn-primary btn-md">
+                            <Download className="w-4 h-4 " /> Download Template
                         </button>
                     </div>
                 </div>
@@ -995,7 +995,7 @@ export default function QuotationBuilder() {
                                         })}
                                         <td className="px-2 py-3 align-top text-center">
                                             <div className="flex flex-col items-center justify-center space-y-1.5 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button onClick={() => removeItem(item.id)} className="p-1 text-brand-danger hover:bg-[#DC2626]/10 rounded" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
+                                                <button onClick={() => removeItem(item.id)} className="btn btn-danger btn-icon" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
                                             </div>
                                         </td>
                                     </tr>
@@ -1007,12 +1007,12 @@ export default function QuotationBuilder() {
                 
                 {/* Add Item Row */}
                 <div className="p-5 border-t border-border-subtle/50 bg-bg-card rounded-b-[24px] flex justify-between items-center">
-                    <button onClick={addItem} className="inline-flex items-center px-4 py-2.5 bg-bg-main hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors shadow-sm">
-                        <Plus className="w-4 h-4 mr-2 text-[var(--color-brand-primary)]" />
+                    <button onClick={addItem} className="btn btn-primary btn-md">
+                        <Plus className="w-4 h-4 text-[var(--color-brand-primary)]" />
                         Add Item
                     </button>
-                    <button onClick={() => setItems([])} className="inline-flex items-center px-4 py-2 text-[13px] font-semibold text-brand-danger hover:bg-[#DC2626]/5 rounded-xl transition-colors">
-                        <Trash2 className="w-4 h-4 mr-2" />
+                    <button onClick={() => setItems([])} className="btn btn-danger btn-md">
+                        <Trash2 className="w-4 h-4 " />
                         Clear All
                     </button>
                 </div>
@@ -1021,11 +1021,11 @@ export default function QuotationBuilder() {
             {/* Totals Preview - Light Summary Panel */}
             <div className="flex flex-col md:flex-row md:justify-end">
                 <div className="acx-card p-8 w-full md:max-w-[420px] bg-bg-card border border-border-subtle shadow-sm relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--color-brand-primary)]/5 rounded-full -mr-16 -mt-16 blur-2xl pointer-events-none"></div>
-                    <div className="absolute bottom-0 left-0 w-32 h-32 bg-[#14B8A6]/5 rounded-full -ml-16 -mb-16 blur-2xl pointer-events-none"></div>
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--color-brand-primary)]/5 rounded-full - -mt-16 blur-2xl pointer-events-none"></div>
+                    <div className="absolute bottom-0 left-0 w-32 h-32 bg-[#14B8A6]/5 rounded-full - -mb-16 blur-2xl pointer-events-none"></div>
                     
                     <h3 className="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-6 flex items-center relative z-10">
-                        <Calculator className="w-4 h-4 mr-2" /> Quotation Summary
+                        <Calculator className="w-4 h-4 " /> Quotation Summary
                     </h3>
                     <div className="space-y-4 relative z-10">
                         <div className="flex justify-between text-[13px] text-text-secondary">

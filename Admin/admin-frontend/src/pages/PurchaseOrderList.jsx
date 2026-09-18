@@ -166,14 +166,14 @@ export default function PurchaseOrderList() {
                             <button
                                 onClick={() => setPage(p => Math.max(0, p - 1))}
                                 disabled={page === 0}
-                                className="px-3 py-1 rounded border border-border-subtle hover:bg-bg-card disabled:opacity-50 text-sm"
+                                className="btn btn-secondary btn-md"
                             >
                                 Previous
                             </button>
                             <button
                                 onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
                                 disabled={page === totalPages - 1}
-                                className="px-3 py-1 rounded border border-border-subtle hover:bg-bg-card disabled:opacity-50 text-sm"
+                                className="btn btn-secondary btn-md"
                             >
                                 Next
                             </button>

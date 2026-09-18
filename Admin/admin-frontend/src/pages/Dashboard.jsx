@@ -250,7 +250,7 @@ export default function Dashboard() {
                                 : 'bg-bg-card border-border-subtle text-text-secondary hover:text-text-primary hover:shadow-sm'
                         }`}
                     >
-                        <Filter className="w-4 h-4" />
+                        <Filter className="btn btn-secondary btn-md" />
                         {hasActiveFilters && (
                             <span className="w-2.5 h-2.5 rounded-full bg-[var(--color-brand-primary)] absolute top-1.5 right-1.5 ring-2 ring-bg-acx-card" />
                         )}
@@ -264,7 +264,7 @@ export default function Dashboard() {
                                     <Filter className="w-4 h-4 text-[var(--color-brand-primary)]" />
                                     <h3 className="text-sm font-bold text-text-primary">Dashboard Filters</h3>
                                 </div>
-                                <button onClick={() => setIsFilterOpen(false)} className="text-text-muted hover:text-text-primary p-1 rounded-lg transition-colors">
+                                <button onClick={() => setIsFilterOpen(false)} className="btn btn-primary btn-icon">
                                     <X className="w-4 h-4" />
                                 </button>
                             </div>
@@ -354,16 +354,16 @@ export default function Dashboard() {
                                     <button
                                         type="button"
                                         onClick={handleResetFilters}
-                                        className="flex items-center px-3 py-2 bg-bg-muted hover:bg-bg-hover text-text-secondary rounded-xl text-xs font-semibold transition-colors"
+                                        className="btn btn-secondary btn-sm"
                                     >
-                                        <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+                                        <RotateCcw className="w-3.5 h-3.5 " />
                                         Reset
                                     </button>
 
                                     <button
                                         type="submit"
                                         disabled={draftFilters.dateRange === 'CUSTOM' && Boolean(draftFilters.fromDate && draftFilters.toDate && draftFilters.fromDate > draftFilters.toDate)}
-                                        className="acx-btn-primary px-5 py-2 shadow-sm text-xs font-semibold disabled:opacity-50"
+                                        className="btn btn-primary btn-md"
                                     >
                                         Apply Filters
                                     </button>
@@ -372,8 +372,8 @@ export default function Dashboard() {
                         </div>
                     )}
 
-                    <button onClick={() => setIsCreateModalOpen(true)} className="acx-btn-primary flex items-center px-4 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]">
-                        <Plus className="w-4 h-4 mr-2" />
+                    <button onClick={() => setIsCreateModalOpen(true)} className="btn btn-primary btn-md">
+                        <Plus className="w-4 h-4 " />
                         Create Quotation
                     </button>
                     <CreateQuotationModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
@@ -387,8 +387,8 @@ export default function Dashboard() {
                     </div>
                     <h3 className="text-lg font-bold text-text-primary mb-2">Failed to Load Dashboard</h3>
                     <p className="text-sm text-text-secondary mb-6">{error}</p>
-                    <button onClick={() => fetchDashboardData(appliedFilters)} className="acx-btn-primary flex items-center shadow-sm">
-                        <RefreshCw className="w-4 h-4 mr-2" />
+                    <button onClick={() => fetchDashboardData(appliedFilters)} className="btn btn-primary btn-md">
+                        <RefreshCw className="w-4 h-4 " />
                         Retry
                     </button>
                 </div>
@@ -585,7 +585,7 @@ export default function Dashboard() {
                                     <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-border-subtle bg-bg-card shadow-sm text-[13px] font-semibold text-text-secondary cursor-pointer hover:bg-bg-hover transition-colors">
                                         <Clock className="w-4 h-4 text-text-muted" />
                                         {getChartTrendLabel(appliedFilters.dateRange)}
-                                        <ChevronRight className="w-4 h-4 ml-1 opacity-50 rotate-90" />
+                                        <ChevronRight className="w-4 h-4 opacity-50 rotate-90" />
                                     </div>
                                 </div>
 
@@ -770,11 +770,11 @@ export default function Dashboard() {
                                 {/* Legend */}
                                 <div className="flex items-center justify-center gap-8 mt-10 relative">
                                     <div className="flex items-center">
-                                        <div className="w-3 h-3 rounded-full bg-[#2563EB] mr-2"></div>
+                                        <div className="w-3 h-3 rounded-full bg-[#2563EB] "></div>
                                         <span className="text-[13px] font-medium text-text-secondary">New Enquiries</span>
                                     </div>
                                     <div className="flex items-center">
-                                        <div className="w-3 h-3 rounded-full bg-[#A5B4FC] mr-2"></div>
+                                        <div className="w-3 h-3 rounded-full bg-[#A5B4FC] "></div>
                                         <span className="text-[13px] font-medium text-text-secondary">Total Enquiries</span>
                                     </div>
                                 </div>
@@ -851,7 +851,7 @@ export default function Dashboard() {
                         <div className="px-6 py-5 flex items-center justify-between border-b border-border-subtle">
                             <h2 className="text-base font-bold text-text-primary tracking-tight">Recent Enquiries</h2>
                             <Link to="/enquiries" className="text-[12px] font-semibold text-[var(--color-brand-primary)] hover:text-brand-primary/90 transition-colors flex items-center">
-                                View all <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
+                                View all <ChevronRight className="w-3.5 h-3.5 " />
                             </Link>
                         </div>
                         <div className="acx-table-container">
@@ -894,7 +894,7 @@ export default function Dashboard() {
                                                 </td>
                                                 <td className="px-6 py-3.5 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                                                     <span className={`inline-flex items-center text-[10px] font-bold tracking-wider ${getStatusStyle(enq.status)}`}>
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5"></span>
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-current "></span>
                                                         {getStatusLabel(enq.status)}
                                                     </span>
                                                 </td>
@@ -932,9 +932,9 @@ export default function Dashboard() {
                                                                         close();
                                                                         handleOpenEnquiry(enq);
                                                                     }}
-                                                                    className="flex items-center w-full px-3 py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover rounded-xl transition-colors"
+                                                                    className="btn btn-primary btn-sm w-full"
                                                                 >
-                                                                    <Eye className="w-3.5 h-3.5 mr-2 text-[var(--color-brand-primary)]" />
+                                                                    <Eye className="w-3.5 h-3.5 text-[var(--color-brand-primary)]" />
                                                                     Open Enquiry
                                                                 </button>
 
@@ -949,7 +949,7 @@ export default function Dashboard() {
                                                                     onClick={close}
                                                                     className="flex items-center w-full px-3 py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover rounded-xl transition-colors"
                                                                 >
-                                                                    <Plus className="w-3.5 h-3.5 mr-2 text-brand-success" />
+                                                                    <Plus className="w-3.5 h-3.5 text-brand-success" />
                                                                     Create Quotation
                                                                 </Link>
 
@@ -960,7 +960,7 @@ export default function Dashboard() {
                                                                             onClick={close}
                                                                             className="flex items-center w-full px-3 py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover rounded-xl transition-colors"
                                                                         >
-                                                                            <FileText className="w-3.5 h-3.5 mr-2 text-purple-600" />
+                                                                            <FileText className="w-3.5 h-3.5 text-purple-600" />
                                                                             Open Quotation
                                                                         </Link>
                                                                     ) : (
@@ -970,10 +970,10 @@ export default function Dashboard() {
                                                                                 close();
                                                                                 handleOpenEnquiry(enq);
                                                                             }}
-                                                                            className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover rounded-xl transition-colors"
+                                                                            className="btn btn-primary btn-sm w-full"
                                                                         >
                                                                             <span className="flex items-center">
-                                                                                <FileText className="w-3.5 h-3.5 mr-2 text-purple-600" />
+                                                                                <FileText className="w-3.5 h-3.5 text-purple-600" />
                                                                                 Open Quotation
                                                                             </span>
                                                                             <span className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full font-bold">
@@ -1004,7 +1004,7 @@ export default function Dashboard() {
                                                                                 : 'text-text-secondary hover:bg-bg-hover font-medium'
                                                                         }`}
                                                                     >
-                                                                        <span className="flex items-center">
+                                                                        <span className="btn btn-secondary btn-md">
                                                                             <span className={`w-1.5 h-1.5 rounded-full mr-2 ${getStatusStyle(st).replace('text-', 'bg-')}`} />
                                                                             {getStatusLabel(st)}
                                                                         </span>

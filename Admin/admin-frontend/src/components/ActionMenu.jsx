@@ -111,7 +111,7 @@ export default function ActionMenu({
                         : 'bg-bg-card border-border-subtle text-text-secondary hover:text-text-primary hover:bg-bg-hover hover:border-border-subtle/80'
                 }`}
             >
-                <CustomIcon className="w-4 h-4 pointer-events-none" />
+                <CustomIcon className="btn btn-secondary btn-md" />
             </button>
 
             {isOpen && typeof document !== 'undefined' && document.body && createPortal(
@@ -160,7 +160,7 @@ export default function ActionMenu({
                                         disabled={item.disabled}
                                         className={`flex items-center w-full px-3 py-2 text-xs font-semibold rounded-xl transition-colors duration-150 disabled:opacity-50 disabled:pointer-events-none ${colorClass}`}
                                     >
-                                        {Icon && <Icon className="w-3.5 h-3.5 mr-2.5 flex-shrink-0" />}
+                                        {Icon && <Icon className="btn btn-secondary btn-md" />}
                                         <span className="truncate">{item.label}</span>
                                     </button>
                                 );

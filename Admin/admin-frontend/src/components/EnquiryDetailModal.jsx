@@ -106,12 +106,12 @@ export default function EnquiryDetailModal({ isOpen, onClose, enquiry, onStatusU
 
                     <div className="flex items-center gap-3">
                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border uppercase tracking-wider ${getStatusStyle(enquiry.status)}`}>
-                            <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5"></span>
+                            <span className="w-1.5 h-1.5 rounded-full bg-current "></span>
                             {getStatusLabel(enquiry.status)}
                         </span>
                         <button
                             onClick={onClose}
-                            className="p-1.5 text-text-muted hover:text-text-primary rounded-xl hover:bg-bg-hover transition-colors"
+                            className="btn btn-primary btn-icon"
                             aria-label="Close modal"
                         >
                             <X className="w-5 h-5" />
@@ -210,7 +210,7 @@ export default function EnquiryDetailModal({ isOpen, onClose, enquiry, onStatusU
 
                         {isLoadingQuotations ? (
                             <div className="flex justify-center items-center py-4 text-text-muted text-xs">
-                                <Loader2 className="w-4 h-4 animate-spin text-purple-600 mr-2" />
+                                <Loader2 className="w-4 h-4 animate-spin text-purple-600 " />
                                 Checking associated quotations...
                             </div>
                         ) : quotations.length > 0 ? (
@@ -229,7 +229,7 @@ export default function EnquiryDetailModal({ isOpen, onClose, enquiry, onStatusU
                                             onClick={onClose}
                                             className="acx-btn-primary py-1.5 px-3 text-xs flex items-center shadow-sm"
                                         >
-                                            <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+                                            <ExternalLink className="w-3.5 h-3.5 " />
                                             Open Quotation
                                         </Link>
                                     </div>
@@ -244,7 +244,7 @@ export default function EnquiryDetailModal({ isOpen, onClose, enquiry, onStatusU
                                         onClick={onClose}
                                         className="acx-btn-primary py-1.5 px-3 text-xs flex items-center shadow-sm"
                                     >
-                                        <Plus className="w-3.5 h-3.5 mr-1.5" />
+                                        <Plus className="w-3.5 h-3.5 " />
                                         Create Quotation
                                     </Link>
                                 </div>
@@ -276,11 +276,11 @@ export default function EnquiryDetailModal({ isOpen, onClose, enquiry, onStatusU
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="btn btn-secondary btn-icon">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-2 bg-bg-muted hover:bg-bg-hover text-text-secondary rounded-xl text-xs font-semibold transition-colors"
+                            className="btn btn-secondary btn-sm"
                         >
                             Close
                         </button>

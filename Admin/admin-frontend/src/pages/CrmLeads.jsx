@@ -142,7 +142,7 @@ export default function CrmLeads() {
     const pageHeaderAction = (
         <button
             onClick={() => setIsCreateModalOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-brand-teal hover:bg-[#0B7A70] text-white text-xs font-semibold rounded-xl transition-all shadow-sm"
+            className="btn btn-primary btn-sm"
         >
             <Plus className="w-4 h-4" />
             New Lead
@@ -173,7 +173,7 @@ export default function CrmLeads() {
                     </div>
                     <button
                         type="submit"
-                        className="px-4 py-2 bg-brand-teal hover:bg-[#0B7A70] text-white text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+                        className="btn btn-primary btn-sm"
                     >
                         Search
                     </button>
@@ -224,7 +224,7 @@ export default function CrmLeads() {
                     {hasActiveFilters && (
                         <button
                             onClick={handleClearFilters}
-                            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors cursor-pointer"
+                            className="btn btn-danger btn-md"
                         >
                             <RotateCcw className="w-3.5 h-3.5" />
                             Clear Filters
@@ -266,7 +266,7 @@ export default function CrmLeads() {
                                             <td className="px-5 py-4 font-bold text-text-primary whitespace-nowrap">
                                                 <button
                                                     onClick={() => navigate(`/crm/leads/${lead.id}`)}
-                                                    className="text-brand-teal hover:underline font-mono"
+                                                    className="btn btn-link btn-md"
                                                 >
                                                     {lead.leadNumber}
                                                 </button>
@@ -322,21 +322,21 @@ export default function CrmLeads() {
                                                     <button
                                                         onClick={() => navigate(`/crm/leads/${lead.id}`)}
                                                         title="View Details"
-                                                        className="p-1.5 rounded-lg text-text-muted hover:text-brand-teal hover:bg-bg-hover transition-colors"
+                                                        className="btn btn-secondary btn-icon"
                                                     >
                                                         <Eye className="w-4 h-4" />
                                                     </button>
                                                     <button
                                                         onClick={() => setStatusModalLead(lead)}
                                                         title="Change Status"
-                                                        className="p-1.5 rounded-lg text-text-muted hover:text-amber-500 hover:bg-bg-hover transition-colors"
+                                                        className="btn btn-secondary btn-icon"
                                                     >
                                                         <RefreshCw className="w-4 h-4" />
                                                     </button>
                                                     <button
                                                         onClick={() => setAssignModalLead(lead)}
                                                         title="Assign Sales Rep"
-                                                        className="p-1.5 rounded-lg text-text-muted hover:text-blue-500 hover:bg-bg-hover transition-colors"
+                                                        className="btn btn-secondary btn-icon"
                                                     >
                                                         <UserCheck className="w-4 h-4" />
                                                     </button>
@@ -358,14 +358,14 @@ export default function CrmLeads() {
                                     <button
                                         onClick={() => setPage(p => Math.max(0, p - 1))}
                                         disabled={page === 0}
-                                        className="p-2 border border-border-subtle rounded-xl text-text-secondary hover:bg-bg-hover disabled:opacity-40 transition-colors"
+                                        className="btn btn-secondary btn-icon"
                                     >
                                         <ChevronLeft className="w-4 h-4" />
                                     </button>
                                     <button
                                         onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
                                         disabled={page >= totalPages - 1}
-                                        className="p-2 border border-border-subtle rounded-xl text-text-secondary hover:bg-bg-hover disabled:opacity-40 transition-colors"
+                                        className="btn btn-secondary btn-icon"
                                     >
                                         <ChevronRight className="w-4 h-4" />
                                     </button>

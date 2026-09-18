@@ -99,7 +99,7 @@ export default function Customer360() {
                     </div>
                     <h2 className="text-[22px] font-bold text-text-primary mb-2">Customer Not Found</h2>
                     <p className="text-[14px] text-text-secondary mb-8">The customer you are looking for does not exist or has been removed.</p>
-                    <button onClick={() => navigate('/customers')} className="acx-btn-primary px-6 py-2.5">
+                    <button onClick={() => navigate('/customers')} className="btn btn-primary btn-md">
                         Back to Customers
                     </button>
                 </div>
@@ -117,10 +117,10 @@ export default function Customer360() {
                     <h2 className="text-[20px] font-bold text-text-primary mb-2">Unable to load customer</h2>
                     <p className="text-[13px] text-text-secondary mb-6">{error}</p>
                     <div className="flex space-x-4 justify-center">
-                        <button onClick={() => navigate('/customers')} className="acx-btn-secondary px-4 py-2 text-sm">
+                        <button onClick={() => navigate('/customers')} className="btn btn-secondary btn-md">
                             Back
                         </button>
-                        <button onClick={() => window.location.reload()} className="acx-btn-primary px-4 py-2 text-sm">
+                        <button onClick={() => window.location.reload()} className="btn btn-primary btn-md">
                             Retry
                         </button>
                     </div>
@@ -150,9 +150,9 @@ export default function Customer360() {
             <div className="flex items-center justify-between">
                 <button 
                     onClick={() => navigate('/customers')}
-                    className="inline-flex items-center text-[13px] font-semibold text-text-secondary hover:text-brand-teal transition-colors"
+                    className="btn btn-ghost btn-md"
                 >
-                    <ArrowLeft className="w-4 h-4 mr-1.5" /> Back to Customers
+                    <ArrowLeft className="w-4 h-4 " /> Back to Customers
                 </button>
                 {/* Note: Edit feature uses modal on CustomerMaster, so we redirect to CustomerMaster to edit, or we just leave it. The prompt said "preserve existing edit action". We can just link back. */}
             </div>
@@ -174,13 +174,13 @@ export default function Customer360() {
                     </div>
                     <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-[13px] text-text-secondary font-medium">
                         {customer.companyName && (
-                            <div className="flex items-center"><Building className="w-4 h-4 mr-2 text-text-muted"/> {customer.companyName}</div>
+                            <div className="flex items-center"><Building className="w-4 h-4 text-text-muted"/> {customer.companyName}</div>
                         )}
-                        <div className="flex items-center"><Mail className="w-4 h-4 mr-2 text-text-muted"/> {customer.email}</div>
+                        <div className="flex items-center"><Mail className="w-4 h-4 text-text-muted"/> {customer.email}</div>
                         {customer.phone && (
-                            <div className="flex items-center"><Phone className="w-4 h-4 mr-2 text-text-muted"/> {customer.phone}</div>
+                            <div className="flex items-center"><Phone className="w-4 h-4 text-text-muted"/> {customer.phone}</div>
                         )}
-                        <div className="flex items-center"><Tag className="w-4 h-4 mr-2 text-text-muted"/> Default: {customer.currency}</div>
+                        <div className="flex items-center"><Tag className="w-4 h-4 text-text-muted"/> Default: {customer.currency}</div>
                     </div>
                 </div>
                 <div className="text-right flex-shrink-0">
@@ -196,7 +196,7 @@ export default function Customer360() {
                 return (
                     <div key={curr} className="mb-6">
                         <h3 className="text-[14px] font-bold text-text-primary uppercase tracking-wider mb-3 flex items-center">
-                            <DollarSign className="w-4 h-4 mr-1.5 text-brand-teal" /> 
+                            <DollarSign className="w-4 h-4 text-brand-teal" /> 
                             {curr} Business Summary
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -268,7 +268,7 @@ export default function Customer360() {
             </div>
 
             {/* Tab Content */}
-            <div className="mt-6">
+            <div className="btn btn-secondary btn-md">
                 
                 {/* OVERVIEW TAB */}
                 {activeTab === 'Overview' && (
@@ -277,9 +277,9 @@ export default function Customer360() {
                         <div className="acx-card flex flex-col">
                             <div className="p-4 border-b border-border-subtle flex justify-between items-center bg-bg-card/50">
                                 <h3 className="text-[13px] font-bold text-text-primary uppercase tracking-wider flex items-center">
-                                    <FileText className="w-4 h-4 mr-2 text-brand-teal"/> Recent Quotations
+                                    <FileText className="w-4 h-4 text-brand-teal"/> Recent Quotations
                                 </h3>
-                                <button onClick={() => setActiveTab('Quotations')} className="text-[12px] text-brand-teal font-semibold hover:underline">View All</button>
+                                <button onClick={() => setActiveTab('Quotations')} className="btn btn-link btn-md">View All</button>
                             </div>
                             <div className="p-0">
                                 {quotations?.length > 0 ? (
@@ -307,9 +307,9 @@ export default function Customer360() {
                         <div className="acx-card flex flex-col">
                             <div className="p-4 border-b border-border-subtle flex justify-between items-center bg-bg-card/50">
                                 <h3 className="text-[13px] font-bold text-text-primary uppercase tracking-wider flex items-center">
-                                    <Receipt className="w-4 h-4 mr-2 text-brand-teal"/> Recent Invoices
+                                    <Receipt className="w-4 h-4 text-brand-teal"/> Recent Invoices
                                 </h3>
-                                <button onClick={() => setActiveTab('Invoices')} className="text-[12px] text-brand-teal font-semibold hover:underline">View All</button>
+                                <button onClick={() => setActiveTab('Invoices')} className="btn btn-link btn-md">View All</button>
                             </div>
                             <div className="p-0">
                                 {invoices?.length > 0 ? (
@@ -337,9 +337,9 @@ export default function Customer360() {
                         <div className="acx-card flex flex-col">
                             <div className="p-4 border-b border-border-subtle flex justify-between items-center bg-bg-card/50">
                                 <h3 className="text-[13px] font-bold text-text-primary uppercase tracking-wider flex items-center">
-                                    <ActivityIcon className="w-4 h-4 mr-2 text-brand-teal"/> Recent Activity
+                                    <ActivityIcon className="w-4 h-4 text-brand-teal"/> Recent Activity
                                 </h3>
-                                <button onClick={() => setActiveTab('Activity')} className="text-[12px] text-brand-teal font-semibold hover:underline">View All</button>
+                                <button onClick={() => setActiveTab('Activity')} className="btn btn-link btn-md">View All</button>
                             </div>
                             <div className="p-6">
                                 {activities?.length > 0 ? (
@@ -367,9 +367,9 @@ export default function Customer360() {
                         <div className="acx-card flex flex-col">
                             <div className="p-4 border-b border-border-subtle flex justify-between items-center bg-bg-card/50">
                                 <h3 className="text-[13px] font-bold text-text-primary uppercase tracking-wider flex items-center">
-                                    <Mail className="w-4 h-4 mr-2 text-brand-teal"/> Recent Emails
+                                    <Mail className="w-4 h-4 text-brand-teal"/> Recent Emails
                                 </h3>
-                                <button onClick={() => setActiveTab('Emails')} className="text-[12px] text-brand-teal font-semibold hover:underline">View All</button>
+                                <button onClick={() => setActiveTab('Emails')} className="btn btn-link btn-md">View All</button>
                             </div>
                             <div className="p-6">
                                 {emails?.length > 0 ? (
@@ -673,7 +673,7 @@ export default function Customer360() {
                                 </div>
                                 <div className="flex items-center gap-4 w-full md:w-auto">
                                     <div className="flex items-center text-[12px] font-semibold text-text-secondary">
-                                        <Filter className="w-4 h-4 mr-1.5" />
+                                        <Filter className="w-4 h-4 " />
                                         <select 
                                             value={emailStatusFilter} 
                                             onChange={(e) => setEmailStatusFilter(e.target.value)}
@@ -742,7 +742,7 @@ export default function Customer360() {
                                                         <td className="px-6 py-4 whitespace-nowrap text-right">
                                                             <button 
                                                                 onClick={() => setSelectedEmail(email)}
-                                                                className="text-brand-teal hover:text-brand-teal/80 text-[12px] font-semibold"
+                                                                className="btn btn-ghost btn-md"
                                                             >
                                                                 View
                                                             </button>
@@ -794,10 +794,10 @@ export default function Customer360() {
                     <div className="bg-bg-card w-full max-w-2xl rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
                         <div className="px-6 py-4 border-b border-border-subtle flex justify-between items-center bg-bg-main/50">
                             <h2 className="text-[16px] font-bold text-text-primary flex items-center">
-                                <Mail className="w-5 h-5 mr-2 text-brand-teal" />
+                                <Mail className="w-5 h-5 text-brand-teal" />
                                 Email Details
                             </h2>
-                            <button onClick={() => setSelectedEmail(null)} className="text-text-muted hover:text-text-primary transition-colors">
+                            <button onClick={() => setSelectedEmail(null)} className="btn btn-primary btn-md">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
@@ -842,12 +842,12 @@ export default function Customer360() {
                                         <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1">Related Entity</p>
                                         {/* Link navigation based on entity type */}
                                         {selectedEmail.relatedEntityType.toUpperCase() === 'INVOICE' ? (
-                                            <button onClick={() => navigate(`/invoices/${selectedEmail.relatedEntityId}`)} className="text-[13px] font-bold text-brand-teal hover:underline flex items-center">
-                                                Invoice #{selectedEmail.relatedEntityId} <ArrowUpRight className="w-3 h-3 ml-1" />
+                                            <button onClick={() => navigate(`/invoices/${selectedEmail.relatedEntityId}`)} className="btn btn-link btn-md">
+                                                Invoice #{selectedEmail.relatedEntityId} <ArrowUpRight className="w-3 h-3 " />
                                             </button>
                                         ) : selectedEmail.relatedEntityType.toUpperCase() === 'CRM_LEAD' ? (
-                                            <button onClick={() => navigate(`/crm/leads/${selectedEmail.relatedEntityId}`)} className="text-[13px] font-bold text-brand-teal hover:underline flex items-center">
-                                                CRM Lead #{selectedEmail.relatedEntityId} <ArrowUpRight className="w-3 h-3 ml-1" />
+                                            <button onClick={() => navigate(`/crm/leads/${selectedEmail.relatedEntityId}`)} className="btn btn-link btn-md">
+                                                CRM Lead #{selectedEmail.relatedEntityId} <ArrowUpRight className="w-3 h-3 " />
                                             </button>
                                         ) : (
                                             <span className="text-[13px] font-medium text-text-secondary bg-bg-main px-3 py-1.5 rounded-lg border border-border-subtle inline-block">
@@ -859,7 +859,7 @@ export default function Customer360() {
                             </div>
                         </div>
                         <div className="px-6 py-4 border-t border-border-subtle bg-bg-main/50 flex justify-end">
-                            <button onClick={() => setSelectedEmail(null)} className="acx-btn-secondary px-4 py-2 text-[13px]">
+                            <button onClick={() => setSelectedEmail(null)} className="btn btn-secondary btn-md">
                                 Back to Emails
                             </button>
                         </div>

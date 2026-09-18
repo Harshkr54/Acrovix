@@ -92,7 +92,7 @@ export default function AcceptRejectQuotationModal({ isOpen, onClose, quotation,
                     <button 
                         onClick={onClose} 
                         disabled={isSubmitting}
-                        className="px-4 py-2.5 bg-bg-card hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors disabled:opacity-50"
+                        className="btn btn-primary btn-md"
                     >
                         Cancel
                     </button>
@@ -103,7 +103,7 @@ export default function AcceptRejectQuotationModal({ isOpen, onClose, quotation,
                             isAccept ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'
                         }`}
                     >
-                        {isSubmitting && <span className="animate-spin w-4 h-4 border-b-2 border-white rounded-full mr-2"></span>}
+                        {isSubmitting && <span className="btn btn-secondary btn-md mr-2"></span>}
                         {isAccept ? 'Mark as Accepted' : 'Mark as Rejected'}
                     </button>
                 </div>

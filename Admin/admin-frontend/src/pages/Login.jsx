@@ -60,7 +60,7 @@ export default function Login() {
                 <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
                     {error && (
                         <div className="flex items-start p-4 bg-brand-danger/10 border border-brand-danger/30 rounded-xl dark:bg-[#7f1d1d]/20 dark:border-[#ef4444]/30">
-                            <AlertCircle className="w-5 h-5 text-brand-danger mt-0.5 mr-3 flex-shrink-0" />
+                            <AlertCircle className="w-5 h-5 text-brand-danger mt-0.5 flex-shrink-0" />
                             <p className="text-[13px] text-[#991b1b] dark:text-[#fca5a5] font-semibold">{error}</p>
                         </div>
                     )}
@@ -106,7 +106,7 @@ export default function Login() {
                     <button
                         type="submit"
                         disabled={isLoading}
-                        className="acx-btn-primary w-full py-3.5 text-[15px] font-bold rounded-xl flex justify-center items-center mt-8 transition-all shadow-[0_4px_14px_rgba(79,70,229,0.25)] hover:shadow-[0_6px_20px_rgba(79,70,229,0.3)]"
+                        className="btn btn-primary btn-lg w-full mt-8"
                     >
                         {isLoading ? (
                             <Loader2 className="w-5 h-5 animate-spin" />

@@ -96,7 +96,7 @@ export default function UserList() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
                 <div>
                     <h1 className="text-[28px] font-bold text-text-primary tracking-tight leading-tight flex items-center">
-                        <Users className="w-7 h-7 mr-3 text-brand-teal" />
+                        <Users className="w-7 h-7 text-brand-teal" />
                         Admin Users
                     </h1>
                     <p className="text-[13px] text-text-secondary mt-1">Manage system administrators and roles.</p>
@@ -105,7 +105,7 @@ export default function UserList() {
                     onClick={() => setShowForm(!showForm)}
                     className={showForm ? "inline-flex items-center px-4 py-2.5 bg-bg-card hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors shadow-sm" : "acx-btn-primary flex items-center px-4 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]"}
                 >
-                    {showForm ? 'Cancel' : <><UserPlus className="w-4 h-4 mr-2" /> Create User</>}
+                    {showForm ? 'Cancel' : <><UserPlus className="btn btn-secondary btn-md mr-2" /> Create User</>}
                 </button>
             </div>
 
@@ -115,7 +115,7 @@ export default function UserList() {
                         <Shield className="w-48 h-48" />
                     </div>
                     <h2 className="text-[14px] font-bold text-text-primary mb-6 flex items-center relative z-10 tracking-tight">
-                        <UserPlus className="w-4 h-4 mr-2 text-[var(--color-brand-primary)]" />
+                        <UserPlus className="w-4 h-4 text-[var(--color-brand-primary)]" />
                         Add New Admin User
                     </h2>
                     <form onSubmit={handleCreate} className="space-y-6 max-w-2xl relative z-10">
@@ -158,7 +158,7 @@ export default function UserList() {
                             </div>
                         </div>
                         <div className="pt-2">
-                            <button type="submit" className="acx-btn-primary w-full sm:w-auto px-8 py-2.5 text-[13px] font-semibold shadow-[0_4px_14px_rgba(79,70,229,0.25)]">
+                            <button type="submit" className="btn btn-primary btn-md w-full sm:w-auto">
                                 Save User
                             </button>
                         </div>
@@ -188,8 +188,8 @@ export default function UserList() {
                                             </div>
                                             <p className="text-[15px] font-bold text-text-primary">Failed to load users</p>
                                             <p className="text-[13px] text-text-secondary leading-relaxed">{error}</p>
-                                            <button onClick={fetchUsers} className="acx-btn-primary mt-2">
-                                                <RefreshCw className="w-4 h-4 mr-2" />
+                                            <button onClick={fetchUsers} className="btn btn-primary btn-md mt-2">
+                                                <RefreshCw className="w-4 h-4 " />
                                                 Retry
                                             </button>
                                         </div>
@@ -233,12 +233,12 @@ export default function UserList() {
                                         <td className="px-6 py-4 whitespace-nowrap align-top">
                                             {u.enabled ? (
                                                 <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-brand-success">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5"></span>
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-current "></span>
                                                     Active
                                                 </span>
                                             ) : (
                                                 <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-brand-danger">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5"></span>
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-current "></span>
                                                     Disabled
                                                 </span>
                                             )}

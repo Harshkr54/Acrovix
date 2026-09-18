@@ -35,7 +35,7 @@ export default function EmptyState({
                     <button
                         type="button"
                         onClick={onRetry}
-                        className="px-4 py-2 bg-brand-primary hover:bg-brand-secondary text-white text-xs font-semibold rounded-xl transition-colors cursor-pointer shadow-sm"
+                        className="btn btn-primary btn-sm"
                     >
                         Retry
                     </button>

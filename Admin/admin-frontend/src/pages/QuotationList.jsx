@@ -279,7 +279,7 @@ export default function QuotationList() {
                 </div>
                 <h2 className="text-[20px] font-bold text-text-primary mb-2 tracking-tight">Failed to load</h2>
                 <p className="text-text-secondary mb-6 text-[13px] leading-relaxed">{error}</p>
-                <button onClick={fetchQuotations} className="acx-btn-primary flex items-center px-4 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]">
+                <button onClick={fetchQuotations} className="btn btn-primary btn-md">
                     Try Again
                 </button>
             </div>
@@ -294,8 +294,8 @@ export default function QuotationList() {
                 </div>
                 <h2 className="text-[24px] font-bold text-text-primary mb-3 tracking-tight">No quotations yet</h2>
                 <p className="text-text-secondary mb-8 text-[13px] leading-relaxed">Create your first quotation to get started.</p>
-                <button onClick={() => setIsCreateModalOpen(true)} className="acx-btn-primary flex items-center px-4 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]">
-                    <Plus className="w-4 h-4 mr-2" />
+                <button onClick={() => setIsCreateModalOpen(true)} className="btn btn-primary btn-md">
+                    <Plus className="w-4 h-4 " />
                     Create Quotation
                 </button>
                 <CreateQuotationModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
@@ -313,8 +313,8 @@ export default function QuotationList() {
                     <h1 className="text-[28px] font-bold text-text-primary tracking-tight leading-tight">Quotations</h1>
                     <p className="text-[13px] text-text-secondary mt-1">Create and manage client quotations.</p>
                 </div>
-                <button onClick={() => setIsCreateModalOpen(true)} className="acx-btn-primary flex items-center px-4 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]">
-                    <Plus className="w-4 h-4 mr-2" />
+                <button onClick={() => setIsCreateModalOpen(true)} className="btn btn-primary btn-md">
+                    <Plus className="w-4 h-4 " />
                     Create Quotation
                 </button>
             </div>
@@ -338,7 +338,7 @@ export default function QuotationList() {
                                 <tr key={q.id} className="hover:bg-bg-hover transition-colors group">
                                     <td className="px-6 py-4 whitespace-nowrap text-[13px] font-bold text-text-primary align-top">
                                         <div className="flex items-center">
-                                            <File className="w-4 h-4 mr-2.5 text-text-muted" />
+                                            <File className="w-4 h-4 text-text-muted" />
                                             <span>
                                                 {q.quotationNumber}
                                             </span>
@@ -356,7 +356,7 @@ export default function QuotationList() {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap align-top">
                                         <span className={`inline-flex items-center text-[10px] font-bold uppercase tracking-wider ${getStatusStyle(q.status)}`}>
-                                            <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5"></span>
+                                            <span className="w-1.5 h-1.5 rounded-full bg-current "></span>
                                             {normalizeStatus(q.status)}
                                         </span>
                                     </td>
@@ -368,13 +368,13 @@ export default function QuotationList() {
                                             <button
                                                 onClick={() => handleViewPdf(q.id)}
                                                 disabled={downloadingPdfId === q.id}
-                                                className="inline-flex items-center px-3 py-1.5 bg-bg-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-xl text-[12px] font-semibold text-text-primary transition-colors shadow-sm"
+                                                className="btn btn-secondary btn-sm"
                                                 title="View PDF"
                                             >
                                                 {downloadingPdfId === q.id ? (
-                                                    <><span className="animate-spin w-3 h-3 border-b-2 border-text-primary rounded-full mr-1.5"></span> Loading</>
+                                                    <><span className="animate-spin w-3 h-3 border-b-2 border-text-primary rounded-full "></span> Loading</>
                                                 ) : (
-                                                    <><FileText className="w-3.5 h-3.5 mr-1.5 text-text-muted" /> View PDF</>
+                                                    <><FileText className="w-3.5 h-3.5 text-text-muted" /> View PDF</>
                                                 )}
                                             </button>
                                             <ActionMenu
@@ -398,18 +398,18 @@ export default function QuotationList() {
                         <button 
                             disabled={currentPage === 0 || isLoading}
                             onClick={() => setCurrentPage(p => p - 1)}
-                            className="inline-flex items-center px-3 py-1.5 bg-bg-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-lg text-[12px] font-semibold text-text-primary transition-colors shadow-sm"
+                            className="btn btn-secondary btn-sm"
                         >
-                            <ChevronLeft className="w-3.5 h-3.5 mr-1" />
+                            <ChevronLeft className="w-3.5 h-3.5 " />
                             Prev
                         </button>
                         <button 
                             disabled={currentPage >= totalPages - 1 || isLoading}
                             onClick={() => setCurrentPage(p => p + 1)}
-                            className="inline-flex items-center px-3 py-1.5 bg-bg-card hover:bg-bg-hover disabled:opacity-50 border border-border-subtle rounded-lg text-[12px] font-semibold text-text-primary transition-colors shadow-sm"
+                            className="btn btn-secondary btn-sm"
                         >
                             Next
-                            <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                            <ChevronRight className="w-3.5 h-3.5 " />
                         </button>
                     </div>
                 </div>
@@ -430,17 +430,17 @@ export default function QuotationList() {
                             <button
                                 onClick={() => setTrashModalQuotation(null)}
                                 disabled={isDeleting}
-                                className="px-4 py-2.5 bg-bg-card hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors disabled:opacity-50"
+                                className="btn btn-primary btn-md"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handleMoveToTrash}
                                 disabled={isDeleting}
-                                className="px-4 py-2.5 bg-[#DC2626] hover:bg-[#B91C1C] text-white rounded-xl text-[13px] font-semibold transition-colors shadow-sm disabled:opacity-50 flex items-center"
+                                className="btn btn-danger btn-md"
                             >
                                 {isDeleting ? (
-                                    <><span className="animate-spin w-3.5 h-3.5 border-b-2 border-white rounded-full mr-2"></span> Moving...</>
+                                    <><span className="animate-spin w-3.5 h-3.5 border-b-2 border-white rounded-full "></span> Moving...</>
                                 ) : (
                                     'Move to Trash'
                                 )}

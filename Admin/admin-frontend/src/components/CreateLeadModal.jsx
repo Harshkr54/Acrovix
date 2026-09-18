@@ -132,7 +132,7 @@ export default function CreateLeadModal({ isOpen, onClose, onSuccess, initialEnq
                             {initialEnquiry ? `Convert Enquiry #${initialEnquiry.referenceId || initialEnquiry.id} to Lead` : 'Create New CRM Lead'}
                         </h2>
                     </div>
-                    <button onClick={onClose} className="p-1 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors">
+                    <button onClick={onClose} className="btn btn-primary btn-icon">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -336,14 +336,14 @@ export default function CreateLeadModal({ isOpen, onClose, onSuccess, initialEnq
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-2 text-sm font-semibold border border-border-subtle rounded-xl text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors"
+                            className="btn btn-primary btn-md"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="inline-flex items-center gap-2 px-5 py-2 text-sm font-semibold bg-brand-teal hover:bg-[#0B7A70] text-white rounded-xl transition-all shadow-sm disabled:opacity-50"
+                            className="btn btn-primary btn-md"
                         >
                             {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
                             Create Lead

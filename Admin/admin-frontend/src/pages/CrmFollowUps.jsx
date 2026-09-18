@@ -80,7 +80,7 @@ export default function CrmFollowUps() {
                             : 'bg-bg-card border-border-subtle text-text-secondary hover:text-text-primary'
                     }`}
                 >
-                    <Clock className="w-4 h-4" />
+                    <Clock className="btn btn-secondary btn-md" />
                     Due / Today ({dueFollowUps.length})
                 </button>
 
@@ -92,7 +92,7 @@ export default function CrmFollowUps() {
                             : 'bg-bg-card border-border-subtle text-text-secondary hover:text-text-primary'
                     }`}
                 >
-                    <Calendar className="w-4 h-4" />
+                    <Calendar className="btn btn-secondary btn-md" />
                     Upcoming Follow-ups ({upcomingFollowUps.length})
                 </button>
             </div>
@@ -119,7 +119,7 @@ export default function CrmFollowUps() {
                                     <div className="flex items-center gap-2 flex-wrap">
                                         <button
                                             onClick={() => navigate(`/crm/leads/${fu.leadId}`)}
-                                            className="text-xs font-bold text-brand-teal hover:underline font-mono"
+                                            className="btn btn-link btn-sm"
                                         >
                                             {fu.leadNumber}
                                         </button>
@@ -141,7 +141,7 @@ export default function CrmFollowUps() {
                                 <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
                                     <button
                                         onClick={() => navigate(`/crm/leads/${fu.leadId}`)}
-                                        className="inline-flex items-center gap-1 px-3 py-1.5 border border-border-subtle rounded-lg text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors"
+                                        className="btn btn-primary btn-icon"
                                     >
                                         <Eye className="w-3.5 h-3.5" />
                                         View Lead
@@ -151,13 +151,13 @@ export default function CrmFollowUps() {
                                         <>
                                             <button
                                                 onClick={() => setModalState({ isOpen: true, mode: 'CANCEL', followUp: fu, leadId: fu.leadId })}
-                                                className="px-3 py-1.5 border border-rose-500/20 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 rounded-lg text-xs font-semibold transition-colors"
+                                                className="btn btn-danger btn-sm"
                                             >
                                                 Cancel
                                             </button>
                                             <button
                                                 onClick={() => setModalState({ isOpen: true, mode: 'COMPLETE', followUp: fu, leadId: fu.leadId })}
-                                                className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm"
+                                                className="btn btn-success btn-icon"
                                             >
                                                 <CheckCircle2 className="w-3.5 h-3.5" />
                                                 Complete

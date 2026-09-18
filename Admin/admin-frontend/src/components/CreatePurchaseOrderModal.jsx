@@ -54,7 +54,7 @@ export default function CreatePurchaseOrderModal({ isOpen, onClose, quotation, o
                         <ShoppingCart className="w-5 h-5 text-brand-primary" />
                         <h2 className="text-lg font-bold text-text-primary">Convert to Purchase Order</h2>
                     </div>
-                    <button onClick={onClose} className="text-text-muted hover:text-text-primary transition-colors">
+                    <button onClick={onClose} className="btn btn-primary btn-md">
                         <XCircle className="w-5 h-5" />
                     </button>
                 </div>
@@ -135,14 +135,14 @@ export default function CreatePurchaseOrderModal({ isOpen, onClose, quotation, o
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-2 bg-bg-main border border-border-subtle text-text-primary rounded-lg text-sm font-medium hover:bg-bg-card transition-colors"
+                            className="btn btn-primary btn-md"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             disabled={loading || !formData.poDate || !formData.poValue}
-                            className="px-4 py-2 bg-brand-primary hover:bg-brand-secondary text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center"
+                            className="btn btn-primary btn-md"
                         >
                             {loading ? 'Creating...' : 'Create Purchase Order'}
                         </button>
