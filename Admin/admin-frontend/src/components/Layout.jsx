@@ -161,7 +161,7 @@ export default function Layout() {
             )}
 
             {/* Sidebar */}
-            <div className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-white border border-border-subtle shadow-[0_4px_24px_rgba(11,25,44,0.04)] transition-all duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isCollapsed ? 'w-[84px]' : 'w-[260px]'} lg:relative lg:translate-x-0 lg:my-3 lg:ml-3 lg:h-[calc(100vh-24px)] rounded-r-[24px] lg:rounded-[24px]`}>
+            <div className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-bg-card border border-border-subtle shadow-[0_4px_24px_rgba(11,25,44,0.04)] transition-all duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isCollapsed ? 'w-[84px]' : 'w-[260px]'} lg:relative lg:translate-x-0 lg:my-3 lg:ml-3 lg:h-[calc(100vh-24px)] rounded-r-[24px] lg:rounded-[24px]`}>
                 <div className="flex items-center justify-between h-[72px] px-5 border-b border-border-subtle/50 shrink-0 relative">
                     {!isCollapsed ? (
                         <div className="flex items-center h-full flex-1 min-w-0 pr-2">
@@ -425,7 +425,7 @@ export default function Layout() {
                             </div>
                             <input
                                 type="text"
-                                className="w-full pl-11 pr-16 py-2.5 bg-white dark:bg-bg-card border border-border-subtle rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all shadow-sm text-text-primary placeholder-text-muted font-medium"
+                                className="w-full pl-11 pr-16 py-2.5 bg-bg-card border border-border-subtle rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all shadow-sm text-text-primary placeholder-text-muted font-medium"
                                 placeholder="Search anything..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}

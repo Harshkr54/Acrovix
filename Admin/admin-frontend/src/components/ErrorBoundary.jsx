@@ -18,8 +18,8 @@ class ErrorBoundary extends React.Component {
     render() {
         if (this.state.hasError) {
             return (
-                <div className="flex h-screen w-full items-center justify-center bg-[#F5F7FC] p-6">
-                    <div className="max-w-md w-full bg-white rounded-3xl shadow-sm border border-border-subtle p-8 text-center flex flex-col items-center">
+                <div className="min-h-screen bg-bg-main flex flex-col items-center justify-center p-4">
+                    <div className="max-w-md w-full bg-bg-card rounded-3xl shadow-sm border border-border-subtle p-8 text-center flex flex-col items-center">
                         <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mb-5 border border-red-100">
                             <AlertTriangle className="w-8 h-8 text-red-500" />
                         </div>
@@ -36,7 +36,7 @@ class ErrorBoundary extends React.Component {
                         </button>
                         
                         {(import.meta.env?.DEV || (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development')) && this.state.error && (
-                            <div className="mt-8 w-full p-4 bg-gray-50 rounded-xl border border-gray-200 text-left overflow-auto max-h-48 text-[11px] font-mono text-gray-700">
+                            <div className="mt-8 w-full p-4 bg-bg-muted rounded-xl border border-border-subtle text-left overflow-auto max-h-48 text-[11px] font-mono text-text-secondary">
                                 {this.state.error.toString()}
                             </div>
                         )}

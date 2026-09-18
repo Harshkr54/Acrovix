@@ -104,7 +104,7 @@
   }
 
   .acx-btn-secondary {
-    @apply px-5 py-2.5 bg-white hover:bg-bg-hover text-text-secondary border border-border-subtle rounded-xl font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-border-subtle disabled:opacity-50 disabled:cursor-not-allowed shadow-sm flex items-center justify-center gap-2;
+    @apply px-5 py-2.5 bg-bg-card hover:bg-bg-hover text-text-secondary border border-border-subtle rounded-xl font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-border-subtle disabled:opacity-50 disabled:cursor-not-allowed shadow-sm flex items-center justify-center gap-2;
   }
   
   .acx-btn-danger {
@@ -116,11 +116,11 @@
   }
 
   .acx-input {
-    @apply w-full px-4 py-2.5 bg-white border border-border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all duration-200 text-text-primary placeholder-text-muted shadow-sm font-medium;
+    @apply w-full px-4 py-2.5 bg-bg-card border border-border-subtle rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all duration-200 text-text-primary placeholder-text-muted shadow-sm font-medium;
   }
 
   .acx-table-container {
-    @apply w-full overflow-x-auto rounded-[20px] bg-white shadow-sm;
+    @apply w-full overflow-x-auto rounded-[20px] bg-bg-card shadow-sm border border-border-subtle;
   }
 
   .acx-table {
@@ -139,19 +139,19 @@
     @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-bg-muted text-text-secondary border border-border-subtle/50;
   }
   .acx-badge-success {
-    @apply bg-emerald-50 text-emerald-700 border-emerald-200;
+    @apply bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800/50;
   }
   .acx-badge-warning {
-    @apply bg-amber-50 text-amber-700 border-amber-200;
+    @apply bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800/50;
   }
   .acx-badge-danger {
-    @apply bg-red-50 text-red-700 border-red-200;
+    @apply bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/50;
   }
   .acx-badge-primary {
-    @apply bg-blue-50 text-blue-700 border-blue-200;
+    @apply bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800/50;
   }
   .acx-badge-teal {
-    @apply bg-teal-50 text-teal-700 border-teal-200;
+    @apply bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-400 dark:border-teal-800/50;
   }
 
   /* --- LEGACY CLASSES (PRESERVED FOR NOW) --- */

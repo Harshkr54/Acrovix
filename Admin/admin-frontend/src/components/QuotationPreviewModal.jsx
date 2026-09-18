@@ -19,16 +19,16 @@ export default function QuotationPreviewModal({
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={onClose}></div>
             
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[1200px] h-[90vh] flex flex-col relative z-10 overflow-hidden border border-border-subtle animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-bg-card rounded-2xl shadow-2xl w-full max-w-[1200px] h-[90vh] flex flex-col relative z-10 overflow-hidden border border-border-subtle animate-in fade-in zoom-in-95 duration-200">
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-slate-50">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-bg-muted/50">
                     <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-[var(--color-brand-primary)]/10 rounded-xl flex items-center justify-center">
-                            <FileText className="w-5 h-5 text-[var(--color-brand-primary)]" />
+                        <div className="w-10 h-10 bg-brand-primary/10 rounded-xl flex items-center justify-center">
+                            <FileText className="w-5 h-5 text-brand-primary" />
                         </div>
                         <div>
-                            <h2 className="text-[16px] font-bold text-slate-800 tracking-tight leading-none">Quotation Preview</h2>
-                            <p className="text-[12px] text-slate-500 mt-1">Review exactly what the client will see before sending</p>
+                            <h2 className="text-[16px] font-bold text-text-primary tracking-tight leading-none">Quotation Preview</h2>
+                            <p className="text-[12px] text-text-secondary mt-1">Review exactly what the client will see before sending</p>
                         </div>
                     </div>
                     <div className="flex items-center space-x-3">
@@ -36,7 +36,7 @@ export default function QuotationPreviewModal({
                             <a 
                                 href={pdfBlobUrl} 
                                 download={emailDetails?.filename || 'quotation-preview.pdf'}
-                                className="inline-flex items-center px-4 py-2 bg-white border border-slate-200 hover:border-[var(--color-brand-primary)] hover:text-[var(--color-brand-primary)] hover:bg-slate-50 rounded-xl text-[13px] font-semibold text-slate-700 transition-colors shadow-sm"
+                                className="acx-btn-secondary text-[13px]"
                             >
                                 <Download className="w-4 h-4 mr-2" />
                                 Download PDF
@@ -44,7 +44,7 @@ export default function QuotationPreviewModal({
                         )}
                         <button 
                             onClick={onClose}
-                            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                            className="p-2 text-text-muted hover:text-text-primary hover:bg-bg-hover rounded-lg transition-colors"
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -53,50 +53,50 @@ export default function QuotationPreviewModal({
 
                 <div className="flex flex-1 overflow-hidden">
                     {/* Left Sidebar - Tabs */}
-                    <div className="w-64 bg-slate-50 border-r border-border-subtle flex flex-col p-4 space-y-2">
+                    <div className="w-64 bg-bg-muted/20 border-r border-border-subtle flex flex-col p-4 space-y-2">
                         <button 
                             onClick={() => setActiveTab('pdf')}
                             className={`w-full flex items-center px-4 py-3 rounded-xl text-[13px] font-semibold transition-all ${
                                 activeTab === 'pdf' 
-                                ? 'bg-white shadow-sm border border-slate-200 text-[var(--color-brand-primary)]' 
-                                : 'text-slate-600 hover:bg-slate-100 border border-transparent'
+                                ? 'bg-bg-card shadow-sm border border-border-subtle text-brand-primary' 
+                                : 'text-text-secondary hover:bg-bg-hover border border-transparent'
                             }`}
                         >
-                            <FileText className={`w-4 h-4 mr-3 ${activeTab === 'pdf' ? 'text-[var(--color-brand-primary)]' : 'text-slate-400'}`} />
+                            <FileText className={`w-4 h-4 mr-3 ${activeTab === 'pdf' ? 'text-brand-primary' : 'text-text-muted'}`} />
                             PDF Preview
                         </button>
                         <button 
                             onClick={() => setActiveTab('email')}
                             className={`w-full flex items-center px-4 py-3 rounded-xl text-[13px] font-semibold transition-all ${
                                 activeTab === 'email' 
-                                ? 'bg-white shadow-sm border border-slate-200 text-[var(--color-brand-primary)]' 
-                                : 'text-slate-600 hover:bg-slate-100 border border-transparent'
+                                ? 'bg-bg-card shadow-sm border border-border-subtle text-brand-primary' 
+                                : 'text-text-secondary hover:bg-bg-hover border border-transparent'
                             }`}
                         >
-                            <Mail className={`w-4 h-4 mr-3 ${activeTab === 'email' ? 'text-[var(--color-brand-primary)]' : 'text-slate-400'}`} />
+                            <Mail className={`w-4 h-4 mr-3 ${activeTab === 'email' ? 'text-brand-primary' : 'text-text-muted'}`} />
                             Email Preview
                         </button>
                     </div>
 
                     {/* Right Content Area */}
-                    <div className="flex-1 bg-slate-100/50 relative overflow-hidden flex flex-col">
+                    <div className="flex-1 bg-bg-main relative overflow-hidden flex flex-col">
                         {isLoading && (
-                            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm">
-                                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[var(--color-brand-primary)] mb-4"></div>
-                                <p className="text-[13px] font-medium text-slate-600">Generating preview...</p>
+                            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-bg-card/80 backdrop-blur-sm">
+                                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-primary mb-4"></div>
+                                <p className="text-[13px] font-medium text-text-secondary">Generating preview...</p>
                             </div>
                         )}
 
                         {error && !isLoading && (
-                            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white">
-                                <div className="w-16 h-16 bg-red-50 border border-red-100 flex items-center justify-center rounded-2xl mb-4">
+                            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-bg-card">
+                                <div className="w-16 h-16 bg-red-50 dark:bg-red-900/30 border border-red-100 dark:border-red-800/50 flex items-center justify-center rounded-2xl mb-4">
                                     <AlertCircle className="w-8 h-8 text-red-500" />
                                 </div>
-                                <h3 className="text-lg font-bold text-slate-800 mb-2">Preview Generation Failed</h3>
-                                <p className="text-[13px] text-slate-500 max-w-md text-center mb-6">{error}</p>
+                                <h3 className="text-lg font-bold text-text-primary mb-2">Preview Generation Failed</h3>
+                                <p className="text-[13px] text-text-secondary max-w-md text-center mb-6">{error}</p>
                                 <button 
                                     onClick={onRetry}
-                                    className="inline-flex items-center px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-[13px] font-semibold transition-colors shadow-md"
+                                    className="acx-btn-primary"
                                 >
                                     <RefreshCw className="w-4 h-4 mr-2" />
                                     Try Again
@@ -107,7 +107,7 @@ export default function QuotationPreviewModal({
                         {!isLoading && !error && (
                             <div className="w-full h-full overflow-y-auto">
                                 {activeTab === 'pdf' && pdfBlobUrl && (
-                                    <div className="w-full h-full bg-slate-200 p-4 sm:p-8 flex items-center justify-center">
+                                    <div className="w-full h-full p-4 sm:p-8 flex items-center justify-center">
                                         <div className="w-full max-w-[850px] h-full bg-white shadow-xl rounded-sm overflow-hidden">
                                             <object 
                                                 data={pdfBlobUrl} 
@@ -131,8 +131,8 @@ export default function QuotationPreviewModal({
                                 )}
 
                                 {activeTab === 'email' && emailDetails && (
-                                    <div className="w-full h-full p-4 sm:p-8 bg-slate-100 flex justify-center">
-                                        <div className="w-full max-w-[850px] bg-white shadow-xl rounded-xl border border-slate-200 overflow-hidden flex flex-col">
+                                    <div className="w-full h-full p-4 sm:p-8 flex justify-center">
+                                        <div className="w-full max-w-[850px] bg-white shadow-xl rounded-xl border border-gray-200 overflow-hidden flex flex-col">
                                             
                                             {/* Email Client Header Mock */}
                                             <div className="bg-slate-50 border-b border-slate-200 p-5 space-y-3">

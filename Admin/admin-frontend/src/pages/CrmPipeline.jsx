@@ -146,7 +146,7 @@ export default function CrmPipeline() {
                     });
 
                     return (
-                        <div key={stage.key} className="bg-white border border-border-subtle rounded-[20px] shadow-[0_4px_24px_-4px_rgba(11,25,44,0.03)] overflow-hidden transition-all duration-300">
+                        <div key={stage.key} className="bg-bg-card border border-border-subtle rounded-[20px] shadow-[0_4px_24px_-4px_rgba(11,25,44,0.03)] overflow-hidden transition-all duration-300">
                             {/* Header */}
                             <div 
                                 onClick={() => toggleStage(stage.key)}
@@ -193,7 +193,7 @@ export default function CrmPipeline() {
                                                         e.stopPropagation();
                                                         navigate(`/crm/leads/${lead.id}`);
                                                     }}
-                                                    className="p-4 bg-white border border-border-subtle rounded-[16px] hover:border-brand-primary transition-all cursor-pointer shadow-sm space-y-3 group"
+                                                    className="p-4 bg-bg-card border border-border-subtle rounded-[16px] hover:border-brand-primary transition-all cursor-pointer shadow-sm space-y-3 group"
                                                 >
                                                     <div className="flex items-center justify-between">
                                                         <span className="text-[10px] font-medium text-text-muted uppercase tracking-wide group-hover:text-brand-primary transition-colors">

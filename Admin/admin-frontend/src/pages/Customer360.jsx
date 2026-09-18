@@ -78,14 +78,14 @@ export default function Customer360() {
         return (
             <div className="max-w-[1600px] mx-auto p-4 space-y-6">
                 <div className="flex items-center space-x-4 mb-8">
-                    <div className="w-10 h-10 bg-gray-200 animate-pulse rounded-full"></div>
-                    <div className="h-8 w-64 bg-gray-200 animate-pulse rounded"></div>
+                    <div className="w-10 h-10 bg-bg-muted animate-pulse rounded-full"></div>
+                    <div className="h-8 w-64 bg-bg-muted animate-pulse rounded"></div>
                 </div>
-                <div className="h-32 bg-gray-200 animate-pulse rounded-2xl w-full"></div>
+                <div className="h-32 bg-bg-muted animate-pulse rounded-2xl w-full"></div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {[1, 2, 3].map(i => <div key={i} className="h-28 bg-gray-200 animate-pulse rounded-2xl w-full"></div>)}
+                    {[1, 2, 3].map(i => <div key={i} className="h-28 bg-bg-muted animate-pulse rounded-2xl w-full"></div>)}
                 </div>
-                <div className="h-64 bg-gray-200 animate-pulse rounded-2xl w-full mt-6"></div>
+                <div className="h-64 bg-bg-muted animate-pulse rounded-2xl w-full mt-6"></div>
             </div>
         );
     }
@@ -94,8 +94,8 @@ export default function Customer360() {
         return (
             <div className="flex flex-col items-center justify-center h-[70vh]">
                 <div className="acx-card p-10 text-center max-w-md w-full">
-                    <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <UsersRound className="w-10 h-10 text-gray-400" />
+                    <div className="w-20 h-20 bg-bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
+                        <UsersRound className="w-10 h-10 text-text-muted" />
                     </div>
                     <h2 className="text-[22px] font-bold text-text-primary mb-2">Customer Not Found</h2>
                     <p className="text-[14px] text-text-secondary mb-8">The customer you are looking for does not exist or has been removed.</p>
@@ -117,7 +117,7 @@ export default function Customer360() {
                     <h2 className="text-[20px] font-bold text-text-primary mb-2">Unable to load customer</h2>
                     <p className="text-[13px] text-text-secondary mb-6">{error}</p>
                     <div className="flex space-x-4 justify-center">
-                        <button onClick={() => navigate('/customers')} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-200">
+                        <button onClick={() => navigate('/customers')} className="acx-btn-secondary px-4 py-2 text-sm">
                             Back
                         </button>
                         <button onClick={() => window.location.reload()} className="acx-btn-primary px-4 py-2 text-sm">
@@ -528,7 +528,7 @@ export default function Customer360() {
                                             <tr key={q.id} className="hover:bg-bg-hover transition-colors cursor-pointer" onClick={() => navigate('/quotations')}>
                                                 <td className="px-6 py-4 whitespace-nowrap text-[13px] font-bold text-text-primary">
                                                     {q.quotationNumber}
-                                                    {q.version > 1 && <span className="ml-2 text-[10px] bg-gray-200 px-1.5 rounded text-gray-700">v{q.version}</span>}
+                                                    {q.version > 1 && <span className="ml-2 text-[10px] bg-bg-muted px-1.5 rounded text-text-secondary">v{q.version}</span>}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap"><StatusBadge status={q.status} /></td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-[13px] font-bold text-text-primary">{formatCurrency(q.grandTotal, q.currency)}</td>
@@ -859,8 +859,8 @@ export default function Customer360() {
                             </div>
                         </div>
                         <div className="px-6 py-4 border-t border-border-subtle bg-bg-main/50 flex justify-end">
-                            <button onClick={() => setSelectedEmail(null)} className="px-4 py-2 bg-white border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary hover:bg-gray-50 transition-colors">
-                                Close
+                            <button onClick={() => setSelectedEmail(null)} className="acx-btn-secondary px-4 py-2 text-[13px]">
+                                Back to Emails
                             </button>
                         </div>
                     </div>

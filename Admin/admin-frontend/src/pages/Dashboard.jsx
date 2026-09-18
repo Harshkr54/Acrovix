@@ -552,7 +552,7 @@ export default function Dashboard() {
                         
                         {/* Left Column: Analytics Chart (2/3 width) */}
                         <div className="lg:col-span-2">
-                            <div className="bg-white rounded-[24px] border border-border-subtle p-6 flex flex-col h-full shadow-[0_4px_24px_rgba(11,25,44,0.02)]">
+                            <div className="bg-bg-card rounded-[24px] border border-border-subtle p-6 flex flex-col h-full shadow-[0_4px_24px_rgba(11,25,44,0.02)]">
                                 {/* Header */}
                                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-8">
                                     <div className="flex items-start gap-4">
@@ -565,7 +565,7 @@ export default function Dashboard() {
                                         </div>
                                     </div>
                                     
-                                    <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-border-subtle bg-white shadow-sm text-[13px] font-semibold text-text-secondary cursor-pointer hover:bg-bg-hover transition-colors">
+                                    <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-border-subtle bg-bg-card shadow-sm text-[13px] font-semibold text-text-secondary cursor-pointer hover:bg-bg-hover transition-colors">
                                         <Clock className="w-4 h-4 text-text-muted" />
                                         {getChartTrendLabel(appliedFilters.dateRange)}
                                         <ChevronRight className="w-4 h-4 ml-1 opacity-50 rotate-90" />
@@ -679,10 +679,10 @@ export default function Dashboard() {
                                                                         <div key={idx} className="flex-1 h-full flex flex-col justify-end items-center group relative z-20">
                                                                             {/* Premium Tooltip */}
                                                                             <div 
-                                                                                className={`opacity-0 group-hover:opacity-100 transition-opacity absolute bg-white border border-border-subtle p-3.5 rounded-[16px] shadow-[0_8px_30px_rgba(0,0,0,0.12)] pointer-events-none w-[170px] z-50 ${horizontalClass}`}
+                                                                                className={`opacity-0 group-hover:opacity-100 transition-opacity absolute bg-bg-card border border-border-subtle p-3.5 rounded-[16px] shadow-[0_8px_30px_rgba(0,0,0,0.12)] pointer-events-none w-[170px] z-50 ${horizontalClass}`}
                                                                                 style={verticalStyle}
                                                                             >
-                                                                                <div className="text-[14px] font-bold text-[#1E293B] mb-3">{item.month}</div>
+                                                                                <div className="text-[14px] font-bold text-text-primary mb-3">{item.month}</div>
                                                                                 <div className="flex justify-between items-center mb-2">
                                                                                     <div className="flex items-center gap-2">
                                                                                         <div className="w-2.5 h-2.5 rounded-full bg-[#2563EB]"></div>

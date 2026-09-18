@@ -63,7 +63,7 @@ export default function PurchaseOrderList() {
             case 'PARTIALLY_FULFILLED': return <span className="px-2 py-1 bg-purple-500/10 text-purple-500 rounded text-xs font-medium flex items-center gap-1 w-fit"><Package className="w-3 h-3"/> Partial</span>;
             case 'FULFILLED': return <span className="px-2 py-1 bg-green-500/10 text-green-500 rounded text-xs font-medium flex items-center gap-1 w-fit"><CheckCircle className="w-3 h-3"/> Fulfilled</span>;
             case 'CANCELLED': return <span className="px-2 py-1 bg-red-500/10 text-red-500 rounded text-xs font-medium flex items-center gap-1 w-fit"><XCircle className="w-3 h-3"/> Cancelled</span>;
-            default: return <span className="px-2 py-1 bg-gray-500/10 text-gray-400 rounded text-xs font-medium">{status}</span>;
+            default: return <span className="px-2 py-1 bg-bg-muted text-text-secondary rounded text-xs font-medium">{status}</span>;
         }
     };
 

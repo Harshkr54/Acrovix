@@ -65,10 +65,10 @@ export default function InvoiceList() {
 
     const getStatusBadge = (status) => {
         switch (status) {
-            case 'DRAFT': return <span className="px-2 py-1 bg-gray-500/10 text-gray-500 rounded text-xs font-medium flex items-center gap-1 w-fit"><Clock className="w-3 h-3"/> Draft</span>;
+            case 'DRAFT': return <span className="px-2 py-1 bg-bg-muted text-text-secondary rounded text-xs font-medium flex items-center gap-1 w-fit"><Clock className="w-3 h-3"/> Draft</span>;
             case 'ISSUED': return <span className="px-2 py-1 bg-blue-500/10 text-blue-500 rounded text-xs font-medium flex items-center gap-1 w-fit"><CheckCircle className="w-3 h-3"/> Issued</span>;
             case 'CANCELLED': return <span className="px-2 py-1 bg-red-500/10 text-red-500 rounded text-xs font-medium flex items-center gap-1 w-fit"><XCircle className="w-3 h-3"/> Cancelled</span>;
-            default: return <span className="px-2 py-1 bg-gray-500/10 text-gray-400 rounded text-xs font-medium">{status}</span>;
+            default: return <span className="px-2 py-1 bg-bg-muted text-text-secondary rounded text-xs font-medium">{status}</span>;
         }
     };
     
@@ -76,7 +76,7 @@ export default function InvoiceList() {
         switch (type) {
             case 'PROFORMA': return <span className="px-2 py-1 bg-purple-500/10 text-purple-500 border border-purple-500/20 rounded text-xs font-medium">Proforma</span>;
             case 'TAX_INVOICE': return <span className="px-2 py-1 bg-green-500/10 text-green-500 border border-green-500/20 rounded text-xs font-medium">Tax Invoice</span>;
-            default: return <span className="px-2 py-1 bg-gray-500/10 text-gray-400 rounded text-xs font-medium">{type}</span>;
+            default: return <span className="px-2 py-1 bg-bg-muted text-text-secondary rounded text-xs font-medium">{type}</span>;
         }
     };
 

@@ -344,7 +344,7 @@ export default function InvoiceDetail() {
 
     const getStatusIcon = (status) => {
         switch (status) {
-            case 'DRAFT': return <Clock className="w-5 h-5 text-gray-500"/>;
+            case 'DRAFT': return <Clock className="w-5 h-5 text-text-muted"/>;
             case 'ISSUED': return <CheckCircle className="w-5 h-5 text-blue-500"/>;
             case 'PARTIALLY_PAID': return <Clock className="w-5 h-5 text-amber-500"/>;
             case 'PAID': return <CheckCircle className="w-5 h-5 text-emerald-500"/>;
@@ -373,7 +373,7 @@ export default function InvoiceDetail() {
                             invoice.status === 'PARTIALLY_PAID' ? 'bg-amber-500/10 border-amber-500/30 text-amber-500' :
                             invoice.status === 'ISSUED' ? 'bg-blue-500/10 border-blue-500/30 text-blue-500' :
                             invoice.status === 'CANCELLED' ? 'bg-red-500/10 border-red-500/30 text-red-500' :
-                            'bg-gray-500/10 border-gray-500/30 text-gray-500'
+                            'bg-bg-muted border-border-subtle text-text-secondary'
                         }`}>
                             {getStatusIcon(invoice.status)}
                             {invoice.status}
@@ -483,7 +483,7 @@ export default function InvoiceDetail() {
                                 <span className={`w-2.5 h-2.5 rounded-full ${
                                     invoice.status === 'PAID' ? 'bg-emerald-500' :
                                     invoice.status === 'PARTIALLY_PAID' ? 'bg-amber-500' :
-                                    invoice.status === 'ISSUED' ? 'bg-blue-500' : 'bg-gray-400'
+                                    invoice.status === 'ISSUED' ? 'bg-blue-500' : 'bg-bg-muted'
                                 }`}></span>
                                 {invoice.status}
                             </div>

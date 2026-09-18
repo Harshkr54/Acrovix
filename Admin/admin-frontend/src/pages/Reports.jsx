@@ -475,7 +475,7 @@ export default function Reports() {
                                 </h3>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                                     {[
-                                        { label: 'Draft', count: quotations.draftCount, color: 'bg-slate-500' },
+                                        { label: 'Draft', count: quotations.draftCount, color: 'bg-bg-muted' },
                                         { label: 'Sent', count: quotations.sentCount, color: 'bg-blue-500' },
                                         { label: 'Accepted', count: quotations.acceptedCount, color: 'bg-emerald-500' },
                                         { label: 'Rejected', count: quotations.rejectedCount, color: 'bg-red-500' },
@@ -598,7 +598,7 @@ export default function Reports() {
                                 </h3>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                                     {[
-                                        { label: 'Draft', count: invoices.draftCount, color: 'bg-slate-500' },
+                                        { label: 'Draft', count: invoices.draftCount, color: 'bg-bg-muted' },
                                         { label: 'Issued', count: invoices.issuedCount, color: 'bg-blue-500' },
                                         { label: 'Partially Paid', count: invoices.partiallyPaidCount, color: 'bg-amber-500' },
                                         { label: 'Paid', count: invoices.paidCount, color: 'bg-emerald-500' },

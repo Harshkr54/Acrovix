@@ -50,7 +50,7 @@ export default function StatusBadge({ status, type }) {
         LOST: { bg: 'bg-rose-500/10 text-rose-600 dark:text-rose-400', label: 'Lost' },
 
         // CRM Priorities
-        LOW: { bg: 'bg-slate-500/10 text-slate-600 dark:text-slate-400', label: 'Low' },
+        LOW: { bg: 'bg-bg-muted text-text-secondary', label: 'Low' },
         MEDIUM: { bg: 'bg-blue-500/10 text-blue-600 dark:text-blue-400', label: 'Medium' },
         HIGH: { bg: 'bg-amber-500/10 text-amber-600 dark:text-amber-400', label: 'High' },
         URGENT: { bg: 'bg-rose-500/10 text-rose-600 dark:text-rose-400', label: 'Urgent' },
