@@ -268,7 +268,7 @@ export default function Customer360() {
             </div>
 
             {/* Tab Content */}
-            <div className="btn btn-secondary btn-md">
+            <div className="pt-6">
                 
                 {/* OVERVIEW TAB */}
                 {activeTab === 'Overview' && (
@@ -279,7 +279,7 @@ export default function Customer360() {
                                 <h3 className="text-[13px] font-bold text-text-primary uppercase tracking-wider flex items-center">
                                     <FileText className="w-4 h-4 text-brand-teal"/> Recent Quotations
                                 </h3>
-                                <button onClick={() => setActiveTab('Quotations')} className="btn btn-link btn-md">View All</button>
+                                <button onClick={() => setActiveTab('Quotations')} className="font-bold text-brand-teal hover:text-brand-primary text-[12px] uppercase tracking-wider">View All</button>
                             </div>
                             <div className="p-0">
                                 {quotations?.length > 0 ? (
@@ -309,7 +309,7 @@ export default function Customer360() {
                                 <h3 className="text-[13px] font-bold text-text-primary uppercase tracking-wider flex items-center">
                                     <Receipt className="w-4 h-4 text-brand-teal"/> Recent Invoices
                                 </h3>
-                                <button onClick={() => setActiveTab('Invoices')} className="btn btn-link btn-md">View All</button>
+                                <button onClick={() => setActiveTab('Invoices')} className="font-bold text-brand-teal hover:text-brand-primary text-[12px] uppercase tracking-wider">View All</button>
                             </div>
                             <div className="p-0">
                                 {invoices?.length > 0 ? (
@@ -339,7 +339,7 @@ export default function Customer360() {
                                 <h3 className="text-[13px] font-bold text-text-primary uppercase tracking-wider flex items-center">
                                     <ActivityIcon className="w-4 h-4 text-brand-teal"/> Recent Activity
                                 </h3>
-                                <button onClick={() => setActiveTab('Activity')} className="btn btn-link btn-md">View All</button>
+                                <button onClick={() => setActiveTab('Activity')} className="font-bold text-brand-teal hover:text-brand-primary text-[12px] uppercase tracking-wider">View All</button>
                             </div>
                             <div className="p-6">
                                 {activities?.length > 0 ? (
@@ -369,7 +369,7 @@ export default function Customer360() {
                                 <h3 className="text-[13px] font-bold text-text-primary uppercase tracking-wider flex items-center">
                                     <Mail className="w-4 h-4 text-brand-teal"/> Recent Emails
                                 </h3>
-                                <button onClick={() => setActiveTab('Emails')} className="btn btn-link btn-md">View All</button>
+                                <button onClick={() => setActiveTab('Emails')} className="font-bold text-brand-teal hover:text-brand-primary text-[12px] uppercase tracking-wider">View All</button>
                             </div>
                             <div className="p-6">
                                 {emails?.length > 0 ? (
@@ -742,7 +742,7 @@ export default function Customer360() {
                                                         <td className="px-6 py-4 whitespace-nowrap text-right">
                                                             <button 
                                                                 onClick={() => setSelectedEmail(email)}
-                                                                className="btn btn-ghost btn-md"
+                                                                className="btn btn-ghost btn-sm text-brand-teal"
                                                             >
                                                                 View
                                                             </button>
@@ -797,7 +797,7 @@ export default function Customer360() {
                                 <Mail className="w-5 h-5 text-brand-teal" />
                                 Email Details
                             </h2>
-                            <button onClick={() => setSelectedEmail(null)} className="btn btn-primary btn-md">
+                            <button onClick={() => setSelectedEmail(null)} className="btn btn-ghost btn-icon text-text-muted">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
@@ -842,12 +842,12 @@ export default function Customer360() {
                                         <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1">Related Entity</p>
                                         {/* Link navigation based on entity type */}
                                         {selectedEmail.relatedEntityType.toUpperCase() === 'INVOICE' ? (
-                                            <button onClick={() => navigate(`/invoices/${selectedEmail.relatedEntityId}`)} className="btn btn-link btn-md">
-                                                Invoice #{selectedEmail.relatedEntityId} <ArrowUpRight className="w-3 h-3 " />
+                                            <button onClick={() => navigate(`/invoices/${selectedEmail.relatedEntityId}`)} className="font-bold text-brand-teal hover:text-brand-primary text-[13px] inline-flex items-center gap-1">
+                                                Invoice #{selectedEmail.relatedEntityId} <ArrowUpRight className="w-3 h-3" />
                                             </button>
                                         ) : selectedEmail.relatedEntityType.toUpperCase() === 'CRM_LEAD' ? (
-                                            <button onClick={() => navigate(`/crm/leads/${selectedEmail.relatedEntityId}`)} className="btn btn-link btn-md">
-                                                CRM Lead #{selectedEmail.relatedEntityId} <ArrowUpRight className="w-3 h-3 " />
+                                            <button onClick={() => navigate(`/crm/leads/${selectedEmail.relatedEntityId}`)} className="font-bold text-brand-teal hover:text-brand-primary text-[13px] inline-flex items-center gap-1">
+                                                CRM Lead #{selectedEmail.relatedEntityId} <ArrowUpRight className="w-3 h-3" />
                                             </button>
                                         ) : (
                                             <span className="text-[13px] font-medium text-text-secondary bg-bg-main px-3 py-1.5 rounded-lg border border-border-subtle inline-block">

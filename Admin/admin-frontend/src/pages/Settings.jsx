@@ -196,7 +196,7 @@ export default function Settings() {
                 )}
             </div>
 
-            <div className="btn btn-secondary btn-md mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
                 <div className="md:col-span-2 space-y-6">
                     {activeTab === 'profile' && (
                         <>
@@ -294,7 +294,7 @@ export default function Settings() {
                                             <button
                                                 type="button"
                                                 onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                                                className="btn btn-primary btn-icon absolute top-5 right-5 inset-y-0 right-0 pr-3"
+                                                className="absolute inset-y-0 right-0 px-3 flex items-center text-text-muted hover:text-text-primary transition-colors"
                                             >
                                                 {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                             </button>
@@ -314,7 +314,7 @@ export default function Settings() {
                                             <button
                                                 type="button"
                                                 onClick={() => setShowNewPassword(!showNewPassword)}
-                                                className="btn btn-primary btn-icon absolute top-5 right-5 inset-y-0 right-0 pr-3"
+                                                className="absolute inset-y-0 right-0 px-3 flex items-center text-text-muted hover:text-text-primary transition-colors"
                                             >
                                                 {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                             </button>
@@ -334,7 +334,7 @@ export default function Settings() {
                                             <button
                                                 type="button"
                                                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                                className="btn btn-primary btn-icon absolute top-5 right-5 inset-y-0 right-0 pr-3"
+                                                className="absolute inset-y-0 right-0 px-3 flex items-center text-text-muted hover:text-text-primary transition-colors"
                                             >
                                                 {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                             </button>
@@ -373,7 +373,7 @@ export default function Settings() {
                                     </div>
                                     <button 
                                         onClick={toggleTheme}
-                                        className="btn btn-primary btn-md"
+                                        className="btn btn-secondary btn-md"
                                     >
                                         {theme === 'dark' ? (
                                             <><Moon className="w-4 h-4" /> Dark Mode</>

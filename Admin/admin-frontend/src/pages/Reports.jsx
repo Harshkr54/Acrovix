@@ -159,7 +159,7 @@ export default function Reports() {
                     <button
                         onClick={() => handleExportCsv(activeTab === 'CUSTOMERS' ? 'CUSTOMERS' : activeTab === 'QUOTATIONS' ? 'QUOTATIONS' : activeTab === 'PAYMENTS' ? 'PAYMENTS' : 'SUMMARY')}
                         disabled={isExporting || isLoading}
-                        className="btn btn-primary btn-md"
+                        className="btn btn-secondary btn-md"
                     >
                         {isExporting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                         Export CSV
@@ -167,7 +167,7 @@ export default function Reports() {
                     <button
                         onClick={fetchAllReports}
                         disabled={isLoading}
-                        className="btn btn-primary btn-icon"
+                        className="btn btn-secondary btn-icon"
                         title="Refresh Report Data"
                     >
                         <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -209,7 +209,7 @@ export default function Reports() {
                             />
                             <button
                                 type="submit"
-                                className="btn btn-primary btn-sm"
+                                className="btn btn-secondary btn-sm"
                             >
                                 Apply
                             </button>
@@ -243,7 +243,7 @@ export default function Reports() {
                     </p>
                     <button
                         onClick={fetchAllReports}
-                        className="btn btn-primary btn-md"
+                        className="btn btn-secondary btn-md"
                     >
                         <RefreshCw className="w-4 h-4" />
                         Retry
@@ -369,7 +369,7 @@ export default function Reports() {
 
                     {/* OVERVIEW / MONTHLY TRENDS */}
                     {activeTab === 'OVERVIEW' && (
-                        <div className="btn btn-secondary btn-md">
+                        <div className="bg-bg-card p-6 rounded-2xl border border-border-subtle shadow-sm space-y-6">
                             <div className="flex items-center justify-between">
                                 <h3 className="text-base font-bold text-text-primary flex items-center gap-2">
                                     <TrendingUp className="w-5 h-5 text-brand-teal" />

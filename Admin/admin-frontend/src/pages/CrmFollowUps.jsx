@@ -71,28 +71,28 @@ export default function CrmFollowUps() {
             />
 
             {/* Tab Navigation */}
-            <div className="flex items-center gap-3 border-b border-border-subtle pb-3">
+            <div className="inline-flex bg-bg-card border border-border-subtle rounded-xl p-1 mb-6">
                 <button
                     onClick={() => setActiveTab('DUE')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
                         activeTab === 'DUE'
-                            ? 'bg-brand-teal text-white border-[#0D9488] shadow-sm'
-                            : 'bg-bg-card border-border-subtle text-text-secondary hover:text-text-primary'
+                            ? 'bg-bg-main text-brand-primary shadow-sm border border-border-subtle/50'
+                            : 'text-text-secondary hover:text-text-primary'
                     }`}
                 >
-                    <Clock className="btn btn-secondary btn-md" />
+                    <Clock className="w-4 h-4" />
                     Due / Today ({dueFollowUps.length})
                 </button>
 
                 <button
                     onClick={() => setActiveTab('UPCOMING')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
                         activeTab === 'UPCOMING'
-                            ? 'bg-brand-teal text-white border-[#0D9488] shadow-sm'
-                            : 'bg-bg-card border-border-subtle text-text-secondary hover:text-text-primary'
+                            ? 'bg-bg-main text-brand-primary shadow-sm border border-border-subtle/50'
+                            : 'text-text-secondary hover:text-text-primary'
                     }`}
                 >
-                    <Calendar className="btn btn-secondary btn-md" />
+                    <Calendar className="w-4 h-4" />
                     Upcoming Follow-ups ({upcomingFollowUps.length})
                 </button>
             </div>
@@ -141,9 +141,9 @@ export default function CrmFollowUps() {
                                 <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
                                     <button
                                         onClick={() => navigate(`/crm/leads/${fu.leadId}`)}
-                                        className="btn btn-primary btn-icon"
+                                        className="btn btn-secondary btn-sm"
                                     >
-                                        <Eye className="w-3.5 h-3.5" />
+                                        <Eye className="w-3.5 h-3.5 mr-1" />
                                         View Lead
                                     </button>
 
@@ -151,15 +151,15 @@ export default function CrmFollowUps() {
                                         <>
                                             <button
                                                 onClick={() => setModalState({ isOpen: true, mode: 'CANCEL', followUp: fu, leadId: fu.leadId })}
-                                                className="btn btn-danger btn-sm"
+                                                className="btn btn-ghost text-brand-danger btn-sm"
                                             >
                                                 Cancel
                                             </button>
                                             <button
                                                 onClick={() => setModalState({ isOpen: true, mode: 'COMPLETE', followUp: fu, leadId: fu.leadId })}
-                                                className="btn btn-success btn-icon"
+                                                className="btn btn-primary btn-sm"
                                             >
-                                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                                <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
                                                 Complete
                                             </button>
                                         </>

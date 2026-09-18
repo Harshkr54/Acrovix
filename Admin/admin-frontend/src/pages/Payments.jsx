@@ -312,7 +312,7 @@ export default function Payments() {
                 <div className="fixed top-20 right-8 z-50 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top duration-300">
                     <CheckCircle className="w-5 h-5 shrink-0" />
                     <span className="text-xs font-semibold">{successToast}</span>
-                    <button onClick={() => setSuccessToast(null)} className="btn btn-secondary btn-md ml-2">
+                    <button onClick={() => setSuccessToast(null)} className="btn btn-ghost btn-icon ml-2 text-white hover:bg-white/20">
                         <X className="w-4 h-4" />
                     </button>
                 </div>
@@ -330,7 +330,7 @@ export default function Payments() {
                 </div>
                 <button 
                     onClick={handleOpenRecordPaymentModal}
-                    className="btn btn-success btn-md self-start md:self-auto"
+                    className="btn btn-primary btn-md self-start md:self-auto"
                 >
                     <Plus className="w-4 h-4" /> Record Payment
                 </button>
@@ -399,7 +399,7 @@ export default function Payments() {
 
                     <button
                         type="submit"
-                        className="btn btn-primary btn-sm"
+                        className="btn btn-secondary btn-sm"
                     >
                         Search
                     </button>
@@ -408,7 +408,7 @@ export default function Payments() {
                         <button
                             type="button"
                             onClick={handleClearFilters}
-                            className="btn btn-primary btn-sm"
+                            className="btn btn-ghost btn-sm"
                         >
                             Reset
                         </button>
@@ -449,7 +449,7 @@ export default function Payments() {
                                         <td className="p-4 font-bold text-text-primary">
                                             <button 
                                                 onClick={() => setSelectedPayment(p)}
-                                                className="btn btn-primary btn-md"
+                                                className="font-bold text-text-primary hover:text-brand-primary transition-colors"
                                             >
                                                 {p.paymentNumber}
                                             </button>
@@ -460,7 +460,7 @@ export default function Payments() {
                                         <td className="p-4 font-medium">
                                             <button 
                                                 onClick={() => navigate(`/invoices/${p.invoiceId}`)}
-                                                className="btn btn-primary btn-icon"
+                                                className="inline-flex items-center gap-1 font-semibold text-text-primary hover:text-brand-primary transition-colors group"
                                             >
                                                 <span>{p.invoiceNumber}</span>
                                                 <ArrowUpRight className="w-3 h-3 text-text-muted group-hover:text-brand-primary" />
@@ -499,14 +499,14 @@ export default function Payments() {
                                             <div className="flex items-center justify-end gap-2">
                                                 <button 
                                                     onClick={() => setSelectedPayment(p)}
-                                                    className="btn btn-primary btn-icon"
+                                                    className="btn btn-ghost btn-icon text-text-secondary"
                                                     title="View Details"
                                                 >
                                                     <Eye className="w-4 h-4" />
                                                 </button>
                                                 <button 
                                                     onClick={() => handleDownloadReceipt(p.id, p.paymentNumber)}
-                                                    className="btn btn-primary btn-icon"
+                                                    className="btn btn-ghost btn-icon text-text-secondary"
                                                     title="Download Receipt PDF"
                                                 >
                                                     <Download className="w-4 h-4" />
@@ -514,7 +514,7 @@ export default function Payments() {
                                                 <button 
                                                     onClick={() => handleSendReceiptEmail(p.id)}
                                                     disabled={sendingReceiptId === p.id}
-                                                    className="btn btn-primary btn-icon"
+                                                    className="btn btn-ghost btn-icon text-text-secondary"
                                                     title="Send Receipt Email"
                                                 >
                                                     {sendingReceiptId === p.id ? (
@@ -526,7 +526,7 @@ export default function Payments() {
                                                 {p.status === 'RECORDED' && (
                                                     <button 
                                                         onClick={() => handleOpenCancelModal(p)}
-                                                        className="btn btn-danger btn-md"
+                                                        className="btn btn-danger btn-sm"
                                                     >
                                                         Cancel
                                                     </button>
@@ -550,14 +550,14 @@ export default function Payments() {
                             <button
                                 disabled={page === 0}
                                 onClick={() => setPage(page - 1)}
-                                className="btn btn-primary btn-icon"
+                                className="btn btn-secondary btn-icon"
                             >
                                 <ChevronLeft className="w-4 h-4" />
                             </button>
                             <button
                                 disabled={page >= totalPages - 1}
                                 onClick={() => setPage(page + 1)}
-                                className="btn btn-primary btn-icon"
+                                className="btn btn-secondary btn-icon"
                             >
                                 <ChevronRight className="w-4 h-4" />
                             </button>
@@ -577,7 +577,7 @@ export default function Payments() {
                             </h2>
                             <button 
                                 onClick={() => setIsRecordModalOpen(false)}
-                                className="btn btn-primary btn-icon"
+                                className="btn btn-ghost btn-icon text-text-muted"
                             >
                                 <X className="w-5 h-5" />
                             </button>
@@ -805,14 +805,14 @@ export default function Payments() {
                                 <button
                                     type="button"
                                     onClick={() => setIsRecordModalOpen(false)}
-                                    className="btn btn-primary btn-md"
+                                    className="btn btn-secondary btn-md"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={recordingPayment || !selectedInvoice || isOverpayment}
-                                    className="btn btn-success btn-md"
+                                    className="btn btn-primary btn-md"
                                 >
                                     {recordingPayment ? 'Recording...' : 'Record Payment'}
                                 </button>
@@ -839,7 +839,7 @@ export default function Payments() {
                             </div>
                             <button 
                                 onClick={() => setSelectedPayment(null)}
-                                className="btn btn-primary btn-icon"
+                                className="btn btn-ghost btn-icon text-text-muted"
                             >
                                 <X className="w-5 h-5" />
                             </button>
@@ -938,7 +938,7 @@ export default function Payments() {
                                 <button
                                     onClick={() => handleSendReceiptEmail(selectedPayment.id)}
                                     disabled={sendingReceiptId === selectedPayment.id}
-                                    className="btn btn-primary btn-icon"
+                                    className="btn btn-secondary btn-sm"
                                 >
                                     {sendingReceiptId === selectedPayment.id ? (
                                         <><span className="animate-spin w-3.5 h-3.5 border-b-2 border-brand-primary rounded-full inline-block"></span> Sending...</>
@@ -948,7 +948,7 @@ export default function Payments() {
                                 </button>
                                 <button
                                     onClick={() => handleDownloadReceipt(selectedPayment.id, selectedPayment.paymentNumber)}
-                                    className="btn btn-primary btn-icon"
+                                    className="btn btn-secondary btn-sm"
                                 >
                                     <Download className="w-3.5 h-3.5" /> PDF Receipt
                                 </button>
@@ -968,7 +968,7 @@ export default function Payments() {
                             </h2>
                             <button 
                                 onClick={() => setCancellingPayment(null)}
-                                className="btn btn-primary btn-icon"
+                                className="btn btn-ghost btn-icon text-text-muted"
                             >
                                 <X className="w-5 h-5" />
                             </button>
@@ -1001,7 +1001,7 @@ export default function Payments() {
                                 <button
                                     type="button"
                                     onClick={() => setCancellingPayment(null)}
-                                    className="btn btn-primary btn-md"
+                                    className="btn btn-secondary btn-md"
                                 >
                                     Close
                                 </button>

@@ -129,9 +129,9 @@ export default function CustomerMaster() {
                         if (showForm) resetForm();
                         else setShowForm(true);
                     }}
-                    className={showForm ? "inline-flex items-center px-4 py-2.5 bg-bg-card hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors shadow-sm" : "acx-btn-primary flex items-center px-4 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]"}
+                    className={showForm ? "btn btn-secondary btn-md" : "btn btn-primary btn-md"}
                 >
-                    {showForm ? 'Cancel' : <><Plus className="btn btn-secondary btn-md mr-2" /> Add Customer</>}
+                    {showForm ? 'Cancel' : <><Plus className="w-4 h-4" /> Add Customer</>}
                 </button>
             </div>
 
@@ -139,7 +139,7 @@ export default function CustomerMaster() {
             {showForm && (
                 <div className="acx-card p-6 border border-brand-teal/20 mb-6 relative overflow-hidden">
                     <div className="absolute top-4 right-4">
-                        <button onClick={resetForm} className="btn btn-primary btn-md"><X className="w-5 h-5"/></button>
+                        <button onClick={resetForm} className="btn btn-ghost btn-icon text-text-muted"><X className="w-4 h-4"/></button>
                     </div>
                     <h2 className="text-[16px] font-bold text-text-primary mb-6 flex items-center tracking-tight">
                         <UsersRound className="w-5 h-5 text-brand-teal" />
@@ -290,19 +290,19 @@ export default function CustomerMaster() {
                                         <td className="px-6 py-4 whitespace-nowrap align-top text-right">
                                             <button 
                                                 onClick={() => navigate(`/customers/${c.id}/360`)}
-                                                className="btn btn-ghost btn-md"
+                                                className="btn btn-link btn-sm mr-2"
                                             >
                                                 360 View
                                             </button>
                                             <button 
                                                 onClick={() => handleEdit(c)}
-                                                className="btn btn-primary btn-md"
+                                                className="btn btn-ghost btn-sm mr-2"
                                             >
                                                 Edit
                                             </button>
                                             <button 
                                                 onClick={() => toggleStatus(c.id, c.active)}
-                                                className={`text-[12px] font-semibold transition-colors ${c.active ? 'text-brand-danger hover:text-[#B91C1C]' : 'text-[var(--color-brand-primary)] hover:text-brand-primary/90'}`}
+                                                className={`btn btn-sm ${c.active ? 'btn-ghost text-brand-danger hover:bg-red-50 dark:hover:bg-red-900/20' : 'btn-ghost text-brand-success hover:bg-emerald-50 dark:hover:bg-emerald-900/20'}`}
                                             >
                                                 {c.active ? 'Deactivate' : 'Activate'}
                                             </button>

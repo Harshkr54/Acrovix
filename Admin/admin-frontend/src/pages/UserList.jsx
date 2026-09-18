@@ -103,9 +103,9 @@ export default function UserList() {
                 </div>
                 <button 
                     onClick={() => setShowForm(!showForm)}
-                    className={showForm ? "inline-flex items-center px-4 py-2.5 bg-bg-card hover:bg-bg-hover border border-border-subtle rounded-xl text-[13px] font-semibold text-text-primary transition-colors shadow-sm" : "acx-btn-primary flex items-center px-4 py-2.5 shadow-[0_4px_14px_rgba(79,70,229,0.25)]"}
+                    className={showForm ? "btn btn-secondary btn-md" : "btn btn-primary btn-md"}
                 >
-                    {showForm ? 'Cancel' : <><UserPlus className="btn btn-secondary btn-md mr-2" /> Create User</>}
+                    {showForm ? 'Cancel' : <><UserPlus className="w-4 h-4 mr-1.5" /> Create User</>}
                 </button>
             </div>
 
@@ -247,7 +247,7 @@ export default function UserList() {
                                             <button 
                                                 onClick={() => toggleStatus(u.id, u.enabled)}
                                                 disabled={u.email === currentUser.email}
-                                                className={`text-[12px] font-semibold transition-colors ${u.enabled ? 'text-brand-danger hover:text-[#B91C1C]' : 'text-[var(--color-brand-primary)] hover:text-brand-primary/90'} disabled:opacity-30 disabled:cursor-not-allowed`}
+                                                className={`btn btn-sm ${u.enabled ? 'btn-ghost text-brand-danger hover:bg-red-50 dark:hover:bg-red-900/20' : 'btn-ghost text-brand-success hover:bg-emerald-50 dark:hover:bg-emerald-900/20'} disabled:opacity-30 disabled:cursor-not-allowed`}
                                             >
                                                 {u.enabled ? 'Disable' : 'Enable'}
                                             </button>
