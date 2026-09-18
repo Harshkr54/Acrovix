@@ -544,7 +544,7 @@ export default function Dashboard() {
                         
                         {/* Left Column: Analytics Chart (2/3 width) */}
                         <div className="lg:col-span-2">
-                            <div className="bg-white rounded-[24px] border border-border-subtle p-6 flex flex-col h-full min-h-[500px] shadow-[0_4px_24px_rgba(11,25,44,0.02)]">
+                            <div className="bg-white rounded-[24px] border border-border-subtle p-6 flex flex-col h-full shadow-[0_4px_24px_rgba(11,25,44,0.02)]">
                                 {/* Header */}
                                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-8">
                                     <div className="flex items-start gap-4">
@@ -604,7 +604,7 @@ export default function Dashboard() {
                                 </div>
                                 
                                 {/* Dynamic Chart Area */}
-                                <div className="flex-1 min-h-[280px] flex flex-col relative w-full overflow-x-auto overflow-y-hidden hide-scrollbar">
+                                <div className="flex-1 min-h-[220px] max-h-[280px] flex flex-col relative w-full overflow-x-auto overflow-y-hidden hide-scrollbar">
                                     <div className="min-w-[600px] h-full flex flex-col relative">
                                         <div className="absolute top-0 left-0 text-[12px] font-medium text-text-muted">Enquiries</div>
                                         
@@ -616,13 +616,21 @@ export default function Dashboard() {
                                             (() => {
                                                 const overviewData = stats.monthlyOverview;
                                                 const getNiceMax = (max) => {
+                                                    if (max <= 5) return Math.max(1, max);
                                                     if (max <= 10) return 10;
                                                     const magnitude = Math.pow(10, Math.floor(Math.log10(max)));
                                                     return Math.ceil(max / magnitude) * magnitude;
                                                 };
-                                                const maxEnq = Math.max(1, ...overviewData.map(i => Math.max(Number(i.totalEnquiries) || 0, Number(i.newEnquiries) || 0)));
+                                                const maxEnq = Math.max(0, ...overviewData.map(i => Math.max(Number(i.totalEnquiries) || 0, Number(i.newEnquiries) || 0)));
                                                 const niceMax = getNiceMax(maxEnq);
-                                                const ticks = [1, 0.75, 0.5, 0.25, 0].map(m => Math.round(niceMax * m));
+                                                
+                                                let rawTicks;
+                                                if (niceMax <= 5) {
+                                                    rawTicks = Array.from({length: niceMax + 1}, (_, i) => i).reverse();
+                                                } else {
+                                                    rawTicks = [1, 0.75, 0.5, 0.25, 0].map(m => Math.round(niceMax * m));
+                                                }
+                                                const ticks = Array.from(new Set(rawTicks));
 
                                                 const points = overviewData.map((item, index) => {
                                                     const x = ((index + 0.5) / overviewData.length) * 100;
@@ -761,18 +769,6 @@ export default function Dashboard() {
                                     <div className="flex items-center">
                                         <div className="w-3 h-3 rounded-full bg-[#A5B4FC] mr-2"></div>
                                         <span className="text-[13px] font-medium text-text-secondary">Total Enquiries</span>
-                                    </div>
-                                    
-                                    {/* Decorative Note */}
-                                    <div className="absolute right-0 bottom-0 text-[#3B82F6] hidden md:flex items-center opacity-70 italic font-medium text-[13px] translate-y-2">
-                                        <div className="flex flex-col items-end leading-tight mr-1">
-                                            <span>More Enquiries</span>
-                                            <span>More Opportunities</span>
-                                        </div>
-                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="rotate-[-20deg]">
-                                            <path d="M5 12h14"></path>
-                                            <path d="m12 5 7 7-7 7"></path>
-                                        </svg>
                                     </div>
                                 </div>
                             </div>
