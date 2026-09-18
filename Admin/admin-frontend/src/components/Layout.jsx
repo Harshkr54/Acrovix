@@ -10,6 +10,27 @@ import { fetchApi } from '../services/api';
 import logoLight from '../assets/acrovix-logo-light.png';
 import logoDark from '../assets/acrovix-logo-dark.png';
 
+const DateTimeDisplay = () => {
+    const [time, setTime] = useState(new Date());
+    
+    useEffect(() => {
+        const timer = setInterval(() => setTime(new Date()), 60000);
+        return () => clearInterval(timer);
+    }, []);
+
+    const dateOptions = { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' };
+    const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: true };
+    const dateStr = time.toLocaleDateString('en-US', dateOptions);
+    const timeStr = time.toLocaleTimeString('en-US', timeOptions);
+
+    return (
+        <div className="hidden lg:flex flex-col items-end mr-4 pr-4 border-r border-border-subtle">
+            <span className="text-[13px] font-bold text-text-primary tracking-tight">{dateStr}</span>
+            <span className="text-[11px] font-medium text-text-muted uppercase tracking-wider">{timeStr}</span>
+        </div>
+    );
+};
+
 export default function Layout() {
     const { user, logout } = useAuth();
     const { theme, toggleTheme } = useTheme();
@@ -157,18 +178,6 @@ export default function Layout() {
                             </div>
                         </div>
                     )}
-                    
-                    <button 
-                        onClick={toggleSidebar}
-                        className="hidden lg:flex absolute top-1/2 -translate-y-1/2 -right-4 items-center justify-center w-8 h-8 bg-white border border-border-subtle rounded-full text-text-muted hover:text-brand-primary hover:border-brand-primary transition-all shadow-sm z-50 group"
-                    >
-                        {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-                        {isCollapsed && (
-                            <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2.5 py-1.5 bg-text-primary text-bg-main text-[11px] font-bold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-lg">
-                                Expand Sidebar
-                            </div>
-                        )}
-                    </button>
 
                     <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden text-text-muted hover:text-text-primary transition-colors p-1 rounded-lg">
                         <X className="w-5 h-5" />
@@ -381,6 +390,15 @@ export default function Layout() {
                             <Menu className="w-6 h-6" />
                         </button>
                         
+                        {/* Sidebar Collapse Toggle (Desktop) */}
+                        <button 
+                            onClick={toggleSidebar}
+                            className="hidden lg:flex items-center justify-center w-10 h-10 mr-4 rounded-full text-text-muted hover:text-text-primary hover:bg-bg-hover hover:shadow-sm border border-transparent hover:border-border-subtle transition-all"
+                            title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+                        >
+                            {isCollapsed ? <PanelLeftOpen className="w-5 h-5" /> : <PanelLeftClose className="w-5 h-5" />}
+                        </button>
+
                         {/* Global Back Button */}
                         <button 
                             onClick={() => {
@@ -407,12 +425,17 @@ export default function Layout() {
                             </div>
                             <input
                                 type="text"
-                                className="w-full pl-11 pr-10 py-2.5 bg-white border border-border-subtle rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all shadow-[0_2px_12px_rgba(11,25,44,0.03)] text-text-primary placeholder-text-muted font-medium"
+                                className="w-full pl-11 pr-16 py-2.5 bg-white dark:bg-bg-card border border-border-subtle rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all shadow-sm text-text-primary placeholder-text-muted font-medium"
                                 placeholder="Search anything..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 onFocus={() => { if (searchQuery.trim() && (searchResults.enquiries.length > 0 || searchResults.quotations.length > 0 || searchResults.customers.length > 0)) setSearchDropdownOpen(true) }}
                             />
+                            {!searchQuery && (
+                                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                    <span className="px-1.5 py-0.5 rounded border border-border-subtle text-[10px] font-bold text-text-muted bg-bg-main">Ctrl K</span>
+                                </div>
+                            )}
                             {searchQuery && (
                                 <button
                                     onClick={handleClearSearch}
@@ -520,7 +543,10 @@ export default function Layout() {
                         </div>
                     </div>
                     
-                    <HeaderControls />
+                    <div className="flex items-center">
+                        <DateTimeDisplay />
+                        <HeaderControls />
+                    </div>
                 </header>
 
                 {/* Page content */}

@@ -6,6 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import CreateQuotationModal from '../components/CreateQuotationModal';
 import EnquiryDetailModal from '../components/EnquiryDetailModal';
 import ActionMenu from '../components/ActionMenu';
+import CardSparkline from '../components/ui/CardSparkline';
 
 const DEFAULT_FILTERS = {
     dateRange: 'ALL_TIME',
@@ -393,148 +394,155 @@ export default function Dashboard() {
             ) : (
                 <>
                     {/* KPI Cards Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        
                         {/* Total Enquiries KPI */}
-                        <div className="acx-card p-6 flex flex-col justify-between">
-                            <div className="flex justify-between items-start mb-2">
-                                <span className="text-[13px] font-semibold text-text-secondary">Total Enquiries</span>
-                                <div className="p-2 bg-brand-primary/10 rounded-xl">
-                                    <Inbox className="w-5 h-5 text-[var(--color-brand-primary)]" />
+                        <div className="bg-white dark:bg-bg-card rounded-[24px] p-6 flex flex-col justify-between border border-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
+                            <div className="flex justify-between items-start mb-2 relative z-10">
+                                <span className="text-[13px] font-bold text-text-secondary tracking-tight">Total Enquiries</span>
+                                <div className="w-10 h-10 bg-blue-50 dark:bg-blue-500/10 rounded-2xl flex items-center justify-center border border-blue-100/50 dark:border-blue-500/20 shadow-sm transition-transform group-hover:scale-110">
+                                    <Inbox className="w-5 h-5 text-blue-600 dark:text-blue-500" />
                                 </div>
                             </div>
-                            <div>
-                                <div className="text-[32px] font-bold text-text-primary tracking-tight h-[38px] flex items-center">
-                                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-[var(--color-brand-primary)] ml-1" /> : (stats?.totalEnquiries ?? 0)}
+                            <div className="relative z-10">
+                                <div className="text-[34px] font-bold text-text-primary tracking-tight leading-none mb-1 h-[38px] flex items-end">
+                                    {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-blue-600 ml-1" /> : (stats?.totalEnquiries ?? 0)}
                                 </div>
-                                <div className="flex items-center mt-1 text-[11px] font-medium text-text-muted">
-                                    <span>Filtered count</span>
+                                <div className="text-[12px] font-medium text-text-muted">
+                                    Filtered count
                                 </div>
                             </div>
+                            <CardSparkline data={stats?.monthlyOverview?.map(m => m.totalEnquiries)} color="#2563EB" />
                         </div>
 
                         {/* New Enquiries KPI */}
-                        <div className="acx-card p-6 flex flex-col justify-between">
-                            <div className="flex justify-between items-start mb-2">
-                                <span className="text-[13px] font-semibold text-text-secondary">New Enquiries</span>
-                                <div className="p-2 bg-brand-teal/10 rounded-xl">
-                                    <Activity className="w-5 h-5 text-brand-teal" />
+                        <div className="bg-white dark:bg-bg-card rounded-[24px] p-6 flex flex-col justify-between border border-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
+                            <div className="flex justify-between items-start mb-2 relative z-10">
+                                <span className="text-[13px] font-bold text-text-secondary tracking-tight">New Enquiries</span>
+                                <div className="w-10 h-10 bg-teal-50 dark:bg-teal-500/10 rounded-2xl flex items-center justify-center border border-teal-100/50 dark:border-teal-500/20 shadow-sm transition-transform group-hover:scale-110">
+                                    <Activity className="w-5 h-5 text-teal-600 dark:text-teal-500" />
                                 </div>
                             </div>
-                            <div>
-                                <div className="text-[32px] font-bold text-text-primary tracking-tight h-[38px] flex items-center">
-                                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-brand-teal ml-1" /> : (stats?.newEnquiries ?? 0)}
+                            <div className="relative z-10">
+                                <div className="text-[34px] font-bold text-text-primary tracking-tight leading-none mb-1 h-[38px] flex items-end">
+                                    {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-teal-600 ml-1" /> : (stats?.newEnquiries ?? 0)}
                                 </div>
-                                <div className="flex items-center mt-1 text-[11px] font-medium text-text-muted">
-                                    <span>Filtered count</span>
+                                <div className="text-[12px] font-medium text-text-muted">
+                                    Filtered count
                                 </div>
                             </div>
+                            <CardSparkline data={stats?.monthlyOverview?.map(m => m.newEnquiries)} color="#0D9488" />
                         </div>
 
                         {/* Total Quotations KPI */}
-                        <div className="acx-card p-6 flex flex-col justify-between">
-                            <div className="flex justify-between items-start mb-2">
-                                <span className="text-[13px] font-semibold text-text-secondary">Total Quotations</span>
-                                <div className="p-2 bg-purple-50 rounded-xl">
-                                    <FileText className="w-5 h-5 text-purple-600" />
+                        <div className="bg-white dark:bg-bg-card rounded-[24px] p-6 flex flex-col justify-between border border-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
+                            <div className="flex justify-between items-start mb-2 relative z-10">
+                                <span className="text-[13px] font-bold text-text-secondary tracking-tight">Total Quotations</span>
+                                <div className="w-10 h-10 bg-purple-50 dark:bg-purple-500/10 rounded-2xl flex items-center justify-center border border-purple-100/50 dark:border-purple-500/20 shadow-sm transition-transform group-hover:scale-110">
+                                    <FileText className="w-5 h-5 text-purple-600 dark:text-purple-500" />
                                 </div>
                             </div>
-                            <div>
-                                <div className="text-[32px] font-bold text-text-primary tracking-tight h-[38px] flex items-center">
-                                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-purple-600 ml-1" /> : (stats?.totalQuotations ?? 0)}
+                            <div className="relative z-10">
+                                <div className="text-[34px] font-bold text-text-primary tracking-tight leading-none mb-1 h-[38px] flex items-end">
+                                    {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-purple-600 ml-1" /> : (stats?.totalQuotations ?? 0)}
                                 </div>
-                                <div className="flex items-center mt-1 text-[11px] font-medium text-text-muted">
-                                    <span>Excludes Trash</span>
+                                <div className="text-[12px] font-medium text-text-muted">
+                                    Excludes Trash
                                 </div>
                             </div>
+                            <CardSparkline isDecorative color="#9333EA" />
                         </div>
 
                         {/* Accepted Quotations KPI */}
-                        <div className="acx-card p-6 flex flex-col justify-between">
-                            <div className="flex justify-between items-start mb-2">
-                                <span className="text-[13px] font-semibold text-text-secondary">Accepted Quotations</span>
-                                <div className="p-2 bg-brand-success/10 rounded-xl">
-                                    <CheckCircle className="w-5 h-5 text-brand-success" />
+                        <div className="bg-white dark:bg-bg-card rounded-[24px] p-6 flex flex-col justify-between border border-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
+                            <div className="flex justify-between items-start mb-2 relative z-10">
+                                <span className="text-[13px] font-bold text-text-secondary tracking-tight">Accepted Quotations</span>
+                                <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-500/10 rounded-2xl flex items-center justify-center border border-emerald-100/50 dark:border-emerald-500/20 shadow-sm transition-transform group-hover:scale-110">
+                                    <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-500" />
                                 </div>
                             </div>
-                            <div>
-                                <div className="text-[32px] font-bold text-text-primary tracking-tight h-[38px] flex items-center">
-                                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-brand-success ml-1" /> : (stats?.acceptedQuotations ?? 0)}
+                            <div className="relative z-10">
+                                <div className="text-[34px] font-bold text-text-primary tracking-tight leading-none mb-1 h-[38px] flex items-end">
+                                    {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-emerald-600 ml-1" /> : (stats?.acceptedQuotations ?? 0)}
                                 </div>
-                                <div className="flex items-center mt-1 text-[11px] font-medium text-text-muted">
-                                    <span>Excludes Trash</span>
+                                <div className="text-[12px] font-medium text-text-muted">
+                                    Excludes Trash
                                 </div>
                             </div>
+                            <CardSparkline isDecorative color="#059669" />
                         </div>
-                    </div>
-
-                    {/* Financial & Receivables KPI Row */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-                        <div className="acx-card p-6 flex flex-col justify-between border-l-4 border-l-blue-500">
-                            <div className="flex justify-between items-start mb-2">
-                                <span className="text-[13px] font-semibold text-text-secondary">Total Invoiced</span>
-                                <div className="p-2 bg-blue-500/10 rounded-xl">
-                                    <TrendingUp className="w-5 h-5 text-blue-500" />
+                        
+                        {/* Financial Cards */}
+                        <div className="bg-white dark:bg-bg-card rounded-[24px] p-6 flex flex-col justify-between border border-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
+                            <div className="flex justify-between items-start mb-2 relative z-10">
+                                <span className="text-[13px] font-bold text-text-secondary tracking-tight">Total Invoiced</span>
+                                <div className="w-10 h-10 bg-blue-50 dark:bg-blue-500/10 rounded-2xl flex items-center justify-center border border-blue-100/50 dark:border-blue-500/20 shadow-sm transition-transform group-hover:scale-110">
+                                    <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-500" />
                                 </div>
                             </div>
-                            <div>
-                                <div className="text-[24px] font-bold text-text-primary tracking-tight">
+                            <div className="relative z-10">
+                                <div className="text-[24px] font-bold text-text-primary tracking-tight leading-none mb-1 h-[38px] flex items-end">
                                     Rs. {Number(receivablesStats?.totalInvoiced || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </div>
-                                <div className="flex items-center mt-1 text-[11px] font-medium text-text-muted">
-                                    <span>Total Issued Tax Invoices</span>
+                                <div className="text-[12px] font-medium text-text-muted">
+                                    Total Issued Tax Invoices
                                 </div>
                             </div>
+                            <CardSparkline isDecorative color="#2563EB" />
                         </div>
 
-                        <div className="acx-card p-6 flex flex-col justify-between border-l-4 border-l-emerald-500">
-                            <div className="flex justify-between items-start mb-2">
-                                <span className="text-[13px] font-semibold text-emerald-600 dark:text-emerald-400">Total Received</span>
-                                <div className="p-2 bg-emerald-500/10 rounded-xl">
-                                    <CreditCard className="w-5 h-5 text-emerald-500" />
+                        <div className="bg-white dark:bg-bg-card rounded-[24px] p-6 flex flex-col justify-between border border-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
+                            <div className="flex justify-between items-start mb-2 relative z-10">
+                                <span className="text-[13px] font-bold text-text-secondary tracking-tight">Total Received</span>
+                                <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-500/10 rounded-2xl flex items-center justify-center border border-emerald-100/50 dark:border-emerald-500/20 shadow-sm transition-transform group-hover:scale-110">
+                                    <CreditCard className="w-5 h-5 text-emerald-600 dark:text-emerald-500" />
                                 </div>
                             </div>
-                            <div>
-                                <div className="text-[24px] font-bold text-emerald-600 dark:text-emerald-400 tracking-tight">
+                            <div className="relative z-10">
+                                <div className="text-[24px] font-bold text-text-primary tracking-tight leading-none mb-1 h-[38px] flex items-end">
                                     Rs. {Number(receivablesStats?.totalReceived || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </div>
-                                <div className="flex items-center mt-1 text-[11px] font-medium text-text-muted">
-                                    <span>Active Payment Ledger</span>
+                                <div className="text-[12px] font-medium text-text-muted">
+                                    Active Payment Ledger
                                 </div>
                             </div>
+                            <CardSparkline isDecorative color="#059669" />
                         </div>
 
-                        <div className="acx-card p-6 flex flex-col justify-between border-l-4 border-l-amber-500">
-                            <div className="flex justify-between items-start mb-2">
-                                <span className="text-[13px] font-semibold text-amber-600 dark:text-amber-400">Outstanding Balance</span>
-                                <div className="p-2 bg-amber-500/10 rounded-xl">
-                                    <Clock className="w-5 h-5 text-amber-500" />
+                        <div className="bg-white dark:bg-bg-card rounded-[24px] p-6 flex flex-col justify-between border border-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
+                            <div className="flex justify-between items-start mb-2 relative z-10">
+                                <span className="text-[13px] font-bold text-text-secondary tracking-tight">Outstanding Balance</span>
+                                <div className="w-10 h-10 bg-orange-50 dark:bg-orange-500/10 rounded-2xl flex items-center justify-center border border-orange-100/50 dark:border-orange-500/20 shadow-sm transition-transform group-hover:scale-110">
+                                    <Clock className="w-5 h-5 text-orange-600 dark:text-orange-500" />
                                 </div>
                             </div>
-                            <div>
-                                <div className="text-[24px] font-bold text-amber-600 dark:text-amber-400 tracking-tight">
+                            <div className="relative z-10">
+                                <div className="text-[24px] font-bold text-text-primary tracking-tight leading-none mb-1 h-[38px] flex items-end">
                                     Rs. {Number(receivablesStats?.outstandingAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </div>
-                                <div className="flex items-center mt-1 text-[11px] font-medium text-text-muted">
-                                    <span>Pending Receivables</span>
+                                <div className="text-[12px] font-medium text-text-muted">
+                                    Pending Receivables
                                 </div>
                             </div>
+                            <CardSparkline isDecorative color="#F97316" />
                         </div>
 
-                        <div className="acx-card p-6 flex flex-col justify-between border-l-4 border-l-red-500">
-                            <div className="flex justify-between items-start mb-2">
-                                <span className="text-[13px] font-semibold text-red-500">Overdue Balance</span>
-                                <div className="p-2 bg-red-500/10 rounded-xl">
-                                    <AlertTriangle className="w-5 h-5 text-red-500" />
+                        <div className="bg-white dark:bg-bg-card rounded-[24px] p-6 flex flex-col justify-between border border-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
+                            <div className="flex justify-between items-start mb-2 relative z-10">
+                                <span className="text-[13px] font-bold text-text-secondary tracking-tight">Overdue Balance</span>
+                                <div className="w-10 h-10 bg-red-50 dark:bg-red-500/10 rounded-2xl flex items-center justify-center border border-red-100/50 dark:border-red-500/20 shadow-sm transition-transform group-hover:scale-110">
+                                    <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-500" />
                                 </div>
                             </div>
-                            <div>
-                                <div className="text-[24px] font-bold text-red-500 tracking-tight">
+                            <div className="relative z-10">
+                                <div className="text-[24px] font-bold text-text-primary tracking-tight leading-none mb-1 h-[38px] flex items-end">
                                     Rs. {Number(receivablesStats?.overdueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </div>
-                                <div className="flex items-center mt-1 text-[11px] font-medium text-text-muted">
-                                    <span>Past Due Date</span>
+                                <div className="text-[12px] font-medium text-text-muted">
+                                    Past Due Date
                                 </div>
                             </div>
+                            <CardSparkline isDecorative color="#DC2626" />
                         </div>
                     </div>
 
