@@ -17,6 +17,8 @@ public interface CrmFollowUpRepository extends JpaRepository<CrmFollowUp, Long> 
 
     List<CrmFollowUp> findByLeadIdOrderByScheduledAtDesc(Long leadId);
 
+    Page<CrmFollowUp> findByLeadIdInOrderByScheduledAtDesc(List<Long> leadIds, Pageable pageable);
+
     List<CrmFollowUp> findFirstByLeadIdAndStatusOrderByScheduledAtAsc(Long leadId, FollowUpStatus status);
 
     @Query("SELECT f FROM CrmFollowUp f WHERE f.status = 'PENDING' AND f.scheduledAt BETWEEN :start AND :end AND (:assignedId IS NULL OR f.assignedTo.id = :assignedId) ORDER BY f.scheduledAt ASC")

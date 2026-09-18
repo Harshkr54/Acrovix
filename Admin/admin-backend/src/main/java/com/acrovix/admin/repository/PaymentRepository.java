@@ -20,6 +20,8 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
 
     List<Payment> findByInvoiceIdOrderByCreatedAtDesc(Long invoiceId);
 
+    Page<Payment> findByCustomerIdOrderByCreatedAtDesc(Long customerId, Pageable pageable);
+
     @Query("SELECT p FROM Payment p LEFT JOIN p.invoice i LEFT JOIN p.customer c WHERE " +
            "(:status IS NULL OR p.status = :status) AND " +
            "(:method IS NULL OR p.paymentMethod = :method) AND " +

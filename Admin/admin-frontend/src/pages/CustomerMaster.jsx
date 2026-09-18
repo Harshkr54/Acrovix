@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { getCustomers, createCustomer, updateCustomer, deleteCustomer, activateCustomer } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { UsersRound, Plus, ShieldAlert, AlertCircle, RefreshCw, X, Building, Mail, Phone, MapPin } from 'lucide-react';
+import { UsersRound, Plus, ShieldAlert, AlertCircle, RefreshCw, X, Building, Mail, Phone, MapPin, Eye } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function CustomerMaster() {
+    const navigate = useNavigate();
     const { user: currentUser } = useAuth();
     const [customers, setCustomers] = useState([]);
     const [showForm, setShowForm] = useState(false);
@@ -287,8 +289,14 @@ export default function CustomerMaster() {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap align-top text-right">
                                             <button 
-                                                onClick={() => handleEdit(c)}
+                                                onClick={() => navigate(`/customers/${c.id}/360`)}
                                                 className="text-[12px] font-semibold text-brand-teal hover:text-brand-teal transition-colors mr-4"
+                                            >
+                                                360 View
+                                            </button>
+                                            <button 
+                                                onClick={() => handleEdit(c)}
+                                                className="text-[12px] font-semibold text-text-secondary hover:text-text-primary transition-colors mr-4"
                                             >
                                                 Edit
                                             </button>

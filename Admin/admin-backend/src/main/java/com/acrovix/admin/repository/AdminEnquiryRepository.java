@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Repository
 public interface AdminEnquiryRepository extends JpaRepository<AdminEnquiry, Long>, JpaSpecificationExecutor<AdminEnquiry> {
@@ -23,6 +25,8 @@ public interface AdminEnquiryRepository extends JpaRepository<AdminEnquiry, Long
      */
     @Query("SELECT e.status, COUNT(e) FROM AdminEnquiry e GROUP BY e.status")
     List<Object[]> countGroupByStatus();
+
+    Page<AdminEnquiry> findByBusinessEmailOrderByCreatedAtDesc(String businessEmail, Pageable pageable);
 
     @Query("SELECT MIN(e.createdAt) FROM AdminEnquiry e")
     LocalDateTime findMinCreatedAt();

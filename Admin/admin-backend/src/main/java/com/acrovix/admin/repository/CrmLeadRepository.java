@@ -12,6 +12,8 @@ import org.springframework.stereotype.Repository;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Repository
 public interface CrmLeadRepository extends JpaRepository<CrmLead, Long>, JpaSpecificationExecutor<CrmLead> {
@@ -36,6 +38,8 @@ public interface CrmLeadRepository extends JpaRepository<CrmLead, Long>, JpaSpec
 
     @Query("SELECT COALESCE(SUM(l.estimatedValue), 0) FROM CrmLead l WHERE l.status = :status AND COALESCE(l.currency, com.acrovix.admin.entity.Currency.INR) = :currency")
     BigDecimal sumEstimatedValueByStatusAndCurrency(@Param("status") LeadStatus status, @Param("currency") Currency currency);
+
+    Page<CrmLead> findByCustomerIdOrderByCreatedAtDesc(Long customerId, Pageable pageable);
 
     List<CrmLead> findByStatusOrderByCreatedAtDesc(LeadStatus status);
 }

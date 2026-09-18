@@ -12,6 +12,7 @@ import Settings from './pages/Settings';
 import TrashList from './pages/TrashList';
 import Activity from './pages/Activity';
 import CustomerMaster from './pages/CustomerMaster';
+import Customer360 from './pages/Customer360';
 import CatalogMaster from './pages/CatalogMaster';
 import PurchaseOrderList from './pages/PurchaseOrderList';
 import PurchaseOrderDetail from './pages/PurchaseOrderDetail';
@@ -51,6 +52,7 @@ function App() {
                 <Route path="quotations/new/:enquiryId" element={<QuotationBuilder />} />
                 <Route path="quotations/edit/:quotationId" element={<QuotationBuilder />} />
                 <Route path="customers" element={<CustomerMaster />} />
+                <Route path="customers/:id/360" element={<Customer360 />} />
                 <Route path="catalog" element={<CatalogMaster />} />
                 <Route path="purchase-orders" element={<PurchaseOrderList />} />
                 <Route path="purchase-orders/:id" element={<PurchaseOrderDetail />} />

@@ -15,6 +15,7 @@ import java.util.List;
 public interface QuotationRepository extends JpaRepository<Quotation, Long>, JpaSpecificationExecutor<Quotation> {
     List<Quotation> findByEnquiryId(Long enquiryId);
     List<Quotation> findByEnquiryIdAndDeletedAtIsNull(Long enquiryId);
+    Page<Quotation> findByCustomerIdAndDeletedAtIsNullOrderByCreatedAtDesc(Long customerId, Pageable pageable);
     java.util.Optional<Quotation> findByClientToken(String clientToken);
     long countByStatus(String status);
 

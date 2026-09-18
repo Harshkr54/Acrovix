@@ -29,15 +29,15 @@ export default function Layout() {
 
     // Global Search State
     const [searchQuery, setSearchQuery] = useState('');
-    const [searchResults, setSearchResults] = useState({ enquiries: [], quotations: [] });
+    const [searchResults, setSearchResults] = useState({ enquiries: [], quotations: [], customers: [] });
     const [isSearching, setIsSearching] = useState(false);
     const [searchDropdownOpen, setSearchDropdownOpen] = useState(false);
     const searchRef = useRef(null);
 
     useEffect(() => {
         let active = true;
-        if (!searchQuery.trim()) {
-            setSearchResults({ enquiries: [], quotations: [] });
+        if (!searchQuery.trim() || searchQuery.trim().length < 2) {
+            setSearchResults({ enquiries: [], quotations: [], customers: [] });
             setSearchDropdownOpen(false);
             setIsSearching(false);
             return;
@@ -46,14 +46,16 @@ export default function Layout() {
         const delayDebounceFn = setTimeout(async () => {
             setIsSearching(true);
             try {
-                const [enqRes, quotRes] = await Promise.all([
+                const [enqRes, quotRes, custRes] = await Promise.all([
                     fetchApi(`/admin/enquiries?search=${encodeURIComponent(searchQuery)}&size=5`),
-                    fetchApi(`/admin/quotations?search=${encodeURIComponent(searchQuery)}&size=5`)
+                    fetchApi(`/admin/quotations?search=${encodeURIComponent(searchQuery)}&size=5`),
+                    fetchApi(`/customers?search=${encodeURIComponent(searchQuery)}&size=5`)
                 ]);
                 if (active) {
                     setSearchResults({
                         enquiries: enqRes.content || [],
-                        quotations: quotRes.content || []
+                        quotations: quotRes.content || [],
+                        customers: custRes.content || []
                     });
                     setSearchDropdownOpen(true);
                 }
@@ -82,7 +84,7 @@ export default function Layout() {
 
     const handleClearSearch = () => {
         setSearchQuery('');
-        setSearchResults({ enquiries: [], quotations: [] });
+        setSearchResults({ enquiries: [], quotations: [], customers: [] });
         setSearchDropdownOpen(false);
     };
 
@@ -409,7 +411,7 @@ export default function Layout() {
                                 placeholder="Search anything..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                onFocus={() => { if (searchQuery.trim() && (searchResults.enquiries.length > 0 || searchResults.quotations.length > 0)) setSearchDropdownOpen(true) }}
+                                onFocus={() => { if (searchQuery.trim() && (searchResults.enquiries.length > 0 || searchResults.quotations.length > 0 || searchResults.customers.length > 0)) setSearchDropdownOpen(true) }}
                             />
                             {searchQuery && (
                                 <button
@@ -423,12 +425,40 @@ export default function Layout() {
                             {/* Dropdown Overlay */}
                             {searchDropdownOpen && (
                                 <div className="absolute top-full left-0 right-0 mt-2 bg-bg-card border border-border-subtle rounded-xl shadow-lg overflow-hidden z-50 max-h-[70vh] overflow-y-auto">
-                                    {(searchResults.quotations.length === 0 && searchResults.enquiries.length === 0) ? (
+                                    {(searchResults.quotations.length === 0 && searchResults.enquiries.length === 0 && searchResults.customers.length === 0) ? (
                                         <div className="p-4 text-center text-text-muted text-sm">
-                                            No results found for "{searchQuery}"
+                                            No customers found
                                         </div>
                                     ) : (
                                         <div className="py-2">
+                                            {searchResults.customers.length > 0 && (
+                                                <div>
+                                                    <div className="px-4 py-1.5 text-[10px] font-bold text-text-muted uppercase tracking-wider bg-bg-main/50">
+                                                        Customers
+                                                    </div>
+                                                    {searchResults.customers.map(c => (
+                                                        <div 
+                                                            key={c.id}
+                                                            onClick={() => handleSearchNavigate(`/customers/${c.id}/360`)}
+                                                            className="px-4 py-3 hover:bg-bg-hover cursor-pointer transition-colors border-l-2 border-transparent hover:border-brand-teal"
+                                                        >
+                                                            <div className="flex justify-between items-start mb-0.5">
+                                                                <span className="text-[14px] font-bold text-text-primary">{c.name}</span>
+                                                                {c.customerCode && <span className="text-[11px] font-medium text-text-muted">{c.customerCode}</span>}
+                                                            </div>
+                                                            <div className="text-[12px] text-text-secondary">
+                                                                {c.companyName && <div className="font-medium text-text-primary">{c.companyName}</div>}
+                                                                {(c.email || c.phone) && (
+                                                                    <div className="flex items-center gap-3 mt-0.5 text-text-muted text-[11px]">
+                                                                        {c.email && <span>{c.email}</span>}
+                                                                        {c.phone && <span>{c.phone}</span>}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
                                             {searchResults.quotations.length > 0 && (
                                                 <div>
                                                     <div className="px-4 py-1.5 text-[10px] font-bold text-text-muted uppercase tracking-wider bg-bg-main/50">

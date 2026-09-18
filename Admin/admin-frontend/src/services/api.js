@@ -110,6 +110,8 @@ export const getCustomers = (params) => {
 
 export const getCustomerById = (id) => fetchApi(`/customers/${id}`);
 
+export const getCustomer360 = (id) => fetchApi(`/customers/${id}/360`);
+
 export const createCustomer = (data) => fetchApi('/customers', {
     method: 'POST',
     body: JSON.stringify(data)

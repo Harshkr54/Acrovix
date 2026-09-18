@@ -11,6 +11,8 @@ import org.springframework.data.repository.query.Param;
 public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
     Page<Invoice> findByInvoiceType(InvoiceType type, Pageable pageable);
 
+    Page<Invoice> findByCustomerIdOrderByCreatedAtDesc(Long customerId, Pageable pageable);
+
     @Query("SELECT i FROM Invoice i WHERE " +
            "(:type IS NULL OR i.invoiceType = :type) AND " +
            "(:status IS NULL OR i.status = :status) AND " +
