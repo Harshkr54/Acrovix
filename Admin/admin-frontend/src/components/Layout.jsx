@@ -138,35 +138,46 @@ export default function Layout() {
             )}
 
             {/* Sidebar */}
-            <div className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-white border-r border-border-subtle shadow-[4px_0_24px_rgba(11,25,44,0.02)] transition-all duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isCollapsed ? 'w-20' : 'w-64'} lg:relative lg:translate-x-0`}>
-                <div className="flex items-center justify-between h-[72px] px-4 border-b border-border-subtle/50">
+            <div className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-white border border-border-subtle shadow-[0_4px_24px_rgba(11,25,44,0.04)] transition-all duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isCollapsed ? 'w-[84px]' : 'w-[260px]'} lg:relative lg:translate-x-0 lg:my-3 lg:ml-3 lg:h-[calc(100vh-24px)] rounded-r-[24px] lg:rounded-[24px]`}>
+                <div className="flex items-center justify-between h-[72px] px-5 border-b border-border-subtle/50 shrink-0 relative">
                     {!isCollapsed ? (
                         <div className="flex items-center h-full flex-1 min-w-0 pr-2">
                             <img 
                                 src={theme === 'dark' ? logoDark : logoLight} 
-                                alt="ACROVIX Innovations Private Limited" 
-                                className="h-12 w-full max-w-[190px] object-contain object-left transition-opacity duration-200" 
+                                alt="ACROVIX" 
+                                className="h-10 w-full max-w-[140px] object-contain object-left transition-opacity duration-200" 
                             />
                         </div>
                     ) : (
                         <div className="flex items-center justify-center w-full h-full">
-                            <img 
-                                src={theme === 'dark' ? logoDark : logoLight} 
-                                alt="ACROVIX" 
-                                className="h-9 w-full max-w-[56px] object-contain transition-opacity duration-200" 
-                            />
+                            <div className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center border border-brand-primary/20">
+                                <span className="font-bold text-brand-primary text-[15px]">ACX</span>
+                            </div>
                         </div>
                     )}
+                    
+                    <button 
+                        onClick={toggleSidebar}
+                        className="hidden lg:flex absolute top-1/2 -translate-y-1/2 -right-4 items-center justify-center w-8 h-8 bg-white border border-border-subtle rounded-full text-text-muted hover:text-brand-primary hover:border-brand-primary transition-all shadow-sm z-50 group"
+                    >
+                        {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+                        {isCollapsed && (
+                            <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2.5 py-1.5 bg-text-primary text-bg-main text-[11px] font-bold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-lg">
+                                Expand Sidebar
+                            </div>
+                        )}
+                    </button>
+
                     <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden text-text-muted hover:text-text-primary transition-colors p-1 rounded-lg">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
                 
-                <div className="flex-1 overflow-y-auto py-6 hide-scrollbar">
-                    <nav className="space-y-8 px-4">
+                <div className="flex-1 overflow-y-auto py-4 hide-scrollbar">
+                    <nav className="space-y-6">
                         {/* Workspace Section */}
                         <div>
-                            {!isCollapsed && <p className="px-3 mb-3 text-[11px] font-semibold text-text-muted uppercase tracking-wider">Workspace</p>}
+                            {!isCollapsed && <p className="px-6 mb-2 text-[11px] font-bold text-text-muted uppercase tracking-[0.1em]">Workspace</p>}
                             <div className="space-y-1">
                                 {workspaceItems.map((item) => {
                                     const Icon = item.icon;
@@ -176,21 +187,20 @@ export default function Layout() {
                                             key={item.name}
                                             to={item.path}
                                             onClick={() => setIsSidebarOpen(false)}
-                                            className={`group relative flex items-center px-3 py-2.5 text-[13.5px] font-medium rounded-xl transition-all duration-200 ${
+                                            className={`group relative flex items-center py-2.5 text-[13.5px] font-semibold rounded-[12px] transition-all duration-200 ${
                                                 isActive 
-                                                    ? 'bg-brand-primary/10 text-brand-primary font-semibold' 
+                                                    ? 'bg-brand-primary/10 text-brand-primary' 
                                                     : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
-                                            } ${isCollapsed ? 'justify-center px-2' : ''}`}
+                                            } ${isCollapsed ? 'justify-center mx-4' : 'px-4 mx-3'}`}
                                         >
-                                            {isActive && !isCollapsed && (
-                                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-brand-primary rounded-r-full shadow-[0_0_8px_rgba(37,99,235,0.4)]" />
+                                            {isActive && (
+                                                <div className={`absolute left-0 top-1/2 -translate-y-1/2 w-[4px] h-6 bg-brand-primary rounded-r-full shadow-[0_0_8px_rgba(37,99,235,0.4)] ${isCollapsed ? '-ml-4' : '-ml-3'}`} />
                                             )}
                                             <Icon className={`w-5 h-5 flex-shrink-0 ${!isCollapsed && 'mr-3'} ${isActive ? 'text-brand-primary' : 'text-text-muted group-hover:text-brand-primary/70 transition-colors'}`} />
                                             {!isCollapsed && <span>{item.name}</span>}
                                             
-                                            {/* CSS Tooltip */}
                                             {isCollapsed && (
-                                                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2.5 py-1.5 bg-white text-text-primary text-[11px] font-bold rounded-lg border border-border-subtle opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-lg">
+                                                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2.5 py-1.5 bg-text-primary text-bg-main text-[11px] font-bold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-lg">
                                                     {item.name}
                                                 </div>
                                             )}
@@ -202,7 +212,7 @@ export default function Layout() {
 
                         {/* CRM & Sales Section */}
                         <div>
-                            {!isCollapsed && <p className="px-3 mb-3 text-[11px] font-semibold text-text-muted uppercase tracking-wider">CRM & Sales</p>}
+                            {!isCollapsed && <p className="px-6 mb-2 text-[11px] font-bold text-text-muted uppercase tracking-[0.1em]">CRM & Sales</p>}
                             <div className="space-y-1">
                                 {crmItems.map((item) => {
                                     const Icon = item.icon;
@@ -214,21 +224,20 @@ export default function Layout() {
                                             key={item.name}
                                             to={item.path}
                                             onClick={() => setIsSidebarOpen(false)}
-                                            className={`group relative flex items-center px-3 py-2.5 text-[13.5px] font-medium rounded-xl transition-all duration-200 ${
+                                            className={`group relative flex items-center py-2.5 text-[13.5px] font-semibold rounded-[12px] transition-all duration-200 ${
                                                 isActive 
-                                                    ? 'bg-brand-primary/10 text-brand-primary font-semibold' 
+                                                    ? 'bg-brand-primary/10 text-brand-primary' 
                                                     : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
-                                            } ${isCollapsed ? 'justify-center px-2' : ''}`}
+                                            } ${isCollapsed ? 'justify-center mx-4' : 'px-4 mx-3'}`}
                                         >
-                                            {isActive && !isCollapsed && (
-                                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-brand-primary rounded-r-full shadow-[0_0_8px_rgba(37,99,235,0.4)]" />
+                                            {isActive && (
+                                                <div className={`absolute left-0 top-1/2 -translate-y-1/2 w-[4px] h-6 bg-brand-primary rounded-r-full shadow-[0_0_8px_rgba(37,99,235,0.4)] ${isCollapsed ? '-ml-4' : '-ml-3'}`} />
                                             )}
                                             <Icon className={`w-5 h-5 flex-shrink-0 ${!isCollapsed && 'mr-3'} ${isActive ? 'text-brand-primary' : 'text-text-muted group-hover:text-brand-primary/70 transition-colors'}`} />
                                             {!isCollapsed && <span>{item.name}</span>}
                                             
-                                            {/* CSS Tooltip */}
                                             {isCollapsed && (
-                                                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2.5 py-1.5 bg-white text-text-primary text-[11px] font-bold rounded-lg border border-border-subtle opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-lg">
+                                                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2.5 py-1.5 bg-text-primary text-bg-main text-[11px] font-bold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-lg">
                                                     {item.name}
                                                 </div>
                                             )}
@@ -241,7 +250,7 @@ export default function Layout() {
                         {/* Management Section */}
                         {managementItems.length > 0 && (
                             <div>
-                                {!isCollapsed && <p className="px-3 mb-3 text-[11px] font-semibold text-text-muted uppercase tracking-wider">Management</p>}
+                                {!isCollapsed && <p className="px-6 mb-2 text-[11px] font-bold text-text-muted uppercase tracking-[0.1em]">Management</p>}
                                 <div className="space-y-1">
                                     {managementItems.map((item) => {
                                         const Icon = item.icon;
@@ -251,21 +260,20 @@ export default function Layout() {
                                                 key={item.name}
                                                 to={item.path}
                                                 onClick={() => setIsSidebarOpen(false)}
-                                                className={`group relative flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
+                                                className={`group relative flex items-center py-2.5 text-[13.5px] font-semibold rounded-[12px] transition-all duration-200 ${
                                                     isActive 
-                                                        ? 'bg-brand-teal/10 text-brand-navy shadow-sm' 
+                                                        ? 'bg-brand-primary/10 text-brand-primary' 
                                                         : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
-                                                } ${isCollapsed ? 'justify-center px-2' : ''}`}
+                                                } ${isCollapsed ? 'justify-center mx-4' : 'px-4 mx-3'}`}
                                             >
-                                                {isActive && !isCollapsed && (
-                                                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-brand-teal rounded-r-full shadow-[0_0_8px_rgba(13,148,136,0.5)]" />
+                                                {isActive && (
+                                                    <div className={`absolute left-0 top-1/2 -translate-y-1/2 w-[4px] h-6 bg-brand-primary rounded-r-full shadow-[0_0_8px_rgba(37,99,235,0.4)] ${isCollapsed ? '-ml-4' : '-ml-3'}`} />
                                                 )}
-                                                <Icon className={`w-5 h-5 flex-shrink-0 ${!isCollapsed && 'mr-3'} ${isActive ? 'text-brand-teal' : 'text-text-muted group-hover:text-brand-teal/70 transition-colors'}`} />
+                                                <Icon className={`w-5 h-5 flex-shrink-0 ${!isCollapsed && 'mr-3'} ${isActive ? 'text-brand-primary' : 'text-text-muted group-hover:text-brand-primary/70 transition-colors'}`} />
                                                 {!isCollapsed && <span>{item.name}</span>}
                                                 
-                                                {/* CSS Tooltip */}
                                                 {isCollapsed && (
-                                                    <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2.5 py-1.5 bg-white text-text-primary text-[11px] font-bold rounded-lg border border-border-subtle opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-lg">
+                                                    <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2.5 py-1.5 bg-text-primary text-bg-main text-[11px] font-bold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-lg">
                                                         {item.name}
                                                     </div>
                                                 )}
@@ -278,7 +286,7 @@ export default function Layout() {
                         
                         {/* System Section */}
                         <div>
-                            {!isCollapsed && <p className="px-3 mb-3 text-[11px] font-semibold text-text-muted uppercase tracking-wider">System</p>}
+                            {!isCollapsed && <p className="px-6 mb-2 text-[11px] font-bold text-text-muted uppercase tracking-[0.1em]">System</p>}
                             <div className="space-y-1">
                                 {systemItems.map((item) => {
                                     const Icon = item.icon;
@@ -288,21 +296,20 @@ export default function Layout() {
                                             key={item.name}
                                             to={item.path}
                                             onClick={() => setIsSidebarOpen(false)}
-                                            className={`group relative flex items-center px-3 py-2.5 text-[13.5px] font-medium rounded-xl transition-all duration-200 ${
+                                            className={`group relative flex items-center py-2.5 text-[13.5px] font-semibold rounded-[12px] transition-all duration-200 ${
                                                 isActive 
-                                                    ? 'bg-brand-primary/10 text-brand-primary font-semibold' 
+                                                    ? 'bg-brand-primary/10 text-brand-primary' 
                                                     : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
-                                            } ${isCollapsed ? 'justify-center px-2' : ''}`}
+                                            } ${isCollapsed ? 'justify-center mx-4' : 'px-4 mx-3'}`}
                                         >
-                                            {isActive && !isCollapsed && (
-                                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-brand-primary rounded-r-full shadow-[0_0_8px_rgba(37,99,235,0.4)]" />
+                                            {isActive && (
+                                                <div className={`absolute left-0 top-1/2 -translate-y-1/2 w-[4px] h-6 bg-brand-primary rounded-r-full shadow-[0_0_8px_rgba(37,99,235,0.4)] ${isCollapsed ? '-ml-4' : '-ml-3'}`} />
                                             )}
                                             <Icon className={`w-5 h-5 flex-shrink-0 ${!isCollapsed && 'mr-3'} ${isActive ? 'text-brand-primary' : 'text-text-muted group-hover:text-brand-primary/70 transition-colors'}`} />
                                             {!isCollapsed && <span>{item.name}</span>}
                                             
-                                            {/* CSS Tooltip */}
                                             {isCollapsed && (
-                                                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2.5 py-1.5 bg-white text-text-primary text-[11px] font-bold rounded-lg border border-border-subtle opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-lg">
+                                                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2.5 py-1.5 bg-text-primary text-bg-main text-[11px] font-bold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-lg">
                                                     {item.name}
                                                 </div>
                                             )}
@@ -311,56 +318,48 @@ export default function Layout() {
                                 })}
                             </div>
                         </div>
-
-                        {/* Sidebar Toggle */}
-                        <div className="pt-4 border-t border-border-subtle/50 mt-4">
-                            <button
-                                onClick={toggleSidebar}
-                                className={`hidden lg:flex group relative items-center w-full px-3 py-2.5 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-bg-hover rounded-xl transition-colors ${isCollapsed ? 'justify-center px-2' : ''}`}
-                            >
-                                {isCollapsed ? <PanelLeftOpen className={`w-5 h-5 flex-shrink-0 ${!isCollapsed && 'mr-3'}`} /> : <PanelLeftClose className={`w-5 h-5 flex-shrink-0 mr-3`} />}
-                                {!isCollapsed && <span>Collapse Sidebar</span>}
-                                
-                                {/* CSS Tooltip */}
-                                {isCollapsed && (
-                                    <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-[#102A43] text-white text-[11px] font-semibold rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-md">
-                                        Expand Sidebar
-                                    </div>
-                                )}
-                            </button>
-                        </div>
                     </nav>
                 </div>
                 
-                <div className="p-4 border-t border-border-subtle/50 bg-bg-main/30">
-                    {!isCollapsed && (
-                        <div className="mb-4 flex items-center p-2 rounded-xl hover:bg-bg-hover transition-colors cursor-pointer">
-                            <div className="w-9 h-9 rounded-full bg-brand-primary/10 flex items-center justify-center mr-3 text-brand-primary font-bold border border-brand-primary/20 shrink-0">
+                <div className="p-4 mt-auto border-t border-border-subtle/50 bg-bg-main/30 shrink-0">
+                    {!isCollapsed ? (
+                        <div className="flex flex-col gap-2">
+                            <div className="flex items-center p-2 rounded-xl hover:bg-bg-hover transition-colors cursor-pointer border border-transparent hover:border-border-subtle">
+                                <div className="w-10 h-10 rounded-full bg-brand-primary/10 flex items-center justify-center mr-3 text-brand-primary font-bold border border-brand-primary/20 shrink-0">
+                                    {getInitials(user?.name)}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-[13px] font-bold text-text-primary truncate">{user?.name || 'Admin User'}</p>
+                                    <p className="text-[10px] text-text-muted font-bold uppercase tracking-wider truncate">{user?.role?.replace('_', ' ')}</p>
+                                </div>
+                                <div className="shrink-0 text-text-muted">
+                                    <MoreHorizontal className="w-4 h-4" />
+                                </div>
+                            </div>
+                            <button
+                                onClick={handleLogout}
+                                className="flex items-center justify-center w-full px-3 py-2.5 text-xs font-bold text-text-secondary hover:text-brand-danger hover:bg-brand-danger/10 rounded-xl transition-colors"
+                            >
+                                <LogOut className="w-4 h-4 mr-2" />
+                                Sign out
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center gap-4">
+                            <div className="w-10 h-10 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary font-bold border border-brand-primary/20 shrink-0 cursor-pointer hover:shadow-md transition-shadow">
                                 {getInitials(user?.name)}
                             </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-[13px] font-bold text-text-primary truncate">{user?.name || 'Admin User'}</p>
-                                <p className="text-[10px] text-text-muted font-bold uppercase tracking-wider truncate">{user?.role?.replace('_', ' ')}</p>
-                            </div>
-                            <div className="shrink-0 text-text-muted">
-                                <MoreHorizontal className="w-4 h-4" />
-                            </div>
+                            <button
+                                onClick={handleLogout}
+                                className="flex items-center justify-center w-10 h-10 text-text-muted hover:text-brand-danger hover:bg-brand-danger/10 rounded-xl transition-colors group relative"
+                            >
+                                <LogOut className="w-5 h-5" />
+                                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2.5 py-1.5 bg-text-primary text-bg-main text-[11px] font-bold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-lg">
+                                    Sign out
+                                </div>
+                            </button>
                         </div>
                     )}
-                    <button
-                        onClick={handleLogout}
-                        className={`group relative flex items-center w-full px-3 py-2.5 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-bg-hover rounded-xl transition-colors ${isCollapsed ? 'justify-center px-2' : ''}`}
-                    >
-                        <LogOut className={`w-5 h-5 flex-shrink-0 ${!isCollapsed && 'mr-3'}`} />
-                        {!isCollapsed && 'Sign out'}
-                        
-                        {/* CSS Tooltip */}
-                        {isCollapsed && (
-                            <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2.5 py-1.5 bg-white text-text-primary text-[11px] font-bold rounded-lg border border-border-subtle opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-lg">
-                                Sign out
-                            </div>
-                        )}
-                    </button>
                 </div>
             </div>
 

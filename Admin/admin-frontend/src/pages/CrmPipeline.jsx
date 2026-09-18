@@ -100,16 +100,18 @@ export default function CrmPipeline() {
     }
 
     return (
-        <div className="space-y-6 pb-12">
-            <PageHeader
+        <div className="flex flex-col h-[calc(100vh-72px)] overflow-hidden">
+            <div className="shrink-0 p-6 pb-2">
+                <PageHeader
                 title="Sales Pipeline"
                 subtitle="Visual Kanban view of leads and deal progress across all sales stages"
                 icon={Kanban}
                 action={pageHeaderAction}
             />
+            </div>
 
             {/* Mobile Column Selector Tabs */}
-            <div className="flex md:hidden overflow-x-auto gap-2 pb-2 hide-scrollbar">
+            <div className="flex md:hidden shrink-0 overflow-x-auto gap-2 px-6 pb-4 hide-scrollbar">
                 {STAGES.map(stage => {
                     const count = (pipelineData[stage.key] || []).length;
                     const isActive = mobileActiveStage === stage.key;
@@ -130,7 +132,8 @@ export default function CrmPipeline() {
             </div>
 
             {/* Desktop Kanban Board Grid / Mobile Single Column */}
-            <div className="grid grid-cols-1 md:grid-cols-7 gap-4 items-start overflow-x-auto">
+            <div className="flex-1 overflow-x-auto overflow-y-hidden">
+                <div className="flex gap-5 px-6 pb-6 h-full items-start w-max">
                 {STAGES.map(stage => {
                     const columnLeads = pipelineData[stage.key] || [];
                     const currencyTotals = {};
@@ -148,35 +151,35 @@ export default function CrmPipeline() {
                     return (
                         <div 
                             key={stage.key} 
-                            className={`bg-bg-card border border-border-subtle rounded-2xl border-t-4 ${stage.color} p-3 flex flex-col min-w-[260px] md:min-w-0 shadow-sm ${
+                            className={`bg-bg-card border border-border-subtle rounded-[20px] border-t-[3px] ${stage.color} p-4 flex flex-col w-[280px] md:w-[320px] shrink-0 h-[calc(100vh-220px)] shadow-[0_4px_24px_-4px_rgba(11,25,44,0.03)] ${
                                 isVisibleOnMobile ? 'block' : 'hidden md:flex'
                             }`}
                         >
                             {/* Column Header */}
-                            <div className="flex items-center justify-between pb-3 border-b border-border-subtle mb-3">
-                                <div>
-                                    <span className="text-xs font-bold text-text-primary uppercase tracking-wider">{stage.label}</span>
-                                    <div className="mt-0.5 space-y-0.5">
-                                        {Object.keys(currencyTotals).length > 0 ? (
-                                            Object.entries(currencyTotals).map(([curr, val]) => (
-                                                <div key={curr} className="text-[11px] font-semibold text-text-muted">
-                                                    {curr}: {formatCurrency(val, curr)}
-                                                </div>
-                                            ))
-                                        ) : (
-                                            <div className="text-[11px] font-medium text-text-muted">₹0</div>
-                                        )}
-                                    </div>
+                            <div className="flex items-center justify-between pb-3 mb-3 border-b border-border-subtle shrink-0">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[13px] font-bold text-text-primary uppercase tracking-wider">{stage.label}</span>
+                                    <span className="px-2 py-0.5 rounded-full bg-bg-muted text-[10px] font-bold text-text-muted">
+                                        {columnLeads.length}
+                                    </span>
                                 </div>
-                                <span className="w-5 h-5 rounded-full bg-bg-main border border-border-subtle text-[11px] font-bold text-text-muted flex items-center justify-center">
-                                    {columnLeads.length}
-                                </span>
+                                <div className="text-right">
+                                    {Object.keys(currencyTotals).length > 0 ? (
+                                        Object.entries(currencyTotals).map(([curr, val]) => (
+                                            <div key={curr} className="text-[11px] font-bold text-text-secondary">
+                                                {formatCurrency(val, curr)}
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="text-[11px] font-bold text-text-muted">₹0</div>
+                                    )}
+                                </div>
                             </div>
 
                             {/* Column Cards Container */}
-                            <div className="space-y-3 min-h-[300px]">
+                            <div className="flex-1 overflow-y-auto space-y-3 pr-1 pb-2">
                                 {columnLeads.length === 0 ? (
-                                    <div className="py-8 text-center text-xs text-text-muted border border-dashed border-border-subtle rounded-xl">
+                                    <div className="h-full flex items-center justify-center text-xs font-medium text-text-muted opacity-70">
                                         No leads
                                     </div>
                                 ) : (
@@ -184,17 +187,17 @@ export default function CrmPipeline() {
                                         <div
                                             key={lead.id}
                                             onClick={() => navigate(`/crm/leads/${lead.id}`)}
-                                            className="p-3.5 bg-bg-main border border-border-subtle rounded-xl hover:border-[#0D9488] transition-all cursor-pointer shadow-sm space-y-2.5 group"
+                                            className="p-4 bg-bg-main border border-border-subtle rounded-[16px] hover:border-brand-primary transition-all cursor-pointer shadow-sm space-y-3 group"
                                         >
                                             <div className="flex items-center justify-between">
-                                                <span className="text-[11px] font-mono font-bold text-brand-teal group-hover:underline">
+                                                <span className="text-[10px] font-medium text-text-muted uppercase tracking-wide group-hover:text-brand-primary transition-colors">
                                                     {lead.leadNumber}
                                                 </span>
                                                 <StatusBadge status={lead.priority} />
                                             </div>
 
                                             <div>
-                                                <h4 className="text-xs font-bold text-text-primary group-hover:text-brand-teal transition-colors truncate">
+                                                <h4 className="text-[13.5px] font-bold text-text-primary group-hover:text-brand-primary transition-colors truncate">
                                                     {lead.fullName}
                                                 </h4>
                                                 {lead.companyName && (
@@ -205,7 +208,7 @@ export default function CrmPipeline() {
                                                 )}
                                             </div>
 
-                                            <div className="text-xs font-extrabold text-text-primary pt-1 border-t border-border-subtle/50">
+                                            <div className="text-[14px] font-bold text-text-primary pt-2 border-t border-border-subtle/50">
                                                 {formatCurrency(lead.estimatedValue, lead.currency)}
                                             </div>
 
@@ -226,6 +229,7 @@ export default function CrmPipeline() {
                         </div>
                     );
                 })}
+                </div>
             </div>
 
             {/* Create Lead Modal */}
