@@ -232,10 +232,11 @@ export default function Dashboard() {
         <div className="space-y-6 max-w-[1600px] mx-auto pb-12">
             
             {/* Header Area */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
-                <div>
-                    <h1 className="text-[28px] font-bold text-text-primary tracking-tight leading-tight">Overview</h1>
-                    <p className="text-[13px] text-text-secondary mt-1">Monitor enquiries, quotations and business activity.</p>
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
+                <div className="flex flex-col">
+                    <span className="text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1">Dashboard</span>
+                    <h1 className="text-[32px] font-bold text-text-primary tracking-tight leading-none mb-1.5">Overview</h1>
+                    <p className="text-[13.5px] text-text-secondary font-medium">Monitor enquiries, quotations and business activity.</p>
                 </div>
 
                 <div className="flex items-center gap-3 relative" ref={filterRef}>
@@ -394,155 +395,171 @@ export default function Dashboard() {
             ) : (
                 <>
                     {/* KPI Cards Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                         
                         {/* Total Enquiries KPI */}
-                        <div className="bg-white dark:bg-bg-card rounded-[24px] p-6 flex flex-col justify-between border border-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
-                            <div className="flex justify-between items-start mb-2 relative z-10">
-                                <span className="text-[13px] font-bold text-text-secondary tracking-tight">Total Enquiries</span>
-                                <div className="w-10 h-10 bg-blue-50 dark:bg-blue-500/10 rounded-2xl flex items-center justify-center border border-blue-100/50 dark:border-blue-500/20 shadow-sm transition-transform group-hover:scale-110">
+                        <div className="bg-bg-card rounded-[20px] p-5 flex flex-col justify-between border border-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
+                            <div className="flex items-center gap-3 mb-4 relative z-10">
+                                <div className="w-10 h-10 bg-blue-50 dark:bg-blue-500/10 rounded-[12px] flex items-center justify-center border border-blue-100/50 dark:border-blue-500/20 shrink-0">
                                     <Inbox className="w-5 h-5 text-blue-600 dark:text-blue-500" />
                                 </div>
+                                <span className="text-[13.5px] font-bold text-text-primary tracking-tight">Total Enquiries</span>
                             </div>
                             <div className="relative z-10">
-                                <div className="text-[34px] font-bold text-text-primary tracking-tight leading-none mb-1 h-[38px] flex items-end">
-                                    {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-blue-600 ml-1" /> : (stats?.totalEnquiries ?? 0)}
+                                <div className="text-[28px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center">
+                                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-blue-600" /> : (stats?.totalEnquiries ?? 0)}
                                 </div>
-                                <div className="text-[12px] font-medium text-text-muted">
+                                <div className="text-[11.5px] font-medium text-text-muted">
                                     Filtered count
                                 </div>
                             </div>
-                            <CardSparkline data={stats?.monthlyOverview?.map(m => m.totalEnquiries)} color="#2563EB" />
+                            <div className="absolute bottom-2 right-2 w-24 h-12 opacity-80 pointer-events-none">
+                                <CardSparkline data={stats?.monthlyOverview?.map(m => m.totalEnquiries)} color="#2563EB" />
+                            </div>
                         </div>
-
+                            
                         {/* New Enquiries KPI */}
-                        <div className="bg-white dark:bg-bg-card rounded-[24px] p-6 flex flex-col justify-between border border-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
-                            <div className="flex justify-between items-start mb-2 relative z-10">
-                                <span className="text-[13px] font-bold text-text-secondary tracking-tight">New Enquiries</span>
-                                <div className="w-10 h-10 bg-teal-50 dark:bg-teal-500/10 rounded-2xl flex items-center justify-center border border-teal-100/50 dark:border-teal-500/20 shadow-sm transition-transform group-hover:scale-110">
-                                    <Activity className="w-5 h-5 text-teal-600 dark:text-teal-500" />
+                        <div className="bg-bg-card rounded-[20px] p-5 flex flex-col justify-between border border-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
+                            <div className="flex items-center gap-3 mb-4 relative z-10">
+                                <div className="w-10 h-10 bg-teal-50 dark:bg-teal-500/10 rounded-[12px] flex items-center justify-center border border-teal-100/50 dark:border-teal-500/20 shrink-0">
+                                    <User className="w-5 h-5 text-teal-600 dark:text-teal-500" />
                                 </div>
+                                <span className="text-[13.5px] font-bold text-text-primary tracking-tight">New Enquiries</span>
                             </div>
                             <div className="relative z-10">
-                                <div className="text-[34px] font-bold text-text-primary tracking-tight leading-none mb-1 h-[38px] flex items-end">
-                                    {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-teal-600 ml-1" /> : (stats?.newEnquiries ?? 0)}
+                                <div className="text-[28px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center">
+                                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-teal-600" /> : (stats?.newEnquiries ?? 0)}
                                 </div>
-                                <div className="text-[12px] font-medium text-text-muted">
+                                <div className="text-[11.5px] font-medium text-text-muted">
                                     Filtered count
                                 </div>
                             </div>
-                            <CardSparkline data={stats?.monthlyOverview?.map(m => m.newEnquiries)} color="#0D9488" />
+                            <div className="absolute bottom-2 right-2 w-24 h-12 opacity-80 pointer-events-none">
+                                <CardSparkline data={stats?.monthlyOverview?.map(m => m.newEnquiries)} color="#0D9488" />
+                            </div>
                         </div>
 
                         {/* Total Quotations KPI */}
-                        <div className="bg-white dark:bg-bg-card rounded-[24px] p-6 flex flex-col justify-between border border-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
-                            <div className="flex justify-between items-start mb-2 relative z-10">
-                                <span className="text-[13px] font-bold text-text-secondary tracking-tight">Total Quotations</span>
-                                <div className="w-10 h-10 bg-purple-50 dark:bg-purple-500/10 rounded-2xl flex items-center justify-center border border-purple-100/50 dark:border-purple-500/20 shadow-sm transition-transform group-hover:scale-110">
+                        <div className="bg-bg-card rounded-[20px] p-5 flex flex-col justify-between border border-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
+                            <div className="flex items-center gap-3 mb-4 relative z-10">
+                                <div className="w-10 h-10 bg-purple-50 dark:bg-purple-500/10 rounded-[12px] flex items-center justify-center border border-purple-100/50 dark:border-purple-500/20 shrink-0">
                                     <FileText className="w-5 h-5 text-purple-600 dark:text-purple-500" />
                                 </div>
+                                <span className="text-[13.5px] font-bold text-text-primary tracking-tight">Total Quotations</span>
                             </div>
                             <div className="relative z-10">
-                                <div className="text-[34px] font-bold text-text-primary tracking-tight leading-none mb-1 h-[38px] flex items-end">
-                                    {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-purple-600 ml-1" /> : (stats?.totalQuotations ?? 0)}
+                                <div className="text-[28px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center">
+                                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-purple-600" /> : (stats?.totalQuotations ?? 0)}
                                 </div>
-                                <div className="text-[12px] font-medium text-text-muted">
+                                <div className="text-[11.5px] font-medium text-text-muted">
                                     Excludes Trash
                                 </div>
                             </div>
-                            <CardSparkline isDecorative color="#9333EA" />
+                            <div className="absolute bottom-2 right-2 w-24 h-12 opacity-80 pointer-events-none">
+                                <CardSparkline isDecorative color="#9333EA" />
+                            </div>
                         </div>
 
                         {/* Accepted Quotations KPI */}
-                        <div className="bg-white dark:bg-bg-card rounded-[24px] p-6 flex flex-col justify-between border border-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
-                            <div className="flex justify-between items-start mb-2 relative z-10">
-                                <span className="text-[13px] font-bold text-text-secondary tracking-tight">Accepted Quotations</span>
-                                <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-500/10 rounded-2xl flex items-center justify-center border border-emerald-100/50 dark:border-emerald-500/20 shadow-sm transition-transform group-hover:scale-110">
+                        <div className="bg-bg-card rounded-[20px] p-5 flex flex-col justify-between border border-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
+                            <div className="flex items-center gap-3 mb-4 relative z-10">
+                                <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-500/10 rounded-[12px] flex items-center justify-center border border-emerald-100/50 dark:border-emerald-500/20 shrink-0">
                                     <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-500" />
                                 </div>
+                                <span className="text-[13.5px] font-bold text-text-primary tracking-tight">Accepted Quotations</span>
                             </div>
                             <div className="relative z-10">
-                                <div className="text-[34px] font-bold text-text-primary tracking-tight leading-none mb-1 h-[38px] flex items-end">
-                                    {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-emerald-600 ml-1" /> : (stats?.acceptedQuotations ?? 0)}
+                                <div className="text-[28px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center">
+                                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-emerald-600" /> : (stats?.acceptedQuotations ?? 0)}
                                 </div>
-                                <div className="text-[12px] font-medium text-text-muted">
+                                <div className="text-[11.5px] font-medium text-text-muted">
                                     Excludes Trash
                                 </div>
                             </div>
-                            <CardSparkline isDecorative color="#059669" />
+                            <div className="absolute bottom-2 right-2 w-24 h-12 opacity-80 pointer-events-none">
+                                <CardSparkline isDecorative color="#059669" />
+                            </div>
                         </div>
                         
                         {/* Financial Cards */}
-                        <div className="bg-white dark:bg-bg-card rounded-[24px] p-6 flex flex-col justify-between border border-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
-                            <div className="flex justify-between items-start mb-2 relative z-10">
-                                <span className="text-[13px] font-bold text-text-secondary tracking-tight">Total Invoiced</span>
-                                <div className="w-10 h-10 bg-blue-50 dark:bg-blue-500/10 rounded-2xl flex items-center justify-center border border-blue-100/50 dark:border-blue-500/20 shadow-sm transition-transform group-hover:scale-110">
+                        <div className="bg-bg-card rounded-[20px] p-5 flex flex-col justify-between border-l-4 border-l-blue-500 border-y border-y-border-subtle border-r border-r-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
+                            <div className="flex items-center gap-3 mb-4 relative z-10">
+                                <div className="w-10 h-10 bg-blue-50 dark:bg-blue-500/10 rounded-[12px] flex items-center justify-center border border-blue-100/50 dark:border-blue-500/20 shrink-0">
                                     <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-500" />
                                 </div>
+                                <span className="text-[13.5px] font-bold text-text-primary tracking-tight">Total Invoiced</span>
                             </div>
                             <div className="relative z-10">
-                                <div className="text-[24px] font-bold text-text-primary tracking-tight leading-none mb-1 h-[38px] flex items-end">
+                                <div className="text-[22px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center truncate">
                                     Rs. {Number(receivablesStats?.totalInvoiced || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </div>
-                                <div className="text-[12px] font-medium text-text-muted">
+                                <div className="text-[11.5px] font-medium text-text-muted">
                                     Total Issued Tax Invoices
                                 </div>
                             </div>
-                            <CardSparkline isDecorative color="#2563EB" />
+                            <div className="absolute bottom-2 right-2 w-24 h-12 opacity-80 pointer-events-none">
+                                <CardSparkline isDecorative color="#3B82F6" />
+                            </div>
                         </div>
 
-                        <div className="bg-white dark:bg-bg-card rounded-[24px] p-6 flex flex-col justify-between border border-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
-                            <div className="flex justify-between items-start mb-2 relative z-10">
-                                <span className="text-[13px] font-bold text-text-secondary tracking-tight">Total Received</span>
-                                <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-500/10 rounded-2xl flex items-center justify-center border border-emerald-100/50 dark:border-emerald-500/20 shadow-sm transition-transform group-hover:scale-110">
+                        <div className="bg-bg-card rounded-[20px] p-5 flex flex-col justify-between border-l-4 border-l-emerald-500 border-y border-y-border-subtle border-r border-r-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
+                            <div className="flex items-center gap-3 mb-4 relative z-10">
+                                <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-500/10 rounded-[12px] flex items-center justify-center border border-emerald-100/50 dark:border-emerald-500/20 shrink-0">
                                     <CreditCard className="w-5 h-5 text-emerald-600 dark:text-emerald-500" />
                                 </div>
+                                <span className="text-[13.5px] font-bold text-text-primary tracking-tight">Total Received</span>
                             </div>
                             <div className="relative z-10">
-                                <div className="text-[24px] font-bold text-text-primary tracking-tight leading-none mb-1 h-[38px] flex items-end">
+                                <div className="text-[22px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center truncate">
                                     Rs. {Number(receivablesStats?.totalReceived || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </div>
-                                <div className="text-[12px] font-medium text-text-muted">
+                                <div className="text-[11.5px] font-medium text-text-muted">
                                     Active Payment Ledger
                                 </div>
                             </div>
-                            <CardSparkline isDecorative color="#059669" />
+                            <div className="absolute bottom-2 right-2 w-24 h-12 opacity-80 pointer-events-none">
+                                <CardSparkline isDecorative color="#10B981" />
+                            </div>
                         </div>
 
-                        <div className="bg-white dark:bg-bg-card rounded-[24px] p-6 flex flex-col justify-between border border-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
-                            <div className="flex justify-between items-start mb-2 relative z-10">
-                                <span className="text-[13px] font-bold text-text-secondary tracking-tight">Outstanding Balance</span>
-                                <div className="w-10 h-10 bg-orange-50 dark:bg-orange-500/10 rounded-2xl flex items-center justify-center border border-orange-100/50 dark:border-orange-500/20 shadow-sm transition-transform group-hover:scale-110">
+                        <div className="bg-bg-card rounded-[20px] p-5 flex flex-col justify-between border-l-4 border-l-orange-500 border-y border-y-border-subtle border-r border-r-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
+                            <div className="flex items-center gap-3 mb-4 relative z-10">
+                                <div className="w-10 h-10 bg-orange-50 dark:bg-orange-500/10 rounded-[12px] flex items-center justify-center border border-orange-100/50 dark:border-orange-500/20 shrink-0">
                                     <Clock className="w-5 h-5 text-orange-600 dark:text-orange-500" />
                                 </div>
+                                <span className="text-[13.5px] font-bold text-text-primary tracking-tight">Outstanding Balance</span>
                             </div>
                             <div className="relative z-10">
-                                <div className="text-[24px] font-bold text-text-primary tracking-tight leading-none mb-1 h-[38px] flex items-end">
+                                <div className="text-[22px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center truncate">
                                     Rs. {Number(receivablesStats?.outstandingAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </div>
-                                <div className="text-[12px] font-medium text-text-muted">
+                                <div className="text-[11.5px] font-medium text-text-muted">
                                     Pending Receivables
                                 </div>
                             </div>
-                            <CardSparkline isDecorative color="#F97316" />
+                            <div className="absolute bottom-2 right-2 w-24 h-12 opacity-80 pointer-events-none">
+                                <CardSparkline isDecorative color="#F97316" />
+                            </div>
                         </div>
 
-                        <div className="bg-white dark:bg-bg-card rounded-[24px] p-6 flex flex-col justify-between border border-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
-                            <div className="flex justify-between items-start mb-2 relative z-10">
-                                <span className="text-[13px] font-bold text-text-secondary tracking-tight">Overdue Balance</span>
-                                <div className="w-10 h-10 bg-red-50 dark:bg-red-500/10 rounded-2xl flex items-center justify-center border border-red-100/50 dark:border-red-500/20 shadow-sm transition-transform group-hover:scale-110">
+                        <div className="bg-bg-card rounded-[20px] p-5 flex flex-col justify-between border-l-4 border-l-red-500 border-y border-y-border-subtle border-r border-r-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
+                            <div className="flex items-center gap-3 mb-4 relative z-10">
+                                <div className="w-10 h-10 bg-red-50 dark:bg-red-500/10 rounded-[12px] flex items-center justify-center border border-red-100/50 dark:border-red-500/20 shrink-0">
                                     <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-500" />
                                 </div>
+                                <span className="text-[13.5px] font-bold text-text-primary tracking-tight">Overdue Balance</span>
                             </div>
                             <div className="relative z-10">
-                                <div className="text-[24px] font-bold text-text-primary tracking-tight leading-none mb-1 h-[38px] flex items-end">
+                                <div className="text-[22px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center truncate">
                                     Rs. {Number(receivablesStats?.overdueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </div>
-                                <div className="text-[12px] font-medium text-text-muted">
+                                <div className="text-[11.5px] font-medium text-text-muted">
                                     Past Due Date
                                 </div>
                             </div>
-                            <CardSparkline isDecorative color="#DC2626" />
+                            <div className="absolute bottom-2 right-2 w-24 h-12 opacity-80 pointer-events-none">
+                                <CardSparkline isDecorative color="#EF4444" />
+                            </div>
                         </div>
                     </div>
 
@@ -766,14 +783,15 @@ export default function Dashboard() {
 
                         {/* Right Column: Recent Activity Timeline (1/3 width) */}
                         <div className="lg:col-span-1">
-                            <div className="acx-card h-full flex flex-col min-h-[360px]">
-                                <div className="px-6 py-5 flex items-center justify-between">
-                                    <h2 className="text-base font-bold text-text-primary tracking-tight">Recent Activity</h2>
-                                    <Link to="/activity" className="text-[12px] font-semibold text-[var(--color-brand-primary)] hover:text-brand-primary/90 transition-colors flex items-center">
-                                        View all <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
+                            <div className="bg-bg-card rounded-[24px] border border-border-subtle p-6 h-full flex flex-col min-h-[360px] shadow-[0_4px_24px_rgba(11,25,44,0.02)]">
+                                <div className="flex items-center justify-between mb-8">
+                                    <h2 className="text-[20px] font-bold text-text-primary tracking-tight">Recent Activity</h2>
+                                    <Link to="/activity" className="text-[13px] font-semibold text-text-secondary hover:text-[var(--color-brand-primary)] transition-colors flex items-center">
+                                        View all &rarr;
                                     </Link>
                                 </div>
-                                <div className="flex-1 px-6 pb-6 overflow-y-auto max-h-[300px]">
+                                <div className="flex-1 overflow-y-auto pr-2 hide-scrollbar relative max-h-[300px]">
+                                    <div className="absolute left-[11px] top-2 bottom-2 w-px bg-border-subtle/50"></div>
                                     {isLoading ? (
                                         <div className="flex justify-center items-center py-12">
                                             <Loader2 className="w-6 h-6 animate-spin text-brand-teal" />

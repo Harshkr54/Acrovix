@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { LayoutDashboard, MessageSquare, LogOut, FileText, Shield, Menu, X, ChevronLeft, ChevronRight, Sun, Moon, Search, Bell, Settings, Trash2, PanelLeftClose, PanelLeftOpen, ArrowLeft, UsersRound, Package, ShoppingCart, CreditCard, DollarSign, BarChart3, Target, TrendingUp, Clock, MoreHorizontal } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, LogOut, FileText, Shield, Menu, X, ChevronLeft, ChevronRight, Sun, Moon, Search, Bell, Settings, Trash2, PanelLeftClose, PanelLeftOpen, ArrowLeft, UsersRound, Package, ShoppingCart, CreditCard, DollarSign, BarChart3, Target, TrendingUp, Clock, Calendar } from 'lucide-react';
 import HeaderControls from './HeaderControls';
 import { getInitials } from '../utils/userUtils';
 import { fetchApi } from '../services/api';
@@ -24,9 +24,16 @@ const DateTimeDisplay = () => {
     const timeStr = time.toLocaleTimeString('en-US', timeOptions);
 
     return (
-        <div className="hidden lg:flex flex-col items-end mr-4 pr-4 border-r border-border-subtle">
-            <span className="text-[13px] font-bold text-text-primary tracking-tight">{dateStr}</span>
-            <span className="text-[11px] font-medium text-text-muted uppercase tracking-wider">{timeStr}</span>
+        <div className="hidden lg:flex items-center gap-3 mr-4 pr-4 py-1.5 border-r border-border-subtle h-[42px]">
+            <div className="flex items-center gap-3 bg-bg-card border border-border-subtle rounded-xl px-2.5 py-1.5 shadow-sm">
+                <div className="w-7 h-7 rounded-lg bg-brand-primary/10 flex items-center justify-center shrink-0">
+                    <Calendar className="w-4 h-4 text-brand-primary" />
+                </div>
+                <div className="flex flex-col">
+                    <span className="text-[12px] font-bold text-text-primary tracking-tight leading-[1.1]">{dateStr}</span>
+                    <span className="text-[10px] font-medium text-text-muted leading-[1.1] mt-0.5">{timeStr} IST</span>
+                </div>
+            </div>
         </div>
     );
 };
@@ -343,9 +350,6 @@ export default function Layout() {
                                     <p className="text-[13px] font-bold text-text-primary truncate">{user?.name || 'Admin User'}</p>
                                     <p className="text-[10px] text-text-muted font-bold uppercase tracking-wider truncate">{user?.role?.replace('_', ' ')}</p>
                                 </div>
-                                <div className="shrink-0 text-text-muted">
-                                    <MoreHorizontal className="w-4 h-4" />
-                                </div>
                             </div>
                             <button
                                 onClick={handleLogout}
@@ -416,26 +420,22 @@ export default function Layout() {
                         
                         {/* Search Bar matching reference */}
                         <div ref={searchRef} className="relative w-full max-w-md hidden sm:block">
-                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                 {isSearching ? (
-                                    <div className="animate-spin w-4 h-4 border-2 border-brand-teal border-t-transparent rounded-full" />
+                                    <div className="animate-spin w-4 h-4 border-2 border-[var(--color-brand-primary)] border-t-transparent rounded-full" />
                                 ) : (
-                                    <Search className="h-4 w-4 text-text-muted" />
+                                    <Search className="h-[18px] w-[18px] text-text-muted" />
                                 )}
                             </div>
                             <input
                                 type="text"
-                                className="w-full pl-11 pr-16 py-2.5 bg-bg-card border border-border-subtle rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all shadow-sm text-text-primary placeholder-text-muted font-medium"
+                                className="w-full pl-11 pr-10 py-2.5 bg-bg-card border border-border-subtle rounded-full text-[13px] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]/20 focus:border-[var(--color-brand-primary)] transition-all shadow-[0_2px_12px_rgba(11,25,44,0.03)] text-text-primary placeholder-text-muted font-medium"
                                 placeholder="Search anything..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 onFocus={() => { if (searchQuery.trim() && (searchResults.enquiries.length > 0 || searchResults.quotations.length > 0 || searchResults.customers.length > 0)) setSearchDropdownOpen(true) }}
                             />
-                            {!searchQuery && (
-                                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                                    <span className="px-1.5 py-0.5 rounded border border-border-subtle text-[10px] font-bold text-text-muted bg-bg-main">Ctrl K</span>
-                                </div>
-                            )}
+
                             {searchQuery && (
                                 <button
                                     onClick={handleClearSearch}
