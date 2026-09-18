@@ -302,6 +302,12 @@ public class CrmService {
         logActivity(currentUser.getId(), "LEAD_ASSIGNED", "CrmLead", lead.getId(),
                 "Assigned CRM Lead #" + lead.getLeadNumber() + " to user #" + assigneeId);
 
+        try {
+            emailService.sendLeadAssignmentAsync(lead);
+        } catch (Exception e) {
+            logger.warn("Failed to send lead assignment email for lead #{}: {}", lead.getId(), e.getMessage());
+        }
+
         return mapToLeadResponse(lead);
     }
 
@@ -337,6 +343,12 @@ public class CrmService {
 
         logActivity(currentUser.getId(), "FOLLOW_UP_CREATED", "CrmFollowUp", followUp.getId(),
                 "Created follow-up for Lead #" + lead.getLeadNumber());
+
+        try {
+            emailService.sendFollowUpNotificationAsync(followUp, "NEW_FOLLOW_UP", null);
+        } catch (Exception e) {
+            logger.warn("Failed to send follow-up notification email for followUp #{}: {}", followUp.getId(), e.getMessage());
+        }
 
         return mapToFollowUpResponse(followUp);
     }

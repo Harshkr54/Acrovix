@@ -124,6 +124,12 @@ public class PaymentService {
         logActivity(admin.getId(), "PAYMENT_RECORDED", "Recorded payment " + savedPayment.getPaymentNumber() + 
                 " of Rs. " + savedPayment.getAmount() + " against " + invoice.getInvoiceNumber(), savedPayment.getId());
 
+        try {
+            emailService.sendPaymentNotificationAsync(savedPayment, "RECORDED");
+        } catch (Exception e) {
+            // Ignore email error
+        }
+
         return savedPayment;
     }
 

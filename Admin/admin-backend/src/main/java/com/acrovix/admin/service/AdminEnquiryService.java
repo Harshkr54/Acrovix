@@ -30,6 +30,7 @@ public class AdminEnquiryService {
     private final AdminActivityRepository activityRepository;
     private final NotificationService notificationService;
     private final AuthorizationService authorizationService;
+    private final EmailService emailService;
 
     public Page<AdminEnquiry> getAllEnquiries(Pageable pageable, String search, String status, String industry, String serviceReq, LocalDateTime fromDate, LocalDateTime toDate, AdminUser currentUser) {
         Specification<AdminEnquiry> spec = (root, query, cb) -> {
@@ -105,6 +106,11 @@ public class AdminEnquiryService {
 
         if (isNewAssignment && !assignee.getId().equals(currentUser.getId())) {
             notificationService.createEnquiryAssignedNotification(assignee, id);
+            try {
+                emailService.sendEnquiryAssignmentAsync(enquiry);
+            } catch (Exception e) {
+                // Ignore email failure
+            }
         }
     }
 

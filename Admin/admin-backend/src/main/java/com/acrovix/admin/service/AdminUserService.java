@@ -28,6 +28,7 @@ public class AdminUserService {
     private final AdminUserRepository userRepository;
     private final AdminActivityRepository activityRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
     private AdminUserResponse mapToResponse(AdminUser user) {
         return AdminUserResponse.builder()
@@ -68,6 +69,12 @@ public class AdminUserService {
                 .entityId(saved.getId())
                 .build();
         activityRepository.save(activity);
+        
+        try {
+            emailService.sendWelcomeEmailAsync(saved);
+        } catch (Exception e) {
+            // Do not break user creation if email fails
+        }
         
         return mapToResponse(saved);
     }

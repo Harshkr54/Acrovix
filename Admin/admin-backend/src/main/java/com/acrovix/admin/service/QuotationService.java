@@ -775,6 +775,11 @@ public class QuotationService {
         String activityMessage = "Quotation status updated to " + newStatus + ": " + quotation.getQuotationNumber();
         if ("ACCEPTED".equals(newStatus) || "REJECTED".equals(newStatus)) {
             activityMessage = "QUOTATION_" + newStatus + " via " + request.getResponseSource();
+            try {
+                emailService.sendQuotationResponseAsync(saved);
+            } catch (Exception e) {
+                // Ignore email failure
+            }
         }
         
         logActivity(admin.getId(), activityMessage, "Quotation", saved.getId());

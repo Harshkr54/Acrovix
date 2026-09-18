@@ -24,6 +24,7 @@ public class AuthService {
     private final AdminActivityRepository activityRepository;
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
+    private final EmailService emailService;
 
     @Transactional
     public AuthResponse authenticate(AuthRequest request) {
@@ -49,6 +50,13 @@ public class AuthService {
         activityRepository.save(activity);
 
         var jwtToken = jwtUtil.generateToken(user);
+        try {
+            java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            emailService.sendLoginSecurityEmailAsync(user.getEmail(), user.getName(), LocalDateTime.now().format(formatter));
+        } catch (Exception e) {
+            // Email failure should not break login
+        }
+
         return AuthResponse.builder()
                 .token(jwtToken)
                 .name(user.getName())

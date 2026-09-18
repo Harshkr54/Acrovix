@@ -34,4 +34,7 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT i FROM Invoice i WHERE i.id = :id")
     java.util.Optional<Invoice> findByIdForUpdate(@Param("id") Long id);
+
+    @Query("SELECT i FROM Invoice i WHERE i.invoiceType = 'TAX_INVOICE' AND (i.status = 'ISSUED' OR i.status = 'PARTIALLY_PAID') AND i.dueDate < :now")
+    java.util.List<Invoice> findOverdueInvoices(@Param("now") java.time.LocalDate now);
 }

@@ -16,6 +16,19 @@ public interface EmailLogRepository extends JpaRepository<EmailLog, Long> {
     List<EmailLog> findByRecipient(String recipient);
     List<EmailLog> findByEmailType(EmailType emailType);
     
+    boolean existsByEmailTypeAndRelatedEntityTypeAndRelatedEntityIdAndRecipient(
+            EmailType emailType, 
+            String relatedEntityType, 
+            Long relatedEntityId, 
+            String recipient
+    );
+
+    boolean existsByEmailTypeAndRelatedEntityTypeAndRelatedEntityId(
+            EmailType emailType, 
+            String relatedEntityType, 
+            Long relatedEntityId
+    );
+    
     @Query("SELECT e FROM EmailLog e WHERE e.recipient = :recipient OR " +
            "(e.relatedEntityType = 'CUSTOMER' AND e.relatedEntityId = :customerId) OR " +
            "(e.relatedEntityType = 'CRM_LEAD' AND e.relatedEntityId IN :leadIds) OR " +

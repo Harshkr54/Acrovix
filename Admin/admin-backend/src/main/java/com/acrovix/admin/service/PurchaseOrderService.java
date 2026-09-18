@@ -30,6 +30,7 @@ public class PurchaseOrderService {
     private final NotificationService notificationService;
     private final AuthorizationService authorizationService;
     private final PdfService pdfService;
+    private final EmailService emailService;
 
     @Transactional(readOnly = true)
     public Page<PurchaseOrderResponse> getPurchaseOrders(String search, PurchaseOrderStatus status, Pageable pageable) {
@@ -104,6 +105,12 @@ public class PurchaseOrderService {
         // The instructions said "Create only one PO_RECEIVED notification". We'll just skip the user notification or mock it.
         // wait, I'll add createPoNotification to NotificationService.
 
+        try {
+            emailService.sendPoNotificationAsync(po, "RECEIVED");
+        } catch (Exception e) {
+            // Ignore email error
+        }
+
         return mapToResponse(po);
     }
 
@@ -130,6 +137,12 @@ public class PurchaseOrderService {
                 .entityId(po.getId())
                 .description("Verified Purchase Order " + po.getPoNumber())
                 .build());
+
+        try {
+            emailService.sendPoNotificationAsync(po, "VERIFIED");
+        } catch (Exception e) {
+            // Ignore email error
+        }
 
         return mapToResponse(po);
     }
@@ -172,6 +185,12 @@ public class PurchaseOrderService {
                 .entityId(po.getId())
                 .description("Status changed from " + oldStatus + " to " + newStatus)
                 .build());
+
+        try {
+            emailService.sendPoNotificationAsync(po, newStatus.name());
+        } catch (Exception e) {
+            // Ignore email error
+        }
 
         return mapToResponse(po);
     }

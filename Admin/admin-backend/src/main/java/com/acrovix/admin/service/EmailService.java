@@ -43,6 +43,12 @@ public class EmailService {
     @Value("${acrovix.email.crm-notification:}")
     private String crmNotificationEmail;
 
+    @Value("${acrovix.email.admin-notification:}")
+    private String adminNotificationEmail;
+
+    @Value("${acrovix.app.frontend-url:}")
+    private String frontendUrl;
+
     @Value("${resend.api-key:}")
     private String resendApiKey;
 
@@ -379,6 +385,29 @@ public class EmailService {
     /**
      * Reusable Follow-Up Notification Foundation
      */
+    @Async("emailTaskExecutor")
+    public void sendFollowUpNotificationAsync(CrmFollowUp followUp, String notificationType, String overrideEmail) {
+        sendFollowUpNotification(followUp, notificationType, overrideEmail);
+    }
+    
+    @Async("emailTaskExecutor")
+    public void sendFollowUpDueNotificationAsync(CrmFollowUp followUp) {
+        if (followUp == null || followUp.getAssignedTo() == null || followUp.getAssignedTo().getEmail() == null) return;
+        String subject = "CRM Follow-Up Due - " + (followUp.getLead() != null ? followUp.getLead().getLeadNumber() : "N/A");
+        String htmlBody = templateBuilder.buildFollowUpNotificationHtml(followUp, "DUE");
+        EmailRequest request = EmailRequest.builder().to(followUp.getAssignedTo().getEmail()).subject(subject).htmlBody(htmlBody).isHtml(true).emailType(EmailType.FOLLOW_UP_DUE).relatedEntityType("CRM_FOLLOW_UP").relatedEntityId(followUp.getId()).build();
+        sendEmailAsync(request);
+    }
+
+    @Async("emailTaskExecutor")
+    public void sendFollowUpOverdueNotificationAsync(CrmFollowUp followUp) {
+        if (followUp == null || followUp.getAssignedTo() == null || followUp.getAssignedTo().getEmail() == null) return;
+        String subject = "CRM Follow-Up Overdue - " + (followUp.getLead() != null ? followUp.getLead().getLeadNumber() : "N/A");
+        String htmlBody = templateBuilder.buildFollowUpNotificationHtml(followUp, "OVERDUE");
+        EmailRequest request = EmailRequest.builder().to(followUp.getAssignedTo().getEmail()).subject(subject).htmlBody(htmlBody).isHtml(true).emailType(EmailType.FOLLOW_UP_OVERDUE).relatedEntityType("CRM_FOLLOW_UP").relatedEntityId(followUp.getId()).build();
+        sendEmailAsync(request);
+    }
+    
     public boolean sendFollowUpNotification(CrmFollowUp followUp, String notificationType, String overrideEmail) {
         if (followUp == null) {
             return false;
@@ -418,6 +447,128 @@ public class EmailService {
             return false;
         }
     }
+
+    // --- PHASE 10: NEW ASYNC TRIGGERS --- //
+
+    private String resolveInternalRecipient(String explicitEmail) {
+        if (explicitEmail != null && !explicitEmail.trim().isEmpty()) {
+            return explicitEmail.trim();
+        }
+        if (crmNotificationEmail != null && !crmNotificationEmail.trim().isEmpty()) {
+            return crmNotificationEmail.trim();
+        }
+        if (adminNotificationEmail != null && !adminNotificationEmail.trim().isEmpty()) {
+            return adminNotificationEmail.trim();
+        }
+        return null;
+    }
+
+    @Async("emailTaskExecutor")
+    public void sendLoginSecurityEmailAsync(String targetEmail, String userName, String loginTime) {
+        if (targetEmail == null || targetEmail.trim().isEmpty()) return;
+        String subject = "New Login to Your ACROVIX Account";
+        String htmlBody = templateBuilder.buildLoginSecurityHtml(userName, loginTime);
+        EmailRequest request = EmailRequest.builder().to(targetEmail).subject(subject).htmlBody(htmlBody).isHtml(true).emailType(EmailType.LOGIN_SECURITY).build();
+        sendEmailAsync(request);
+    }
+
+    @Async("emailTaskExecutor")
+    public void sendWelcomeEmailAsync(AdminUser user) {
+        if (user == null || user.getEmail() == null || user.getEmail().trim().isEmpty()) return;
+        String subject = "Welcome to ACROVIX ERP";
+        String htmlBody = templateBuilder.buildWelcomeHtml(user, frontendUrl);
+        EmailRequest request = EmailRequest.builder().to(user.getEmail()).subject(subject).htmlBody(htmlBody).isHtml(true).emailType(EmailType.WELCOME).build();
+        sendEmailAsync(request);
+    }
+
+    @Async("emailTaskExecutor")
+    public void sendEnquiryNotificationAsync(AdminEnquiry enquiry) {
+        String recipient = resolveInternalRecipient(null);
+        if (recipient == null) {
+            logger.info("Enquiry notification skipped: No internal recipient configured.");
+            return;
+        }
+        String subject = "New Enquiry Received - " + enquiry.getId();
+        String htmlBody = templateBuilder.buildEnquiryNotificationHtml(enquiry);
+        EmailRequest request = EmailRequest.builder().to(recipient).subject(subject).htmlBody(htmlBody).isHtml(true).emailType(EmailType.ENQUIRY).relatedEntityType("ENQUIRY").relatedEntityId(enquiry.getId()).build();
+        sendEmailAsync(request);
+    }
+
+    @Async("emailTaskExecutor")
+    public void sendEnquiryAssignmentAsync(AdminEnquiry enquiry) {
+        if (enquiry == null || enquiry.getAssignedTo() == null || enquiry.getAssignedTo().getEmail() == null) return;
+        String subject = "New Enquiry Assigned to You - " + enquiry.getId();
+        String htmlBody = templateBuilder.buildEnquiryAssignmentHtml(enquiry);
+        EmailRequest request = EmailRequest.builder().to(enquiry.getAssignedTo().getEmail()).subject(subject).htmlBody(htmlBody).isHtml(true).emailType(EmailType.ENQUIRY_ASSIGNMENT).relatedEntityType("ENQUIRY").relatedEntityId(enquiry.getId()).build();
+        sendEmailAsync(request);
+    }
+
+    @Async("emailTaskExecutor")
+    public void sendLeadAssignmentAsync(CrmLead lead) {
+        if (lead == null || lead.getAssignedTo() == null || lead.getAssignedTo().getEmail() == null) return;
+        String leadNo = lead.getLeadNumber() != null ? lead.getLeadNumber() : "LEAD-" + lead.getId();
+        String subject = "CRM Lead Assigned to You - " + leadNo;
+        String htmlBody = templateBuilder.buildLeadAssignmentHtml(lead);
+        EmailRequest request = EmailRequest.builder().to(lead.getAssignedTo().getEmail()).subject(subject).htmlBody(htmlBody).isHtml(true).emailType(EmailType.CRM_LEAD_ASSIGNMENT).relatedEntityType("CRM_LEAD").relatedEntityId(lead.getId()).build();
+        sendEmailAsync(request);
+    }
+
+    @Async("emailTaskExecutor")
+    public void sendQuotationResponseAsync(Quotation quotation) {
+        String recipient = resolveInternalRecipient(quotation.getCreatedBy() != null ? quotation.getCreatedBy().getEmail() : null);
+        if (recipient == null) return;
+        String quotationNo = quotation.getQuotationNumber() != null ? quotation.getQuotationNumber() : "QT-" + quotation.getId();
+        String subject = "Quotation " + quotation.getStatus() + " - " + quotationNo;
+        String htmlBody = templateBuilder.buildQuotationResponseHtml(quotation);
+        EmailRequest request = EmailRequest.builder().to(recipient).subject(subject).htmlBody(htmlBody).isHtml(true).emailType(EmailType.QUOTATION_RESPONSE).relatedEntityType("QUOTATION").relatedEntityId(quotation.getId()).build();
+        sendEmailAsync(request);
+    }
+
+    @Async("emailTaskExecutor")
+    public void sendPoNotificationAsync(PurchaseOrder po, String eventType) {
+        String recipient = resolveInternalRecipient(po.getCreatedBy() != null ? po.getCreatedBy().getEmail() : null);
+        if (recipient == null) return;
+        String poNo = po.getPoNumber() != null ? po.getPoNumber() : "PO-" + po.getId();
+        String subject = "Purchase Order Update [" + eventType + "] - " + poNo;
+        String htmlBody = templateBuilder.buildPoNotificationHtml(po, eventType);
+        EmailRequest request = EmailRequest.builder().to(recipient).subject(subject).htmlBody(htmlBody).isHtml(true).emailType(EmailType.PO_NOTIFICATION).relatedEntityType("PURCHASE_ORDER").relatedEntityId(po.getId()).build();
+        sendEmailAsync(request);
+    }
+
+    @Async("emailTaskExecutor")
+    public void sendInvoiceNotificationAsync(Invoice invoice, String eventType) {
+        String recipient = resolveInternalRecipient(invoice.getCreatedBy() != null ? invoice.getCreatedBy().getEmail() : null);
+        if (recipient == null) return;
+        String invoiceNo = invoice.getInvoiceNumber() != null ? invoice.getInvoiceNumber() : "INV-" + invoice.getId();
+        String subject = "Invoice Update [" + eventType + "] - " + invoiceNo;
+        String htmlBody = templateBuilder.buildInvoiceNotificationHtml(invoice, eventType);
+        EmailRequest request = EmailRequest.builder().to(recipient).subject(subject).htmlBody(htmlBody).isHtml(true).emailType(EmailType.INVOICE_NOTIFICATION).relatedEntityType("INVOICE").relatedEntityId(invoice.getId()).build();
+        sendEmailAsync(request);
+    }
+
+    @Async("emailTaskExecutor")
+    public void sendInvoiceOverdueAsync(Invoice invoice) {
+        String recipient = invoice.getCustomer() != null && invoice.getCustomer().getEmail() != null ? invoice.getCustomer().getEmail() : invoice.getClientEmail();
+        if (recipient == null || recipient.trim().isEmpty()) return;
+        String invoiceNo = invoice.getInvoiceNumber() != null ? invoice.getInvoiceNumber() : "INV-" + invoice.getId();
+        String subject = "Overdue Invoice Reminder - " + invoiceNo;
+        String htmlBody = templateBuilder.buildInvoiceOverdueHtml(invoice);
+        EmailRequest request = EmailRequest.builder().to(recipient).subject(subject).htmlBody(htmlBody).isHtml(true).emailType(EmailType.INVOICE_OVERDUE).relatedEntityType("INVOICE").relatedEntityId(invoice.getId()).build();
+        sendEmailAsync(request);
+    }
+
+    @Async("emailTaskExecutor")
+    public void sendPaymentNotificationAsync(Payment payment, String eventType) {
+        String recipient = resolveInternalRecipient(payment.getRecordedBy() != null ? payment.getRecordedBy().getEmail() : null);
+        if (recipient == null) return;
+        String paymentRef = payment.getPaymentNumber() != null ? payment.getPaymentNumber() : "PAY-" + payment.getId();
+        String subject = "Payment Update [" + eventType + "] - " + paymentRef;
+        String htmlBody = templateBuilder.buildPaymentNotificationHtml(payment, eventType);
+        EmailRequest request = EmailRequest.builder().to(recipient).subject(subject).htmlBody(htmlBody).isHtml(true).emailType(EmailType.PAYMENT_NOTIFICATION).relatedEntityType("PAYMENT").relatedEntityId(payment.getId()).build();
+        sendEmailAsync(request);
+    }
+
+    // ---------------------------------------- //
 
     /**
      * Preview metadata for UI preview modals.

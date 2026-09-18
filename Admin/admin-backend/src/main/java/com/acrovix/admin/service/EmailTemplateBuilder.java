@@ -4,6 +4,9 @@ import com.acrovix.admin.entity.CrmFollowUp;
 import com.acrovix.admin.entity.CrmLead;
 import com.acrovix.admin.entity.Invoice;
 import com.acrovix.admin.entity.Payment;
+import com.acrovix.admin.entity.PurchaseOrder;
+import com.acrovix.admin.entity.AdminUser;
+import com.acrovix.admin.entity.AdminEnquiry;
 import com.acrovix.admin.entity.Quotation;
 import com.acrovix.admin.util.CurrencyUtils;
 import org.springframework.stereotype.Component;
@@ -227,6 +230,151 @@ public class EmailTemplateBuilder {
         body.append("</table>\n");
 
         return buildCorporateEmail("Follow-Up Notification: " + notificationType, body.toString());
+    }
+
+    public String buildLoginSecurityHtml(String userName, String loginTime) {
+        StringBuilder body = new StringBuilder();
+        body.append("<p>Dear <strong>").append(escapeHtml(userName)).append("</strong>,</p>\n");
+        body.append("<p>A new login was detected on your ACROVIX ERP account.</p>\n");
+        body.append("<table style=\"width:100%; border-collapse:collapse; margin:20px 0; background-color:#F8FAFC; border:1px solid #E2E8F0;\">\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Date & Time:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(escapeHtml(loginTime)).append("</td></tr>\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Application:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">ACROVIX ERP</td></tr>\n");
+        body.append("</table>\n");
+        body.append("<p style=\"color:#94A3B8; font-size:12px;\">If you did not perform this login, please contact the administrator immediately.</p>");
+        return buildCorporateEmail("Security Alert: New Login", body.toString());
+    }
+
+    public String buildWelcomeHtml(AdminUser user, String loginUrl) {
+        StringBuilder body = new StringBuilder();
+        body.append("<p>Dear <strong>").append(escapeHtml(user.getName())).append("</strong>,</p>\n");
+        body.append("<p>Welcome to ACROVIX ERP! Your account has been successfully created.</p>\n");
+        body.append("<table style=\"width:100%; border-collapse:collapse; margin:20px 0; background-color:#F8FAFC; border:1px solid #E2E8F0;\">\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Name:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(escapeHtml(user.getName())).append("</td></tr>\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Email:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(escapeHtml(user.getEmail())).append("</td></tr>\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Role:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(user.getRole() != null ? user.getRole().name() : "N/A").append("</td></tr>\n");
+        body.append("</table>\n");
+        if (loginUrl != null && !loginUrl.trim().isEmpty()) {
+            body.append("<p>You can log in to the portal here: <a href=\"").append(escapeHtml(loginUrl)).append("\">").append(escapeHtml(loginUrl)).append("</a></p>\n");
+        }
+        body.append("<p>If you have not received your password, please contact your administrator.</p>");
+        return buildCorporateEmail("Welcome to ACROVIX ERP", body.toString());
+    }
+
+    public String buildEnquiryNotificationHtml(AdminEnquiry enquiry) {
+        StringBuilder body = new StringBuilder();
+        body.append("<p>A new enquiry has been submitted.</p>\n");
+        body.append("<table style=\"width:100%; border-collapse:collapse; margin:20px 0; background-color:#F8FAFC; border:1px solid #E2E8F0;\">\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Enquiry ID:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(enquiry.getId()).append("</td></tr>\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Name:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(escapeHtml(enquiry.getFullName())).append("</td></tr>\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Company:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(escapeHtml(enquiry.getCompanyName())).append("</td></tr>\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Email:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(escapeHtml(enquiry.getBusinessEmail())).append("</td></tr>\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Phone:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(escapeHtml(enquiry.getPhoneNumber())).append("</td></tr>\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Service Required:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(escapeHtml(enquiry.getServiceRequired())).append("</td></tr>\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Notes:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(escapeHtml(enquiry.getNotes())).append("</td></tr>\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Date:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(enquiry.getCreatedAt() != null ? enquiry.getCreatedAt().toString() : "").append("</td></tr>\n");
+        body.append("</table>\n");
+        return buildCorporateEmail("New Enquiry Received", body.toString());
+    }
+
+    public String buildEnquiryAssignmentHtml(AdminEnquiry enquiry) {
+        StringBuilder body = new StringBuilder();
+        body.append("<p>Dear <strong>").append(enquiry.getAssignedTo() != null ? escapeHtml(enquiry.getAssignedTo().getName()) : "User").append("</strong>,</p>\n");
+        body.append("<p>An enquiry has been assigned to you.</p>\n");
+        body.append("<table style=\"width:100%; border-collapse:collapse; margin:20px 0; background-color:#F8FAFC; border:1px solid #E2E8F0;\">\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Enquiry ID:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(enquiry.getId()).append("</td></tr>\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Name:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(escapeHtml(enquiry.getFullName())).append("</td></tr>\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Company:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(escapeHtml(enquiry.getCompanyName())).append("</td></tr>\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Service Required:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(escapeHtml(enquiry.getServiceRequired())).append("</td></tr>\n");
+        body.append("</table>\n");
+        return buildCorporateEmail("Enquiry Assigned to You", body.toString());
+    }
+
+    public String buildLeadAssignmentHtml(CrmLead lead) {
+        String leadNo = lead.getLeadNumber() != null ? lead.getLeadNumber() : "LEAD-" + lead.getId();
+        StringBuilder body = new StringBuilder();
+        body.append("<p>Dear <strong>").append(lead.getAssignedTo() != null ? escapeHtml(lead.getAssignedTo().getName()) : "User").append("</strong>,</p>\n");
+        body.append("<p>A CRM Lead has been assigned to you.</p>\n");
+        body.append("<table style=\"width:100%; border-collapse:collapse; margin:20px 0; background-color:#F8FAFC; border:1px solid #E2E8F0;\">\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Lead Number:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(escapeHtml(leadNo)).append("</td></tr>\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Contact Name:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(escapeHtml(lead.getFullName())).append("</td></tr>\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Company:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(escapeHtml(lead.getCompanyName())).append("</td></tr>\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Status:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(lead.getStatus() != null ? lead.getStatus().name() : "N/A").append("</td></tr>\n");
+        body.append("</table>\n");
+        return buildCorporateEmail("CRM Lead Assigned to You", body.toString());
+    }
+
+    public String buildQuotationResponseHtml(Quotation quotation) {
+        String quotationNo = quotation.getQuotationNumber() != null ? quotation.getQuotationNumber() : "QT-" + quotation.getId();
+        StringBuilder body = new StringBuilder();
+        body.append("<p>A quotation has received a response.</p>\n");
+        body.append("<table style=\"width:100%; border-collapse:collapse; margin:20px 0; background-color:#F8FAFC; border:1px solid #E2E8F0;\">\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Quotation Number:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(escapeHtml(quotationNo)).append("</td></tr>\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Client Name:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(escapeHtml(quotation.getClientName())).append("</td></tr>\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Total Amount:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(CurrencyUtils.formatCurrency(quotation.getGrandTotal(), quotation.getCurrency())).append("</td></tr>\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Status:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0; color:").append("ACCEPTED".equals(quotation.getStatus()) ? "#16A34A" : "#DC2626").append(";\"><strong>").append(quotation.getStatus()).append("</strong></td></tr>\n");
+        if (quotation.getResponseNotes() != null && !quotation.getResponseNotes().trim().isEmpty()) {
+            body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Notes:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(escapeHtml(quotation.getResponseNotes())).append("</td></tr>\n");
+        }
+        body.append("</table>\n");
+        return buildCorporateEmail("Quotation Response: " + quotationNo, body.toString());
+    }
+
+    public String buildPoNotificationHtml(PurchaseOrder po, String eventType) {
+        String poNo = po.getPoNumber() != null ? po.getPoNumber() : "PO-" + po.getId();
+        StringBuilder body = new StringBuilder();
+        body.append("<p>A client Purchase Order has a new update: <strong>").append(escapeHtml(eventType)).append("</strong></p>\n");
+        body.append("<table style=\"width:100%; border-collapse:collapse; margin:20px 0; background-color:#F8FAFC; border:1px solid #E2E8F0;\">\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">PO Number:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(escapeHtml(poNo)).append("</td></tr>\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Client Name:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(escapeHtml(po.getQuotation() != null ? po.getQuotation().getClientName() : "N/A")).append("</td></tr>\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">PO Date:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(po.getPoDate() != null ? po.getPoDate().toString() : "").append("</td></tr>\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Amount:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(CurrencyUtils.formatCurrency(po.getPoValue(), po.getCurrency())).append("</td></tr>\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Status:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(po.getStatus() != null ? po.getStatus().name() : "").append("</td></tr>\n");
+        body.append("</table>\n");
+        return buildCorporateEmail("Purchase Order Update: " + poNo, body.toString());
+    }
+
+    public String buildInvoiceNotificationHtml(Invoice invoice, String eventType) {
+        String invoiceNo = invoice.getInvoiceNumber() != null ? invoice.getInvoiceNumber() : "INV-" + invoice.getId();
+        StringBuilder body = new StringBuilder();
+        body.append("<p>An invoice update occurred: <strong>").append(escapeHtml(eventType)).append("</strong></p>\n");
+        body.append("<table style=\"width:100%; border-collapse:collapse; margin:20px 0; background-color:#F8FAFC; border:1px solid #E2E8F0;\">\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Invoice Number:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(escapeHtml(invoiceNo)).append("</td></tr>\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Client Name:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(escapeHtml(invoice.getClientName())).append("</td></tr>\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Amount:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(CurrencyUtils.formatCurrency(invoice.getGrandTotal(), invoice.getCurrency())).append("</td></tr>\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Status:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(invoice.getStatus() != null ? invoice.getStatus().name() : "").append("</td></tr>\n");
+        body.append("</table>\n");
+        return buildCorporateEmail("Invoice Update: " + invoiceNo, body.toString());
+    }
+
+    public String buildInvoiceOverdueHtml(Invoice invoice) {
+        String invoiceNo = invoice.getInvoiceNumber() != null ? invoice.getInvoiceNumber() : "INV-" + invoice.getId();
+        String customerName = invoice.getClientName() != null ? invoice.getClientName() : "Valued Customer";
+        BigDecimal balanceDue = invoice.getGrandTotal().subtract(invoice.getAmountPaid() != null ? invoice.getAmountPaid() : BigDecimal.ZERO);
+        
+        StringBuilder body = new StringBuilder();
+        body.append("<p>Dear <strong>").append(escapeHtml(customerName)).append("</strong>,</p>\n");
+        body.append("<p>This is a polite reminder that the following invoice is now overdue.</p>\n");
+        body.append("<table style=\"width:100%; border-collapse:collapse; margin:20px 0; background-color:#F8FAFC; border:1px solid #E2E8F0;\">\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Invoice Number:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(escapeHtml(invoiceNo)).append("</td></tr>\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Due Date:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0; color:#DC2626;\">").append(invoice.getDueDate() != null ? invoice.getDueDate().toString() : "N/A").append("</td></tr>\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Outstanding Amount:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(CurrencyUtils.formatCurrency(balanceDue, invoice.getCurrency())).append("</td></tr>\n");
+        body.append("</table>\n");
+        body.append("<p>If you have already arranged payment, please disregard this notice.</p>");
+        return buildCorporateEmail("Invoice Overdue: " + invoiceNo, body.toString());
+    }
+
+    public String buildPaymentNotificationHtml(Payment payment, String eventType) {
+        String paymentRef = payment.getPaymentNumber() != null ? payment.getPaymentNumber() : "PAY-" + payment.getId();
+        String invoiceNo = (payment.getInvoice() != null && payment.getInvoice().getInvoiceNumber() != null) ? payment.getInvoice().getInvoiceNumber() : "N/A";
+        
+        StringBuilder body = new StringBuilder();
+        body.append("<p>A payment has been recorded: <strong>").append(escapeHtml(eventType)).append("</strong></p>\n");
+        body.append("<table style=\"width:100%; border-collapse:collapse; margin:20px 0; background-color:#F8FAFC; border:1px solid #E2E8F0;\">\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Payment Ref:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(escapeHtml(paymentRef)).append("</td></tr>\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Invoice No:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(escapeHtml(invoiceNo)).append("</td></tr>\n");
+        body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Amount:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(CurrencyUtils.formatCurrency(payment.getAmount(), payment.getCurrency())).append("</td></tr>\n");
+        body.append("</table>\n");
+        return buildCorporateEmail("Payment Notification: " + paymentRef, body.toString());
     }
 
     private String escapeHtml(String input) {

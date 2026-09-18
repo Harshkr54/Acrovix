@@ -174,6 +174,13 @@ public class InvoiceService {
 
         Invoice saved = invoiceRepository.save(invoice);
         logActivity(admin.getId(), "Created Draft Invoice", "Invoice", saved.getId());
+        
+        try {
+            emailService.sendInvoiceNotificationAsync(saved, "CREATED");
+        } catch (Exception e) {
+            // Ignore email error
+        }
+
         return saved;
     }
 
@@ -241,6 +248,12 @@ public class InvoiceService {
                 po.setStatus(PurchaseOrderStatus.PARTIALLY_FULFILLED);
                 purchaseOrderRepository.save(po);
             }
+        }
+        
+        try {
+            emailService.sendInvoiceNotificationAsync(saved, "ISSUED");
+        } catch (Exception e) {
+            // Ignore email error
         }
 
         return saved;
