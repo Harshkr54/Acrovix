@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { fetchApi, getDashboardReceivables } from '../services/api';
-import { FileText, Inbox, Activity, CheckCircle, Clock, ChevronRight, Filter, Plus, MoreHorizontal, MessageSquare, User, AlertCircle, RefreshCw, Loader2, X, RotateCcw, Eye, Check, CreditCard, DollarSign, TrendingUp, AlertTriangle } from 'lucide-react';
+import { fetchApi, getDashboardReceivables, getUpcomingFollowUps } from '../services/api';
+import { FileText, Inbox, Activity, CheckCircle, Clock, ChevronRight, Filter, Plus, MoreHorizontal, MessageSquare, User, AlertCircle, RefreshCw, Loader2, X, RotateCcw, Eye, Check, CreditCard, DollarSign, TrendingUp, AlertTriangle, Download, PieChart, Users, PhoneCall } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 import CreateQuotationModal from '../components/CreateQuotationModal';
 import EnquiryDetailModal from '../components/EnquiryDetailModal';
@@ -18,28 +19,24 @@ const DEFAULT_FILTERS = {
 
 const getChartTrendLabel = (dateRange) => {
     switch (dateRange) {
-        case 'TODAY':
-            return 'Today Trend';
-        case 'LAST_7_DAYS':
-            return 'Last 7 Days Trend';
-        case 'LAST_30_DAYS':
-            return 'Last 30 Days Trend';
-        case 'THIS_MONTH':
-            return 'This Month Trend';
-        case 'THIS_YEAR':
-            return 'This Year Trend';
-        case 'CUSTOM':
-            return 'Custom Date Trend';
+        case 'TODAY': return 'Today Trend';
+        case 'LAST_7_DAYS': return 'Last 7 Days Trend';
+        case 'LAST_30_DAYS': return 'Last 30 Days Trend';
+        case 'THIS_MONTH': return 'This Month Trend';
+        case 'THIS_YEAR': return 'This Year Trend';
+        case 'CUSTOM': return 'Custom Date Trend';
         case 'ALL_TIME':
-        default:
-            return 'All Time Trend';
+        default: return 'All Time Trend';
     }
 };
 
 export default function Dashboard() {
+    const { user } = useAuth();
     const [stats, setStats] = useState(null);
     const [receivablesStats, setReceivablesStats] = useState(null);
+    const [upcomingFollowUps, setUpcomingFollowUps] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isFollowUpsLoading, setIsFollowUpsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const navigate = useNavigate();
@@ -67,6 +64,7 @@ export default function Dashboard() {
     const fetchDashboardData = useCallback(async (filtersToFetch = appliedFilters) => {
         setIsLoading(true);
         setError(null);
+        setIsFollowUpsLoading(true);
 
         const params = new URLSearchParams();
         if (filtersToFetch.dateRange && filtersToFetch.dateRange !== 'ALL_TIME') {
@@ -89,12 +87,23 @@ export default function Dashboard() {
         try {
             const data = await fetchApi(endpoint);
             setStats(data);
+            
             try {
                 const recData = await getDashboardReceivables();
                 setReceivablesStats(recData);
             } catch (rErr) {
                 console.error("Failed to fetch dashboard receivables", rErr);
             }
+            
+            try {
+                const followData = await getUpcomingFollowUps({ size: 5 });
+                setUpcomingFollowUps(followData?.content || followData || []);
+            } catch (fErr) {
+                console.error("Failed to fetch upcoming follow-ups", fErr);
+            } finally {
+                setIsFollowUpsLoading(false);
+            }
+            
         } catch (err) {
             console.error("Error fetching stats", err);
             setError(err.message || 'An unexpected error occurred');
@@ -102,7 +111,6 @@ export default function Dashboard() {
             setIsLoading(false);
         }
     }, [appliedFilters]);
-
 
     useEffect(() => {
         fetchDashboardData(appliedFilters);
@@ -222,55 +230,55 @@ export default function Dashboard() {
         }
     };
 
-    // Calculate max value for chart scaling
     const maxEnquiryCount = Math.max(
         1,
         ...(stats?.monthlyOverview?.map(m => Math.max(m.totalEnquiries || 0, m.newEnquiries || 0)) || [1])
     );
 
+    const userName = user?.name?.split(' ')[0] || 'User';
+
     return (
         <div className="space-y-6 max-w-[1600px] mx-auto pb-12">
             
             {/* Header Area */}
-            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-2">
                 <div className="flex flex-col">
-                    <span className="text-[12px] font-bold text-text-muted uppercase tracking-wider mb-1">Dashboard</span>
-                    <h1 className="text-[32px] font-bold text-text-primary tracking-tight leading-none mb-1.5">Overview</h1>
-                    <p className="text-[13.5px] text-text-secondary font-medium">Monitor enquiries, quotations and business activity.</p>
+                    <h1 className="text-[32px] font-bold text-text-primary tracking-tight leading-none mb-2">
+                        Good Morning, {userName} 👋
+                    </h1>
+                    <p className="text-[14px] text-text-secondary font-medium">Here's what's happening today.</p>
                 </div>
 
                 <div className="flex items-center gap-3 relative" ref={filterRef}>
-                    {/* Funnel Filter Button */}
                     <button 
                         onClick={handleOpenFilter}
                         aria-label="Toggle filters popover"
-                        className={`flex items-center justify-center w-10 h-10 rounded-full border transition-all relative ${
+                        className={`flex items-center justify-center w-[42px] h-[42px] rounded-xl border transition-all relative ${
                             isFilterOpen || hasActiveFilters
                                 ? 'bg-brand-primary/10 border-[#818CF8] text-[var(--color-brand-primary)] dark:bg-[#312E81]/30 dark:border-[#6366F1] dark:text-[#818CF8] shadow-sm'
                                 : 'bg-bg-card border-border-subtle text-text-secondary hover:text-text-primary hover:shadow-sm'
                         }`}
                     >
-                        <Filter className="btn btn-secondary btn-md" />
+                        <Filter className="w-4 h-4" />
                         {hasActiveFilters && (
-                            <span className="w-2.5 h-2.5 rounded-full bg-[var(--color-brand-primary)] absolute top-1.5 right-1.5 ring-2 ring-bg-acx-card" />
+                            <span className="w-2.5 h-2.5 rounded-full bg-[var(--color-brand-primary)] absolute top-1 right-1 ring-2 ring-bg-card" />
                         )}
                     </button>
 
                     {/* Filter Popover */}
                     {isFilterOpen && (
-                        <div className="absolute right-0 top-12 w-80 sm:w-96 bg-bg-card rounded-2xl shadow-xl border border-border-subtle p-5 z-50 animate-in slide-in-from-top-2 duration-200">
+                        <div className="absolute right-0 top-[52px] w-80 sm:w-96 bg-bg-card rounded-2xl shadow-xl border border-border-subtle p-5 z-50 animate-in slide-in-from-top-2 duration-200">
                             <div className="flex items-center justify-between pb-3 border-b border-border-subtle mb-4">
                                 <div className="flex items-center gap-2">
                                     <Filter className="w-4 h-4 text-[var(--color-brand-primary)]" />
                                     <h3 className="text-sm font-bold text-text-primary">Dashboard Filters</h3>
                                 </div>
-                                <button onClick={() => setIsFilterOpen(false)} className="btn btn-primary btn-icon">
+                                <button onClick={() => setIsFilterOpen(false)} className="btn btn-primary btn-icon btn-sm">
                                     <X className="w-4 h-4" />
                                 </button>
                             </div>
 
                             <form onSubmit={handleApplyFilters} className="space-y-4">
-                                {/* Date Range */}
                                 <div>
                                     <label className="block text-[12px] font-semibold text-text-secondary mb-1.5">Date Range</label>
                                     <select
@@ -288,7 +296,6 @@ export default function Dashboard() {
                                     </select>
                                 </div>
 
-                                {/* Custom Dates */}
                                 {draftFilters.dateRange === 'CUSTOM' && (
                                     <div className="grid grid-cols-2 gap-3 p-3 bg-bg-muted/40 rounded-xl border border-border-subtle">
                                         <div>
@@ -315,7 +322,6 @@ export default function Dashboard() {
                                     </div>
                                 )}
 
-                                {/* Enquiry Status */}
                                 <div>
                                     <label className="block text-[12px] font-semibold text-text-secondary mb-1.5">Enquiry Status</label>
                                     <select
@@ -332,7 +338,6 @@ export default function Dashboard() {
                                     </select>
                                 </div>
 
-                                {/* Quotation Status */}
                                 <div>
                                     <label className="block text-[12px] font-semibold text-text-secondary mb-1.5">Quotation Status</label>
                                     <select
@@ -349,17 +354,15 @@ export default function Dashboard() {
                                     </select>
                                 </div>
 
-                                {/* Action Buttons */}
                                 <div className="flex items-center justify-between pt-3 border-t border-border-subtle gap-3">
                                     <button
                                         type="button"
                                         onClick={handleResetFilters}
                                         className="btn btn-secondary btn-sm"
                                     >
-                                        <RotateCcw className="w-3.5 h-3.5 " />
+                                        <RotateCcw className="w-3.5 h-3.5" />
                                         Reset
                                     </button>
-
                                     <button
                                         type="submit"
                                         disabled={draftFilters.dateRange === 'CUSTOM' && Boolean(draftFilters.fromDate && draftFilters.toDate && draftFilters.fromDate > draftFilters.toDate)}
@@ -372,8 +375,8 @@ export default function Dashboard() {
                         </div>
                     )}
 
-                    <button onClick={() => setIsCreateModalOpen(true)} className="btn btn-primary btn-md">
-                        <Plus className="w-4 h-4 " />
+                    <button onClick={() => setIsCreateModalOpen(true)} className="btn btn-primary btn-md h-[42px] px-5 font-bold shadow-sm">
+                        <Plus className="w-4 h-4 mr-1" />
                         Create Quotation
                     </button>
                     <CreateQuotationModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
@@ -381,35 +384,35 @@ export default function Dashboard() {
             </div>
 
             {error ? (
-                <div className="flex flex-col items-center justify-center min-h-[300px] bg-bg-card rounded-[24px] border border-border-subtle text-center px-4">
+                <div className="flex flex-col items-center justify-center min-h-[300px] bg-bg-card rounded-[24px] border border-border-subtle text-center px-4 shadow-sm">
                     <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4">
                         <AlertCircle className="w-8 h-8 text-red-500" />
                     </div>
                     <h3 className="text-lg font-bold text-text-primary mb-2">Failed to Load Dashboard</h3>
                     <p className="text-sm text-text-secondary mb-6">{error}</p>
                     <button onClick={() => fetchDashboardData(appliedFilters)} className="btn btn-primary btn-md">
-                        <RefreshCw className="w-4 h-4 " />
+                        <RefreshCw className="w-4 h-4" />
                         Retry
                     </button>
                 </div>
             ) : (
                 <>
-                    {/* KPI Cards Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    {/* Top KPI Row */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                         
-                        {/* Total Enquiries KPI */}
+                        {/* 1. Total Enquiries */}
                         <div className="bg-bg-card rounded-[20px] p-5 flex flex-col justify-between border border-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
                             <div className="flex items-center gap-3 mb-4 relative z-10">
                                 <div className="w-10 h-10 bg-blue-50 dark:bg-blue-500/10 rounded-[12px] flex items-center justify-center border border-blue-100/50 dark:border-blue-500/20 shrink-0">
                                     <Inbox className="w-5 h-5 text-blue-600 dark:text-blue-500" />
                                 </div>
-                                <span className="text-[13.5px] font-bold text-text-primary tracking-tight">Total Enquiries</span>
+                                <span className="text-[14px] font-bold text-text-primary tracking-tight">Total Enquiries</span>
                             </div>
                             <div className="relative z-10">
-                                <div className="text-[28px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center">
-                                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-blue-600" /> : (stats?.totalEnquiries ?? 0)}
+                                <div className="text-[32px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center">
+                                    {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-blue-600" /> : (stats?.totalEnquiries ?? 0)}
                                 </div>
-                                <div className="text-[11.5px] font-medium text-text-muted">
+                                <div className="text-[12px] font-medium text-text-muted">
                                     Filtered count
                                 </div>
                             </div>
@@ -417,41 +420,20 @@ export default function Dashboard() {
                                 <CardSparkline data={stats?.monthlyOverview?.map(m => m.totalEnquiries)} color="#2563EB" />
                             </div>
                         </div>
-                            
-                        {/* New Enquiries KPI */}
-                        <div className="bg-bg-card rounded-[20px] p-5 flex flex-col justify-between border border-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
-                            <div className="flex items-center gap-3 mb-4 relative z-10">
-                                <div className="w-10 h-10 bg-teal-50 dark:bg-teal-500/10 rounded-[12px] flex items-center justify-center border border-teal-100/50 dark:border-teal-500/20 shrink-0">
-                                    <User className="w-5 h-5 text-teal-600 dark:text-teal-500" />
-                                </div>
-                                <span className="text-[13.5px] font-bold text-text-primary tracking-tight">New Enquiries</span>
-                            </div>
-                            <div className="relative z-10">
-                                <div className="text-[28px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center">
-                                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-teal-600" /> : (stats?.newEnquiries ?? 0)}
-                                </div>
-                                <div className="text-[11.5px] font-medium text-text-muted">
-                                    Filtered count
-                                </div>
-                            </div>
-                            <div className="absolute bottom-2 right-2 w-24 h-12 opacity-80 pointer-events-none">
-                                <CardSparkline data={stats?.monthlyOverview?.map(m => m.newEnquiries)} color="#0D9488" />
-                            </div>
-                        </div>
 
-                        {/* Total Quotations KPI */}
+                        {/* 2. Total Quotations */}
                         <div className="bg-bg-card rounded-[20px] p-5 flex flex-col justify-between border border-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
                             <div className="flex items-center gap-3 mb-4 relative z-10">
                                 <div className="w-10 h-10 bg-purple-50 dark:bg-purple-500/10 rounded-[12px] flex items-center justify-center border border-purple-100/50 dark:border-purple-500/20 shrink-0">
                                     <FileText className="w-5 h-5 text-purple-600 dark:text-purple-500" />
                                 </div>
-                                <span className="text-[13.5px] font-bold text-text-primary tracking-tight">Total Quotations</span>
+                                <span className="text-[14px] font-bold text-text-primary tracking-tight">Total Quotations</span>
                             </div>
                             <div className="relative z-10">
-                                <div className="text-[28px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center">
-                                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-purple-600" /> : (stats?.totalQuotations ?? 0)}
+                                <div className="text-[32px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center">
+                                    {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-purple-600" /> : (stats?.totalQuotations ?? 0)}
                                 </div>
-                                <div className="text-[11.5px] font-medium text-text-muted">
+                                <div className="text-[12px] font-medium text-text-muted">
                                     Excludes Trash
                                 </div>
                             </div>
@@ -460,19 +442,19 @@ export default function Dashboard() {
                             </div>
                         </div>
 
-                        {/* Accepted Quotations KPI */}
+                        {/* 3. Accepted Quotations */}
                         <div className="bg-bg-card rounded-[20px] p-5 flex flex-col justify-between border border-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
                             <div className="flex items-center gap-3 mb-4 relative z-10">
                                 <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-500/10 rounded-[12px] flex items-center justify-center border border-emerald-100/50 dark:border-emerald-500/20 shrink-0">
                                     <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-500" />
                                 </div>
-                                <span className="text-[13.5px] font-bold text-text-primary tracking-tight">Accepted Quotations</span>
+                                <span className="text-[14px] font-bold text-text-primary tracking-tight">Accepted Quotations</span>
                             </div>
                             <div className="relative z-10">
-                                <div className="text-[28px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center">
-                                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-emerald-600" /> : (stats?.acceptedQuotations ?? 0)}
+                                <div className="text-[32px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center">
+                                    {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-emerald-600" /> : (stats?.acceptedQuotations ?? 0)}
                                 </div>
-                                <div className="text-[11.5px] font-medium text-text-muted">
+                                <div className="text-[12px] font-medium text-text-muted">
                                     Excludes Trash
                                 </div>
                             </div>
@@ -480,20 +462,20 @@ export default function Dashboard() {
                                 <CardSparkline isDecorative color="#059669" />
                             </div>
                         </div>
-                        
-                        {/* Financial Cards */}
+
+                        {/* 4. Total Invoiced */}
                         <div className="bg-bg-card rounded-[20px] p-5 flex flex-col justify-between border-l-4 border-l-blue-500 border-y border-y-border-subtle border-r border-r-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
                             <div className="flex items-center gap-3 mb-4 relative z-10">
                                 <div className="w-10 h-10 bg-blue-50 dark:bg-blue-500/10 rounded-[12px] flex items-center justify-center border border-blue-100/50 dark:border-blue-500/20 shrink-0">
                                     <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-500" />
                                 </div>
-                                <span className="text-[13.5px] font-bold text-text-primary tracking-tight">Total Invoiced</span>
+                                <span className="text-[14px] font-bold text-text-primary tracking-tight">Total Invoiced</span>
                             </div>
                             <div className="relative z-10">
-                                <div className="text-[22px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center truncate">
+                                <div className="text-[26px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center truncate">
                                     Rs. {Number(receivablesStats?.totalInvoiced || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </div>
-                                <div className="text-[11.5px] font-medium text-text-muted">
+                                <div className="text-[12px] font-medium text-text-muted">
                                     Total Issued Tax Invoices
                                 </div>
                             </div>
@@ -501,137 +483,36 @@ export default function Dashboard() {
                                 <CardSparkline isDecorative color="#3B82F6" />
                             </div>
                         </div>
-
-                        <div className="bg-bg-card rounded-[20px] p-5 flex flex-col justify-between border-l-4 border-l-emerald-500 border-y border-y-border-subtle border-r border-r-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
-                            <div className="flex items-center gap-3 mb-4 relative z-10">
-                                <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-500/10 rounded-[12px] flex items-center justify-center border border-emerald-100/50 dark:border-emerald-500/20 shrink-0">
-                                    <CreditCard className="w-5 h-5 text-emerald-600 dark:text-emerald-500" />
-                                </div>
-                                <span className="text-[13.5px] font-bold text-text-primary tracking-tight">Total Received</span>
-                            </div>
-                            <div className="relative z-10">
-                                <div className="text-[22px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center truncate">
-                                    Rs. {Number(receivablesStats?.totalReceived || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </div>
-                                <div className="text-[11.5px] font-medium text-text-muted">
-                                    Active Payment Ledger
-                                </div>
-                            </div>
-                            <div className="absolute bottom-2 right-2 w-24 h-12 opacity-80 pointer-events-none">
-                                <CardSparkline isDecorative color="#10B981" />
-                            </div>
-                        </div>
-
-                        <div className="bg-bg-card rounded-[20px] p-5 flex flex-col justify-between border-l-4 border-l-orange-500 border-y border-y-border-subtle border-r border-r-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
-                            <div className="flex items-center gap-3 mb-4 relative z-10">
-                                <div className="w-10 h-10 bg-orange-50 dark:bg-orange-500/10 rounded-[12px] flex items-center justify-center border border-orange-100/50 dark:border-orange-500/20 shrink-0">
-                                    <Clock className="w-5 h-5 text-orange-600 dark:text-orange-500" />
-                                </div>
-                                <span className="text-[13.5px] font-bold text-text-primary tracking-tight">Outstanding Balance</span>
-                            </div>
-                            <div className="relative z-10">
-                                <div className="text-[22px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center truncate">
-                                    Rs. {Number(receivablesStats?.outstandingAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </div>
-                                <div className="text-[11.5px] font-medium text-text-muted">
-                                    Pending Receivables
-                                </div>
-                            </div>
-                            <div className="absolute bottom-2 right-2 w-24 h-12 opacity-80 pointer-events-none">
-                                <CardSparkline isDecorative color="#F97316" />
-                            </div>
-                        </div>
-
-                        <div className="bg-bg-card rounded-[20px] p-5 flex flex-col justify-between border-l-4 border-l-red-500 border-y border-y-border-subtle border-r border-r-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
-                            <div className="flex items-center gap-3 mb-4 relative z-10">
-                                <div className="w-10 h-10 bg-red-50 dark:bg-red-500/10 rounded-[12px] flex items-center justify-center border border-red-100/50 dark:border-red-500/20 shrink-0">
-                                    <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-500" />
-                                </div>
-                                <span className="text-[13.5px] font-bold text-text-primary tracking-tight">Overdue Balance</span>
-                            </div>
-                            <div className="relative z-10">
-                                <div className="text-[22px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center truncate">
-                                    Rs. {Number(receivablesStats?.overdueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </div>
-                                <div className="text-[11.5px] font-medium text-text-muted">
-                                    Past Due Date
-                                </div>
-                            </div>
-                            <div className="absolute bottom-2 right-2 w-24 h-12 opacity-80 pointer-events-none">
-                                <CardSparkline isDecorative color="#EF4444" />
-                            </div>
-                        </div>
                     </div>
-
 
                     {/* Main Content Grid */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         
-                        {/* Left Column: Analytics Chart (2/3 width) */}
-                        <div className="lg:col-span-2">
-                            <div className="bg-bg-card rounded-[24px] border border-border-subtle p-6 flex flex-col h-full shadow-[0_4px_24px_rgba(11,25,44,0.02)]">
+                        {/* Left Column (2/3 width) */}
+                        <div className="lg:col-span-2 flex flex-col gap-6">
+                            
+                            {/* Analytics Chart */}
+                            <div className="bg-bg-card rounded-[24px] border border-border-subtle p-6 flex flex-col shadow-sm">
                                 {/* Header */}
-                                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-8">
+                                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
                                     <div className="flex items-start gap-4">
-                                        <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100/50">
-                                            <Activity className="w-5 h-5 text-blue-500" />
+                                        <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100/50 dark:bg-blue-500/10 dark:border-blue-500/20">
+                                            <Activity className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                                         </div>
                                         <div>
-                                            <h2 className="text-[20px] font-bold text-text-primary tracking-tight">Enquiries Overview</h2>
-                                            <p className="text-[14px] text-text-muted mt-0.5">Track new enquiries and total enquiries received over time</p>
+                                            <h2 className="text-[20px] font-bold text-text-primary tracking-tight">Enquiries &amp; Quotations Trend</h2>
+                                            <p className="text-[14px] text-text-secondary mt-0.5">Track enquiries and quotations performance over time</p>
                                         </div>
                                     </div>
-                                    
-                                    <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-border-subtle bg-bg-card shadow-sm text-[13px] font-semibold text-text-secondary cursor-pointer hover:bg-bg-hover transition-colors">
+                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border-subtle bg-bg-main shadow-sm text-[13px] font-semibold text-text-secondary cursor-pointer hover:bg-bg-hover transition-colors">
                                         <Clock className="w-4 h-4 text-text-muted" />
                                         {getChartTrendLabel(appliedFilters.dateRange)}
-                                        <ChevronRight className="w-4 h-4 opacity-50 rotate-90" />
                                     </div>
                                 </div>
 
-                                {/* KPIs inside Chart */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-10">
-                                    <div className="p-4 rounded-[20px] bg-[#F8FAFC] border border-[#E2E8F0] flex items-center gap-4 transition-all hover:shadow-sm">
-                                        <div className="w-12 h-12 rounded-[14px] bg-blue-100/50 text-blue-600 flex items-center justify-center shrink-0">
-                                            <FileText className="w-6 h-6" />
-                                        </div>
-                                        <div>
-                                            <div className="text-[26px] font-bold text-text-primary leading-none tracking-tight">
-                                                {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-blue-600 mt-1" /> : (stats?.totalEnquiries ?? 0)}
-                                            </div>
-                                            <div className="text-[13px] font-medium text-text-secondary mt-1">Total Enquiries</div>
-                                        </div>
-                                    </div>
-
-                                    <div className="p-4 rounded-[20px] bg-[#F0FDF4] border border-[#DCFCE7] flex items-center gap-4 transition-all hover:shadow-sm">
-                                        <div className="w-12 h-12 rounded-[14px] bg-emerald-100/50 text-emerald-600 flex items-center justify-center shrink-0">
-                                            <User className="w-6 h-6" />
-                                        </div>
-                                        <div>
-                                            <div className="text-[26px] font-bold text-text-primary leading-none tracking-tight">
-                                                {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-emerald-600 mt-1" /> : (stats?.newEnquiries ?? 0)}
-                                            </div>
-                                            <div className="text-[13px] font-medium text-text-secondary mt-1">New Enquiries</div>
-                                        </div>
-                                    </div>
-
-                                    <div className="p-4 rounded-[20px] bg-[#FAF5FF] border border-[#F3E8FF] flex items-center gap-4 transition-all hover:shadow-sm">
-                                        <div className="w-12 h-12 rounded-[14px] bg-purple-100/50 text-purple-600 flex items-center justify-center shrink-0">
-                                            <Activity className="w-6 h-6" />
-                                        </div>
-                                        <div>
-                                            <div className="text-[26px] font-bold text-text-primary leading-none tracking-tight">
-                                                {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-purple-600 mt-1" /> : (stats?.totalQuotations ?? 0)}
-                                            </div>
-                                            <div className="text-[13px] font-medium text-text-secondary mt-1">Total Quotations</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
                                 {/* Dynamic Chart Area */}
-                                <div className="flex-1 min-h-[220px] max-h-[280px] flex flex-col relative w-full overflow-x-auto overflow-y-hidden hide-scrollbar">
+                                <div className="flex-1 min-h-[260px] flex flex-col relative w-full overflow-x-auto overflow-y-hidden hide-scrollbar">
                                     <div className="min-w-[600px] h-full flex flex-col relative">
-                                        <div className="absolute top-0 left-0 text-[12px] font-medium text-text-muted">Enquiries</div>
                                         
                                         {isLoading ? (
                                             <div className="w-full flex justify-center items-center h-full">
@@ -646,8 +527,8 @@ export default function Dashboard() {
                                                     const magnitude = Math.pow(10, Math.floor(Math.log10(max)));
                                                     return Math.ceil(max / magnitude) * magnitude;
                                                 };
-                                                const maxEnq = Math.max(0, ...overviewData.map(i => Math.max(Number(i.totalEnquiries) || 0, Number(i.newEnquiries) || 0)));
-                                                const niceMax = getNiceMax(maxEnq);
+                                                const maxVal = Math.max(0, ...overviewData.map(i => Math.max(Number(i.totalEnquiries) || 0, Number(i.newEnquiries) || 0)));
+                                                const niceMax = getNiceMax(maxVal);
                                                 
                                                 let rawTicks;
                                                 if (niceMax <= 5) {
@@ -657,89 +538,57 @@ export default function Dashboard() {
                                                 }
                                                 const ticks = Array.from(new Set(rawTicks));
 
-                                                const points = overviewData.map((item, index) => {
-                                                    const x = ((index + 0.5) / overviewData.length) * 100;
-                                                    const y = 100 - (item.totalEnquiries / niceMax) * 100;
-                                                    return { x, y };
-                                                });
-                                                
                                                 return (
-                                                    <div className="flex-1 relative flex mt-6">
+                                                    <div className="flex-1 relative flex mt-4">
                                                         {/* Y Axis & Horizontal Grids */}
                                                         <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
                                                             {ticks.map((t, i) => (
                                                                 <div key={i} className="w-full flex items-center -mt-2">
                                                                     <div className="w-[30px] shrink-0 text-left text-[12px] font-medium text-text-muted">{t}</div>
-                                                                    <div className="flex-1 border-t border-dashed border-[#E2E8F0]" />
+                                                                    <div className="flex-1 border-t border-dashed border-border-subtle" />
                                                                 </div>
                                                             ))}
                                                         </div>
 
                                                         {/* Chart Content Area */}
                                                         <div className="flex-1 relative ml-[40px]">
-
                                                             {/* Bars Container */}
                                                             <div className="absolute inset-0 flex items-end">
                                                                 {overviewData.map((item, idx) => {
-                                                                    // We ensure the bar is at least 1% high so the color is visible
                                                                     const totalHeightPct = Math.max(1, (item.totalEnquiries / niceMax) * 100);
                                                                     const newHeightPct = Math.max(1, (item.newEnquiries / niceMax) * 100);
                                                                     
-                                                                    // Dynamic tooltip positioning to prevent clipping
-                                                                    const maxBarHeight = Math.max(totalHeightPct, newHeightPct);
-                                                                    const horizontalClass = idx >= overviewData.length / 2 ? "right-[50%] mr-2" : "left-[50%] ml-2";
-                                                                    const verticalStyle = maxBarHeight > 60 
-                                                                        ? { top: `${100 - maxBarHeight + 5}%` } 
-                                                                        : { bottom: `${maxBarHeight + 5}%` };
-                                                                    
                                                                     return (
                                                                         <div key={idx} className="flex-1 h-full flex flex-col justify-end items-center group relative z-20">
-                                                                            {/* Premium Tooltip */}
-                                                                            <div 
-                                                                                className={`opacity-0 group-hover:opacity-100 transition-opacity absolute bg-bg-card border border-border-subtle p-3.5 rounded-[16px] shadow-[0_8px_30px_rgba(0,0,0,0.12)] pointer-events-none w-[170px] z-50 ${horizontalClass}`}
-                                                                                style={verticalStyle}
-                                                                            >
-                                                                                <div className="text-[14px] font-bold text-text-primary mb-3">{item.month}</div>
-                                                                                <div className="flex justify-between items-center mb-2">
-                                                                                    <div className="flex items-center gap-2">
-                                                                                        <div className="w-2.5 h-2.5 rounded-full bg-[#2563EB]"></div>
-                                                                                        <span className="text-[12px] font-medium text-text-secondary">New Enquiries</span>
+                                                                            {/* Tooltip */}
+                                                                            <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute bg-bg-card border border-border-subtle p-3 rounded-[12px] shadow-lg pointer-events-none w-[160px] z-50 bottom-full mb-2 left-1/2 -translate-x-1/2">
+                                                                                <div className="text-[13px] font-bold text-text-primary mb-2">{item.month}</div>
+                                                                                <div className="flex justify-between items-center mb-1.5">
+                                                                                    <div className="flex items-center gap-1.5">
+                                                                                        <div className="w-2 h-2 rounded-full bg-[#10B981]"></div>
+                                                                                        <span className="text-[11px] font-medium text-text-secondary">Total Quotations</span>
                                                                                     </div>
-                                                                                    <span className="text-[13px] font-bold text-text-primary">{item.newEnquiries}</span>
+                                                                                    <span className="text-[12px] font-bold text-text-primary">{item.newEnquiries}</span>
                                                                                 </div>
                                                                                 <div className="flex justify-between items-center">
-                                                                                    <div className="flex items-center gap-2">
-                                                                                        <div className="w-2.5 h-2.5 rounded-full bg-[#A5B4FC]"></div>
-                                                                                        <span className="text-[12px] font-medium text-text-secondary">Total Enquiries</span>
+                                                                                    <div className="flex items-center gap-1.5">
+                                                                                        <div className="w-2 h-2 rounded-full bg-[#3B82F6]"></div>
+                                                                                        <span className="text-[11px] font-medium text-text-secondary">Total Enquiries</span>
                                                                                     </div>
-                                                                                    <span className="text-[13px] font-bold text-text-primary">{item.totalEnquiries}</span>
+                                                                                    <span className="text-[12px] font-bold text-text-primary">{item.totalEnquiries}</span>
                                                                                 </div>
                                                                             </div>
 
-                                                                            {/* Bars Group */}
-                                                                            <div className="w-[44px] max-w-full flex items-end justify-center gap-[4px] h-full cursor-pointer transition-transform group-hover:-translate-y-1">
-                                                                                {/* New Enquiries Bar */}
+                                                                            {/* Bars */}
+                                                                            <div className="w-[32px] sm:w-[44px] flex items-end justify-center gap-1 h-full cursor-pointer transition-transform group-hover:-translate-y-1">
                                                                                 <div
-                                                                                    className="w-[20px] bg-[#2563EB] rounded-t-[6px] relative"
-                                                                                    style={{ height: `${newHeightPct}%` }}
-                                                                                >
-                                                                                    {item.newEnquiries > 0 && (
-                                                                                        <span className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 text-[11px] font-bold text-text-primary">
-                                                                                            {item.newEnquiries}
-                                                                                        </span>
-                                                                                    )}
-                                                                                </div>
-                                                                                {/* Total Enquiries Bar */}
-                                                                                <div
-                                                                                    className="w-[20px] bg-[#A5B4FC] rounded-t-[6px] relative"
+                                                                                    className="flex-1 bg-[#3B82F6] rounded-t-md"
                                                                                     style={{ height: `${totalHeightPct}%` }}
-                                                                                >
-                                                                                    {item.totalEnquiries > 0 && (
-                                                                                        <span className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 text-[11px] font-bold text-text-primary">
-                                                                                            {item.totalEnquiries}
-                                                                                        </span>
-                                                                                    )}
-                                                                                </div>
+                                                                                ></div>
+                                                                                <div
+                                                                                    className="flex-1 bg-[#10B981] rounded-t-md"
+                                                                                    style={{ height: `${newHeightPct}%` }}
+                                                                                ></div>
                                                                             </div>
                                                                         </div>
                                                                     );
@@ -747,7 +596,7 @@ export default function Dashboard() {
                                                             </div>
                                                             
                                                             {/* X Axis Labels */}
-                                                            <div className="absolute top-full left-0 right-0 flex pt-3 border-t border-[#E2E8F0]">
+                                                            <div className="absolute top-full left-0 right-0 flex pt-3 border-t border-border-subtle">
                                                                 {overviewData.map((item, idx) => (
                                                                     <div key={idx} className="flex-1 text-center text-[12px] font-medium text-text-muted">
                                                                         {item.month}
@@ -768,45 +617,125 @@ export default function Dashboard() {
                                 </div>
                                 
                                 {/* Legend */}
-                                <div className="flex items-center justify-center gap-8 mt-10 relative">
-                                    <div className="flex items-center">
-                                        <div className="w-3 h-3 rounded-full bg-[#2563EB] "></div>
-                                        <span className="text-[13px] font-medium text-text-secondary">New Enquiries</span>
-                                    </div>
-                                    <div className="flex items-center">
-                                        <div className="w-3 h-3 rounded-full bg-[#A5B4FC] "></div>
+                                <div className="flex items-center justify-center gap-8 mt-10">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded bg-[#3B82F6]"></div>
                                         <span className="text-[13px] font-medium text-text-secondary">Total Enquiries</span>
                                     </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded bg-[#10B981]"></div>
+                                        <span className="text-[13px] font-medium text-text-secondary">Total Quotations</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Secondary Financial Row */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                                {/* Total Received */}
+                                <div className="bg-bg-card rounded-[20px] p-5 flex flex-col justify-between border-l-4 border-l-emerald-500 border-y border-y-border-subtle border-r border-r-border-subtle shadow-sm relative overflow-hidden">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl flex items-center justify-center border border-emerald-100/50 dark:border-emerald-500/20">
+                                            <CreditCard className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                                        </div>
+                                        <span className="text-[14px] font-bold text-text-primary tracking-tight">Total Received</span>
+                                    </div>
+                                    <div>
+                                        <div className="text-[24px] font-bold text-text-primary tracking-tight leading-none mb-1 truncate">
+                                            Rs. {Number(receivablesStats?.totalReceived || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </div>
+                                        <div className="text-[12px] font-medium text-text-muted">Active Payment Ledger</div>
+                                    </div>
+                                </div>
+
+                                {/* Outstanding Balance */}
+                                <div className="bg-bg-card rounded-[20px] p-5 flex flex-col justify-between border-l-4 border-l-orange-500 border-y border-y-border-subtle border-r border-r-border-subtle shadow-sm relative overflow-hidden">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="w-10 h-10 bg-orange-50 dark:bg-orange-500/10 rounded-xl flex items-center justify-center border border-orange-100/50 dark:border-orange-500/20">
+                                            <Clock className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                                        </div>
+                                        <span className="text-[14px] font-bold text-text-primary tracking-tight">Outstanding</span>
+                                    </div>
+                                    <div>
+                                        <div className="text-[24px] font-bold text-text-primary tracking-tight leading-none mb-1 truncate">
+                                            Rs. {Number(receivablesStats?.outstandingAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </div>
+                                        <div className="text-[12px] font-medium text-text-muted">Pending Receivables</div>
+                                    </div>
+                                </div>
+
+                                {/* Overdue Balance */}
+                                <div className="bg-bg-card rounded-[20px] p-5 flex flex-col justify-between border-l-4 border-l-red-500 border-y border-y-border-subtle border-r border-r-border-subtle shadow-sm relative overflow-hidden">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="w-10 h-10 bg-red-50 dark:bg-red-500/10 rounded-xl flex items-center justify-center border border-red-100/50 dark:border-red-500/20">
+                                            <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                                        </div>
+                                        <span className="text-[14px] font-bold text-text-primary tracking-tight">Overdue Balance</span>
+                                    </div>
+                                    <div>
+                                        <div className="text-[24px] font-bold text-text-primary tracking-tight leading-none mb-1 truncate">
+                                            Rs. {Number(receivablesStats?.overdueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </div>
+                                        <div className="text-[12px] font-medium text-text-muted">Past Due Date</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Quick Actions */}
+                            <div className="bg-bg-card rounded-[24px] border border-border-subtle p-6 shadow-sm mt-2">
+                                <h2 className="text-[18px] font-bold text-text-primary tracking-tight mb-5">Quick Actions</h2>
+                                <div className="flex flex-wrap gap-4">
+                                    <button onClick={() => setIsCreateModalOpen(true)} className="btn btn-primary btn-md">
+                                        <Plus className="w-4 h-4 mr-1.5" />
+                                        Create Quotation
+                                    </button>
+                                    <Link to="/enquiries" className="btn btn-secondary btn-md">
+                                        <Inbox className="w-4 h-4 mr-1.5" />
+                                        Manage Enquiries
+                                    </Link>
+                                    <Link to="/reports" className="btn btn-secondary btn-md">
+                                        <PieChart className="w-4 h-4 mr-1.5" />
+                                        View Reports
+                                    </Link>
+                                    <Link to="/customers" className="btn btn-secondary btn-md">
+                                        <Users className="w-4 h-4 mr-1.5" />
+                                        Manage Customers
+                                    </Link>
+                                    <Link to="/reports" className="btn btn-secondary btn-md">
+                                        <Download className="w-4 h-4 mr-1.5" />
+                                        Export Data
+                                    </Link>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Right Column: Recent Activity Timeline (1/3 width) */}
-                        <div className="lg:col-span-1">
-                            <div className="bg-bg-card rounded-[24px] border border-border-subtle p-6 h-full flex flex-col min-h-[360px] shadow-[0_4px_24px_rgba(11,25,44,0.02)]">
-                                <div className="flex items-center justify-between mb-8">
-                                    <h2 className="text-[20px] font-bold text-text-primary tracking-tight">Recent Activity</h2>
-                                    <Link to="/activity" className="text-[13px] font-semibold text-text-secondary hover:text-[var(--color-brand-primary)] transition-colors flex items-center">
+                        {/* Right Column (1/3 width) */}
+                        <div className="lg:col-span-1 flex flex-col gap-6">
+                            
+                            {/* Recent Activity Timeline */}
+                            <div className="bg-bg-card rounded-[24px] border border-border-subtle p-6 flex flex-col shadow-sm">
+                                <div className="flex items-center justify-between mb-6">
+                                    <h2 className="text-[18px] font-bold text-text-primary tracking-tight">Recent Activity</h2>
+                                    <Link to="/activity" className="text-[13px] font-semibold text-[var(--color-brand-primary)] hover:opacity-80 transition-opacity">
                                         View all &rarr;
                                     </Link>
                                 </div>
-                                <div className="flex-1 overflow-y-auto pr-2 hide-scrollbar relative max-h-[300px]">
-                                    <div className="absolute left-[11px] top-2 bottom-2 w-px bg-border-subtle/50"></div>
+                                <div className="flex-1 overflow-y-auto pr-2 hide-scrollbar relative min-h-[300px] max-h-[400px]">
+                                    <div className="absolute left-[11px] top-2 bottom-2 w-px bg-border-subtle"></div>
                                     {isLoading ? (
                                         <div className="flex justify-center items-center py-12">
-                                            <Loader2 className="w-6 h-6 animate-spin text-brand-teal" />
+                                            <Loader2 className="w-6 h-6 animate-spin text-[var(--color-brand-primary)]" />
                                         </div>
                                     ) : stats?.recentActivities && stats.recentActivities.length > 0 ? (
                                         <div className="relative pl-3 space-y-6 before:absolute before:inset-y-0 before:left-[11px] before:w-[2px] before:bg-border-subtle/50">
-                                            {stats.recentActivities.map((activity) => {
-                                                let iconStyle = 'bg-brand-primary/10 text-brand-primary';
+                                            {stats.recentActivities.slice(0, 5).map((activity) => {
+                                                let iconStyle = 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400';
                                                 let Icon = MessageSquare;
                                                 
                                                 if (activity.entityType === 'QUOTATION') {
-                                                    iconStyle = 'bg-purple-50 text-purple-600';
+                                                    iconStyle = 'bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400';
                                                     Icon = FileText;
                                                 } else if (activity.entityType === 'USER') {
-                                                    iconStyle = 'bg-[#FFF7ED] text-[#EA580C]';
+                                                    iconStyle = 'bg-orange-50 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400';
                                                     Icon = User;
                                                 }
 
@@ -819,15 +748,13 @@ export default function Dashboard() {
                                                         <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 z-10 ${iconStyle} shadow-sm ring-4 ring-bg-card -ml-[11px]`}>
                                                             <Icon className="w-3 h-3" />
                                                         </div>
-                                                        <div className="flex-1 min-w-0 pt-0.5 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1">
-                                                            <div>
-                                                                <p className="text-[13px] font-bold text-text-primary leading-snug">{activity.action}</p>
-                                                                {entityLabel && (
-                                                                    <p className="text-[12px] text-text-muted mt-0.5 truncate max-w-[160px]">{entityLabel}</p>
-                                                                )}
-                                                            </div>
-                                                            <div className="text-[11px] text-text-muted font-medium whitespace-nowrap pt-0.5">
-                                                                {activity.createdAt ? new Date(activity.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''}
+                                                        <div className="flex-1 min-w-0 flex flex-col">
+                                                            <p className="text-[13px] font-bold text-text-primary leading-snug">{activity.action}</p>
+                                                            <div className="flex items-center justify-between mt-1">
+                                                                <p className="text-[12px] text-text-muted truncate max-w-[150px]">{entityLabel}</p>
+                                                                <span className="text-[11px] text-text-muted font-medium shrink-0">
+                                                                    {activity.createdAt ? new Date(activity.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''}
+                                                                </span>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -838,7 +765,47 @@ export default function Dashboard() {
                                         <div className="flex flex-col items-center justify-center text-text-secondary h-full pt-10 pb-12">
                                             <Clock className="w-10 h-10 mb-3 opacity-20 text-text-muted" />
                                             <p className="text-[13px] font-semibold text-text-primary">No recent activity</p>
-                                            <p className="text-[11px] mt-1 text-text-muted text-center">Activities matching criteria will appear here.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Upcoming Follow-ups (Replaces System Status) */}
+                            <div className="bg-bg-card rounded-[24px] border border-border-subtle p-6 flex flex-col shadow-sm">
+                                <div className="flex items-center justify-between mb-6">
+                                    <h2 className="text-[18px] font-bold text-text-primary tracking-tight">Upcoming Follow-ups</h2>
+                                    <Link to="/crm/leads" className="text-[13px] font-semibold text-[var(--color-brand-primary)] hover:opacity-80 transition-opacity">
+                                        CRM &rarr;
+                                    </Link>
+                                </div>
+                                
+                                <div className="flex flex-col gap-4">
+                                    {isFollowUpsLoading ? (
+                                        <div className="flex justify-center items-center py-6">
+                                            <Loader2 className="w-6 h-6 animate-spin text-[var(--color-brand-primary)]" />
+                                        </div>
+                                    ) : upcomingFollowUps && upcomingFollowUps.length > 0 ? (
+                                        upcomingFollowUps.map(followUp => (
+                                            <div key={followUp.id} className="flex items-start gap-3 p-3 rounded-xl border border-border-subtle bg-bg-main hover:bg-bg-hover transition-colors">
+                                                <div className="w-9 h-9 rounded-lg bg-orange-50 dark:bg-orange-500/10 flex items-center justify-center shrink-0 mt-0.5">
+                                                    <PhoneCall className="w-4 h-4 text-orange-500" />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <span className="text-[13px] font-bold text-text-primary truncate">{followUp.lead?.companyName || followUp.lead?.contactName || 'Lead Follow-up'}</span>
+                                                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-orange-100/50 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400 whitespace-nowrap">
+                                                            {new Date(followUp.followUpDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-[12px] text-text-secondary truncate">{followUp.notes || followUp.type}</p>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center text-text-secondary py-8 border border-dashed border-border-subtle rounded-xl">
+                                            <CheckCircle className="w-8 h-8 mb-2 text-emerald-500/50" />
+                                            <p className="text-[13px] font-semibold text-text-primary">No upcoming follow-ups</p>
+                                            <p className="text-[11px] text-text-muted mt-1">You're all caught up!</p>
                                         </div>
                                     )}
                                 </div>
@@ -846,62 +813,61 @@ export default function Dashboard() {
                         </div>
                     </div>
 
-                    {/* Recent Enquiries Table */}
-                    <div className="acx-card flex flex-col">
+                    {/* Recent Enquiries Table (Kept at bottom to preserve exact existing functionality) */}
+                    <div className="bg-bg-card rounded-[24px] border border-border-subtle shadow-sm flex flex-col overflow-hidden mt-2">
                         <div className="px-6 py-5 flex items-center justify-between border-b border-border-subtle">
-                            <h2 className="text-base font-bold text-text-primary tracking-tight">Recent Enquiries</h2>
-                            <Link to="/enquiries" className="text-[12px] font-semibold text-[var(--color-brand-primary)] hover:text-brand-primary/90 transition-colors flex items-center">
-                                View all <ChevronRight className="w-3.5 h-3.5 " />
+                            <h2 className="text-[18px] font-bold text-text-primary tracking-tight">Recent Enquiries</h2>
+                            <Link to="/enquiries" className="text-[13px] font-semibold text-[var(--color-brand-primary)] hover:opacity-80 transition-opacity flex items-center">
+                                View all <ChevronRight className="w-3.5 h-3.5 ml-1" />
                             </Link>
                         </div>
-                        <div className="acx-table-container">
+                        <div className="overflow-x-auto">
                             {isLoading ? (
-                                <div className="flex justify-center items-center py-12 bg-bg-card rounded-b-[24px]">
+                                <div className="flex justify-center items-center py-12">
                                     <Loader2 className="w-6 h-6 animate-spin text-[var(--color-brand-primary)]" />
                                 </div>
                             ) : stats?.recentEnquiries && stats.recentEnquiries.length > 0 ? (
-                                <table className="acx-table">
+                                <table className="w-full text-left border-collapse">
                                     <thead>
                                         <tr>
-                                            <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card rounded-bl-[24px]">#</th>
-                                            <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Client</th>
-                                            <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Company</th>
-                                            <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Service</th>
-                                            <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Status</th>
-                                            <th className="px-6 py-4 text-left text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card">Date</th>
-                                            <th className="px-6 py-4 text-center text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card rounded-br-[24px]">Actions</th>
+                                            <th className="px-6 py-4 text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-main">#</th>
+                                            <th className="px-6 py-4 text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-main">Client</th>
+                                            <th className="px-6 py-4 text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-main">Company</th>
+                                            <th className="px-6 py-4 text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-main">Service</th>
+                                            <th className="px-6 py-4 text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-main">Status</th>
+                                            <th className="px-6 py-4 text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-main">Date</th>
+                                            <th className="px-6 py-4 text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-main text-center">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="bg-bg-card divide-y divide-border-subtle/40">
+                                    <tbody className="divide-y divide-border-subtle">
                                         {stats.recentEnquiries.map((enq) => (
                                             <tr 
                                                 key={enq.id} 
                                                 onDoubleClick={() => handleOpenEnquiry(enq)}
-                                                className="hover:bg-bg-hover transition-colors cursor-pointer select-none"
-                                                title="Double-click to open enquiry details"
+                                                className="hover:bg-bg-hover transition-colors cursor-pointer"
                                             >
-                                                <td className="px-6 py-3.5 whitespace-nowrap text-[13px] font-bold text-text-primary">
+                                                <td className="px-6 py-4 whitespace-nowrap text-[13px] font-bold text-text-primary">
                                                     {enq.referenceId || `ACX-ENQ-${enq.id}`}
                                                 </td>
-                                                <td className="px-6 py-3.5 whitespace-nowrap text-[13px] font-medium text-text-secondary">
+                                                <td className="px-6 py-4 whitespace-nowrap text-[13px] font-medium text-text-secondary">
                                                     {enq.fullName}
                                                 </td>
-                                                <td className="px-6 py-3.5 whitespace-nowrap text-[13px] text-text-secondary">
+                                                <td className="px-6 py-4 whitespace-nowrap text-[13px] text-text-secondary">
                                                     {enq.companyName || '—'}
                                                 </td>
-                                                <td className="px-6 py-3.5 whitespace-nowrap text-[13px] text-text-secondary">
+                                                <td className="px-6 py-4 whitespace-nowrap text-[13px] text-text-secondary">
                                                     {enq.serviceRequired || '—'}
                                                 </td>
-                                                <td className="px-6 py-3.5 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                                                    <span className={`inline-flex items-center text-[10px] font-bold tracking-wider ${getStatusStyle(enq.status)}`}>
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-current "></span>
+                                                <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                                                    <span className={`inline-flex items-center text-[11px] font-bold tracking-wider ${getStatusStyle(enq.status)}`}>
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5"></span>
                                                         {getStatusLabel(enq.status)}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-3.5 whitespace-nowrap text-[12px] text-text-muted font-medium">
+                                                <td className="px-6 py-4 whitespace-nowrap text-[12px] text-text-muted font-medium">
                                                     {new Date(enq.createdAt).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
                                                 </td>
-                                                <td className="px-6 py-3.5 whitespace-nowrap text-center relative" onClick={(e) => e.stopPropagation()}>
+                                                <td className="px-6 py-4 whitespace-nowrap text-center relative" onClick={(e) => e.stopPropagation()}>
                                                     <ActionMenu
                                                         ariaLabel="More enquiry actions"
                                                         icon={MoreHorizontal}
@@ -922,95 +888,47 @@ export default function Dashboard() {
                                                         }}
                                                         renderContent={(close) => (
                                                             <div>
-                                                                {/* OPEN SECTION */}
-                                                                <div className="px-3 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
-                                                                    Open
-                                                                </div>
+                                                                <div className="px-3 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">Open</div>
                                                                 <button
                                                                     type="button"
-                                                                    onClick={() => {
-                                                                        close();
-                                                                        handleOpenEnquiry(enq);
-                                                                    }}
+                                                                    onClick={() => { close(); handleOpenEnquiry(enq); }}
                                                                     className="btn btn-primary btn-sm w-full"
                                                                 >
-                                                                    <Eye className="w-3.5 h-3.5 text-[var(--color-brand-primary)]" />
-                                                                    Open Enquiry
+                                                                    <Eye className="w-3.5 h-3.5 text-[var(--color-brand-primary)]" /> Open Enquiry
                                                                 </button>
 
                                                                 <div className="my-1 border-t border-border-subtle"></div>
-
-                                                                {/* QUOTATION SECTION */}
-                                                                <div className="px-3 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
-                                                                    Quotation
-                                                                </div>
-                                                                <Link
-                                                                    to={`/quotations/new/${enq.id}`}
-                                                                    onClick={close}
-                                                                    className="flex items-center w-full px-3 py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover rounded-xl transition-colors"
-                                                                >
-                                                                    <Plus className="w-3.5 h-3.5 text-brand-success" />
-                                                                    Create Quotation
+                                                                <div className="px-3 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">Quotation</div>
+                                                                <Link to={`/quotations/new/${enq.id}`} onClick={close} className="flex items-center w-full px-3 py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover rounded-xl transition-colors">
+                                                                    <Plus className="w-3.5 h-3.5 text-brand-success mr-2" /> Create Quotation
                                                                 </Link>
-
                                                                 {rowQuotationsMap[enq.id] && rowQuotationsMap[enq.id].length > 0 && (
                                                                     rowQuotationsMap[enq.id].length === 1 ? (
-                                                                        <Link
-                                                                            to={`/quotations/edit/${rowQuotationsMap[enq.id][0].id}`}
-                                                                            onClick={close}
-                                                                            className="flex items-center w-full px-3 py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover rounded-xl transition-colors"
-                                                                        >
-                                                                            <FileText className="w-3.5 h-3.5 text-purple-600" />
-                                                                            Open Quotation
+                                                                        <Link to={`/quotations/edit/${rowQuotationsMap[enq.id][0].id}`} onClick={close} className="flex items-center w-full px-3 py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover rounded-xl transition-colors">
+                                                                            <FileText className="w-3.5 h-3.5 text-purple-600 mr-2" /> Open Quotation
                                                                         </Link>
                                                                     ) : (
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => {
-                                                                                close();
-                                                                                handleOpenEnquiry(enq);
-                                                                            }}
-                                                                            className="btn btn-primary btn-sm w-full"
-                                                                        >
-                                                                            <span className="flex items-center">
-                                                                                <FileText className="w-3.5 h-3.5 text-purple-600" />
-                                                                                Open Quotation
-                                                                            </span>
-                                                                            <span className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full font-bold">
-                                                                                {rowQuotationsMap[enq.id].length}
-                                                                            </span>
+                                                                        <button type="button" onClick={() => { close(); handleOpenEnquiry(enq); }} className="btn btn-primary btn-sm w-full flex justify-between">
+                                                                            <span className="flex items-center"><FileText className="w-3.5 h-3.5 text-purple-600 mr-2" /> Open Quotation</span>
+                                                                            <span className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full font-bold">{rowQuotationsMap[enq.id].length}</span>
                                                                         </button>
                                                                     )
                                                                 )}
 
                                                                 <div className="my-1 border-t border-border-subtle"></div>
-
-                                                                {/* UPDATE STATUS SECTION */}
-                                                                <div className="px-3 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
-                                                                    Update Status
-                                                                </div>
-
+                                                                <div className="px-3 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">Update Status</div>
                                                                 {['NEW', 'CONTACTED', 'QUOTED', 'CONVERTED', 'CLOSED'].map((st) => (
                                                                     <button
                                                                         key={st}
                                                                         type="button"
-                                                                        onClick={() => {
-                                                                            close();
-                                                                            handleUpdateEnquiryStatus(enq.id, st);
-                                                                        }}
-                                                                        className={`flex items-center justify-between w-full px-3 py-1.5 text-xs rounded-lg transition-colors ${
-                                                                            normalizeStatus(enq.status) === st
-                                                                                ? 'bg-brand-primary/10 text-[var(--color-brand-primary)] font-bold dark:bg-[#312E81]/30'
-                                                                                : 'text-text-secondary hover:bg-bg-hover font-medium'
-                                                                        }`}
+                                                                        onClick={() => { close(); handleUpdateEnquiryStatus(enq.id, st); }}
+                                                                        className={`flex items-center justify-between w-full px-3 py-1.5 text-xs rounded-lg transition-colors ${normalizeStatus(enq.status) === st ? 'bg-brand-primary/10 text-[var(--color-brand-primary)] font-bold dark:bg-[#312E81]/30' : 'text-text-secondary hover:bg-bg-hover font-medium'}`}
                                                                     >
-                                                                        <span className="btn btn-secondary btn-md">
+                                                                        <span className="flex items-center">
                                                                             <span className={`w-1.5 h-1.5 rounded-full mr-2 ${getStatusStyle(st).replace('text-', 'bg-')}`} />
                                                                             {getStatusLabel(st)}
                                                                         </span>
-                                                                        {normalizeStatus(enq.status) === st && (
-                                                                            <Check className="w-3.5 h-3.5 text-[var(--color-brand-primary)]" />
-                                                                        )}
+                                                                        {normalizeStatus(enq.status) === st && <Check className="w-3.5 h-3.5 text-[var(--color-brand-primary)]" />}
                                                                     </button>
                                                                 ))}
                                                             </div>
@@ -1022,7 +940,7 @@ export default function Dashboard() {
                                     </tbody>
                                 </table>
                             ) : (
-                                <div className="px-6 py-16 flex flex-col items-center justify-center bg-bg-card rounded-b-[24px]">
+                                <div className="px-6 py-16 flex flex-col items-center justify-center">
                                     <div className="w-12 h-12 rounded-full bg-bg-muted flex items-center justify-center mb-4">
                                         <Inbox className="w-5 h-5 text-text-muted" />
                                     </div>
