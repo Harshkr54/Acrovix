@@ -544,76 +544,235 @@ export default function Dashboard() {
                         
                         {/* Left Column: Analytics Chart (2/3 width) */}
                         <div className="lg:col-span-2">
-                            <div className="acx-card p-6 flex flex-col h-full min-h-[360px]">
-                                <div className="flex items-center justify-between mb-6">
-                                    <h2 className="text-base font-bold text-text-primary tracking-tight">Enquiries Overview</h2>
-                                    <div className="flex items-center px-3 py-1.5 rounded-lg border border-border-subtle bg-bg-card text-xs font-semibold text-text-secondary">
-                                        <Clock className="w-3.5 h-3.5 mr-2 text-text-muted" />
+                            <div className="bg-white rounded-[24px] border border-border-subtle p-6 flex flex-col h-full min-h-[500px] shadow-[0_4px_24px_rgba(11,25,44,0.02)]">
+                                {/* Header */}
+                                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-8">
+                                    <div className="flex items-start gap-4">
+                                        <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100/50">
+                                            <Activity className="w-5 h-5 text-blue-500" />
+                                        </div>
+                                        <div>
+                                            <h2 className="text-[20px] font-bold text-text-primary tracking-tight">Enquiries Overview</h2>
+                                            <p className="text-[14px] text-text-muted mt-0.5">Track new enquiries and total enquiries received over time</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-border-subtle bg-white shadow-sm text-[13px] font-semibold text-text-secondary cursor-pointer hover:bg-bg-hover transition-colors">
+                                        <Clock className="w-4 h-4 text-text-muted" />
                                         {getChartTrendLabel(appliedFilters.dateRange)}
+                                        <ChevronRight className="w-4 h-4 ml-1 opacity-50 rotate-90" />
+                                    </div>
+                                </div>
+
+                                {/* KPIs inside Chart */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-10">
+                                    <div className="p-4 rounded-[20px] bg-[#F8FAFC] border border-[#E2E8F0] flex items-center gap-4 transition-all hover:shadow-sm">
+                                        <div className="w-12 h-12 rounded-[14px] bg-blue-100/50 text-blue-600 flex items-center justify-center shrink-0">
+                                            <FileText className="w-6 h-6" />
+                                        </div>
+                                        <div>
+                                            <div className="text-[26px] font-bold text-text-primary leading-none tracking-tight">
+                                                {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-blue-600 mt-1" /> : (stats?.totalEnquiries ?? 0)}
+                                            </div>
+                                            <div className="text-[13px] font-medium text-text-secondary mt-1">Total Enquiries</div>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-4 rounded-[20px] bg-[#F0FDF4] border border-[#DCFCE7] flex items-center gap-4 transition-all hover:shadow-sm">
+                                        <div className="w-12 h-12 rounded-[14px] bg-emerald-100/50 text-emerald-600 flex items-center justify-center shrink-0">
+                                            <User className="w-6 h-6" />
+                                        </div>
+                                        <div>
+                                            <div className="text-[26px] font-bold text-text-primary leading-none tracking-tight">
+                                                {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-emerald-600 mt-1" /> : (stats?.newEnquiries ?? 0)}
+                                            </div>
+                                            <div className="text-[13px] font-medium text-text-secondary mt-1">New Enquiries</div>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-4 rounded-[20px] bg-[#FAF5FF] border border-[#F3E8FF] flex items-center gap-4 transition-all hover:shadow-sm">
+                                        <div className="w-12 h-12 rounded-[14px] bg-purple-100/50 text-purple-600 flex items-center justify-center shrink-0">
+                                            <Activity className="w-6 h-6" />
+                                        </div>
+                                        <div>
+                                            <div className="text-[26px] font-bold text-text-primary leading-none tracking-tight">
+                                                {isLoading ? <Loader2 className="w-5 h-5 animate-spin text-purple-600 mt-1" /> : (stats?.totalQuotations ?? 0)}
+                                            </div>
+                                            <div className="text-[13px] font-medium text-text-secondary mt-1">Total Quotations</div>
+                                        </div>
                                     </div>
                                 </div>
                                 
-                                {/* Dynamic Chart Bars */}
-                                <div className="flex-1 relative flex items-end justify-between gap-2 px-2 pb-4 min-h-[220px] pt-8 border-b border-border-subtle/50 overflow-x-auto">
-                                    {isLoading ? (
-                                        <div className="w-full flex justify-center items-center h-full">
-                                            <Loader2 className="w-6 h-6 animate-spin text-[var(--color-brand-primary)]" />
-                                        </div>
-                                    ) : stats?.monthlyOverview && stats.monthlyOverview.length > 0 ? (
-                                        (() => {
-                                            const overviewData = stats.monthlyOverview;
-                                            const maxEnquiryCount = Math.max(
-                                                1,
-                                                ...overviewData.map(i => Math.max(Number(i.totalEnquiries) || 0, Number(i.newEnquiries) || 0))
-                                            );
+                                {/* Dynamic Chart Area */}
+                                <div className="flex-1 min-h-[280px] flex flex-col relative w-full overflow-x-auto overflow-y-hidden hide-scrollbar">
+                                    <div className="min-w-[600px] h-full flex flex-col relative">
+                                        <div className="absolute top-0 left-0 text-[12px] font-medium text-text-muted">Enquiries</div>
+                                        
+                                        {isLoading ? (
+                                            <div className="w-full flex justify-center items-center h-full">
+                                                <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+                                            </div>
+                                        ) : stats?.monthlyOverview && stats.monthlyOverview.length > 0 ? (
+                                            (() => {
+                                                const overviewData = stats.monthlyOverview;
+                                                const getNiceMax = (max) => {
+                                                    if (max <= 10) return 10;
+                                                    const magnitude = Math.pow(10, Math.floor(Math.log10(max)));
+                                                    return Math.ceil(max / magnitude) * magnitude;
+                                                };
+                                                const maxEnq = Math.max(1, ...overviewData.map(i => Math.max(Number(i.totalEnquiries) || 0, Number(i.newEnquiries) || 0)));
+                                                const niceMax = getNiceMax(maxEnq);
+                                                const ticks = [1, 0.75, 0.5, 0.25, 0].map(m => Math.round(niceMax * m));
 
-                                            return overviewData.map((item, idx) => {
-                                                const totalHeightPct = Math.max(10, Math.round(((item.totalEnquiries || 0) / maxEnquiryCount) * 100));
-                                                const newHeightPct = Math.max(8, Math.round(((item.newEnquiries || 0) / maxEnquiryCount) * 100));
+                                                const points = overviewData.map((item, index) => {
+                                                    const x = ((index + 0.5) / overviewData.length) * 100;
+                                                    const y = 100 - (item.totalEnquiries / niceMax) * 100;
+                                                    return { x, y };
+                                                });
+                                                
+                                                const areaPath = `M 0 100 L ${points[0]?.x} ${points[0]?.y} ` +
+                                                    points.slice(1).map((p, i) => {
+                                                        const prev = points[i];
+                                                        return `C ${prev.x + (p.x - prev.x) / 2} ${prev.y} ${prev.x + (p.x - prev.x) / 2} ${p.y} ${p.x} ${p.y}`;
+                                                    }).join(' ') +
+                                                    ` L 100 100 Z`;
+
+                                                const linePath = `M ${points[0]?.x} ${points[0]?.y} ` +
+                                                    points.slice(1).map((p, i) => {
+                                                        const prev = points[i];
+                                                        return `C ${prev.x + (p.x - prev.x) / 2} ${prev.y} ${prev.x + (p.x - prev.x) / 2} ${p.y} ${p.x} ${p.y}`;
+                                                    }).join(' ');
 
                                                 return (
-                                                    <div key={idx} className="flex-1 min-w-[28px] flex flex-col items-center gap-2 h-full justify-end group relative">
-                                                        {/* Tooltip */}
-                                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-10 bg-text-primary text-bg-main text-[10px] font-bold py-1 px-2 rounded-md shadow-lg pointer-events-none whitespace-nowrap z-20">
-                                                            {item.month}: {item.totalEnquiries} Total ({item.newEnquiries} New)
+                                                    <div className="flex-1 relative flex mt-6">
+                                                        {/* Y Axis & Horizontal Grids */}
+                                                        <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+                                                            {ticks.map((t, i) => (
+                                                                <div key={i} className="w-full flex items-center -mt-2">
+                                                                    <div className="w-[30px] shrink-0 text-left text-[12px] font-medium text-text-muted">{t}</div>
+                                                                    <div className="flex-1 border-t border-dashed border-[#E2E8F0]" />
+                                                                </div>
+                                                            ))}
                                                         </div>
 
-                                                        {/* Bars Container */}
-                                                        <div className="w-full max-w-[40px] flex items-end justify-center gap-1 h-full">
-                                                            {/* Total Enquiries Bar */}
-                                                            <div
-                                                                className="w-1/2 bg-brand-primary/10 border border-[#818CF8]/30 dark:bg-[#312E81]/30 dark:border-[#6366F1]/40 rounded-t-md transition-all duration-500"
-                                                                style={{ height: `${totalHeightPct}%` }}
-                                                            />
-                                                            {/* New Enquiries Bar */}
-                                                            <div
-                                                                className="w-1/2 bg-[var(--color-brand-primary)] rounded-t-md transition-all duration-500 shadow-sm"
-                                                                style={{ height: `${newHeightPct}%` }}
-                                                            />
+                                                        {/* Chart Content Area */}
+                                                        <div className="flex-1 relative ml-[40px]">
+                                                            {/* SVG Trend Line Overlay */}
+                                                            <div className="absolute inset-0 pointer-events-none z-10">
+                                                                <svg className="w-full h-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                                                    <defs>
+                                                                        <linearGradient id="trendGradient" x1="0" x2="0" y1="0" y2="1">
+                                                                            <stop offset="0%" stopColor="#818CF8" stopOpacity="0.15"/>
+                                                                            <stop offset="100%" stopColor="#818CF8" stopOpacity="0"/>
+                                                                        </linearGradient>
+                                                                    </defs>
+                                                                    <path d={areaPath} fill="url(#trendGradient)" vectorEffect="non-scaling-stroke" />
+                                                                    <path d={linePath} fill="none" stroke="#C7D2FE" strokeWidth="2.5" vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" />
+                                                                    {points.map((p, i) => (
+                                                                        <circle key={i} cx={p.x} cy={p.y} r="3" fill="#fff" stroke="#A5B4FC" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+                                                                    ))}
+                                                                </svg>
+                                                            </div>
+
+                                                            {/* Bars Container */}
+                                                            <div className="absolute inset-0 flex items-end">
+                                                                {overviewData.map((item, idx) => {
+                                                                    const totalHeightPct = Math.max(1, (item.totalEnquiries / niceMax) * 100);
+                                                                    const newHeightPct = Math.max(1, (item.newEnquiries / niceMax) * 100);
+                                                                    
+                                                                    return (
+                                                                        <div key={idx} className="flex-1 h-full flex flex-col justify-end items-center group relative z-20">
+                                                                            {/* Tooltip */}
+                                                                            <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-[calc(100%+10px)] bg-white border border-border-subtle p-3 rounded-[16px] shadow-[0_8px_30px_rgba(0,0,0,0.08)] pointer-events-none w-[170px] z-30">
+                                                                                <div className="text-[13px] font-bold text-text-primary mb-2.5">{item.month}</div>
+                                                                                <div className="flex justify-between items-center mb-1.5">
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        <div className="w-2.5 h-2.5 rounded-full bg-[#3B82F6]"></div>
+                                                                                        <span className="text-[12px] font-medium text-text-secondary">New Enquiries</span>
+                                                                                    </div>
+                                                                                    <span className="text-[13px] font-bold text-text-primary">{item.newEnquiries}</span>
+                                                                                </div>
+                                                                                <div className="flex justify-between items-center">
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        <div className="w-2.5 h-2.5 rounded-full bg-[#A5B4FC]"></div>
+                                                                                        <span className="text-[12px] font-medium text-text-secondary">Total Enquiries</span>
+                                                                                    </div>
+                                                                                    <span className="text-[13px] font-bold text-text-primary">{item.totalEnquiries}</span>
+                                                                                </div>
+                                                                            </div>
+
+                                                                            {/* Bars Group */}
+                                                                            <div className="w-[44px] max-w-full flex items-end justify-center gap-[4px] h-full cursor-pointer transition-transform group-hover:-translate-y-1">
+                                                                                {/* New Enquiries Bar */}
+                                                                                <div
+                                                                                    className="w-1/2 bg-[#3B82F6] rounded-t-[6px] relative"
+                                                                                    style={{ height: `${newHeightPct}%` }}
+                                                                                >
+                                                                                    {item.newEnquiries > 0 && (
+                                                                                        <span className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 text-[11px] font-bold text-text-primary">
+                                                                                            {item.newEnquiries}
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
+                                                                                {/* Total Enquiries Bar */}
+                                                                                <div
+                                                                                    className="w-1/2 bg-[#A5B4FC] rounded-t-[6px] relative"
+                                                                                    style={{ height: `${totalHeightPct}%` }}
+                                                                                >
+                                                                                    {item.totalEnquiries > 0 && (
+                                                                                        <span className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 text-[11px] font-bold text-text-primary">
+                                                                                            {item.totalEnquiries}
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                            
+                                                            {/* X Axis Labels */}
+                                                            <div className="absolute top-full left-0 right-0 flex pt-3 border-t border-[#E2E8F0]">
+                                                                {overviewData.map((item, idx) => (
+                                                                    <div key={idx} className="flex-1 text-center text-[12px] font-medium text-text-muted">
+                                                                        {item.month}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
                                                         </div>
-                                                        {/* Month/Time Label */}
-                                                        <span className="text-[10px] font-bold text-text-secondary mt-1 whitespace-nowrap">{item.month}</span>
                                                     </div>
                                                 );
-                                            });
-                                        })()
-                                    ) : (
-                                        <div className="w-full flex flex-col items-center justify-center text-text-muted py-12">
-                                            <Activity className="w-8 h-8 mb-2 opacity-40" />
-                                            <span className="text-[13px] font-medium">No trend data for selected criteria</span>
-                                        </div>
-                                    )}
+                                            })()
+                                        ) : (
+                                            <div className="w-full flex flex-col items-center justify-center text-text-muted py-12 mt-6">
+                                                <Activity className="w-8 h-8 mb-2 opacity-40" />
+                                                <span className="text-[13px] font-medium">No enquiry data available</span>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                                 
                                 {/* Legend */}
-                                <div className="flex items-center justify-center gap-6 pt-4">
+                                <div className="flex items-center justify-center gap-8 mt-12 relative">
                                     <div className="flex items-center">
-                                        <div className="w-2.5 h-2.5 rounded-full bg-[var(--color-brand-primary)] mr-2"></div>
-                                        <span className="text-[11px] font-medium text-text-secondary">New Enquiries</span>
+                                        <div className="w-3 h-3 rounded-full bg-[#3B82F6] mr-2"></div>
+                                        <span className="text-[13px] font-medium text-text-secondary">New Enquiries</span>
                                     </div>
                                     <div className="flex items-center">
-                                        <div className="w-2.5 h-2.5 rounded-full bg-brand-primary/10 border border-[var(--color-brand-primary)]/20 mr-2"></div>
-                                        <span className="text-[11px] font-medium text-text-secondary">Total Enquiries</span>
+                                        <div className="w-3 h-3 rounded-full bg-[#A5B4FC] mr-2"></div>
+                                        <span className="text-[13px] font-medium text-text-secondary">Total Enquiries</span>
+                                    </div>
+                                    
+                                    {/* Decorative Note */}
+                                    <div className="absolute right-0 bottom-0 text-[#3B82F6] hidden md:flex items-center opacity-70 italic font-medium text-[13px] translate-y-2">
+                                        <div className="flex flex-col items-end leading-tight mr-1">
+                                            <span>More Enquiries</span>
+                                            <span>More Opportunities</span>
+                                        </div>
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="rotate-[-20deg]">
+                                            <path d="M5 12h14"></path>
+                                            <path d="m12 5 7 7-7 7"></path>
+                                        </svg>
                                     </div>
                                 </div>
                             </div>
