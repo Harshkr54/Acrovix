@@ -173,7 +173,7 @@ export default function Layout() {
                     <img 
                         src={logoLight} 
                         alt="ACROVIX" 
-                        className={`sidebar-logo-image ${isCollapsed ? 'w-full max-w-[70px]' : 'w-[150px]'}`} 
+                        className={`sidebar-logo-image ${isCollapsed ? 'w-full max-w-[70px]' : 'w-[220px] scale-[1.05]'}`} 
                     />
                     <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden absolute right-4 text-text-muted hover:text-text-primary transition-colors p-1 rounded-lg">
                         <X className="w-5 h-5" />

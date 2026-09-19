@@ -219,7 +219,7 @@
   }
 
   .sidebar-logo-image {
-    @apply h-[65px] w-full object-contain transition-all duration-300;
+    @apply h-auto max-h-[90px] w-full object-contain transition-all duration-300;
   }
 
   .sidebar-section-title {
