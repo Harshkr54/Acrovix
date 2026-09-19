@@ -45,4 +45,6 @@ public interface QuotationRepository extends JpaRepository<Quotation, Long>, Jpa
      */
     @Query("SELECT q.status, COUNT(q) FROM Quotation q WHERE q.deletedAt IS NULL GROUP BY q.status")
     List<Object[]> countGroupByStatus();
+
+    boolean existsByCustomerIdAndCreatedById(Long customerId, Long createdById);
 }

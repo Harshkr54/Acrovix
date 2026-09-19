@@ -36,11 +36,14 @@ public class Customer360Service {
     private final PaymentRepository paymentRepository;
     private final EmailLogRepository emailLogRepository;
     private final AdminActivityRepository adminActivityRepository;
+    private final AuthorizationService authorizationService;
 
     @Transactional(readOnly = true)
-    public Customer360Response getCustomer360(Long customerId) {
+    public Customer360Response getCustomer360(Long customerId, AdminUser currentUser) {
         Customer customer = customerRepository.findById(customerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + customerId));
+
+        authorizationService.checkCustomer360Access(currentUser, customer);
 
         Pageable limit50 = PageRequest.of(0, 50);
 

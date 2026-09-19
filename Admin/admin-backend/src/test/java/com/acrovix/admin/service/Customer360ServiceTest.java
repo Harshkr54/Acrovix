@@ -46,11 +46,14 @@ public class Customer360ServiceTest {
     private EmailLogRepository emailLogRepository;
     @Mock
     private AdminActivityRepository adminActivityRepository;
+    @Mock
+    private AuthorizationService authorizationService;
 
     @InjectMocks
     private Customer360Service customer360Service;
 
     private Customer customer;
+    private AdminUser testAdmin;
 
     @BeforeEach
     void setUp() {
@@ -64,6 +67,9 @@ public class Customer360ServiceTest {
                 .active(true)
                 .createdAt(LocalDateTime.now())
                 .build();
+        testAdmin = new AdminUser();
+        testAdmin.setId(10L);
+        testAdmin.setRole(Role.SUPER_ADMIN);
     }
 
     @Test
@@ -77,7 +83,7 @@ public class Customer360ServiceTest {
         when(emailLogRepository.findCustomerEmails(eq("john@doe.com"), eq(1L), any(), any(), any(), any(), any(Pageable.class))).thenReturn(new PageImpl<>(new ArrayList<>()));
         when(adminActivityRepository.findCustomerActivities(eq(1L), any(), any(), any(), any(), any(Pageable.class))).thenReturn(new PageImpl<>(new ArrayList<>()));
 
-        Customer360Response response = customer360Service.getCustomer360(1L);
+        Customer360Response response = customer360Service.getCustomer360(1L, testAdmin);
 
         assertNotNull(response);
         assertEquals(1L, response.getCustomer().getId());
@@ -101,7 +107,7 @@ public class Customer360ServiceTest {
     void getCustomer360_NotFound() {
         when(customerRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class, () -> customer360Service.getCustomer360(99L));
+        assertThrows(ResourceNotFoundException.class, () -> customer360Service.getCustomer360(99L, testAdmin));
     }
 
     @Test
@@ -136,7 +142,7 @@ public class Customer360ServiceTest {
         when(emailLogRepository.findCustomerEmails(eq("john@doe.com"), eq(1L), any(), any(), any(), any(), any(Pageable.class))).thenReturn(new PageImpl<>(new ArrayList<>()));
         when(adminActivityRepository.findCustomerActivities(eq(1L), any(), any(), any(), any(), any(Pageable.class))).thenReturn(new PageImpl<>(new ArrayList<>()));
 
-        Customer360Response response = customer360Service.getCustomer360(1L);
+        Customer360Response response = customer360Service.getCustomer360(1L, testAdmin);
 
         assertNotNull(response);
         assertEquals(2, response.getInvoices().size());

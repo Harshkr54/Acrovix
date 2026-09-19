@@ -1,5 +1,8 @@
 package com.acrovix.admin.controller;
 
+import com.acrovix.admin.security.ratelimit.RateLimit;
+import com.acrovix.admin.security.ratelimit.RateLimitCategory;
+import com.acrovix.admin.util.PaginationUtil;
 import com.acrovix.admin.dto.InvoiceRequest;
 import com.acrovix.admin.dto.InvoiceResponse;
 import com.acrovix.admin.dto.InvoiceItemResponse;
@@ -39,8 +42,9 @@ public class InvoiceController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @AuthenticationPrincipal AdminUser admin) {
+        search = PaginationUtil.getSafeSearch(search);
         
-        Page<InvoiceResponse> invoices = invoiceService.searchInvoices(type, status, search, PageRequest.of(page, size, Sort.by("createdAt").descending()));
+        Page<InvoiceResponse> invoices = invoiceService.searchInvoices(type, status, search, PageRequest.of(page, PaginationUtil.getSafeSize(size), Sort.by("createdAt").descending()), admin);
         return ResponseEntity.ok(invoices);
     }
 
@@ -109,10 +113,11 @@ public class InvoiceController {
         return ResponseEntity.ok(invoiceService.mapToResponse(invoice));
     }
 
+    @RateLimit(category = RateLimitCategory.PDF)
     @GetMapping("/{id}/pdf")
     public ResponseEntity<byte[]> getInvoicePdf(@PathVariable Long id, @AuthenticationPrincipal AdminUser admin) {
         Invoice invoice = invoiceService.getInvoiceById(id, admin); // Just for auth check
-        byte[] pdfBytes = invoiceService.generateInvoicePdf(id);
+        byte[] pdfBytes = invoiceService.generateInvoicePdf(id, admin);
         
         org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
         headers.setContentType(org.springframework.http.MediaType.APPLICATION_PDF);
@@ -122,6 +127,7 @@ public class InvoiceController {
         return new ResponseEntity<>(pdfBytes, headers, org.springframework.http.HttpStatus.OK);
     }
 
+    @RateLimit(category = RateLimitCategory.EMAIL)
     @PostMapping("/{id}/send-email")
     public ResponseEntity<java.util.Map<String, Object>> sendInvoiceEmail(
             @PathVariable Long id,

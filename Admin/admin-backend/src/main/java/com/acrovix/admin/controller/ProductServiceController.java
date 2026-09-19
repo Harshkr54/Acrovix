@@ -1,5 +1,9 @@
 package com.acrovix.admin.controller;
 
+
+import com.acrovix.admin.security.ratelimit.RateLimit;
+import com.acrovix.admin.security.ratelimit.RateLimitCategory;
+import com.acrovix.admin.util.PaginationUtil;
 import com.acrovix.admin.dto.ProductServiceRequest;
 import com.acrovix.admin.dto.ProductServiceResponse;
 import com.acrovix.admin.entity.AdminUser;
@@ -29,6 +33,7 @@ public class ProductServiceController {
             @RequestParam(required = false) ProductServiceType type,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
+        search = com.acrovix.admin.util.PaginationUtil.getSafeSearch(search);
         
         Page<ProductServiceResponse> catalog = catalogService.getCatalog(search, active, type, page, size);
         return ResponseEntity.ok(catalog);

@@ -1,5 +1,9 @@
 package com.acrovix.admin.controller;
 
+
+import com.acrovix.admin.security.ratelimit.RateLimit;
+import com.acrovix.admin.security.ratelimit.RateLimitCategory;
+import com.acrovix.admin.util.PaginationUtil;
 import com.acrovix.admin.entity.AdminEnquiry;
 import com.acrovix.admin.entity.AdminUser;
 import com.acrovix.admin.service.AdminEnquiryService;
@@ -35,7 +39,8 @@ public class AdminEnquiryController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime toDate,
             @AuthenticationPrincipal AdminUser admin) {
-        return ResponseEntity.ok(enquiryService.getAllEnquiries(PageRequest.of(page, size, Sort.by("createdAt").descending()), search, status, industry, service, fromDate, toDate, admin));
+        search = com.acrovix.admin.util.PaginationUtil.getSafeSearch(search);
+        return ResponseEntity.ok(enquiryService.getAllEnquiries(PageRequest.of(page, PaginationUtil.getSafeSize(size), Sort.by("createdAt").descending()), search, status, industry, service, fromDate, toDate, admin));
     }
 
     @GetMapping("/{id}")

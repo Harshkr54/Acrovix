@@ -1,5 +1,9 @@
 package com.acrovix.admin.controller;
 
+
+import com.acrovix.admin.security.ratelimit.RateLimit;
+import com.acrovix.admin.security.ratelimit.RateLimitCategory;
+import com.acrovix.admin.util.PaginationUtil;
 import com.acrovix.admin.dto.CustomerRequest;
 import com.acrovix.admin.dto.CustomerResponse;
 import com.acrovix.admin.entity.AdminUser;
@@ -27,6 +31,7 @@ public class CustomerController {
             @RequestParam(required = false) Boolean active,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
+        search = com.acrovix.admin.util.PaginationUtil.getSafeSearch(search);
         
         Page<CustomerResponse> customers = customerService.getCustomers(search, active, page, size);
         return ResponseEntity.ok(customers);

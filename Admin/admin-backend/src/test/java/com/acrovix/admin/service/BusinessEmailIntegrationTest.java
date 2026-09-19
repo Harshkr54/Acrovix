@@ -107,12 +107,13 @@ class BusinessEmailIntegrationTest {
                 invoiceRepository, customerRepository, quotationRepository,
                 purchaseOrderRepositoryMock(), productServiceRepositoryMock(),
                 companySettingsRepositoryMock(), sequenceGeneratorService,
-                activityRepository, notificationService, pdfService, emailService
+                activityRepository, notificationService, pdfService, emailService,
+                authorizationService
         );
 
         paymentService = new PaymentService(
                 paymentRepository, invoiceRepository, customerRepository,
-                sequenceGeneratorService, activityRepository, pdfService, emailService
+                sequenceGeneratorService, activityRepository, pdfService, emailService, authorizationService
         );
 
         quotationService = new QuotationService(

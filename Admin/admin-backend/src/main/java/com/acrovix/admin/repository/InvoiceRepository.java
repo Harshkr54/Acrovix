@@ -8,7 +8,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+
+public interface InvoiceRepository extends JpaRepository<Invoice, Long>, JpaSpecificationExecutor<Invoice> {
     Page<Invoice> findByInvoiceType(InvoiceType type, Pageable pageable);
 
     Page<Invoice> findByCustomerIdOrderByCreatedAtDesc(Long customerId, Pageable pageable);

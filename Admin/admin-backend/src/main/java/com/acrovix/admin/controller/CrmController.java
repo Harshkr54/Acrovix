@@ -1,5 +1,9 @@
 package com.acrovix.admin.controller;
 
+
+import com.acrovix.admin.security.ratelimit.RateLimit;
+import com.acrovix.admin.security.ratelimit.RateLimitCategory;
+import com.acrovix.admin.util.PaginationUtil;
 import com.acrovix.admin.dto.crm.*;
 import com.acrovix.admin.entity.AdminUser;
 import com.acrovix.admin.entity.LeadPriority;
@@ -45,8 +49,9 @@ public class CrmController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime toDate,
             @AuthenticationPrincipal AdminUser admin) {
+        search = com.acrovix.admin.util.PaginationUtil.getSafeSearch(search);
         return ResponseEntity.ok(crmService.getAllLeads(
-                PageRequest.of(page, size, Sort.by("updatedAt").descending()),
+                PageRequest.of(page, PaginationUtil.getSafeSize(size), Sort.by("updatedAt").descending()),
                 search, status, priority, leadSource, assignedToId, industry, service, fromDate, toDate, admin
         ));
     }
@@ -158,7 +163,7 @@ public class CrmController {
             @RequestParam(defaultValue = "10") int size,
             @AuthenticationPrincipal AdminUser admin) {
         return ResponseEntity.ok(crmService.getUpcomingFollowUps(
-                PageRequest.of(page, size, Sort.by("scheduledAt").ascending()), admin
+                PageRequest.of(page, PaginationUtil.getSafeSize(size), Sort.by("scheduledAt").ascending()), admin
         ));
     }
 

@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +32,7 @@ public class PaymentService {
     private final AdminActivityRepository activityRepository;
     private final PdfService pdfService;
     private final EmailService emailService;
+    private final AuthorizationService authorizationService;
 
     @Transactional(readOnly = true)
     public void sendPaymentReceiptEmail(Long id, String overrideEmail, AdminUser admin) {
@@ -190,9 +192,65 @@ public class PaymentService {
     }
 
     @Transactional(readOnly = true)
-    public Page<PaymentResponse> getPayments(PaymentStatus status, PaymentMethod method, Long customerId, Long invoiceId, String search, Pageable pageable) {
-        String cleanSearch = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
-        Page<Payment> payments = paymentRepository.searchPayments(status, method, customerId, invoiceId, cleanSearch, pageable);
+    public Page<PaymentResponse> getPayments(PaymentStatus status, PaymentMethod method, Long customerId, Long invoiceId, String search, Pageable pageable, AdminUser currentUser) {
+        Specification<Payment> spec = Specification.where(null);
+
+        if (status != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), status));
+        }
+        if (method != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("paymentMethod"), method));
+        }
+        if (customerId != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("customer").get("id"), customerId));
+        }
+        if (invoiceId != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("invoice").get("id"), invoiceId));
+        }
+
+        if (search != null && !search.trim().isEmpty()) {
+            String s = "%" + search.trim().toLowerCase() + "%";
+            spec = spec.and((root, query, cb) -> {
+                var invoiceJoin = root.join("invoice", jakarta.persistence.criteria.JoinType.LEFT);
+                var customerJoin = root.join("customer", jakarta.persistence.criteria.JoinType.LEFT);
+                return cb.or(
+                        cb.like(cb.lower(root.get("paymentNumber")), s),
+                        cb.like(cb.lower(invoiceJoin.get("invoiceNumber")), s),
+                        cb.like(cb.lower(root.get("transactionReference")), s),
+                        cb.like(cb.lower(customerJoin.get("name")), s),
+                        cb.like(cb.lower(customerJoin.get("companyName")), s)
+                );
+            });
+        }
+
+        if (currentUser.getRole() == Role.SALES) {
+            spec = spec.and((root, query, cb) -> {
+                var invoiceJoin = root.join("invoice", jakarta.persistence.criteria.JoinType.LEFT);
+                
+                var poJoin = invoiceJoin.join("purchaseOrder", jakarta.persistence.criteria.JoinType.LEFT);
+                var poQuotationJoin = poJoin.join("quotation", jakarta.persistence.criteria.JoinType.LEFT);
+                var poEnquiryJoin = poQuotationJoin.join("enquiry", jakarta.persistence.criteria.JoinType.LEFT);
+
+                var quotationJoin = invoiceJoin.join("quotation", jakarta.persistence.criteria.JoinType.LEFT);
+                var enquiryJoin = quotationJoin.join("enquiry", jakarta.persistence.criteria.JoinType.LEFT);
+                
+                return cb.or(
+                        cb.equal(root.get("recordedBy").get("id"), currentUser.getId()),
+                        cb.equal(invoiceJoin.get("createdBy").get("id"), currentUser.getId()),
+                        
+                        cb.equal(poJoin.get("createdBy").get("id"), currentUser.getId()),
+                        cb.equal(poQuotationJoin.get("createdBy").get("id"), currentUser.getId()),
+                        cb.isNull(poEnquiryJoin.get("assignedTo")),
+                        cb.equal(poEnquiryJoin.get("assignedTo").get("id"), currentUser.getId()),
+                        
+                        cb.equal(quotationJoin.get("createdBy").get("id"), currentUser.getId()),
+                        cb.isNull(enquiryJoin.get("assignedTo")),
+                        cb.equal(enquiryJoin.get("assignedTo").get("id"), currentUser.getId())
+                );
+            });
+        }
+
+        Page<Payment> payments = paymentRepository.findAll(spec, pageable);
         return payments.map(this::mapToResponse);
     }
 
@@ -230,9 +288,10 @@ public class PaymentService {
 
 
     @Transactional(readOnly = true)
-    public PaymentResponse getPaymentById(Long id) {
+    public PaymentResponse getPaymentById(Long id, AdminUser admin) {
         Payment payment = paymentRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Payment not found with id: " + id));
+        authorizationService.checkPaymentAccess(admin, payment);
         return mapToResponse(payment);
     }
 
@@ -356,9 +415,10 @@ public class PaymentService {
     }
 
     @Transactional(readOnly = true)
-    public byte[] generatePaymentReceiptPdf(Long paymentId) {
+    public byte[] generatePaymentReceiptPdf(Long paymentId, AdminUser admin) {
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new IllegalArgumentException("Payment not found with id: " + paymentId));
+        authorizationService.checkPaymentAccess(admin, payment);
         return pdfService.generatePaymentReceiptPdf(payment);
     }
 

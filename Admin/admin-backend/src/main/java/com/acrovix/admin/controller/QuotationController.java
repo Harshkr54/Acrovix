@@ -1,5 +1,9 @@
 package com.acrovix.admin.controller;
 
+
+import com.acrovix.admin.security.ratelimit.RateLimit;
+import com.acrovix.admin.security.ratelimit.RateLimitCategory;
+import com.acrovix.admin.util.PaginationUtil;
 import com.acrovix.admin.dto.QuotationRequest;
 import com.acrovix.admin.entity.AdminUser;
 import com.acrovix.admin.entity.Quotation;
@@ -39,7 +43,8 @@ public class QuotationController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String search,
             @AuthenticationPrincipal AdminUser admin) {
-        Page<Quotation> quotations = quotationService.getAllQuotations(PageRequest.of(page, size, Sort.by("createdAt").descending()), search, admin);
+        search = com.acrovix.admin.util.PaginationUtil.getSafeSearch(search);
+        Page<Quotation> quotations = quotationService.getAllQuotations(PageRequest.of(page, PaginationUtil.getSafeSize(size), Sort.by("createdAt").descending()), search, admin);
         Page<java.util.Map<String, Object>> dtoPage = quotations.map(this::mapToDto);
         return ResponseEntity.ok(dtoPage);
     }
@@ -51,7 +56,7 @@ public class QuotationController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @AuthenticationPrincipal AdminUser admin) {
-        Page<Quotation> trash = quotationService.getTrashQuotations(PageRequest.of(page, size, Sort.by("deletedAt").descending()), admin);
+        Page<Quotation> trash = quotationService.getTrashQuotations(PageRequest.of(page, PaginationUtil.getSafeSize(size), Sort.by("deletedAt").descending()), admin);
         Page<java.util.Map<String, Object>> dtoPage = trash.map(q -> {
             java.util.Map<String, Object> map = mapToDto(q);
             map.put("deletedAt", q.getDeletedAt());
@@ -144,6 +149,7 @@ public class QuotationController {
         return ResponseEntity.noContent().build();
     }
 
+    @RateLimit(category = RateLimitCategory.PDF)
     @GetMapping("/{id}/pdf")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
     @Transactional(readOnly = true)
@@ -158,6 +164,7 @@ public class QuotationController {
                 .body(pdf);
     }
 
+    @RateLimit(category = RateLimitCategory.EMAIL)
     @PostMapping({"/{id}/send", "/{id}/send-email"})
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
     @Transactional
@@ -211,6 +218,7 @@ public class QuotationController {
         return ResponseEntity.ok(dtos);
     }
 
+    @RateLimit(category = RateLimitCategory.PDF)
     @PostMapping("/preview/pdf")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
     @Transactional(readOnly = true)

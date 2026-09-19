@@ -20,7 +20,7 @@ class AuthorizationServiceTest {
 
     @BeforeEach
     void setUp() {
-        authorizationService = new AuthorizationService();
+        authorizationService = new AuthorizationService(null, null);
 
         superAdmin = AdminUser.builder()
                 .id(1L)

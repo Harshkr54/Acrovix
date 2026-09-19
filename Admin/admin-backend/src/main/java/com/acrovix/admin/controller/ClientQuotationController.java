@@ -2,12 +2,16 @@ package com.acrovix.admin.controller;
 
 import com.acrovix.admin.dto.ClientQuotationResponseRequest;
 import com.acrovix.admin.entity.*;
+import com.acrovix.admin.entity.QuotationResponseSource;
 import com.acrovix.admin.exception.ResourceConflictException;
 import com.acrovix.admin.exception.ResourceNotFoundException;
 import com.acrovix.admin.repository.AdminActivityRepository;
 import com.acrovix.admin.repository.NotificationRepository;
 import com.acrovix.admin.repository.QuotationRepository;
+import com.acrovix.admin.security.ratelimit.RateLimit;
+import com.acrovix.admin.security.ratelimit.RateLimitCategory;
 import com.acrovix.admin.service.NotificationService;
+import com.acrovix.admin.service.QuotationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +39,7 @@ public class ClientQuotationController {
      * View the public quotation summary for a client (no admin data exposed).
      * GET /api/public/quotations/{token}
      */
+    @RateLimit(category = RateLimitCategory.PUBLIC)
     @GetMapping("/{token}")
     @Transactional(readOnly = true)
     public ResponseEntity<Map<String, Object>> viewQuotation(@PathVariable String token) {
@@ -52,6 +57,7 @@ public class ClientQuotationController {
      * Client submits Accept or Reject.
      * POST /api/public/quotations/{token}/respond
      */
+    @RateLimit(category = RateLimitCategory.PUBLIC)
     @PostMapping("/{token}/respond")
     @Transactional
     public ResponseEntity<Map<String, Object>> respondToQuotation(

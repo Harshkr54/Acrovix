@@ -10,6 +10,7 @@ import com.acrovix.admin.util.AmountToWordsConverter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +38,7 @@ public class InvoiceService {
     private final NotificationService notificationService;
     private final PdfService pdfService;
     private final EmailService emailService;
+    private final AuthorizationService authorizationService;
 
     @Transactional(readOnly = true)
     public void sendInvoiceEmail(Long id, String overrideEmail, AdminUser admin) {
@@ -63,9 +65,51 @@ public class InvoiceService {
     }
 
     @Transactional(readOnly = true)
-    public Page<InvoiceResponse> searchInvoices(InvoiceType type, InvoiceStatus status, String search, Pageable pageable) {
-        String cleanSearch = (search != null && !search.trim().isEmpty()) ? search.trim() : null;
-        Page<Invoice> invoices = invoiceRepository.searchInvoices(type, status, cleanSearch, pageable);
+    public Page<InvoiceResponse> searchInvoices(InvoiceType type, InvoiceStatus status, String search, Pageable pageable, AdminUser currentUser) {
+        Specification<Invoice> spec = Specification.where(null);
+
+        if (type != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("invoiceType"), type));
+        }
+        
+        if (status != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), status));
+        }
+
+        if (search != null && !search.trim().isEmpty()) {
+            String s = "%" + search.trim().toLowerCase() + "%";
+            spec = spec.and((root, query, cb) -> cb.or(
+                    cb.like(cb.lower(root.get("invoiceNumber")), s),
+                    cb.like(cb.lower(root.get("clientName")), s),
+                    cb.like(cb.lower(root.get("clientCompany")), s)
+            ));
+        }
+
+        if (currentUser.getRole() == Role.SALES) {
+            spec = spec.and((root, query, cb) -> {
+                var poJoin = root.join("purchaseOrder", jakarta.persistence.criteria.JoinType.LEFT);
+                var poQuotationJoin = poJoin.join("quotation", jakarta.persistence.criteria.JoinType.LEFT);
+                var poEnquiryJoin = poQuotationJoin.join("enquiry", jakarta.persistence.criteria.JoinType.LEFT);
+
+                var quotationJoin = root.join("quotation", jakarta.persistence.criteria.JoinType.LEFT);
+                var enquiryJoin = quotationJoin.join("enquiry", jakarta.persistence.criteria.JoinType.LEFT);
+                
+                return cb.or(
+                        cb.equal(root.get("createdBy").get("id"), currentUser.getId()),
+                        
+                        cb.equal(poJoin.get("createdBy").get("id"), currentUser.getId()),
+                        cb.equal(poQuotationJoin.get("createdBy").get("id"), currentUser.getId()),
+                        cb.isNull(poEnquiryJoin.get("assignedTo")),
+                        cb.equal(poEnquiryJoin.get("assignedTo").get("id"), currentUser.getId()),
+                        
+                        cb.equal(quotationJoin.get("createdBy").get("id"), currentUser.getId()),
+                        cb.isNull(enquiryJoin.get("assignedTo")),
+                        cb.equal(enquiryJoin.get("assignedTo").get("id"), currentUser.getId())
+                );
+            });
+        }
+
+        Page<Invoice> invoices = invoiceRepository.findAll(spec, pageable);
         return invoices.map(this::mapToResponse);
     }
 
@@ -77,8 +121,10 @@ public class InvoiceService {
 
     @Transactional(readOnly = true)
     public Invoice getInvoiceById(Long id, AdminUser admin) {
-        return invoiceRepository.findById(id)
+        Invoice invoice = invoiceRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Invoice not found"));
+        authorizationService.checkInvoiceAccess(admin, invoice);
+        return invoice;
     }
 
     @Transactional
@@ -604,9 +650,8 @@ public class InvoiceService {
     }
 
     @Transactional(readOnly = true)
-    public byte[] generateInvoicePdf(Long id) {
-        Invoice invoice = invoiceRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Invoice not found"));
+    public byte[] generateInvoicePdf(Long id, AdminUser admin) {
+        Invoice invoice = getInvoiceById(id, admin);
         return pdfService.generateInvoicePdf(invoice);
     }
 

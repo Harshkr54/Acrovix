@@ -1,5 +1,8 @@
 package com.acrovix.admin.controller;
 
+import com.acrovix.admin.security.ratelimit.RateLimit;
+import com.acrovix.admin.security.ratelimit.RateLimitCategory;
+import com.acrovix.admin.util.PaginationUtil;
 import com.acrovix.admin.dto.*;
 import com.acrovix.admin.entity.AdminUser;
 import com.acrovix.admin.entity.PaymentMethod;
@@ -33,7 +36,7 @@ public class PaymentController {
             @Valid @RequestBody PaymentRequest request,
             @AuthenticationPrincipal AdminUser admin) {
         var payment = paymentService.recordPayment(request, admin);
-        return ResponseEntity.status(HttpStatus.CREATED).body(paymentService.getPaymentById(payment.getId()));
+        return ResponseEntity.status(HttpStatus.CREATED).body(paymentService.getPaymentById(payment.getId(), admin));
     }
 
     @PostMapping("/payments/{id}/cancel")
@@ -42,7 +45,7 @@ public class PaymentController {
             @Valid @RequestBody PaymentCancelRequest request,
             @AuthenticationPrincipal AdminUser admin) {
         var payment = paymentService.cancelPayment(id, request, admin);
-        return ResponseEntity.ok(paymentService.getPaymentById(payment.getId()));
+        return ResponseEntity.ok(paymentService.getPaymentById(payment.getId(), admin));
     }
 
     @GetMapping("/payments")
@@ -53,33 +56,37 @@ public class PaymentController {
             @RequestParam(required = false) Long invoiceId,
             @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal AdminUser admin) {
+        search = PaginationUtil.getSafeSearch(search);
         Page<PaymentResponse> payments = paymentService.getPayments(status, method, customerId, invoiceId, search,
-                PageRequest.of(page, size, Sort.by("createdAt").descending()));
+                PageRequest.of(page, PaginationUtil.getSafeSize(size), Sort.by("createdAt").descending()), admin);
         return ResponseEntity.ok(payments);
     }
 
     @GetMapping("/payments/eligible-invoices")
     public ResponseEntity<List<EligibleInvoiceResponse>> getEligibleInvoices(
             @RequestParam(required = false) String search) {
+        search = PaginationUtil.getSafeSearch(search);
         return ResponseEntity.ok(paymentService.getEligibleInvoicesForPayment(search));
     }
 
 
     @GetMapping("/payments/{id}")
-    public ResponseEntity<PaymentResponse> getPaymentById(@PathVariable Long id) {
-        return ResponseEntity.ok(paymentService.getPaymentById(id));
+    public ResponseEntity<PaymentResponse> getPaymentById(@PathVariable Long id, @AuthenticationPrincipal AdminUser admin) {
+        return ResponseEntity.ok(paymentService.getPaymentById(id, admin));
     }
 
     @GetMapping("/invoices/{invoiceId}/payments")
-    public ResponseEntity<List<PaymentResponse>> getPaymentsByInvoiceId(@PathVariable Long invoiceId) {
+    public ResponseEntity<List<PaymentResponse>> getPaymentsByInvoiceId(@PathVariable Long invoiceId, @AuthenticationPrincipal AdminUser admin) {
         return ResponseEntity.ok(paymentService.getPaymentsByInvoiceId(invoiceId));
     }
 
+    @RateLimit(category = RateLimitCategory.PDF)
     @GetMapping("/payments/{id}/pdf")
-    public ResponseEntity<byte[]> getPaymentReceiptPdf(@PathVariable Long id) {
-        PaymentResponse payment = paymentService.getPaymentById(id);
-        byte[] pdfBytes = paymentService.generatePaymentReceiptPdf(id);
+    public ResponseEntity<byte[]> getPaymentReceiptPdf(@PathVariable Long id, @AuthenticationPrincipal AdminUser admin) {
+        PaymentResponse payment = paymentService.getPaymentById(id, admin);
+        byte[] pdfBytes = paymentService.generatePaymentReceiptPdf(id, admin);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
@@ -93,16 +100,19 @@ public class PaymentController {
     public ResponseEntity<Page<ReceivableSummaryResponse>> getReceivablesSummary(
             @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        Page<ReceivableSummaryResponse> receivables = paymentService.getReceivablesSummary(search, PageRequest.of(page, size));
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal AdminUser admin) {
+        search = PaginationUtil.getSafeSearch(search);
+        Page<ReceivableSummaryResponse> receivables = paymentService.getReceivablesSummary(search, PageRequest.of(page, PaginationUtil.getSafeSize(size)));
         return ResponseEntity.ok(receivables);
     }
 
     @GetMapping("/dashboard/receivables")
-    public ResponseEntity<DashboardReceivablesResponse> getDashboardReceivablesStats() {
+    public ResponseEntity<DashboardReceivablesResponse> getDashboardReceivablesStats(@AuthenticationPrincipal AdminUser admin) {
         return ResponseEntity.ok(paymentService.getDashboardReceivablesStats());
     }
 
+    @RateLimit(category = RateLimitCategory.EMAIL)
     @PostMapping("/payments/{id}/send-receipt-email")
     public ResponseEntity<java.util.Map<String, Object>> sendPaymentReceiptEmail(
             @PathVariable Long id,

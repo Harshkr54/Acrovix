@@ -42,7 +42,7 @@ class QuotationTrashTest {
     private NotificationService notificationService;
     
     @Spy
-    private AuthorizationService authorizationService = new AuthorizationService();
+    private AuthorizationService authorizationService = new AuthorizationService(null, null);
 
     @InjectMocks
     private QuotationService quotationService;

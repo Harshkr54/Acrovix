@@ -10,7 +10,9 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
 
-public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Long> {
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+
+public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Long>, JpaSpecificationExecutor<PurchaseOrder> {
 
     Optional<PurchaseOrder> findByIdAndDeletedAtIsNull(Long id);
 

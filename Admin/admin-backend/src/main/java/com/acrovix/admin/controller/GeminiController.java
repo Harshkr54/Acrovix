@@ -1,5 +1,9 @@
 package com.acrovix.admin.controller;
 
+
+import com.acrovix.admin.security.ratelimit.RateLimit;
+import com.acrovix.admin.security.ratelimit.RateLimitCategory;
+import com.acrovix.admin.util.PaginationUtil;
 import com.acrovix.admin.service.GeminiExtractionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +19,7 @@ public class GeminiController {
 
     private final GeminiExtractionService geminiExtractionService;
 
+    @RateLimit(category = RateLimitCategory.AI)
     @PostMapping("/extract")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
     public ResponseEntity<String> extractQuotationRows(@RequestBody Map<String, String> body) {

@@ -142,7 +142,7 @@ public class Phase4QaTest {
             // We just verify pdfService can generate PDF without crashing.
 
             System.out.println("I. PDF");
-            byte[] pdfBytes = invoiceService.generateInvoicePdf(proforma.getId());
+            byte[] pdfBytes = invoiceService.generateInvoicePdf(proforma.getId(), admin);
             assertNotNull(pdfBytes);
             assertTrue(pdfBytes.length > 0);
             System.out.println("PDF generated successfully. Length: " + pdfBytes.length);

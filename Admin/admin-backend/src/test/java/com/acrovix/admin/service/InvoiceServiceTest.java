@@ -46,6 +46,9 @@ public class InvoiceServiceTest {
     @Mock
     private PdfService pdfService;
 
+    @Mock
+    private AuthorizationService authorizationService;
+
     @InjectMocks
     private InvoiceService invoiceService;
 
@@ -276,11 +279,11 @@ public class InvoiceServiceTest {
 
         Page<Invoice> invoicePage = new org.springframework.data.domain.PageImpl<>(List.of(invoice));
 
-        when(invoiceRepository.searchInvoices(null, null, null, org.springframework.data.domain.PageRequest.of(0, 10))).thenReturn(invoicePage);
+        when(invoiceRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), any(org.springframework.data.domain.Pageable.class))).thenReturn(invoicePage);
 
         // Test with empty string search -> sanitized to null
         org.springframework.data.domain.Page<com.acrovix.admin.dto.InvoiceResponse> responses = 
-                invoiceService.searchInvoices(null, null, "   ", org.springframework.data.domain.PageRequest.of(0, 10));
+                invoiceService.searchInvoices(null, null, "   ", org.springframework.data.domain.PageRequest.of(0, 10), adminUser);
 
         assertNotNull(responses);
         assertEquals(1, responses.getTotalElements());
@@ -289,7 +292,7 @@ public class InvoiceServiceTest {
         assertEquals(0, new BigDecimal("0.00").compareTo(resp.getAmountPaid()));
         assertEquals(0, new BigDecimal("118000.00").compareTo(resp.getBalanceDue()));
         
-        verify(invoiceRepository).searchInvoices(null, null, null, org.springframework.data.domain.PageRequest.of(0, 10));
+        verify(invoiceRepository).findAll(any(org.springframework.data.jpa.domain.Specification.class), any(org.springframework.data.domain.Pageable.class));
     }
 
     @Test
@@ -304,10 +307,10 @@ public class InvoiceServiceTest {
 
         Page<Invoice> invoicePage = new org.springframework.data.domain.PageImpl<>(List.of(invoice));
 
-        when(invoiceRepository.searchInvoices(InvoiceType.PROFORMA, InvoiceStatus.DRAFT, "ACX", org.springframework.data.domain.PageRequest.of(0, 10))).thenReturn(invoicePage);
+        when(invoiceRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), any(org.springframework.data.domain.Pageable.class))).thenReturn(invoicePage);
 
         org.springframework.data.domain.Page<com.acrovix.admin.dto.InvoiceResponse> responses = 
-                invoiceService.searchInvoices(InvoiceType.PROFORMA, InvoiceStatus.DRAFT, "ACX", org.springframework.data.domain.PageRequest.of(0, 10));
+                invoiceService.searchInvoices(InvoiceType.PROFORMA, InvoiceStatus.DRAFT, "ACX", org.springframework.data.domain.PageRequest.of(0, 10), adminUser);
 
         assertNotNull(responses);
         assertEquals(1, responses.getTotalElements());

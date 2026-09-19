@@ -13,6 +13,7 @@ import com.acrovix.admin.repository.QuotationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,22 +34,46 @@ public class PurchaseOrderService {
     private final EmailService emailService;
 
     @Transactional(readOnly = true)
-    public Page<PurchaseOrderResponse> getPurchaseOrders(String search, PurchaseOrderStatus status, Pageable pageable) {
-        Page<PurchaseOrder> pos;
-        if (search == null) search = "";
-        
+    public Page<PurchaseOrderResponse> getPurchaseOrders(String search, PurchaseOrderStatus status, Pageable pageable, AdminUser currentUser) {
+        Specification<PurchaseOrder> spec = Specification.where((root, query, cb) -> cb.isNull(root.get("deletedAt")));
+
         if (status != null) {
-            pos = purchaseOrderRepository.searchByStatus(search, status, pageable);
-        } else {
-            pos = purchaseOrderRepository.search(search, pageable);
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), status));
         }
-        return pos.map(this::mapToResponse);
+
+        if (search != null && !search.isBlank()) {
+            String s = "%" + search.toLowerCase() + "%";
+            spec = spec.and((root, query, cb) -> cb.or(
+                    cb.like(cb.lower(root.get("poNumber")), s),
+                    cb.like(cb.lower(root.get("clientPoNumber")), s),
+                    cb.like(cb.lower(root.get("quotation").get("quotationNumber")), s),
+                    cb.like(cb.lower(root.get("quotation").get("clientName")), s),
+                    cb.like(cb.lower(root.get("quotation").get("clientCompany")), s)
+            ));
+        }
+
+        if (currentUser.getRole() == Role.SALES) {
+            spec = spec.and((root, query, cb) -> {
+                var quotationJoin = root.join("quotation", jakarta.persistence.criteria.JoinType.LEFT);
+                var enquiryJoin = quotationJoin.join("enquiry", jakarta.persistence.criteria.JoinType.LEFT);
+                
+                return cb.or(
+                        cb.equal(root.get("createdBy").get("id"), currentUser.getId()),
+                        cb.equal(quotationJoin.get("createdBy").get("id"), currentUser.getId()),
+                        cb.isNull(enquiryJoin.get("assignedTo")),
+                        cb.equal(enquiryJoin.get("assignedTo").get("id"), currentUser.getId())
+                );
+            });
+        }
+
+        return purchaseOrderRepository.findAll(spec, pageable).map(this::mapToResponse);
     }
 
     @Transactional(readOnly = true)
-    public PurchaseOrderResponse getPurchaseOrder(Long id) {
+    public PurchaseOrderResponse getPurchaseOrder(Long id, AdminUser currentUser) {
         PurchaseOrder po = purchaseOrderRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Purchase Order not found"));
+        authorizationService.checkPurchaseOrderAccess(currentUser, po);
         return mapToResponse(po);
     }
 
@@ -57,6 +82,8 @@ public class PurchaseOrderService {
 
         Quotation quotation = quotationRepository.findById(request.getQuotationId())
                 .orElseThrow(() -> new ResourceNotFoundException("Quotation not found"));
+                
+        authorizationService.checkQuotationAccess(currentUser, quotation);
         
         if (quotation.getDeletedAt() != null) {
             throw new ResourceNotFoundException("Quotation not found");
@@ -120,6 +147,8 @@ public class PurchaseOrderService {
         PurchaseOrder po = purchaseOrderRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Purchase Order not found"));
 
+        authorizationService.checkPurchaseOrderAccess(currentUser, po);
+
         if (po.getStatus() != PurchaseOrderStatus.RECEIVED) {
             throw new IllegalArgumentException("Purchase Order must be in RECEIVED status to be verified");
         }
@@ -152,6 +181,8 @@ public class PurchaseOrderService {
         
         PurchaseOrder po = purchaseOrderRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Purchase Order not found"));
+
+        authorizationService.checkPurchaseOrderAccess(currentUser, po);
 
         PurchaseOrderStatus oldStatus = po.getStatus();
         PurchaseOrderStatus newStatus = request.getStatus();
@@ -251,9 +282,10 @@ public class PurchaseOrderService {
     }
 
     @Transactional(readOnly = true)
-    public byte[] generatePdf(Long id) {
+    public byte[] generatePdf(Long id, AdminUser currentUser) {
         PurchaseOrder po = purchaseOrderRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Purchase Order not found"));
+        authorizationService.checkPurchaseOrderAccess(currentUser, po);
         return pdfService.generatePurchaseOrderPdf(po);
     }
 }

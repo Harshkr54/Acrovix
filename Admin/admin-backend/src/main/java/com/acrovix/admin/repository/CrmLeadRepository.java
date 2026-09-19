@@ -42,4 +42,6 @@ public interface CrmLeadRepository extends JpaRepository<CrmLead, Long>, JpaSpec
     Page<CrmLead> findByCustomerIdOrderByCreatedAtDesc(Long customerId, Pageable pageable);
 
     List<CrmLead> findByStatusOrderByCreatedAtDesc(LeadStatus status);
+
+    boolean existsByCustomerIdAndAssignedToId(Long customerId, Long assignedToId);
 }
