@@ -102,11 +102,11 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
 
     return (
         <div className="fixed inset-0 bg-text-primary/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="acx-card p-6 md:p-8 max-w-lg w-full border border-border-subtle shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-bg-card p-6 md:p-8 max-w-[560px] w-[calc(100vw-32px)] rounded-[20px] border border-border-subtle shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
                 {/* Close Button */}
                 <button
                     onClick={handleClose}
-                    className="btn btn-primary btn-icon absolute top-5 right-5 inset-y-0 right-0 pr-3"
+                    className="absolute top-5 right-5 w-9 h-9 flex items-center justify-center rounded-[10px] bg-bg-card border border-border-subtle text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors z-10"
                 >
                     <X className="w-5 h-5" />
                 </button>
@@ -118,23 +118,25 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                             <p className="text-[13px] text-text-secondary mt-1">Choose how you want to create this quotation.</p>
                         </div>
 
-                        <div className="space-y-4">
+                        <div className="space-y-3 mt-2">
                             {/* Option 1: From Website Enquiry */}
                             <button
                                 onClick={handleSelectEnquiry}
-                                className="btn btn-primary btn-md w-full"
+                                className="group w-full min-h-[88px] p-4 bg-bg-card hover:bg-brand-primary/5 border border-border-subtle hover:border-brand-primary/40 rounded-[14px] transition-all duration-200 text-left flex items-center gap-4 shadow-sm hover:shadow"
                             >
-                                <div className="w-11 h-11 rounded-xl bg-[var(--color-brand-primary)]/10 flex items-center justify-center text-[var(--color-brand-primary)] group-hover:scale-105 transition-transform flex-shrink-0">
+                                <div className="w-11 h-11 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary shrink-0 transition-transform">
                                     <Globe className="w-5 h-5" />
                                 </div>
-                                <div className="flex-1">
-                                    <div className="flex items-center justify-between">
-                                        <h3 className="text-[15px] font-bold text-text-primary group-hover:text-[var(--color-brand-primary)] transition-colors">
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <h3 className="text-[15px] font-bold text-text-primary group-hover:text-brand-primary transition-colors truncate">
                                             From Website Enquiry
                                         </h3>
-                                        <span className="text-[12px] font-semibold text-[var(--color-brand-primary)] group-hover:translate-x-0.5 transition-transform">Select Enquiry &rarr;</span>
+                                        <span className="text-[12px] font-bold text-brand-primary group-hover:translate-x-0.5 transition-transform shrink-0 whitespace-nowrap">
+                                            Select Enquiry &rarr;
+                                        </span>
                                     </div>
-                                    <p className="text-[13px] text-text-secondary mt-1 leading-relaxed">
+                                    <p className="text-[13px] text-text-secondary mt-1 leading-[1.5] break-words whitespace-normal">
                                         Create a quotation from an existing website enquiry submitted via website contact forms.
                                     </p>
                                 </div>
@@ -143,19 +145,21 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                             {/* Option 2: Direct / Manual Quotation */}
                             <button
                                 onClick={() => setStep(2)}
-                                className="btn btn-secondary btn-md w-full"
+                                className="group w-full min-h-[88px] p-4 bg-bg-card hover:bg-brand-teal/5 border border-border-subtle hover:border-brand-teal/40 rounded-[14px] transition-all duration-200 text-left flex items-center gap-4 shadow-sm hover:shadow"
                             >
-                                <div className="w-11 h-11 rounded-xl bg-[#14B8A6]/10 flex items-center justify-center text-brand-teal group-hover:scale-105 transition-transform flex-shrink-0">
+                                <div className="w-11 h-11 rounded-xl bg-[#14B8A6]/10 flex items-center justify-center text-brand-teal shrink-0 transition-transform">
                                     <UserPlus className="w-5 h-5" />
                                 </div>
-                                <div className="flex-1">
-                                    <div className="flex items-center justify-between">
-                                        <h3 className="text-[15px] font-bold text-text-primary group-hover:text-brand-teal transition-colors">
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <h3 className="text-[15px] font-bold text-text-primary group-hover:text-brand-teal transition-colors truncate">
                                             Direct / Manual Quotation
                                         </h3>
-                                        <span className="text-[12px] font-semibold text-brand-teal group-hover:translate-x-0.5 transition-transform">Create Manually &rarr;</span>
+                                        <span className="text-[12px] font-bold text-brand-teal group-hover:translate-x-0.5 transition-transform shrink-0 whitespace-nowrap">
+                                            Create Manually &rarr;
+                                        </span>
                                     </div>
-                                    <p className="text-[13px] text-text-secondary mt-1 leading-relaxed">
+                                    <p className="text-[13px] text-text-secondary mt-1 leading-[1.5] break-words whitespace-normal">
                                         Create a quotation for orders received directly through phone, WhatsApp, email, referral, walk-in, or other sources.
                                     </p>
                                 </div>
@@ -167,7 +171,7 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                         <div className="flex items-center space-x-3 mb-6">
                             <button
                                 onClick={() => setStep(1)}
-                                className="btn btn-primary btn-icon"
+                                className="btn btn-secondary btn-icon"
                             >
                                 <ArrowLeft className="w-4 h-4" />
                             </button>
@@ -300,7 +304,7 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                                     type="button"
                                     onClick={() => setStep(1)}
                                     disabled={isCreating}
-                                    className="btn btn-primary btn-md"
+                                    className="btn btn-secondary btn-md"
                                 >
                                     Back
                                 </button>
