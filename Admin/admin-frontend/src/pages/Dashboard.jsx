@@ -537,7 +537,7 @@ export default function Dashboard() {
 
                                 {/* Dynamic Chart Area */}
                                 <div className="flex-1 min-h-[300px] flex flex-col relative w-full overflow-x-auto hide-scrollbar pb-8">
-                                    <div className="min-w-[600px] h-full flex flex-col relative">
+                                    <div className="min-w-[400px] lg:min-w-full h-full flex flex-col relative">
                                         
                                         {isLoading ? (
                                             <div className="w-full flex justify-center items-center h-full">

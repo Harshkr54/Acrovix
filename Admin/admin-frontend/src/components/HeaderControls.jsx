@@ -360,10 +360,10 @@ export default function HeaderControls() {
             <div className="hidden sm:block header-divider mx-1 lg:mx-2"></div>
 
             {/* SA Profile / Account Menu */}
-            <div className="hidden sm:flex items-center relative">
+            <div className="flex items-center relative">
                 <div 
                     onClick={() => toggleDropdown('profile')}
-                    className={`flex items-center gap-3 px-1.5 py-1.5 pr-4 rounded-full border shadow-sm cursor-pointer transition-all ${
+                    className={`flex items-center gap-3 px-1.5 py-1.5 sm:pr-4 pr-1.5 rounded-full border shadow-sm cursor-pointer transition-all ${
                         activeDropdown === 'profile'
                             ? 'bg-bg-hover border-border-subtle'
                             : 'bg-bg-card border-border-subtle hover:bg-bg-hover'
@@ -372,11 +372,11 @@ export default function HeaderControls() {
                     <div className="w-[40px] h-[40px] rounded-full bg-[var(--color-brand-primary)] flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-sm">
                         {getInitials(user?.name)}
                     </div>
-                    <div className="flex flex-col justify-center min-w-[100px] max-w-[160px]">
+                    <div className="hidden sm:flex flex-col justify-center min-w-[100px] max-w-[160px]">
                         <span className="text-[13.5px] font-bold text-text-primary leading-tight truncate">{user?.name || 'Admin User'}</span>
                         <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider leading-tight mt-0.5 truncate">{user?.role?.replace('_', ' ')}</span>
                     </div>
-                    <ChevronRight className={`w-4 h-4 text-text-muted transition-transform ml-1 ${activeDropdown === 'profile' ? '-rotate-90' : 'rotate-90'}`} />
+                    <ChevronRight className={`hidden sm:block w-4 h-4 text-text-muted transition-transform ml-1 ${activeDropdown === 'profile' ? '-rotate-90' : 'rotate-90'}`} />
                 </div>
 
                 {activeDropdown === 'profile' && (

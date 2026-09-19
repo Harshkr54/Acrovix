@@ -334,7 +334,7 @@ export default function Layout() {
                         </button>
 
                         {/* Search Bar matching reference */}
-                        <div ref={searchRef} className="relative w-full max-w-[560px] hidden sm:block shrink">
+                        <div ref={searchRef} className="relative w-full max-w-[560px] flex-1 min-w-0">
                                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                 {isSearching ? (
                                     <div className="animate-spin w-4 h-4 border-2 border-[var(--color-brand-primary)] border-t-transparent rounded-full" />
