@@ -9,8 +9,15 @@ export default function Login() {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const { login } = useAuth();
+    const { login, user } = useAuth();
     const navigate = useNavigate();
+
+    // Redirect already authenticated users to dashboard
+    useEffect(() => {
+        if (user) {
+            navigate('/', { replace: true });
+        }
+    }, [user, navigate]);
 
     // Fire-and-forget warm-up ping: wakes the Render backend while the admin
     // is reading the login form, giving the JVM a head start before login.
@@ -27,7 +34,7 @@ export default function Login() {
         try {
             const success = await login(email, password);
             if (success) {
-                navigate('/');
+                navigate('/', { replace: true });
             } else {
                 setError('Invalid email or password. Please try again.');
             }
