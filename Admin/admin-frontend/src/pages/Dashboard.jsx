@@ -235,7 +235,24 @@ export default function Dashboard() {
         ...(stats?.monthlyOverview?.map(m => Math.max(m.totalEnquiries || 0, m.newEnquiries || 0)) || [1])
     );
 
-    const userName = user?.name?.split(' ')[0] || 'User';
+    const userName = user?.firstName || (user?.name ? user.name.split(' ')[0] : 'there');
+
+    const getGreeting = () => {
+        const hour = new Date().getHours();
+        if (hour >= 5 && hour < 12) return 'Good Morning';
+        if (hour >= 12 && hour < 17) return 'Good Afternoon';
+        if (hour >= 17 && hour < 21) return 'Good Evening';
+        return 'Good Night';
+    };
+
+    const [greeting, setGreeting] = useState(getGreeting());
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setGreeting(getGreeting());
+        }, 60000);
+        return () => clearInterval(timer);
+    }, []);
 
     return (
         <div className="space-y-6 max-w-[1600px] mx-auto pb-12">
@@ -244,7 +261,7 @@ export default function Dashboard() {
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-2">
                 <div className="flex flex-col">
                     <h1 className="text-[32px] font-bold text-text-primary tracking-tight leading-none mb-2">
-                        Good Morning, {userName} 👋
+                        {greeting}, {userName} 👋
                     </h1>
                     <p className="text-[14px] text-text-secondary font-medium">Here's what's happening today.</p>
                 </div>
