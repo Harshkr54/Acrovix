@@ -168,25 +168,14 @@ export default function Layout() {
             )}
 
             {/* Sidebar */}
-            <div className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-bg-card border border-border-subtle shadow-[0_4px_24px_rgba(11,25,44,0.04)] transition-all duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isCollapsed ? 'w-[84px]' : 'w-[260px]'} lg:relative lg:translate-x-0 lg:my-3 lg:ml-3 lg:h-[calc(100vh-24px)] rounded-r-[24px] lg:rounded-[24px]`}>
-                <div className="flex items-center justify-between h-[72px] px-5 border-b border-border-subtle/50 shrink-0 relative">
-                    {!isCollapsed ? (
-                        <div className="flex items-center h-full flex-1 min-w-0 pr-2">
-                            <img 
-                                src={theme === 'dark' ? logoDark : logoLight} 
-                                alt="ACROVIX" 
-                                className="h-10 w-full max-w-[140px] object-contain object-left transition-opacity duration-200" 
-                            />
-                        </div>
-                    ) : (
-                        <div className="flex items-center justify-center w-full h-full">
-                            <div className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center border border-brand-primary/20">
-                                <span className="font-bold text-brand-primary text-[15px]">ACX</span>
-                            </div>
-                        </div>
-                    )}
-
-                    <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden text-text-muted hover:text-text-primary transition-colors p-1 rounded-lg">
+            <div className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-bg-card border border-border-subtle shadow-[0_4px_24px_rgba(11,25,44,0.04)] transition-all duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isCollapsed ? 'w-[96px]' : 'w-[260px]'} lg:relative lg:translate-x-0 lg:my-3 lg:ml-3 lg:h-[calc(100vh-24px)] rounded-r-[24px] lg:rounded-[24px]`}>
+                <div className={`flex items-center h-[72px] border-b border-border-subtle/50 shrink-0 relative w-full ${isCollapsed ? 'px-3 justify-center' : 'px-6 justify-start'}`}>
+                    <img 
+                        src={theme === 'dark' ? logoDark : logoLight} 
+                        alt="ACROVIX" 
+                        className={`h-auto object-contain transition-all duration-300 ${isCollapsed ? 'w-full max-w-[70px] object-center' : 'w-[160px] object-left'}`} 
+                    />
+                    <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden absolute right-4 text-text-muted hover:text-text-primary transition-colors p-1 rounded-lg">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
