@@ -803,6 +803,7 @@ export default function Dashboard() {
                                 Export Data
                             </Link>
                             </div>
+                        </div>
 
                             {/* Financial Cards Grid */}
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
@@ -904,7 +905,10 @@ export default function Dashboard() {
                                     )}
                                 </div>
                             </div>
+                        </div>
                     </div>
+
+
 
                     {/* Recent Enquiries Table (Kept at bottom to preserve exact existing functionality) */}
                     <div className="bg-bg-card rounded-[24px] border border-border-subtle shadow-sm flex flex-col overflow-hidden mt-2">
