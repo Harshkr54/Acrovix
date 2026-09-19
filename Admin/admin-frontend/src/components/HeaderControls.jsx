@@ -261,7 +261,7 @@ export default function HeaderControls() {
                 aria-label="Toggle Theme"
                 title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
             >
-                {theme === 'dark' ? <Sun className="w-[20px] h-[20px] text-[#FACC15]" /> : <Moon className="w-[20px] h-[20px]" />}
+                {theme === 'light' ? <Sun className="w-[20px] h-[20px] text-[#FACC15]" /> : <Moon className="w-[20px] h-[20px]" />}
             </button>
 
             {/* Notifications Dropdown */}
