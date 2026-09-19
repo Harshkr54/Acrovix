@@ -211,7 +211,7 @@
   }
 
   .sidebar-logo-container {
-    @apply flex items-center justify-start h-[100px] px-6 shrink-0 w-full border-b;
+    @apply flex items-center justify-start h-[76px] lg:h-[82px] px-6 shrink-0 w-full border-b;
     background-color: var(--theme-sidebar-logo-bg, transparent);
     border-color: var(--theme-sidebar-logo-border, #E5EAF0);
   }

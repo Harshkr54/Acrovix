@@ -491,7 +491,7 @@ export default function Dashboard() {
                         </div>
 
                         {/* 4. Total Invoiced */}
-                        <div className="acx-card p-5 flex flex-col justify-between relative overflow-hidden group min-h-[140px] ring-2 ring-brand-primary/40 border-transparent">
+                        <div className="acx-card p-5 flex flex-col justify-between relative overflow-hidden group min-h-[140px]">
                             <div className="flex items-center gap-3 mb-4 relative z-10">
                                 <div className="w-10 h-10 bg-blue-50 dark:bg-blue-500/10 rounded-[12px] flex items-center justify-center shrink-0">
                                     <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-500" />
