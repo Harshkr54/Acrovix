@@ -295,42 +295,7 @@ export default function Layout() {
                     </nav>
                 </div>
                 
-                <div className="sidebar-user-container">
-                    {!isCollapsed ? (
-                        <>
-                            <div className="flex items-center">
-                                <div className="sidebar-avatar mr-3">
-                                    {getInitials(user?.name)}
-                                </div>
-                                <div className="flex-1 min-w-0 mr-4">
-                                    <p className="text-[14.5px] font-bold text-text-primary truncate">{user?.name || 'Admin User'}</p>
-                                    <p className="text-[10.5px] text-text-muted font-bold uppercase tracking-wider truncate">{user?.role?.replace('_', ' ')}</p>
-                                </div>
-                            </div>
-                            <button
-                                onClick={handleLogout}
-                                className="sidebar-signout"
-                            >
-                                <LogOut className="w-5 h-5" />
-                            </button>
-                        </>
-                    ) : (
-                        <div className="flex flex-col items-center gap-4 w-full">
-                            <div className="sidebar-avatar">
-                                {getInitials(user?.name)}
-                            </div>
-                            <button
-                                onClick={handleLogout}
-                                className="sidebar-signout group relative"
-                            >
-                                <LogOut className="w-5 h-5" />
-                                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2.5 py-1.5 bg-text-primary text-bg-main text-[11px] font-bold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-lg">
-                                    Sign out
-                                </div>
-                            </button>
-                        </div>
-                    )}
-                </div>
+
             </div>
 
             {/* Main content */}
