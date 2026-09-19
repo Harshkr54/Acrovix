@@ -37,6 +37,24 @@ public class SecurityConfig {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
+            .headers(headers -> {
+                headers.httpStrictTransportSecurity(hsts -> hsts
+                    .includeSubDomains(false)
+                    .preload(false)
+                    .maxAgeInSeconds(31536000)
+                );
+                headers.contentSecurityPolicy(csp -> csp
+                    .policyDirectives("default-src 'none'; frame-ancestors 'none'")
+                );
+                headers.frameOptions(frame -> frame.deny());
+                headers.permissionsPolicy(pp -> pp
+                    .policy("geolocation=(), camera=(), microphone=(), payment=()")
+                );
+                headers.referrerPolicy(ref -> ref
+                    .policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
+                );
+                // Spring Security enables Cache-Control: no-cache, no-store, max-age=0, must-revalidate by default
+            })
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint((request, response, authException) -> {
                     response.sendError(jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
