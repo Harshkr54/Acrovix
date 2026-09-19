@@ -155,7 +155,8 @@ export default function HeaderControls() {
     return (
         <div className="flex items-center gap-3" ref={containerRef}>
             
-            {/* Documents Dropdown */}
+            {/* Documents Dropdown (Hidden per reference visual match) */}
+            {/* 
             <div className="relative">
                 <button 
                     onClick={() => toggleDropdown('docs')}
@@ -181,7 +182,6 @@ export default function HeaderControls() {
                                 </div>
                             ) : (
                                 <>
-                                    {/* Recent Quotations */}
                                     <div className="px-2 py-2">
                                         <div className="px-2 py-1.5 text-[11px] font-semibold text-text-muted uppercase tracking-wider">
                                             Recent Quotations
@@ -210,7 +210,6 @@ export default function HeaderControls() {
 
                                     <div className="h-px bg-border-subtle mx-4"></div>
 
-                                    {/* Drafts */}
                                     <div className="px-2 py-2">
                                         <div className="px-2 py-1.5 text-[11px] font-semibold text-text-muted uppercase tracking-wider">
                                             Quotation Drafts
@@ -252,6 +251,8 @@ export default function HeaderControls() {
                     </div>
                 )}
             </div>
+            */
+            }
 
             {/* Theme Toggle */}
             <button

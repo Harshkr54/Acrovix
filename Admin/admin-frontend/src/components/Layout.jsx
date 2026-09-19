@@ -168,7 +168,7 @@ export default function Layout() {
             )}
 
             {/* Sidebar */}
-            <div className={`sidebar fixed inset-y-0 left-0 z-50 flex flex-col shrink-0 lg:relative lg:translate-x-0 lg:my-3 lg:ml-3 lg:h-[calc(100vh-24px)] ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isCollapsed ? 'w-[96px]' : 'w-[260px]'}`}>
+            <div className={`sidebar fixed inset-y-0 left-0 z-50 flex flex-col shrink-0 lg:relative lg:translate-x-0 lg:h-screen ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isCollapsed ? 'w-[96px]' : 'w-[260px]'}`}>
                 <div className="sidebar-logo-container">
                     <img 
                         src={logoLight} 
@@ -184,7 +184,6 @@ export default function Layout() {
                     <nav className="space-y-4">
                         {/* Workspace Section */}
                         <div className="flex flex-col space-y-1">
-                            {!isCollapsed && <p className="sidebar-section-title">Workspace</p>}
                             {workspaceItems.map((item) => {
                                 const Icon = item.icon;
                                 const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
@@ -196,7 +195,6 @@ export default function Layout() {
                                         className={`group ${isActive ? 'sidebar-nav-item-active' : 'sidebar-nav-item'}`}
                                         style={isCollapsed ? { justifyContent: 'center' } : {}}
                                     >
-                                        {isActive && <div className="sidebar-active-indicator" />}
                                         <Icon className={`sidebar-nav-icon ${isCollapsed ? '!mr-0' : ''}`} />
                                         {!isCollapsed && <span>{item.name}</span>}
                                         
@@ -226,7 +224,6 @@ export default function Layout() {
                                         className={isActive ? 'sidebar-nav-item-active' : 'sidebar-nav-item'}
                                         style={isCollapsed ? { justifyContent: 'center' } : {}}
                                     >
-                                        {isActive && <div className="sidebar-active-indicator" />}
                                         <Icon className={`sidebar-nav-icon ${isCollapsed ? '!mr-0' : ''}`} />
                                         {!isCollapsed && <span>{item.name}</span>}
                                         
@@ -255,7 +252,6 @@ export default function Layout() {
                                             className={`group ${isActive ? 'sidebar-nav-item-active' : 'sidebar-nav-item'}`}
                                             style={isCollapsed ? { justifyContent: 'center' } : {}}
                                         >
-                                            {isActive && <div className="sidebar-active-indicator" />}
                                             <Icon className={`sidebar-nav-icon ${isCollapsed ? '!mr-0' : ''}`} />
                                             {!isCollapsed && <span>{item.name}</span>}
                                             
@@ -284,7 +280,6 @@ export default function Layout() {
                                         className={isActive ? 'sidebar-nav-item-active' : 'sidebar-nav-item'}
                                         style={isCollapsed ? { justifyContent: 'center' } : {}}
                                     >
-                                        {isActive && <div className="sidebar-active-indicator" />}
                                         <Icon className={`sidebar-nav-icon ${isCollapsed ? '!mr-0' : ''}`} />
                                         {!isCollapsed && <span>{item.name}</span>}
                                         
@@ -363,20 +358,7 @@ export default function Layout() {
                             {isCollapsed ? <PanelLeftOpen className="w-5 h-5" /> : <PanelLeftClose className="w-5 h-5" />}
                         </button>
 
-                        {/* Global Back Button */}
-                        <button 
-                            onClick={() => {
-                                if (window.history.state && window.history.state.idx > 0) {
-                                    navigate(-1);
-                                } else {
-                                    navigate('/');
-                                }
-                            }}
-                            className="hidden sm:flex items-center justify-center w-9 h-9 mr-4 rounded-xl text-text-muted hover:bg-bg-card hover:shadow-sm hover:text-text-primary transition-all border border-transparent hover:border-border-subtle bg-bg-main"
-                            title="Go Back"
-                        >
-                            <ArrowLeft className="w-5 h-5" />
-                        </button>
+
                         
                         {/* Search Bar matching reference */}
                         <div ref={searchRef} className="relative w-full max-w-md hidden sm:block">
@@ -396,14 +378,7 @@ export default function Layout() {
                                 onFocus={() => { if (searchQuery.trim() && (searchResults.enquiries.length > 0 || searchResults.quotations.length > 0 || searchResults.customers.length > 0)) setSearchDropdownOpen(true) }}
                             />
                             
-                            {!searchQuery && (
-                                <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
-                                    <div className="flex items-center gap-1 bg-bg-muted/50 border border-border-subtle rounded px-1.5 py-1 text-[10px] font-semibold text-text-muted">
-                                        <span>Ctrl</span>
-                                        <span>K</span>
-                                    </div>
-                                </div>
-                            )}
+
 
                             {searchQuery && (
                                 <button
