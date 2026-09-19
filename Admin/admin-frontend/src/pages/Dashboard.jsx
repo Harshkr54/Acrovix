@@ -586,23 +586,27 @@ export default function Dashboard() {
                                                                     </defs>
                                                                     {(() => {
                                                                         const w = overviewData.length * 100;
-                                                                        const step = w / Math.max(1, (overviewData.length - 1));
+                                                                        const step = 100;
                                                                         const getPath = (key) => {
                                                                             if (overviewData.length === 1) {
                                                                                 const y = 100 - (Math.max(1, (overviewData[0][key] / niceMax) * 100));
                                                                                 return `M 0,${y} L ${w},${y}`;
                                                                             }
-                                                                            const pts = overviewData.map((d, i) => ({ x: i * step, y: 100 - (Math.max(1, (d[key] / niceMax) * 100)) }));
+                                                                            const pts = overviewData.map((d, i) => ({ x: (i + 0.5) * step, y: 100 - (Math.max(1, (d[key] / niceMax) * 100)) }));
                                                                             let p = `M ${pts[0].x},${pts[0].y}`;
                                                                             for (let i = 1; i < pts.length; i++) {
                                                                                 p += ` C ${pts[i-1].x + step/3},${pts[i-1].y} ${pts[i].x - step/3},${pts[i].y} ${pts[i].x},${pts[i].y}`;
                                                                             }
-                                                                            return p;
+                                                                            return { p, pts };
                                                                         };
-                                                                        const bluePath = getPath('totalEnquiries');
-                                                                        const tealPath = getPath('newEnquiries');
-                                                                        const blueFill = `${bluePath} L ${w},100 L 0,100 Z`;
-                                                                        const tealFill = `${tealPath} L ${w},100 L 0,100 Z`;
+                                                                        const blueData = getPath('totalEnquiries');
+                                                                        const tealData = getPath('newEnquiries');
+                                                                        const bluePath = blueData.p;
+                                                                        const tealPath = tealData.p;
+                                                                        const bluePts = blueData.pts;
+                                                                        const tealPts = tealData.pts;
+                                                                        const blueFill = overviewData.length === 1 ? bluePath : `${bluePath} L ${bluePts[bluePts.length-1].x},100 L ${bluePts[0].x},100 Z`;
+                                                                        const tealFill = overviewData.length === 1 ? tealPath : `${tealPath} L ${tealPts[tealPts.length-1].x},100 L ${tealPts[0].x},100 Z`;
                                                                         return (
                                                                             <>
                                                                                 <path d={blueFill} fill="url(#fadeBlue)" />
@@ -611,8 +615,8 @@ export default function Dashboard() {
                                                                                 <path d={tealPath} fill="none" stroke="#14B8A6" strokeWidth="3" strokeLinecap="round" />
                                                                                 {overviewData.map((d, i) => (
                                                                                     <g key={i}>
-                                                                                        <circle cx={i * step} cy={100 - (Math.max(1, (d.totalEnquiries / niceMax) * 100))} r="4" fill="#3B82F6" stroke="#fff" strokeWidth="2" />
-                                                                                        <circle cx={i * step} cy={100 - (Math.max(1, (d.newEnquiries / niceMax) * 100))} r="4" fill="#14B8A6" stroke="#fff" strokeWidth="2" />
+                                                                                        <circle cx={(i + 0.5) * step} cy={100 - (Math.max(1, (d.totalEnquiries / niceMax) * 100))} r="4" fill="#3B82F6" stroke="#fff" strokeWidth="2" />
+                                                                                        <circle cx={(i + 0.5) * step} cy={100 - (Math.max(1, (d.newEnquiries / niceMax) * 100))} r="4" fill="#14B8A6" stroke="#fff" strokeWidth="2" />
                                                                                     </g>
                                                                                 ))}
                                                                             </>
@@ -678,7 +682,7 @@ export default function Dashboard() {
                                                             {/* X Axis Labels */}
                                                             <div className="absolute top-full left-0 right-0 flex pt-3 border-t border-border-subtle">
                                                                 {overviewData.map((item, idx) => (
-                                                                    <div key={idx} className="flex-1 text-center text-[12px] font-medium text-text-muted relative -left-1/2 transform translate-x-1/2">
+                                                                    <div key={idx} className="flex-1 text-center text-[12px] font-medium text-text-muted">
                                                                         {item.month}
                                                                     </div>
                                                                 ))}
