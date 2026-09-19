@@ -222,7 +222,7 @@
   }
 
   .sidebar-logo-image {
-    @apply h-auto max-h-[44px] w-auto object-contain object-left transition-all duration-300;
+    @apply w-full h-full object-contain object-left transition-all duration-300;
   }
 
   .sidebar-section-title {
