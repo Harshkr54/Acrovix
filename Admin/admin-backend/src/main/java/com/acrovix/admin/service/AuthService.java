@@ -13,6 +13,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.core.AuthenticationException;
+import com.acrovix.admin.exception.RateLimitExceededException;
 
 import java.time.LocalDateTime;
 
@@ -25,11 +27,22 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
     private final EmailService emailService;
+    private final LoginRateLimiterService rateLimiterService;
 
     @Transactional
-    public AuthResponse authenticate(AuthRequest request) {
-        // authenticate() internally calls UserDetailsService.loadUserByUsername() — one DB query.
-        // Extracting the principal avoids a second redundant findByEmail() call.
+    public AuthResponse authenticate(AuthRequest request, String clientIp) {
+        if (rateLimiterService.isRateLimited(clientIp)) {
+            AdminActivity activity = AdminActivity.builder()
+                    .action("LOGIN_RATE_LIMITED")
+                    .entityType("AUTH")
+                    .entityId(0L)
+                    .description("IP: " + clientIp)
+                    .build();
+            activityRepository.save(activity);
+            throw new RateLimitExceededException("Too many login attempts. Please try again later.");
+        }
+
+        try {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getEmail(),
@@ -37,6 +50,8 @@ public class AuthService {
                 )
         );
         AdminUser user = (AdminUser) authentication.getPrincipal();
+
+        rateLimiterService.loginSucceeded(clientIp);
 
         user.setLastLogin(LocalDateTime.now());
         repository.save(user);
@@ -63,5 +78,18 @@ public class AuthService {
                 .email(user.getEmail())
                 .role(user.getRole().name())
                 .build();
+        } catch (AuthenticationException ex) {
+            rateLimiterService.loginFailed(clientIp);
+            
+            AdminActivity activity = AdminActivity.builder()
+                    .action("LOGIN_FAILED")
+                    .entityType("AUTH")
+                    .entityId(0L)
+                    .description("IP: " + clientIp)
+                    .build();
+            activityRepository.save(activity);
+            
+            throw ex;
+        }
     }
 }
