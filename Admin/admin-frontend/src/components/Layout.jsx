@@ -168,7 +168,7 @@ export default function Layout() {
             )}
 
             {/* Sidebar */}
-            <div className={`sidebar ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isCollapsed ? 'w-[96px]' : 'w-[260px]'}`}>
+            <div className={`sidebar fixed inset-y-0 left-0 z-50 flex flex-col shrink-0 lg:relative lg:translate-x-0 lg:my-3 lg:ml-3 lg:h-[calc(100vh-24px)] ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isCollapsed ? 'w-[96px]' : 'w-[260px]'}`}>
                 <div className="sidebar-logo-container">
                     <img 
                         src={logoLight} 

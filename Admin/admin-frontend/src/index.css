@@ -190,7 +190,7 @@
   /* --- SIDEBAR DESIGN SYSTEM --- */
   
   .sidebar {
-    @apply fixed inset-y-0 left-0 z-50 flex flex-col shadow-[0_4px_24px_rgba(11,25,44,0.04)] transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 lg:my-3 lg:ml-3 lg:h-[calc(100vh-24px)] rounded-r-[26px] lg:rounded-[26px];
+    @apply shadow-[0_4px_24px_rgba(11,25,44,0.04)] transition-all duration-300 ease-in-out rounded-r-[26px] lg:rounded-[26px];
     background-color: var(--theme-sidebar-bg, #FFFFFF);
     border: 1px solid var(--theme-sidebar-border, #E5EAF0);
   }
