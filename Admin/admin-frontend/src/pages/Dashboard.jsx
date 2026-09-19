@@ -260,6 +260,7 @@ export default function Dashboard() {
             {/* Header Area */}
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-2">
                 <div className="flex flex-col">
+                    <p className="text-[12px] font-bold text-[var(--color-brand-primary)] uppercase tracking-[2px] mb-2">Dashboard</p>
                     <h1 className="text-[32px] font-bold text-text-primary tracking-tight leading-none mb-2">
                         {greeting}, {userName} 👋
                     </h1>
@@ -418,12 +419,12 @@ export default function Dashboard() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                         
                         {/* 1. Total Enquiries */}
-                        <div className="bg-bg-card rounded-[20px] p-5 flex flex-col justify-between border border-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
+                        <div className="bg-[var(--theme-dashboard-card)] rounded-[20px] p-5 flex flex-col justify-between border border-[var(--theme-dashboard-border)] shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
                             <div className="flex items-center gap-3 mb-4 relative z-10">
-                                <div className="w-10 h-10 bg-blue-50 dark:bg-blue-500/10 rounded-[12px] flex items-center justify-center border border-blue-100/50 dark:border-blue-500/20 shrink-0">
+                                <div className="w-10 h-10 bg-blue-50 dark:bg-blue-500/10 rounded-[12px] flex items-center justify-center shrink-0">
                                     <Inbox className="w-5 h-5 text-blue-600 dark:text-blue-500" />
                                 </div>
-                                <span className="text-[14px] font-bold text-text-primary tracking-tight">Total Enquiries</span>
+                                <span className="text-[14px] font-semibold text-text-primary tracking-tight">Total Enquiries</span>
                             </div>
                             <div className="relative z-10">
                                 <div className="text-[32px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center">
@@ -433,18 +434,16 @@ export default function Dashboard() {
                                     Filtered count
                                 </div>
                             </div>
-                            <div className="absolute bottom-2 right-2 w-24 h-12 opacity-80 pointer-events-none">
-                                <CardSparkline data={stats?.monthlyOverview?.map(m => m.totalEnquiries)} color="#2563EB" />
-                            </div>
+                            <CardSparkline data={stats?.monthlyOverview?.map(m => m.totalEnquiries)} color="#2563EB" />
                         </div>
 
                         {/* 2. Total Quotations */}
-                        <div className="bg-bg-card rounded-[20px] p-5 flex flex-col justify-between border border-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
+                        <div className="bg-[var(--theme-dashboard-card)] rounded-[20px] p-5 flex flex-col justify-between border border-[var(--theme-dashboard-border)] shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
                             <div className="flex items-center gap-3 mb-4 relative z-10">
-                                <div className="w-10 h-10 bg-purple-50 dark:bg-purple-500/10 rounded-[12px] flex items-center justify-center border border-purple-100/50 dark:border-purple-500/20 shrink-0">
+                                <div className="w-10 h-10 bg-purple-50 dark:bg-purple-500/10 rounded-[12px] flex items-center justify-center shrink-0">
                                     <FileText className="w-5 h-5 text-purple-600 dark:text-purple-500" />
                                 </div>
-                                <span className="text-[14px] font-bold text-text-primary tracking-tight">Total Quotations</span>
+                                <span className="text-[14px] font-semibold text-text-primary tracking-tight">Total Quotations</span>
                             </div>
                             <div className="relative z-10">
                                 <div className="text-[32px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center">
@@ -454,18 +453,16 @@ export default function Dashboard() {
                                     Excludes Trash
                                 </div>
                             </div>
-                            <div className="absolute bottom-2 right-2 w-24 h-12 opacity-80 pointer-events-none">
-                                <CardSparkline isDecorative color="#9333EA" />
-                            </div>
+                            <CardSparkline isDecorative color="#9333EA" />
                         </div>
 
                         {/* 3. Accepted Quotations */}
-                        <div className="bg-bg-card rounded-[20px] p-5 flex flex-col justify-between border border-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
+                        <div className="bg-[var(--theme-dashboard-card)] rounded-[20px] p-5 flex flex-col justify-between border border-[var(--theme-dashboard-border)] shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
                             <div className="flex items-center gap-3 mb-4 relative z-10">
-                                <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-500/10 rounded-[12px] flex items-center justify-center border border-emerald-100/50 dark:border-emerald-500/20 shrink-0">
+                                <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-500/10 rounded-[12px] flex items-center justify-center shrink-0">
                                     <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-500" />
                                 </div>
-                                <span className="text-[14px] font-bold text-text-primary tracking-tight">Accepted Quotations</span>
+                                <span className="text-[14px] font-semibold text-text-primary tracking-tight">Accepted Quotations</span>
                             </div>
                             <div className="relative z-10">
                                 <div className="text-[32px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center">
@@ -475,18 +472,16 @@ export default function Dashboard() {
                                     Excludes Trash
                                 </div>
                             </div>
-                            <div className="absolute bottom-2 right-2 w-24 h-12 opacity-80 pointer-events-none">
-                                <CardSparkline isDecorative color="#059669" />
-                            </div>
+                            <CardSparkline isDecorative color="#059669" />
                         </div>
 
                         {/* 4. Total Invoiced */}
-                        <div className="bg-bg-card rounded-[20px] p-5 flex flex-col justify-between border-l-4 border-l-blue-500 border-y border-y-border-subtle border-r border-r-border-subtle shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
+                        <div className="bg-[var(--theme-dashboard-card)] rounded-[20px] p-5 flex flex-col justify-between border border-[var(--theme-dashboard-border)] shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
                             <div className="flex items-center gap-3 mb-4 relative z-10">
-                                <div className="w-10 h-10 bg-blue-50 dark:bg-blue-500/10 rounded-[12px] flex items-center justify-center border border-blue-100/50 dark:border-blue-500/20 shrink-0">
+                                <div className="w-10 h-10 bg-blue-50 dark:bg-blue-500/10 rounded-[12px] flex items-center justify-center shrink-0">
                                     <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-500" />
                                 </div>
-                                <span className="text-[14px] font-bold text-text-primary tracking-tight">Total Invoiced</span>
+                                <span className="text-[14px] font-semibold text-text-primary tracking-tight">Total Invoiced</span>
                             </div>
                             <div className="relative z-10">
                                 <div className="text-[26px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center truncate">
@@ -496,20 +491,18 @@ export default function Dashboard() {
                                     Total Issued Tax Invoices
                                 </div>
                             </div>
-                            <div className="absolute bottom-2 right-2 w-24 h-12 opacity-80 pointer-events-none">
-                                <CardSparkline isDecorative color="#3B82F6" />
-                            </div>
+                            <CardSparkline isDecorative color="#3B82F6" />
                         </div>
                     </div>
 
                     {/* Main Content Grid */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                         
-                        {/* Left Column (2/3 width) */}
-                        <div className="lg:col-span-2 flex flex-col gap-6">
+                        {/* Left Column (8/12 width) */}
+                        <div className="lg:col-span-8 flex flex-col gap-6">
                             
                             {/* Analytics Chart */}
-                            <div className="bg-bg-card rounded-[24px] border border-border-subtle p-6 flex flex-col shadow-sm">
+                            <div className="bg-[var(--theme-dashboard-card)] rounded-[20px] border border-[var(--theme-dashboard-border)] p-6 flex flex-col shadow-sm">
                                 {/* Header */}
                                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
                                     <div className="flex items-start gap-4">
@@ -569,12 +562,61 @@ export default function Dashboard() {
 
                                                         {/* Chart Content Area */}
                                                         <div className="flex-1 relative ml-[40px]">
-                                                            {/* Bars Container */}
-                                                            <div className="absolute inset-0 flex items-end">
+                                                            {/* SVG Lines and Fades */}
+                                                            <div className="absolute inset-0 pointer-events-none">
+                                                                <svg viewBox={`0 0 ${overviewData.length * 100} 100`} preserveAspectRatio="none" className="w-full h-full overflow-visible">
+                                                                    <defs>
+                                                                        <linearGradient id="fadeBlue" x1="0" y1="0" x2="0" y2="1">
+                                                                            <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.3" />
+                                                                            <stop offset="100%" stopColor="#3B82F6" stopOpacity="0" />
+                                                                        </linearGradient>
+                                                                        <linearGradient id="fadeTeal" x1="0" y1="0" x2="0" y2="1">
+                                                                            <stop offset="0%" stopColor="#14B8A6" stopOpacity="0.3" />
+                                                                            <stop offset="100%" stopColor="#14B8A6" stopOpacity="0" />
+                                                                        </linearGradient>
+                                                                    </defs>
+                                                                    {(() => {
+                                                                        const w = overviewData.length * 100;
+                                                                        const step = w / Math.max(1, (overviewData.length - 1));
+                                                                        const getPath = (key) => {
+                                                                            if (overviewData.length === 1) {
+                                                                                const y = 100 - (Math.max(1, (overviewData[0][key] / niceMax) * 100));
+                                                                                return `M 0,${y} L ${w},${y}`;
+                                                                            }
+                                                                            const pts = overviewData.map((d, i) => ({ x: i * step, y: 100 - (Math.max(1, (d[key] / niceMax) * 100)) }));
+                                                                            let p = `M ${pts[0].x},${pts[0].y}`;
+                                                                            for (let i = 1; i < pts.length; i++) {
+                                                                                p += ` C ${pts[i-1].x + step/3},${pts[i-1].y} ${pts[i].x - step/3},${pts[i].y} ${pts[i].x},${pts[i].y}`;
+                                                                            }
+                                                                            return p;
+                                                                        };
+                                                                        const bluePath = getPath('totalEnquiries');
+                                                                        const tealPath = getPath('newEnquiries');
+                                                                        const blueFill = `${bluePath} L ${w},100 L 0,100 Z`;
+                                                                        const tealFill = `${tealPath} L ${w},100 L 0,100 Z`;
+                                                                        return (
+                                                                            <>
+                                                                                <path d={blueFill} fill="url(#fadeBlue)" />
+                                                                                <path d={tealFill} fill="url(#fadeTeal)" />
+                                                                                <path d={bluePath} fill="none" stroke="#3B82F6" strokeWidth="3" strokeLinecap="round" />
+                                                                                <path d={tealPath} fill="none" stroke="#14B8A6" strokeWidth="3" strokeLinecap="round" />
+                                                                                {overviewData.map((d, i) => (
+                                                                                    <g key={i}>
+                                                                                        <circle cx={i * step} cy={100 - (Math.max(1, (d.totalEnquiries / niceMax) * 100))} r="4" fill="#3B82F6" stroke="#fff" strokeWidth="2" />
+                                                                                        <circle cx={i * step} cy={100 - (Math.max(1, (d.newEnquiries / niceMax) * 100))} r="4" fill="#14B8A6" stroke="#fff" strokeWidth="2" />
+                                                                                    </g>
+                                                                                ))}
+                                                                            </>
+                                                                        );
+                                                                    })()}
+                                                                </svg>
+                                                            </div>
+
+                                                            {/* Interactive Columns for Tooltips */}
+                                                            <div className="absolute inset-0 flex">
                                                                 {overviewData.map((item, idx) => {
                                                                     const totalHeightPct = Math.max(1, (item.totalEnquiries / niceMax) * 100);
                                                                     const newHeightPct = Math.max(1, (item.newEnquiries / niceMax) * 100);
-                                                                    
                                                                     const maxHeightPct = Math.max(totalHeightPct, newHeightPct);
                                                                     const isHigh = maxHeightPct > 70;
                                                                     
@@ -594,7 +636,10 @@ export default function Dashboard() {
                                                                     }
                                                                     
                                                                     return (
-                                                                        <div key={idx} className="flex-1 h-full flex flex-col justify-end items-center group relative z-20 hover:z-50">
+                                                                        <div key={idx} className="flex-1 h-full relative group cursor-crosshair">
+                                                                            {/* Vertical Hover Line */}
+                                                                            <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[1px] bg-border-subtle opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                                                            
                                                                             {/* Tooltip */}
                                                                             <div 
                                                                                 className="opacity-0 group-hover:opacity-100 transition-opacity absolute bg-bg-card border border-border-subtle p-3 rounded-[12px] shadow-xl pointer-events-none w-[160px] z-[100]"
@@ -603,7 +648,7 @@ export default function Dashboard() {
                                                                                 <div className="text-[13px] font-bold text-text-primary mb-2">{item.month}</div>
                                                                                 <div className="flex justify-between items-center mb-1.5">
                                                                                     <div className="flex items-center gap-1.5">
-                                                                                        <div className="w-2 h-2 rounded-full bg-[#10B981]"></div>
+                                                                                        <div className="w-2 h-2 rounded-full bg-[#14B8A6]"></div>
                                                                                         <span className="text-[11px] font-medium text-text-secondary">Total Quotations</span>
                                                                                     </div>
                                                                                     <span className="text-[12px] font-bold text-text-primary">{item.newEnquiries}</span>
@@ -616,18 +661,6 @@ export default function Dashboard() {
                                                                                     <span className="text-[12px] font-bold text-text-primary">{item.totalEnquiries}</span>
                                                                                 </div>
                                                                             </div>
-
-                                                                            {/* Bars */}
-                                                                            <div className="w-[32px] sm:w-[44px] flex items-end justify-center gap-1 h-full cursor-pointer transition-transform group-hover:-translate-y-1">
-                                                                                <div
-                                                                                    className="flex-1 bg-[#3B82F6] rounded-t-md"
-                                                                                    style={{ height: `${totalHeightPct}%` }}
-                                                                                ></div>
-                                                                                <div
-                                                                                    className="flex-1 bg-[#10B981] rounded-t-md"
-                                                                                    style={{ height: `${newHeightPct}%` }}
-                                                                                ></div>
-                                                                            </div>
                                                                         </div>
                                                                     );
                                                                 })}
@@ -636,7 +669,7 @@ export default function Dashboard() {
                                                             {/* X Axis Labels */}
                                                             <div className="absolute top-full left-0 right-0 flex pt-3 border-t border-border-subtle">
                                                                 {overviewData.map((item, idx) => (
-                                                                    <div key={idx} className="flex-1 text-center text-[12px] font-medium text-text-muted">
+                                                                    <div key={idx} className="flex-1 text-center text-[12px] font-medium text-text-muted relative -left-1/2 transform translate-x-1/2">
                                                                         {item.month}
                                                                     </div>
                                                                 ))}
@@ -661,7 +694,7 @@ export default function Dashboard() {
                                         <span className="text-[13px] font-medium text-text-secondary">Total Enquiries</span>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <div className="w-3 h-3 rounded bg-[#10B981]"></div>
+                                        <div className="w-3 h-3 rounded bg-[#14B8A6]"></div>
                                         <span className="text-[13px] font-medium text-text-secondary">Total Quotations</span>
                                     </div>
                                 </div>
@@ -746,14 +779,14 @@ export default function Dashboard() {
                             </div>
                         </div>
 
-                        {/* Right Column (1/3 width) */}
-                        <div className="lg:col-span-1 flex flex-col gap-6">
+                        {/* Right Column (4/12 width) */}
+                        <div className="lg:col-span-4 flex flex-col gap-6">
                             
                             {/* Recent Activity Timeline */}
-                            <div className="bg-bg-card rounded-[24px] border border-border-subtle p-6 flex flex-col shadow-sm">
+                            <div className="bg-[var(--theme-dashboard-card)] rounded-[20px] border border-[var(--theme-dashboard-border)] p-6 flex flex-col shadow-sm h-full">
                                 <div className="flex items-center justify-between mb-6">
-                                    <h2 className="text-[18px] font-bold text-text-primary tracking-tight">Recent Activity</h2>
-                                    <Link to="/activity" className="text-[13px] font-semibold text-[var(--color-brand-primary)] hover:opacity-80 transition-opacity">
+                                    <h2 className="text-[16px] font-bold text-text-primary tracking-tight">Recent Activity</h2>
+                                    <Link to="/activity" className="text-[13px] font-semibold text-[var(--color-brand-primary)] hover:underline transition-opacity">
                                         View all &rarr;
                                     </Link>
                                 </div>
@@ -783,7 +816,7 @@ export default function Dashboard() {
 
                                                 return (
                                                     <div key={activity.id} className="relative flex gap-4">
-                                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 z-10 ${iconStyle} shadow-sm ring-4 ring-bg-card -ml-[11px]`}>
+                                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 z-10 ${iconStyle} shadow-sm ring-4 ring-[var(--theme-dashboard-card)] -ml-[11px]`}>
                                                             <Icon className="w-3 h-3" />
                                                         </div>
                                                         <div className="flex-1 min-w-0 flex flex-col">
@@ -807,14 +840,75 @@ export default function Dashboard() {
                                     )}
                                 </div>
                             </div>
+                        </div>
+                    </div>
 
-                            {/* Upcoming Follow-ups (Replaces System Status) */}
-                            <div className="bg-bg-card rounded-[24px] border border-border-subtle p-6 flex flex-col shadow-sm">
-                                <div className="flex items-center justify-between mb-6">
-                                    <h2 className="text-[18px] font-bold text-text-primary tracking-tight">Upcoming Follow-ups</h2>
-                                    <Link to="/crm/leads" className="text-[13px] font-semibold text-[var(--color-brand-primary)] hover:opacity-80 transition-opacity">
-                                        CRM &rarr;
-                                    </Link>
+                    {/* Bottom Section (Financial & CRM) */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {/* Total Received */}
+                        <div className="bg-[var(--theme-dashboard-card)] rounded-[20px] p-5 flex flex-col justify-between border border-[var(--theme-dashboard-border)] shadow-sm relative overflow-hidden h-[130px]">
+                            <div className="flex items-center gap-3 mb-2">
+                                <div className="w-8 h-8 bg-emerald-50 dark:bg-emerald-500/10 rounded-[10px] flex items-center justify-center">
+                                    <CreditCard className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                                </div>
+                                <span className="text-[13px] font-semibold text-text-primary tracking-tight">Total Received</span>
+                            </div>
+                            <div>
+                                <div className="text-[22px] font-bold text-text-primary tracking-tight leading-none mb-1 truncate">
+                                    Rs. {Number(receivablesStats?.totalReceived || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </div>
+                                <div className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                                    Active Payment Ledger
+                                </div>
+                            </div>
+                            <div className="absolute bottom-0 right-0 left-0 h-1 bg-emerald-500/20"></div>
+                        </div>
+
+                        {/* Outstanding Balance */}
+                        <div className="bg-[var(--theme-dashboard-card)] rounded-[20px] p-5 flex flex-col justify-between border border-[var(--theme-dashboard-border)] shadow-sm relative overflow-hidden h-[130px]">
+                            <div className="flex items-center gap-3 mb-2">
+                                <div className="w-8 h-8 bg-orange-50 dark:bg-orange-500/10 rounded-[10px] flex items-center justify-center">
+                                    <Clock className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                                </div>
+                                <span className="text-[13px] font-semibold text-text-primary tracking-tight">Outstanding</span>
+                            </div>
+                            <div>
+                                <div className="text-[22px] font-bold text-text-primary tracking-tight leading-none mb-1 truncate">
+                                    Rs. {Number(receivablesStats?.outstandingAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </div>
+                                <div className="text-[11px] font-medium text-orange-600 dark:text-orange-400">
+                                    Pending Receivables
+                                </div>
+                            </div>
+                            <div className="absolute bottom-0 right-0 left-0 h-1 bg-orange-500/20"></div>
+                        </div>
+
+                        {/* Overdue Balance */}
+                        <div className="bg-[var(--theme-dashboard-card)] rounded-[20px] p-5 flex flex-col justify-between border border-[var(--theme-dashboard-border)] shadow-sm relative overflow-hidden h-[130px]">
+                            <div className="flex items-center gap-3 mb-2">
+                                <div className="w-8 h-8 bg-red-50 dark:bg-red-500/10 rounded-[10px] flex items-center justify-center">
+                                    <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
+                                </div>
+                                <span className="text-[13px] font-semibold text-text-primary tracking-tight">Overdue Balance</span>
+                            </div>
+                            <div>
+                                <div className="text-[22px] font-bold text-text-primary tracking-tight leading-none mb-1 truncate">
+                                    Rs. {Number(receivablesStats?.overdueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </div>
+                                <div className="text-[11px] font-medium text-red-600 dark:text-red-400">
+                                    Past Due Date
+                                </div>
+                            </div>
+                            <div className="absolute bottom-0 right-0 left-0 h-1 bg-red-500/20"></div>
+                        </div>
+
+                        {/* Upcoming Follow-ups */}
+                        <div className="bg-[var(--theme-dashboard-card)] rounded-[20px] border border-[var(--theme-dashboard-border)] p-5 flex flex-col shadow-sm h-[130px]">
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-[13px] font-semibold text-text-primary tracking-tight">Upcoming Follow-ups</h2>
+                                <Link to="/crm/leads" className="text-[12px] font-medium text-[var(--color-brand-primary)] hover:underline transition-opacity">
+                                    CRM &rarr;
+                                </Link>
                                 </div>
                                 
                                 <div className="flex flex-col gap-4">
@@ -848,7 +942,6 @@ export default function Dashboard() {
                                     )}
                                 </div>
                             </div>
-                        </div>
                     </div>
 
                     {/* Recent Enquiries Table (Kept at bottom to preserve exact existing functionality) */}

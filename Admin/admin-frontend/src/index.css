@@ -53,6 +53,11 @@
   --theme-text-secondary: #475569; /* Blue-gray secondary */
   --theme-text-muted: #64748B; /* Muted text */
   --theme-text-highlight: #0D9488; /* Teal highlight */
+
+  /* DASHBOARD THEME LIGHT */
+  --theme-dashboard-card: #FFFFFF;
+  --theme-dashboard-elevated: #F8FAFC;
+  --theme-dashboard-border: rgba(11, 25, 44, 0.08);
 }
 
 :root[data-theme="dark"] {
@@ -69,6 +74,11 @@
   --theme-text-secondary: #C8D9DC;
   --theme-text-muted: #9DB3B9;
   --theme-text-highlight: #F4F9F9;
+
+  /* DASHBOARD THEME DARK */
+  --theme-dashboard-card: #102936;
+  --theme-dashboard-elevated: #142F3D;
+  --theme-dashboard-border: rgba(255, 255, 255, 0.05);
 }
 
 @layer base {
@@ -249,13 +259,13 @@
 
   .sidebar-nav-item-active {
     @apply relative flex items-center h-[50px] px-4 mx-3 text-[14.5px] font-semibold rounded-[14px] transition-all duration-200 cursor-pointer;
-    background-color: var(--theme-sidebar-active-bg, #E8F0FF);
-    color: var(--theme-sidebar-active-text, #2563EB);
+    background-color: var(--theme-sidebar-active-bg, #2563EB);
+    color: var(--theme-sidebar-active-text, #FFFFFF);
   }
 
   :root[data-theme="dark"] .sidebar-nav-item-active {
-    --theme-sidebar-active-bg: #12356B;
-    --theme-sidebar-active-text: #60A5FA;
+    --theme-sidebar-active-bg: #2563EB;
+    --theme-sidebar-active-text: #FFFFFF;
   }
 
   .sidebar-nav-icon {
@@ -268,7 +278,11 @@
   }
 
   .sidebar-nav-item-active .sidebar-nav-icon {
-    color: var(--theme-sidebar-active-text, #2563EB);
+    color: var(--theme-sidebar-active-icon, #FFFFFF);
+  }
+
+  :root[data-theme="dark"] .sidebar-nav-item-active .sidebar-nav-icon {
+    --theme-sidebar-active-icon: #FFFFFF;
   }
 
   :root[data-theme="dark"] .sidebar-nav-icon {
