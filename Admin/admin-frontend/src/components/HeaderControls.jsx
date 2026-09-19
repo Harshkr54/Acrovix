@@ -257,24 +257,20 @@ export default function HeaderControls() {
             {/* Theme Toggle */}
             <button
                 onClick={toggleTheme}
-                className="w-10 h-10 rounded-full bg-bg-card border border-border-subtle flex items-center justify-center text-text-muted hover:text-text-primary hover:shadow-sm transition-all"
+                className="header-icon-button"
                 aria-label="Toggle Theme"
                 title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
             >
-                {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                {theme === 'dark' ? <Sun className="w-[20px] h-[20px] text-[#FACC15]" /> : <Moon className="w-[20px] h-[20px]" />}
             </button>
 
             {/* Notifications Dropdown */}
             <div className="relative">
                 <button 
                     onClick={() => toggleDropdown('notifications')}
-                    className={`w-10 h-10 rounded-full border flex items-center justify-center transition-all relative ${
-                        activeDropdown === 'notifications' 
-                            ? 'bg-bg-hover border-border-subtle text-text-primary shadow-sm' 
-                            : 'bg-bg-card border-border-subtle text-text-muted hover:text-text-primary hover:shadow-sm'
-                    }`}
+                    className={`relative ${activeDropdown === 'notifications' ? 'header-icon-button bg-bg-hover text-text-primary border-border-subtle shadow-sm' : 'header-icon-button'}`}
                 >
-                    <Bell className="w-4 h-4" />
+                    <Bell className="w-[20px] h-[20px]" />
                     {unreadCount > 0 && (
                         <span className="absolute top-1.5 right-1.5 min-w-[16px] h-[16px] px-1 bg-brand-danger rounded-full ring-2 ring-bg-main flex items-center justify-center text-[9px] font-bold text-white leading-none">
                             {unreadCount > 99 ? '99+' : unreadCount}
@@ -356,25 +352,31 @@ export default function HeaderControls() {
                     setActiveDropdown(null);
                     navigate('/settings');
                 }}
-                className="hidden sm:flex w-10 h-10 rounded-full bg-bg-card border border-border-subtle items-center justify-center text-text-muted hover:text-text-primary hover:shadow-sm transition-all"
+                className="hidden sm:flex header-icon-button"
             >
-                <SettingsIcon className="w-4 h-4" />
+                <SettingsIcon className="w-[20px] h-[20px]" />
             </button>
             
+            <div className="hidden sm:block header-divider mx-1 lg:mx-2"></div>
+
             {/* SA Profile / Account Menu */}
-            <div className="hidden sm:flex items-center ml-2 pl-4 border-l border-border-subtle relative">
+            <div className="hidden sm:flex items-center relative">
                 <div 
                     onClick={() => toggleDropdown('profile')}
-                    className={`flex items-center space-x-2 px-3 py-1.5 rounded-full border shadow-sm cursor-pointer transition-all ${
+                    className={`flex items-center gap-3 px-1.5 py-1.5 pr-4 rounded-full border shadow-sm cursor-pointer transition-all ${
                         activeDropdown === 'profile'
                             ? 'bg-bg-hover border-border-subtle'
                             : 'bg-bg-card border-border-subtle hover:bg-bg-hover'
                     }`}
                 >
-                    <div className="w-7 h-7 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary font-bold text-xs">
+                    <div className="w-[40px] h-[40px] rounded-full bg-[var(--color-brand-primary)] flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-sm">
                         {getInitials(user?.name)}
                     </div>
-                    <ChevronRight className={`w-4 h-4 text-text-muted transition-transform ${activeDropdown === 'profile' ? '-rotate-90' : 'rotate-90'}`} />
+                    <div className="flex flex-col justify-center min-w-[100px] max-w-[160px]">
+                        <span className="text-[13.5px] font-bold text-text-primary leading-tight truncate">{user?.name || 'Admin User'}</span>
+                        <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider leading-tight mt-0.5 truncate">{user?.role?.replace('_', ' ')}</span>
+                    </div>
+                    <ChevronRight className={`w-4 h-4 text-text-muted transition-transform ml-1 ${activeDropdown === 'profile' ? '-rotate-90' : 'rotate-90'}`} />
                 </div>
 
                 {activeDropdown === 'profile' && (

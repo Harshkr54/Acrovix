@@ -346,4 +346,13 @@
     background-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='2' cy='2' r='1.5' fill='%2314B8A6' fill-opacity='0.15'/%3E%3C/svg%3E");
     background-size: 24px 24px;
   }
+
+  /* --- HEADER DESIGN SYSTEM --- */
+  .header-icon-button {
+    @apply w-[44px] h-[44px] rounded-full bg-bg-card border border-border-subtle flex items-center justify-center text-text-muted hover:text-text-primary hover:shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]/20;
+  }
+
+  .header-divider {
+    @apply w-px h-[32px] bg-border-subtle shrink-0;
+  }
 }

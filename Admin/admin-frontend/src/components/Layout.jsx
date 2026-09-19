@@ -24,12 +24,12 @@ const DateTimeDisplay = () => {
     const timeStr = time.toLocaleTimeString('en-US', timeOptions);
 
     return (
-        <div className="hidden lg:flex items-center h-[42px]">
-            <div className="flex items-center gap-3 bg-bg-card border border-border-subtle rounded-xl px-2.5 py-1.5 shadow-sm">
-                <div className="w-7 h-7 rounded-lg bg-brand-primary/10 flex items-center justify-center shrink-0">
+        <div className="hidden lg:flex items-center">
+            <div className="flex items-center gap-3 bg-bg-card border border-border-subtle rounded-full px-4 h-[44px] shadow-sm">
+                <div className="w-8 h-8 rounded-full bg-brand-primary/10 flex items-center justify-center shrink-0">
                     <Calendar className="w-4 h-4 text-brand-primary" />
                 </div>
-                <div className="flex flex-col">
+                <div className="flex flex-col justify-center">
                     <span className="text-[12px] font-bold text-text-primary tracking-tight leading-[1.1]">{dateStr}</span>
                     <span className="text-[10px] font-medium text-text-muted leading-[1.1] mt-0.5">{timeStr} IST</span>
                 </div>
@@ -340,11 +340,11 @@ export default function Layout() {
                 <div className="absolute bottom-0 left-0 w-[400px] h-[250px] bg-dotted-pattern opacity-50 pointer-events-none z-[-1]"></div>
                 
                 {/* Top Header */}
-                <header className="h-[72px] flex items-center justify-between px-6 lg:px-8 bg-transparent relative z-30">
-                    <div className="flex items-center flex-1 max-w-2xl">
+                <header className="h-[76px] lg:h-[82px] flex items-center justify-between px-4 sm:px-6 lg:px-8 bg-bg-card/80 backdrop-blur-md border-b border-border-subtle shadow-[0_4px_24px_rgba(11,25,44,0.02)] relative z-30">
+                    <div className="flex items-center flex-1 gap-4 lg:gap-6 min-w-0">
                         <button 
                             onClick={() => setIsSidebarOpen(true)}
-                            className="mr-4 lg:hidden text-text-muted hover:text-text-primary transition-colors focus:outline-none"
+                            className="lg:hidden text-text-muted hover:text-text-primary transition-colors focus:outline-none shrink-0"
                         >
                             <Menu className="w-6 h-6" />
                         </button>
@@ -352,16 +352,14 @@ export default function Layout() {
                         {/* Sidebar Collapse Toggle (Desktop) */}
                         <button 
                             onClick={toggleSidebar}
-                            className="hidden lg:flex items-center justify-center w-10 h-10 mr-4 rounded-full text-text-muted hover:text-text-primary hover:bg-bg-hover hover:shadow-sm border border-transparent hover:border-border-subtle transition-all"
+                            className="hidden lg:flex items-center justify-center w-[44px] h-[44px] shrink-0 rounded-2xl bg-bg-card border border-border-subtle text-text-muted hover:text-text-primary hover:bg-bg-hover hover:shadow-sm transition-all"
                             title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
                         >
                             {isCollapsed ? <PanelLeftOpen className="w-5 h-5" /> : <PanelLeftClose className="w-5 h-5" />}
                         </button>
 
-
-                        
                         {/* Search Bar matching reference */}
-                        <div ref={searchRef} className="relative w-full max-w-md hidden sm:block">
+                        <div ref={searchRef} className="relative w-full max-w-[560px] hidden sm:block shrink">
                                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                 {isSearching ? (
                                     <div className="animate-spin w-4 h-4 border-2 border-[var(--color-brand-primary)] border-t-transparent rounded-full" />
@@ -371,19 +369,17 @@ export default function Layout() {
                             </div>
                             <input
                                 type="text"
-                                className="w-full pl-11 pr-16 py-2.5 bg-bg-card border border-border-subtle rounded-full text-[13px] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]/20 focus:border-[var(--color-brand-primary)] transition-all shadow-[0_2px_12px_rgba(11,25,44,0.03)] text-text-primary placeholder-text-muted font-medium"
+                                className="w-full pl-11 pr-12 h-[48px] bg-bg-card border border-border-subtle rounded-full text-[13.5px] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]/20 focus:border-[var(--color-brand-primary)] transition-all shadow-[0_2px_12px_rgba(11,25,44,0.03)] text-text-primary placeholder-text-muted font-medium"
                                 placeholder="Search anything..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 onFocus={() => { if (searchQuery.trim() && (searchResults.enquiries.length > 0 || searchResults.quotations.length > 0 || searchResults.customers.length > 0)) setSearchDropdownOpen(true) }}
                             />
                             
-
-
                             {searchQuery && (
                                 <button
                                     onClick={handleClearSearch}
-                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-text-muted hover:text-text-primary focus:outline-none"
+                                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-text-muted hover:text-text-primary focus:outline-none"
                                 >
                                     <X className="h-4 w-4" />
                                 </button>
@@ -487,7 +483,9 @@ export default function Layout() {
                         </div>
                     </div>
                     
-                    <div className="flex items-center gap-3">
+                    <div className="hidden lg:block header-divider mx-2"></div>
+
+                    <div className="flex items-center gap-3 ml-2 lg:ml-4 shrink-0">
                         <DateTimeDisplay />
                         <HeaderControls />
                     </div>
