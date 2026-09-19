@@ -7,7 +7,7 @@ export default function CardSparkline({ data = [], color = 'currentColor', isDec
     const renderDefs = () => (
         <defs>
             <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0%" stopColor={color} stopOpacity="0.15" />
+                <stop offset="0%" stopColor={color} stopOpacity="0.4" />
                 <stop offset="100%" stopColor={color} stopOpacity="0" />
             </linearGradient>
         </defs>
@@ -19,11 +19,11 @@ export default function CardSparkline({ data = [], color = 'currentColor', isDec
         const fillPath = `${wavePath} L 100 40 L 0 40 Z`;
 
         return (
-            <div className="absolute right-0 bottom-0 pointer-events-none overflow-hidden h-[60px] w-[45%] max-w-[140px] opacity-80">
+            <div className="absolute right-0 bottom-0 pointer-events-none overflow-hidden h-20 w-36 opacity-70">
                 <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="w-full h-full">
                     {renderDefs()}
                     <path d={fillPath} fill={`url(#${gradientId})`} stroke="none" />
-                    <path d={wavePath} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d={wavePath} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
             </div>
         );
@@ -58,7 +58,7 @@ export default function CardSparkline({ data = [], color = 'currentColor', isDec
     const fillPathData = `${pathData} L ${width},40 L 0,40 Z`;
 
     return (
-        <div className="absolute right-0 bottom-0 pointer-events-none overflow-hidden h-[60px] w-[45%] max-w-[140px] opacity-80">
+        <div className="absolute right-0 bottom-0 pointer-events-none overflow-hidden h-20 w-36 opacity-70">
             <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="w-full h-full">
                 {renderDefs()}
                 <path d={fillPathData} fill={`url(#${gradientId})`} stroke="none" />

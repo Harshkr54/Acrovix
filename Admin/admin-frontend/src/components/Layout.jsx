@@ -168,12 +168,12 @@ export default function Layout() {
             )}
 
             {/* Sidebar */}
-            <div className={`sidebar fixed inset-y-0 left-0 z-50 flex flex-col shrink-0 lg:relative lg:translate-x-0 lg:h-screen lg:rounded-none ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isCollapsed ? 'w-[96px]' : 'w-[260px]'}`}>
+            <div className={`sidebar fixed inset-y-0 left-0 z-50 flex flex-col shrink-0 lg:relative lg:translate-x-0 lg:my-3 lg:ml-3 lg:h-[calc(100vh-24px)] ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isCollapsed ? 'w-[96px]' : 'w-[260px]'}`}>
                 <div className="sidebar-logo-container">
                     <img 
                         src={logoLight} 
                         alt="ACROVIX" 
-                        className={`sidebar-logo-image ${isCollapsed ? 'w-full max-w-[70px]' : 'w-full px-2 scale-[1.15]'}`} 
+                        className={`sidebar-logo-image ${isCollapsed ? 'w-full max-w-[70px]' : 'w-[220px] scale-[1.05]'}`} 
                     />
                     <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden absolute right-4 text-text-muted hover:text-text-primary transition-colors p-1 rounded-lg">
                         <X className="w-5 h-5" />
@@ -389,7 +389,7 @@ export default function Layout() {
                             </div>
                             <input
                                 type="text"
-                                className="w-full pl-11 pr-10 py-2 bg-bg-card border border-border-subtle rounded-full text-[13px] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]/20 focus:border-[var(--color-brand-primary)] transition-all shadow-[0_2px_12px_rgba(11,25,44,0.03)] text-text-primary placeholder-text-muted font-medium"
+                                className="w-full pl-11 pr-10 py-2.5 bg-bg-card border border-border-subtle rounded-full text-[13px] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]/20 focus:border-[var(--color-brand-primary)] transition-all shadow-[0_2px_12px_rgba(11,25,44,0.03)] text-text-primary placeholder-text-muted font-medium"
                                 placeholder="Search anything..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
