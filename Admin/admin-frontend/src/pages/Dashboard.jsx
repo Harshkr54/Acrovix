@@ -776,8 +776,14 @@ export default function Dashboard() {
                         </div>
                     </div>
 
-                    {/* Quick Actions */}
-                    <div className="acx-card p-6 mt-6">
+                    {/* Bottom Area Grid */}
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mt-6">
+                        
+                        {/* Left Side (3 columns span) */}
+                        <div className="lg:col-span-3 flex flex-col gap-6">
+                            
+                            {/* Quick Actions */}
+                            <div className="acx-card p-6">
                         <h2 className="text-[18px] font-bold text-text-primary tracking-tight mb-5">Quick Actions</h2>
                         <div className="flex flex-wrap gap-4">
                             <Link to="/enquiries" className="btn btn-secondary btn-md">
@@ -796,12 +802,11 @@ export default function Dashboard() {
                                 <Download className="w-4 h-4 mr-1.5" />
                                 Export Data
                             </Link>
-                        </div>
-                    </div>
+                            </div>
 
-                    {/* Bottom Section (Financial & CRM) */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {/* Total Received */}
+                            {/* Financial Cards Grid */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                                {/* Total Received */}
                         <div className="acx-card p-5 flex flex-col justify-between border-l-4 border-l-emerald-500 relative overflow-hidden h-[130px]">
                             <div className="flex items-center gap-3 mb-2">
                                 <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl flex items-center justify-center">
@@ -854,10 +859,14 @@ export default function Dashboard() {
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        {/* Upcoming Follow-ups */}
-                        <div className="acx-card p-5 flex flex-col h-[130px]">
-                            <div className="flex items-center justify-between mb-4">
+                {/* Right Side (1 column span) */}
+                <div className="lg:col-span-1">
+                    {/* Upcoming Follow-ups */}
+                    <div className="acx-card p-5 flex flex-col h-full">
+                        <div className="flex items-center justify-between mb-4">
                                 <h2 className="text-[13px] font-semibold text-text-primary tracking-tight">Upcoming Follow-ups</h2>
                                 <Link to="/crm/leads" className="text-[12px] font-medium text-[var(--color-brand-primary)] hover:underline transition-opacity">
                                     CRM &rarr;
