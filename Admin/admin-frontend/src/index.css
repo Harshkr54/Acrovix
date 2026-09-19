@@ -285,42 +285,25 @@
 
 
 
-  .sidebar-user-container {
-    @apply flex items-center justify-between p-4 mx-3 mb-3 mt-4 border-t shrink-0;
+  .sidebar-logout-container {
+    @apply mt-auto border-t shrink-0;
     border-color: var(--theme-sidebar-divider, #E5EAF0);
   }
 
-  :root[data-theme="dark"] .sidebar-user-container {
+  :root[data-theme="dark"] .sidebar-logout-container {
     --theme-sidebar-divider: rgba(148, 163, 184, 0.12);
   }
 
-  .sidebar-avatar {
-    @apply w-[46px] h-[46px] rounded-full flex items-center justify-center text-[15px] font-bold border-2 shrink-0;
-    background-color: var(--theme-sidebar-avatar-bg, #EEF2FF);
-    color: var(--theme-sidebar-avatar-text, #2563EB);
-    border-color: var(--theme-sidebar-avatar-border, #E0E7FF);
+  .sidebar-logout-btn {
+    @apply flex items-center w-full px-6 py-[18px] text-[14.5px] font-semibold text-brand-danger transition-colors cursor-pointer outline-none focus-visible:bg-brand-danger/10 relative;
   }
-
-  :root[data-theme="dark"] .sidebar-avatar {
-    --theme-sidebar-avatar-bg: #12356B;
-    --theme-sidebar-avatar-text: #60A5FA;
-    --theme-sidebar-avatar-border: #1E40AF;
+  
+  .sidebar-logout-btn:hover {
+    @apply bg-brand-danger/5;
   }
-
-  .sidebar-signout {
-    @apply p-2.5 rounded-xl transition-colors shrink-0 flex items-center justify-center;
-    color: var(--theme-sidebar-signout, #64748B);
-  }
-
-  .sidebar-signout:hover {
-    background-color: var(--theme-sidebar-signout-hover-bg, #F1F5F9);
-    color: var(--theme-sidebar-signout-hover-text, #0B192C);
-  }
-
-  :root[data-theme="dark"] .sidebar-signout {
-    --theme-sidebar-signout: #9DB3B9;
-    --theme-sidebar-signout-hover-bg: rgba(255, 255, 255, 0.05);
-    --theme-sidebar-signout-hover-text: #F1FAF8;
+  
+  :root[data-theme="dark"] .sidebar-logout-btn:hover {
+    @apply bg-brand-danger/10;
   }
 
   /* --- LEGACY CLASSES (PRESERVED FOR NOW) --- */

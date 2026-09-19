@@ -295,7 +295,17 @@ export default function Layout() {
                     </nav>
                 </div>
                 
-
+                <div className="sidebar-logout-container">
+                    <button
+                        onClick={handleLogout}
+                        className="sidebar-logout-btn group"
+                        style={isCollapsed ? { justifyContent: 'center', paddingLeft: 0, paddingRight: 0 } : {}}
+                        title="Sign Out"
+                    >
+                        <LogOut className={`w-[22px] h-[22px] transition-transform group-hover:-translate-x-1 ${isCollapsed ? '!mr-0 mx-auto' : 'mr-3'}`} />
+                        {!isCollapsed && <span>Sign Out</span>}
+                    </button>
+                </div>
             </div>
 
             {/* Main content */}
