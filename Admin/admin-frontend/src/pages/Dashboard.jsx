@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { fetchApi, getDashboardReceivables, getUpcomingFollowUps } from '../services/api';
-import { FileText, Inbox, Activity, CheckCircle, Clock, ChevronRight, Filter, Plus, MoreHorizontal, MessageSquare, User, AlertCircle, RefreshCw, Loader2, X, RotateCcw, Eye, Check, CreditCard, DollarSign, TrendingUp, AlertTriangle, Download, PieChart, Users, PhoneCall } from 'lucide-react';
+import { FileText, Inbox, Activity, CheckCircle, Clock, ChevronRight, Filter, Plus, MoreHorizontal, MessageSquare, User, AlertCircle, RefreshCw, Loader2, X, RotateCcw, Eye, Check, CreditCard, DollarSign, TrendingUp, TrendingDown, AlertTriangle, Download, PieChart, Users, PhoneCall } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -419,79 +419,94 @@ export default function Dashboard() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                         
                         {/* 1. Total Enquiries */}
-                        <div className="bg-[var(--theme-dashboard-card)] rounded-[20px] p-5 flex flex-col justify-between border border-[var(--theme-dashboard-border)] shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
+                        <div className="acx-card p-5 flex flex-col justify-between relative overflow-hidden group min-h-[140px]">
                             <div className="flex items-center gap-3 mb-4 relative z-10">
                                 <div className="w-10 h-10 bg-blue-50 dark:bg-blue-500/10 rounded-[12px] flex items-center justify-center shrink-0">
                                     <Inbox className="w-5 h-5 text-blue-600 dark:text-blue-500" />
                                 </div>
                                 <span className="text-[14px] font-semibold text-text-primary tracking-tight">Total Enquiries</span>
                             </div>
-                            <div className="relative z-10">
+                            <div className="relative z-10 flex-1 flex flex-col justify-end">
                                 <div className="text-[32px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center">
                                     {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-blue-600" /> : (stats?.totalEnquiries ?? 0)}
                                 </div>
-                                <div className="text-[12px] font-medium text-text-muted">
-                                    Filtered count
-                                </div>
+                                {(() => {
+                                    if (!stats?.monthlyOverview || stats.monthlyOverview.length < 2) return <div className="text-[12px] font-medium text-text-muted mt-2">Filtered count</div>;
+                                    const prev = stats.monthlyOverview[stats.monthlyOverview.length - 2].totalEnquiries || 0;
+                                    const curr = stats.monthlyOverview[stats.monthlyOverview.length - 1].totalEnquiries || 0;
+                                    const pct = prev === 0 ? (curr > 0 ? 100 : 0) : Math.round(((curr - prev) / prev) * 100);
+                                    const isUp = pct >= 0;
+                                    return (
+                                        <div className="flex items-center gap-1.5 mt-2">
+                                            <span className={`flex items-center text-[11px] font-bold px-1.5 py-0.5 rounded-md ${isUp ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400'}`}>
+                                                {isUp ? <TrendingUp className="w-3 h-3 mr-0.5" /> : <TrendingDown className="w-3 h-3 mr-0.5" />}
+                                                {isUp ? '+' : ''}{pct}%
+                                            </span>
+                                            <span className="text-[11px] font-medium text-text-muted">vs last month</span>
+                                        </div>
+                                    );
+                                })()}
                             </div>
-                            <CardSparkline data={stats?.monthlyOverview?.map(m => m.totalEnquiries)} color="#2563EB" />
+                            <div className="absolute bottom-4 right-4 w-[80px] h-[40px] opacity-60">
+                                <CardSparkline data={stats?.monthlyOverview?.map(m => m.totalEnquiries)} color="#2563EB" />
+                            </div>
                         </div>
 
                         {/* 2. Total Quotations */}
-                        <div className="bg-[var(--theme-dashboard-card)] rounded-[20px] p-5 flex flex-col justify-between border border-[var(--theme-dashboard-border)] shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
+                        <div className="acx-card p-5 flex flex-col justify-between relative overflow-hidden group min-h-[140px]">
                             <div className="flex items-center gap-3 mb-4 relative z-10">
                                 <div className="w-10 h-10 bg-purple-50 dark:bg-purple-500/10 rounded-[12px] flex items-center justify-center shrink-0">
                                     <FileText className="w-5 h-5 text-purple-600 dark:text-purple-500" />
                                 </div>
                                 <span className="text-[14px] font-semibold text-text-primary tracking-tight">Total Quotations</span>
                             </div>
-                            <div className="relative z-10">
+                            <div className="relative z-10 flex-1 flex flex-col justify-end">
                                 <div className="text-[32px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center">
                                     {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-purple-600" /> : (stats?.totalQuotations ?? 0)}
                                 </div>
-                                <div className="text-[12px] font-medium text-text-muted">
-                                    Excludes Trash
-                                </div>
+                                <div className="text-[12px] font-medium text-text-muted mt-2">Excludes Trash</div>
                             </div>
-                            <CardSparkline isDecorative color="#9333EA" />
+                            <div className="absolute bottom-4 right-4 w-[80px] h-[40px] opacity-60">
+                                <CardSparkline isDecorative color="#9333EA" />
+                            </div>
                         </div>
 
                         {/* 3. Accepted Quotations */}
-                        <div className="bg-[var(--theme-dashboard-card)] rounded-[20px] p-5 flex flex-col justify-between border border-[var(--theme-dashboard-border)] shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
+                        <div className="acx-card p-5 flex flex-col justify-between relative overflow-hidden group min-h-[140px]">
                             <div className="flex items-center gap-3 mb-4 relative z-10">
                                 <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-500/10 rounded-[12px] flex items-center justify-center shrink-0">
                                     <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-500" />
                                 </div>
                                 <span className="text-[14px] font-semibold text-text-primary tracking-tight">Accepted Quotations</span>
                             </div>
-                            <div className="relative z-10">
+                            <div className="relative z-10 flex-1 flex flex-col justify-end">
                                 <div className="text-[32px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center">
                                     {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-emerald-600" /> : (stats?.acceptedQuotations ?? 0)}
                                 </div>
-                                <div className="text-[12px] font-medium text-text-muted">
-                                    Excludes Trash
-                                </div>
+                                <div className="text-[12px] font-medium text-text-muted mt-2">Excludes Trash</div>
                             </div>
-                            <CardSparkline isDecorative color="#059669" />
+                            <div className="absolute bottom-4 right-4 w-[80px] h-[40px] opacity-60">
+                                <CardSparkline isDecorative color="#059669" />
+                            </div>
                         </div>
 
                         {/* 4. Total Invoiced */}
-                        <div className="bg-[var(--theme-dashboard-card)] rounded-[20px] p-5 flex flex-col justify-between border border-[var(--theme-dashboard-border)] shadow-sm relative overflow-hidden group hover:shadow-md transition-all duration-300 min-h-[140px]">
+                        <div className="acx-card p-5 flex flex-col justify-between relative overflow-hidden group min-h-[140px] ring-2 ring-brand-primary/40 border-transparent">
                             <div className="flex items-center gap-3 mb-4 relative z-10">
                                 <div className="w-10 h-10 bg-blue-50 dark:bg-blue-500/10 rounded-[12px] flex items-center justify-center shrink-0">
                                     <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-500" />
                                 </div>
                                 <span className="text-[14px] font-semibold text-text-primary tracking-tight">Total Invoiced</span>
                             </div>
-                            <div className="relative z-10">
+                            <div className="relative z-10 flex-1 flex flex-col justify-end">
                                 <div className="text-[26px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center truncate">
                                     Rs. {Number(receivablesStats?.totalInvoiced || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </div>
-                                <div className="text-[12px] font-medium text-text-muted">
-                                    Total Issued Tax Invoices
-                                </div>
+                                <div className="text-[12px] font-medium text-text-muted mt-2">Total Issued Tax Invoices</div>
                             </div>
-                            <CardSparkline isDecorative color="#3B82F6" />
+                            <div className="absolute bottom-4 right-4 w-[80px] h-[40px] opacity-60">
+                                <CardSparkline isDecorative color="#3B82F6" />
+                            </div>
                         </div>
                     </div>
 
@@ -502,7 +517,7 @@ export default function Dashboard() {
                         <div className="lg:col-span-8 flex flex-col gap-6">
                             
                             {/* Analytics Chart */}
-                            <div className="bg-[var(--theme-dashboard-card)] rounded-[20px] border border-[var(--theme-dashboard-border)] p-6 flex flex-col shadow-sm">
+                            <div className="acx-card p-6 flex flex-col h-full">
                                 {/* Header */}
                                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
                                     <div className="flex items-start gap-4">
@@ -521,7 +536,7 @@ export default function Dashboard() {
                                 </div>
 
                                 {/* Dynamic Chart Area */}
-                                <div className="flex-1 min-h-[260px] flex flex-col relative w-full overflow-x-auto overflow-y-hidden hide-scrollbar">
+                                <div className="flex-1 min-h-[300px] flex flex-col relative w-full overflow-x-auto hide-scrollbar pb-8">
                                     <div className="min-w-[600px] h-full flex flex-col relative">
                                         
                                         {isLoading ? (
@@ -532,7 +547,6 @@ export default function Dashboard() {
                                             (() => {
                                                 const overviewData = stats.monthlyOverview;
                                                 const getNiceMax = (max) => {
-                                                    if (max <= 5) return Math.max(1, max);
                                                     if (max <= 10) return 10;
                                                     const magnitude = Math.pow(10, Math.floor(Math.log10(max)));
                                                     return Math.ceil(max / magnitude) * magnitude;
@@ -540,12 +554,7 @@ export default function Dashboard() {
                                                 const maxVal = Math.max(0, ...overviewData.map(i => Math.max(Number(i.totalEnquiries) || 0, Number(i.newEnquiries) || 0)));
                                                 const niceMax = getNiceMax(maxVal);
                                                 
-                                                let rawTicks;
-                                                if (niceMax <= 5) {
-                                                    rawTicks = Array.from({length: niceMax + 1}, (_, i) => i).reverse();
-                                                } else {
-                                                    rawTicks = [1, 0.75, 0.5, 0.25, 0].map(m => Math.round(niceMax * m));
-                                                }
+                                                const rawTicks = [1, 0.75, 0.5, 0.25, 0].map(m => Math.round(niceMax * m));
                                                 const ticks = Array.from(new Set(rawTicks));
 
                                                 return (
@@ -642,7 +651,7 @@ export default function Dashboard() {
                                                                             
                                                                             {/* Tooltip */}
                                                                             <div 
-                                                                                className="opacity-0 group-hover:opacity-100 transition-opacity absolute bg-bg-card border border-border-subtle p-3 rounded-[12px] shadow-xl pointer-events-none w-[160px] z-[100]"
+                                                                                className="opacity-0 group-hover:opacity-100 transition-opacity absolute acx-card p-3 pointer-events-none w-[160px] z-[100]"
                                                                                 style={tooltipStyle}
                                                                             >
                                                                                 <div className="text-[13px] font-bold text-text-primary mb-2">{item.month}</div>
@@ -700,65 +709,13 @@ export default function Dashboard() {
                                 </div>
                             </div>
 
-                            {/* Secondary Financial Row */}
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                                {/* Total Received */}
-                                <div className="bg-bg-card rounded-[20px] p-5 flex flex-col justify-between border-l-4 border-l-emerald-500 border-y border-y-border-subtle border-r border-r-border-subtle shadow-sm relative overflow-hidden">
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl flex items-center justify-center border border-emerald-100/50 dark:border-emerald-500/20">
-                                            <CreditCard className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                                        </div>
-                                        <span className="text-[14px] font-bold text-text-primary tracking-tight">Total Received</span>
-                                    </div>
-                                    <div>
-                                        <div className="text-[24px] font-bold text-text-primary tracking-tight leading-none mb-1 truncate">
-                                            Rs. {Number(receivablesStats?.totalReceived || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                        </div>
-                                        <div className="text-[12px] font-medium text-text-muted">Active Payment Ledger</div>
-                                    </div>
-                                </div>
 
-                                {/* Outstanding Balance */}
-                                <div className="bg-bg-card rounded-[20px] p-5 flex flex-col justify-between border-l-4 border-l-orange-500 border-y border-y-border-subtle border-r border-r-border-subtle shadow-sm relative overflow-hidden">
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <div className="w-10 h-10 bg-orange-50 dark:bg-orange-500/10 rounded-xl flex items-center justify-center border border-orange-100/50 dark:border-orange-500/20">
-                                            <Clock className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                                        </div>
-                                        <span className="text-[14px] font-bold text-text-primary tracking-tight">Outstanding</span>
-                                    </div>
-                                    <div>
-                                        <div className="text-[24px] font-bold text-text-primary tracking-tight leading-none mb-1 truncate">
-                                            Rs. {Number(receivablesStats?.outstandingAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                        </div>
-                                        <div className="text-[12px] font-medium text-text-muted">Pending Receivables</div>
-                                    </div>
-                                </div>
-
-                                {/* Overdue Balance */}
-                                <div className="bg-bg-card rounded-[20px] p-5 flex flex-col justify-between border-l-4 border-l-red-500 border-y border-y-border-subtle border-r border-r-border-subtle shadow-sm relative overflow-hidden">
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <div className="w-10 h-10 bg-red-50 dark:bg-red-500/10 rounded-xl flex items-center justify-center border border-red-100/50 dark:border-red-500/20">
-                                            <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
-                                        </div>
-                                        <span className="text-[14px] font-bold text-text-primary tracking-tight">Overdue Balance</span>
-                                    </div>
-                                    <div>
-                                        <div className="text-[24px] font-bold text-text-primary tracking-tight leading-none mb-1 truncate">
-                                            Rs. {Number(receivablesStats?.overdueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                        </div>
-                                        <div className="text-[12px] font-medium text-text-muted">Past Due Date</div>
-                                    </div>
-                                </div>
-                            </div>
 
                             {/* Quick Actions */}
                             <div className="bg-bg-card rounded-[24px] border border-border-subtle p-6 shadow-sm mt-2">
                                 <h2 className="text-[18px] font-bold text-text-primary tracking-tight mb-5">Quick Actions</h2>
                                 <div className="flex flex-wrap gap-4">
-                                    <button onClick={() => setIsCreateModalOpen(true)} className="btn btn-primary btn-md">
-                                        <Plus className="w-4 h-4 mr-1.5" />
-                                        Create Quotation
-                                    </button>
+
                                     <Link to="/enquiries" className="btn btn-secondary btn-md">
                                         <Inbox className="w-4 h-4 mr-1.5" />
                                         Manage Enquiries
@@ -783,21 +740,20 @@ export default function Dashboard() {
                         <div className="lg:col-span-4 flex flex-col gap-6">
                             
                             {/* Recent Activity Timeline */}
-                            <div className="bg-[var(--theme-dashboard-card)] rounded-[20px] border border-[var(--theme-dashboard-border)] p-6 flex flex-col shadow-sm h-full">
+                            <div className="acx-card p-6 flex flex-col h-full">
                                 <div className="flex items-center justify-between mb-6">
-                                    <h2 className="text-[16px] font-bold text-text-primary tracking-tight">Recent Activity</h2>
-                                    <Link to="/activity" className="text-[13px] font-semibold text-[var(--color-brand-primary)] hover:underline transition-opacity">
+                                    <h2 className="text-[18px] font-bold text-text-primary tracking-tight">Recent Activity</h2>
+                                    <Link to="/activity" className="text-[13px] font-semibold text-brand-primary hover:underline transition-opacity">
                                         View all &rarr;
                                     </Link>
                                 </div>
                                 <div className="flex-1 overflow-y-auto pr-2 hide-scrollbar relative min-h-[300px] max-h-[400px]">
-                                    <div className="absolute left-[11px] top-2 bottom-2 w-px bg-border-subtle"></div>
                                     {isLoading ? (
                                         <div className="flex justify-center items-center py-12">
                                             <Loader2 className="w-6 h-6 animate-spin text-[var(--color-brand-primary)]" />
                                         </div>
                                     ) : stats?.recentActivities && stats.recentActivities.length > 0 ? (
-                                        <div className="relative pl-3 space-y-6 before:absolute before:inset-y-0 before:left-[11px] before:w-[2px] before:bg-border-subtle/50">
+                                        <div className="space-y-4">
                                             {stats.recentActivities.slice(0, 5).map((activity) => {
                                                 let iconStyle = 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400';
                                                 let Icon = MessageSquare;
@@ -815,18 +771,18 @@ export default function Dashboard() {
                                                     : (activity.entityId ? `#${activity.entityId}` : '');
 
                                                 return (
-                                                    <div key={activity.id} className="relative flex gap-4">
-                                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 z-10 ${iconStyle} shadow-sm ring-4 ring-[var(--theme-dashboard-card)] -ml-[11px]`}>
-                                                            <Icon className="w-3 h-3" />
+                                                    <div key={activity.id} className="flex items-start gap-4">
+                                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${iconStyle}`}>
+                                                            <Icon className="w-5 h-5" />
                                                         </div>
                                                         <div className="flex-1 min-w-0 flex flex-col">
-                                                            <p className="text-[13px] font-bold text-text-primary leading-snug">{activity.action}</p>
-                                                            <div className="flex items-center justify-between mt-1">
-                                                                <p className="text-[12px] text-text-muted truncate max-w-[150px]">{entityLabel}</p>
-                                                                <span className="text-[11px] text-text-muted font-medium shrink-0">
+                                                            <div className="flex justify-between items-start mb-0.5">
+                                                                <p className="text-[13px] font-bold text-text-primary truncate">{activity.action}</p>
+                                                                <span className="text-[11px] text-text-muted font-medium ml-2 shrink-0 pt-0.5">
                                                                     {activity.createdAt ? new Date(activity.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''}
                                                                 </span>
                                                             </div>
+                                                            <p className="text-[12px] text-text-muted truncate">{entityLabel}</p>
                                                         </div>
                                                     </div>
                                                 );
@@ -846,10 +802,10 @@ export default function Dashboard() {
                     {/* Bottom Section (Financial & CRM) */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                         {/* Total Received */}
-                        <div className="bg-[var(--theme-dashboard-card)] rounded-[20px] p-5 flex flex-col justify-between border border-[var(--theme-dashboard-border)] shadow-sm relative overflow-hidden h-[130px]">
+                        <div className="acx-card p-5 flex flex-col justify-between border-l-4 border-l-emerald-500 relative overflow-hidden h-[130px]">
                             <div className="flex items-center gap-3 mb-2">
-                                <div className="w-8 h-8 bg-emerald-50 dark:bg-emerald-500/10 rounded-[10px] flex items-center justify-center">
-                                    <CreditCard className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                                <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl flex items-center justify-center">
+                                    <CreditCard className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                                 </div>
                                 <span className="text-[13px] font-semibold text-text-primary tracking-tight">Total Received</span>
                             </div>
@@ -857,18 +813,17 @@ export default function Dashboard() {
                                 <div className="text-[22px] font-bold text-text-primary tracking-tight leading-none mb-1 truncate">
                                     Rs. {Number(receivablesStats?.totalReceived || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </div>
-                                <div className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                                <div className="text-[11px] font-medium text-text-muted">
                                     Active Payment Ledger
                                 </div>
                             </div>
-                            <div className="absolute bottom-0 right-0 left-0 h-1 bg-emerald-500/20"></div>
                         </div>
 
                         {/* Outstanding Balance */}
-                        <div className="bg-[var(--theme-dashboard-card)] rounded-[20px] p-5 flex flex-col justify-between border border-[var(--theme-dashboard-border)] shadow-sm relative overflow-hidden h-[130px]">
+                        <div className="acx-card p-5 flex flex-col justify-between border-l-4 border-l-orange-500 relative overflow-hidden h-[130px]">
                             <div className="flex items-center gap-3 mb-2">
-                                <div className="w-8 h-8 bg-orange-50 dark:bg-orange-500/10 rounded-[10px] flex items-center justify-center">
-                                    <Clock className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                                <div className="w-10 h-10 bg-orange-50 dark:bg-orange-500/10 rounded-xl flex items-center justify-center">
+                                    <Clock className="w-5 h-5 text-orange-600 dark:text-orange-400" />
                                 </div>
                                 <span className="text-[13px] font-semibold text-text-primary tracking-tight">Outstanding</span>
                             </div>
@@ -876,18 +831,17 @@ export default function Dashboard() {
                                 <div className="text-[22px] font-bold text-text-primary tracking-tight leading-none mb-1 truncate">
                                     Rs. {Number(receivablesStats?.outstandingAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </div>
-                                <div className="text-[11px] font-medium text-orange-600 dark:text-orange-400">
+                                <div className="text-[11px] font-medium text-text-muted">
                                     Pending Receivables
                                 </div>
                             </div>
-                            <div className="absolute bottom-0 right-0 left-0 h-1 bg-orange-500/20"></div>
                         </div>
 
                         {/* Overdue Balance */}
-                        <div className="bg-[var(--theme-dashboard-card)] rounded-[20px] p-5 flex flex-col justify-between border border-[var(--theme-dashboard-border)] shadow-sm relative overflow-hidden h-[130px]">
+                        <div className="acx-card p-5 flex flex-col justify-between border-l-4 border-l-red-500 relative overflow-hidden h-[130px]">
                             <div className="flex items-center gap-3 mb-2">
-                                <div className="w-8 h-8 bg-red-50 dark:bg-red-500/10 rounded-[10px] flex items-center justify-center">
-                                    <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
+                                <div className="w-10 h-10 bg-red-50 dark:bg-red-500/10 rounded-xl flex items-center justify-center">
+                                    <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
                                 </div>
                                 <span className="text-[13px] font-semibold text-text-primary tracking-tight">Overdue Balance</span>
                             </div>
@@ -895,15 +849,14 @@ export default function Dashboard() {
                                 <div className="text-[22px] font-bold text-text-primary tracking-tight leading-none mb-1 truncate">
                                     Rs. {Number(receivablesStats?.overdueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </div>
-                                <div className="text-[11px] font-medium text-red-600 dark:text-red-400">
+                                <div className="text-[11px] font-medium text-text-muted">
                                     Past Due Date
                                 </div>
                             </div>
-                            <div className="absolute bottom-0 right-0 left-0 h-1 bg-red-500/20"></div>
                         </div>
 
                         {/* Upcoming Follow-ups */}
-                        <div className="bg-[var(--theme-dashboard-card)] rounded-[20px] border border-[var(--theme-dashboard-border)] p-5 flex flex-col shadow-sm h-[130px]">
+                        <div className="acx-card p-5 flex flex-col h-[130px]">
                             <div className="flex items-center justify-between mb-4">
                                 <h2 className="text-[13px] font-semibold text-text-primary tracking-tight">Upcoming Follow-ups</h2>
                                 <Link to="/crm/leads" className="text-[12px] font-medium text-[var(--color-brand-primary)] hover:underline transition-opacity">

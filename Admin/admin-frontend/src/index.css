@@ -211,8 +211,8 @@
   }
 
   .sidebar-logo-container {
-    @apply flex items-center justify-center h-[120px] px-4 shrink-0 relative w-full border-b;
-    background-color: var(--theme-sidebar-logo-bg, #F1FAF8);
+    @apply flex items-center justify-start h-[72px] px-6 shrink-0 relative w-full border-b;
+    background-color: var(--theme-sidebar-logo-bg, transparent);
     border-color: var(--theme-sidebar-logo-border, #E5EAF0);
     border-top-right-radius: 26px;
   }
@@ -224,12 +224,12 @@
   }
 
   :root[data-theme="dark"] .sidebar-logo-container {
-    --theme-sidebar-logo-bg: #F1FAF8; /* Keep logo container light in dark mode for logo visibility */
+    --theme-sidebar-logo-bg: transparent;
     --theme-sidebar-logo-border: rgba(148, 163, 184, 0.12);
   }
 
   .sidebar-logo-image {
-    @apply h-auto max-h-[90px] w-full object-contain transition-all duration-300;
+    @apply h-auto max-h-[44px] w-auto object-contain object-left transition-all duration-300;
   }
 
   .sidebar-section-title {

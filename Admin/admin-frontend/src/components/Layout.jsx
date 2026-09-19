@@ -24,7 +24,7 @@ const DateTimeDisplay = () => {
     const timeStr = time.toLocaleTimeString('en-US', timeOptions);
 
     return (
-        <div className="hidden lg:flex items-center gap-3 mr-4 pr-4 py-1.5 border-r border-border-subtle h-[42px]">
+        <div className="hidden lg:flex items-center h-[42px]">
             <div className="flex items-center gap-3 bg-bg-card border border-border-subtle rounded-xl px-2.5 py-1.5 shadow-sm">
                 <div className="w-7 h-7 rounded-lg bg-brand-primary/10 flex items-center justify-center shrink-0">
                     <Calendar className="w-4 h-4 text-brand-primary" />
@@ -173,7 +173,7 @@ export default function Layout() {
                     <img 
                         src={logoLight} 
                         alt="ACROVIX" 
-                        className={`sidebar-logo-image ${isCollapsed ? 'w-full max-w-[70px]' : 'w-[220px] scale-[1.05]'}`} 
+                        className={`sidebar-logo-image ${isCollapsed ? 'w-full max-w-[32px]' : ''}`} 
                     />
                     <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden absolute right-4 text-text-muted hover:text-text-primary transition-colors p-1 rounded-lg">
                         <X className="w-5 h-5" />
@@ -389,12 +389,21 @@ export default function Layout() {
                             </div>
                             <input
                                 type="text"
-                                className="w-full pl-11 pr-10 py-2.5 bg-bg-card border border-border-subtle rounded-full text-[13px] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]/20 focus:border-[var(--color-brand-primary)] transition-all shadow-[0_2px_12px_rgba(11,25,44,0.03)] text-text-primary placeholder-text-muted font-medium"
+                                className="w-full pl-11 pr-16 py-2.5 bg-bg-card border border-border-subtle rounded-full text-[13px] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]/20 focus:border-[var(--color-brand-primary)] transition-all shadow-[0_2px_12px_rgba(11,25,44,0.03)] text-text-primary placeholder-text-muted font-medium"
                                 placeholder="Search anything..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 onFocus={() => { if (searchQuery.trim() && (searchResults.enquiries.length > 0 || searchResults.quotations.length > 0 || searchResults.customers.length > 0)) setSearchDropdownOpen(true) }}
                             />
+                            
+                            {!searchQuery && (
+                                <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+                                    <div className="flex items-center gap-1 bg-bg-muted/50 border border-border-subtle rounded px-1.5 py-1 text-[10px] font-semibold text-text-muted">
+                                        <span>Ctrl</span>
+                                        <span>K</span>
+                                    </div>
+                                </div>
+                            )}
 
                             {searchQuery && (
                                 <button
@@ -503,7 +512,7 @@ export default function Layout() {
                         </div>
                     </div>
                     
-                    <div className="flex items-center">
+                    <div className="flex items-center gap-3">
                         <DateTimeDisplay />
                         <HeaderControls />
                     </div>

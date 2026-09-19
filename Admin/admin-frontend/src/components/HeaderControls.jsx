@@ -153,7 +153,7 @@ export default function HeaderControls() {
     };
 
     return (
-        <div className="flex items-center space-x-3 sm:space-x-4 ml-4" ref={containerRef}>
+        <div className="flex items-center gap-3" ref={containerRef}>
             
             {/* Documents Dropdown */}
             <div className="relative">
@@ -275,7 +275,7 @@ export default function HeaderControls() {
                 >
                     <Bell className="w-4 h-4" />
                     {unreadCount > 0 && (
-                        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-brand-danger rounded-full border border-white dark:border-bg-main flex items-center justify-center text-[10px] font-bold text-white leading-none">
+                        <span className="absolute top-1.5 right-1.5 min-w-[16px] h-[16px] px-1 bg-brand-danger rounded-full ring-2 ring-bg-main flex items-center justify-center text-[9px] font-bold text-white leading-none">
                             {unreadCount > 99 ? '99+' : unreadCount}
                         </span>
                     )}
