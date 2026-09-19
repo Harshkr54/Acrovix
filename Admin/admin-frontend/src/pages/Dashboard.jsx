@@ -575,10 +575,31 @@ export default function Dashboard() {
                                                                     const totalHeightPct = Math.max(1, (item.totalEnquiries / niceMax) * 100);
                                                                     const newHeightPct = Math.max(1, (item.newEnquiries / niceMax) * 100);
                                                                     
+                                                                    const maxHeightPct = Math.max(totalHeightPct, newHeightPct);
+                                                                    const isHigh = maxHeightPct > 70;
+                                                                    
+                                                                    const tooltipStyle = {
+                                                                        ...(isHigh ? { top: '10px' } : { bottom: `calc(${maxHeightPct}% + 12px)` })
+                                                                    };
+                                                                    
+                                                                    if (idx === 0) {
+                                                                        tooltipStyle.left = '0';
+                                                                        tooltipStyle.transform = 'none';
+                                                                    } else if (idx === overviewData.length - 1) {
+                                                                        tooltipStyle.right = '0';
+                                                                        tooltipStyle.transform = 'none';
+                                                                    } else {
+                                                                        tooltipStyle.left = '50%';
+                                                                        tooltipStyle.transform = 'translateX(-50%)';
+                                                                    }
+                                                                    
                                                                     return (
-                                                                        <div key={idx} className="flex-1 h-full flex flex-col justify-end items-center group relative z-20">
+                                                                        <div key={idx} className="flex-1 h-full flex flex-col justify-end items-center group relative z-20 hover:z-50">
                                                                             {/* Tooltip */}
-                                                                            <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute bg-bg-card border border-border-subtle p-3 rounded-[12px] shadow-lg pointer-events-none w-[160px] z-50 bottom-full mb-2 left-1/2 -translate-x-1/2">
+                                                                            <div 
+                                                                                className="opacity-0 group-hover:opacity-100 transition-opacity absolute bg-bg-card border border-border-subtle p-3 rounded-[12px] shadow-xl pointer-events-none w-[160px] z-[100]"
+                                                                                style={tooltipStyle}
+                                                                            >
                                                                                 <div className="text-[13px] font-bold text-text-primary mb-2">{item.month}</div>
                                                                                 <div className="flex justify-between items-center mb-1.5">
                                                                                     <div className="flex items-center gap-1.5">
