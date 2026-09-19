@@ -711,29 +711,6 @@ export default function Dashboard() {
 
 
 
-                            {/* Quick Actions */}
-                            <div className="bg-bg-card rounded-[24px] border border-border-subtle p-6 shadow-sm mt-2">
-                                <h2 className="text-[18px] font-bold text-text-primary tracking-tight mb-5">Quick Actions</h2>
-                                <div className="flex flex-wrap gap-4">
-
-                                    <Link to="/enquiries" className="btn btn-secondary btn-md">
-                                        <Inbox className="w-4 h-4 mr-1.5" />
-                                        Manage Enquiries
-                                    </Link>
-                                    <Link to="/reports" className="btn btn-secondary btn-md">
-                                        <PieChart className="w-4 h-4 mr-1.5" />
-                                        View Reports
-                                    </Link>
-                                    <Link to="/customers" className="btn btn-secondary btn-md">
-                                        <Users className="w-4 h-4 mr-1.5" />
-                                        Manage Customers
-                                    </Link>
-                                    <Link to="/reports" className="btn btn-secondary btn-md">
-                                        <Download className="w-4 h-4 mr-1.5" />
-                                        Export Data
-                                    </Link>
-                                </div>
-                            </div>
                         </div>
 
                         {/* Right Column (4/12 width) */}
@@ -796,6 +773,29 @@ export default function Dashboard() {
                                     )}
                                 </div>
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Quick Actions */}
+                    <div className="acx-card p-6 mt-6">
+                        <h2 className="text-[18px] font-bold text-text-primary tracking-tight mb-5">Quick Actions</h2>
+                        <div className="flex flex-wrap gap-4">
+                            <Link to="/enquiries" className="btn btn-secondary btn-md">
+                                <Inbox className="w-4 h-4 mr-1.5" />
+                                Manage Enquiries
+                            </Link>
+                            <Link to="/reports" className="btn btn-secondary btn-md">
+                                <PieChart className="w-4 h-4 mr-1.5" />
+                                View Reports
+                            </Link>
+                            <Link to="/customers" className="btn btn-secondary btn-md">
+                                <Users className="w-4 h-4 mr-1.5" />
+                                Manage Customers
+                            </Link>
+                            <Link to="/reports" className="btn btn-secondary btn-md">
+                                <Download className="w-4 h-4 mr-1.5" />
+                                Export Data
+                            </Link>
                         </div>
                     </div>
 
