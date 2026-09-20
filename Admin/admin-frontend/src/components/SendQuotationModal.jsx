@@ -85,7 +85,7 @@ export default function SendQuotationModal({ isOpen, onClose, initialEmail, onSe
             className="fixed inset-0 bg-text-primary/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
             onKeyDown={handleKeyDown}
         >
-            <div className="acx-card p-6 md:p-8 max-w-lg w-full border border-border-subtle shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+            <div className="acx-card p-6 md:p-8 max-w-lg w-full border border-border-subtle shadow-2xl relative animate-modal-entrance">
                 {/* Close Button */}
                 <button
                     onClick={handleClose}

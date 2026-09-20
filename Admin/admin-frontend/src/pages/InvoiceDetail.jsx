@@ -705,7 +705,7 @@ export default function InvoiceDetail() {
             {/* Record Payment Modal */}
             {isRecordPaymentModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-bg-card border border-border-subtle rounded-2xl w-full max-w-lg flex flex-col max-h-[90vh] overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+                    <div className="bg-bg-card border border-border-subtle rounded-2xl w-full max-w-lg flex flex-col max-h-[90vh] overflow-hidden shadow-2xl animate-modal-entrance">
                         <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle shrink-0">
                             <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
                                 <CreditCard className="w-5 h-5 text-emerald-600" /> Record Payment
@@ -854,7 +854,7 @@ export default function InvoiceDetail() {
             {/* Cancel Payment Modal */}
             {cancellingPaymentId && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-bg-card border border-border-subtle rounded-2xl w-full max-w-md flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+                    <div className="bg-bg-card border border-border-subtle rounded-2xl w-full max-w-md flex flex-col overflow-hidden shadow-2xl animate-modal-entrance">
                         <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle shrink-0">
                             <h2 className="text-base font-bold text-red-500 flex items-center gap-2">
                                 <AlertCircle className="w-5 h-5" /> Cancel Payment Record
@@ -914,7 +914,7 @@ export default function InvoiceDetail() {
             {/* Edit Invoice Details Modal */}
             {isEditModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-bg-card border border-border-subtle rounded-2xl w-full max-w-2xl flex flex-col max-h-[85vh] overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+                    <div className="bg-bg-card border border-border-subtle rounded-2xl w-full max-w-2xl flex flex-col max-h-[85vh] overflow-hidden shadow-2xl animate-modal-entrance">
                         {/* Modal Header */}
                         <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle shrink-0">
                             <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">

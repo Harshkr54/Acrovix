@@ -47,7 +47,7 @@ export default function QuotationHistoryModal({ isOpen, onClose, quotation, onVi
 
     return (
         <div className="fixed inset-0 bg-text-primary/30 backdrop-blur-sm z-[90] flex items-center justify-center p-4">
-            <div className="acx-card w-full max-w-4xl shadow-2xl relative animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
+            <div className="acx-card w-full max-w-4xl shadow-2xl relative animate-modal-entrance flex flex-col max-h-[85vh]">
                 <div className="p-6 md:px-8 md:pt-8 md:pb-6 border-b border-border-subtle flex justify-between items-center bg-bg-card rounded-t-[24px]">
                     <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 bg-indigo-50 border border-indigo-100 flex items-center justify-center rounded-[14px] text-indigo-600">

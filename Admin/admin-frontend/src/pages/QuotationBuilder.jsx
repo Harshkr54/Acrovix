@@ -655,7 +655,7 @@ export default function QuotationBuilder() {
 
             {/* Validation Error Banner */}
             {validationError && (
-                <div className="p-4 bg-brand-danger/10 border border-brand-danger/30 rounded-2xl flex items-center gap-3 shadow-sm animate-in fade-in duration-200">
+                <div className="p-4 bg-brand-danger/10 border border-brand-danger/30 rounded-2xl flex items-center gap-3 shadow-sm animate-modal-entrance">
                     <AlertCircle className="w-5 h-5 text-brand-danger shrink-0" />
                     <p className="text-[14px] font-semibold text-brand-danger">{validationError}</p>
                 </div>

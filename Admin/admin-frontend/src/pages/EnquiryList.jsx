@@ -407,7 +407,7 @@ export default function EnquiryList() {
                                                 <div
                                                     ref={actionMenuRef}
                                                     style={actionMenuPosition}
-                                                    className="w-52 bg-bg-card rounded-2xl shadow-xl border border-border-subtle p-2 animate-in fade-in-50 zoom-in-95 duration-150 text-left"
+                                                    className="w-52 bg-bg-card rounded-2xl shadow-xl border border-border-subtle p-2 animate-modal-entrance text-left"
                                                     onClick={(e) => e.stopPropagation()}
                                                 >
                                                     {/* OPEN SECTION */}

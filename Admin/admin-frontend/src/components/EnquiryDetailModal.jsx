@@ -80,7 +80,7 @@ export default function EnquiryDetailModal({ isOpen, onClose, enquiry, onStatusU
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in-50 duration-200">
             <div 
-                className="bg-bg-card border border-border-subtle rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200"
+                className="bg-bg-card border border-border-subtle rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh] animate-modal-entrance"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Modal Header */}

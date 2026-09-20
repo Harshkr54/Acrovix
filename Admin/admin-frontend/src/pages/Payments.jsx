@@ -309,7 +309,7 @@ export default function Payments() {
         <div className="p-8 max-w-7xl mx-auto space-y-6 pb-24">
             {/* Success Toast */}
             {successToast && (
-                <div className="fixed top-20 right-8 z-50 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top duration-300">
+                <div className="fixed top-20 right-8 z-50 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-dropdown-entrance">
                     <CheckCircle className="w-5 h-5 shrink-0" />
                     <span className="text-xs font-semibold">{successToast}</span>
                     <button onClick={() => setSuccessToast(null)} className="btn btn-ghost btn-icon ml-2 text-white hover:bg-white/20">
@@ -569,7 +569,7 @@ export default function Payments() {
             {/* Record Payment Modal */}
             {isRecordModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-bg-card border border-border-subtle rounded-2xl w-full max-w-xl flex flex-col max-h-[92vh] overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+                    <div className="bg-bg-card border border-border-subtle rounded-2xl w-full max-w-xl flex flex-col max-h-[92vh] overflow-hidden shadow-2xl animate-modal-entrance">
                         {/* Modal Header */}
                         <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle shrink-0">
                             <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
@@ -659,7 +659,7 @@ export default function Payments() {
 
                                 {/* Step 2: Authoritative Invoice & Customer Breakdown Card */}
                                 {selectedInvoice && (
-                                    <div className="p-4 bg-bg-main rounded-xl border border-border-subtle space-y-3 animate-in fade-in duration-200">
+                                    <div className="p-4 bg-bg-main rounded-xl border border-border-subtle space-y-3 animate-modal-entrance">
                                         <div className="flex items-center justify-between">
                                             <div className="font-bold text-xs text-text-primary flex items-center gap-1.5">
                                                 <Building2 className="w-4 h-4 text-brand-primary" />
@@ -825,7 +825,7 @@ export default function Payments() {
             {/* View Payment Details Modal */}
             {selectedPayment && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-bg-card border border-border-subtle rounded-2xl w-full max-w-lg flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+                    <div className="bg-bg-card border border-border-subtle rounded-2xl w-full max-w-lg flex flex-col overflow-hidden shadow-2xl animate-modal-entrance">
                         <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle shrink-0">
                             <div>
                                 <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
@@ -961,7 +961,7 @@ export default function Payments() {
             {/* Cancel Payment Modal */}
             {cancellingPayment && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-bg-card border border-border-subtle rounded-2xl w-full max-w-md flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+                    <div className="bg-bg-card border border-border-subtle rounded-2xl w-full max-w-md flex flex-col overflow-hidden shadow-2xl animate-modal-entrance">
                         <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle shrink-0">
                             <h2 className="text-base font-bold text-red-500 flex items-center gap-2">
                                 <AlertCircle className="w-5 h-5" /> Cancel Payment {cancellingPayment.paymentNumber}

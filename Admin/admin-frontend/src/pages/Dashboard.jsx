@@ -8,6 +8,12 @@ import CreateQuotationModal from '../components/CreateQuotationModal';
 import EnquiryDetailModal from '../components/EnquiryDetailModal';
 import ActionMenu from '../components/ActionMenu';
 import CardSparkline from '../components/ui/CardSparkline';
+import { useCountUp } from '../hooks/useCountUp';
+
+function AnimatedNumber({ value, formatter }) {
+    const count = useCountUp(value, 600);
+    return formatter ? formatter(count) : Math.round(count);
+}
 
 const DEFAULT_FILTERS = {
     dateRange: 'ALL_TIME',
@@ -284,7 +290,7 @@ export default function Dashboard() {
 
                     {/* Filter Popover */}
                     {isFilterOpen && (
-                        <div className="absolute right-0 top-[52px] w-80 sm:w-96 bg-bg-card rounded-2xl shadow-xl border border-border-subtle p-5 z-50 animate-in slide-in-from-top-2 duration-200">
+                        <div className="absolute right-0 top-[52px] w-80 sm:w-96 bg-bg-card rounded-2xl shadow-xl border border-border-subtle p-5 z-50 animate-dropdown-entrance">
                             <div className="flex items-center justify-between pb-3 border-b border-border-subtle mb-4">
                                 <div className="flex items-center gap-2">
                                     <Filter className="w-4 h-4 text-[var(--color-brand-primary)]" />
@@ -418,7 +424,7 @@ export default function Dashboard() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                         
                         {/* 1. Total Enquiries */}
-                        <div className="acx-card p-5 flex flex-col justify-between relative overflow-hidden group min-h-[140px]">
+                        <div className="acx-card p-5 flex flex-col justify-between relative overflow-hidden group min-h-[140px] animate-stagger-1">
                             <div className="flex items-center gap-3 mb-4 relative z-10">
                                 <div className="w-10 h-10 bg-blue-50 dark:bg-blue-500/10 rounded-[12px] flex items-center justify-center shrink-0">
                                     <Inbox className="w-5 h-5 text-blue-600 dark:text-blue-500" />
@@ -427,7 +433,7 @@ export default function Dashboard() {
                             </div>
                             <div className="relative z-10 flex-1 flex flex-col justify-end">
                                 <div className="text-[32px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center">
-                                    {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-blue-600" /> : (stats?.totalEnquiries ?? 0)}
+                                    {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-blue-600" /> : <AnimatedNumber value={stats?.totalEnquiries ?? 0} />}
                                 </div>
                                 {(() => {
                                     if (!stats?.monthlyOverview || stats.monthlyOverview.length < 2) return <div className="text-[12px] font-medium text-text-muted mt-2">Filtered count</div>;
@@ -452,7 +458,7 @@ export default function Dashboard() {
                         </div>
 
                         {/* 2. Total Quotations */}
-                        <div className="acx-card p-5 flex flex-col justify-between relative overflow-hidden group min-h-[140px]">
+                        <div className="acx-card p-5 flex flex-col justify-between relative overflow-hidden group min-h-[140px] animate-stagger-2">
                             <div className="flex items-center gap-3 mb-4 relative z-10">
                                 <div className="w-10 h-10 bg-purple-50 dark:bg-purple-500/10 rounded-[12px] flex items-center justify-center shrink-0">
                                     <FileText className="w-5 h-5 text-purple-600 dark:text-purple-500" />
@@ -461,7 +467,7 @@ export default function Dashboard() {
                             </div>
                             <div className="relative z-10 flex-1 flex flex-col justify-end">
                                 <div className="text-[32px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center">
-                                    {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-purple-600" /> : (stats?.totalQuotations ?? 0)}
+                                    {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-purple-600" /> : <AnimatedNumber value={stats?.totalQuotations ?? 0} />}
                                 </div>
                                 <div className="text-[12px] font-medium text-text-muted mt-2">Excludes Trash</div>
                             </div>
@@ -471,7 +477,7 @@ export default function Dashboard() {
                         </div>
 
                         {/* 3. Accepted Quotations */}
-                        <div className="acx-card p-5 flex flex-col justify-between relative overflow-hidden group min-h-[140px]">
+                        <div className="acx-card p-5 flex flex-col justify-between relative overflow-hidden group min-h-[140px] animate-stagger-3">
                             <div className="flex items-center gap-3 mb-4 relative z-10">
                                 <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-500/10 rounded-[12px] flex items-center justify-center shrink-0">
                                     <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-500" />
@@ -480,7 +486,7 @@ export default function Dashboard() {
                             </div>
                             <div className="relative z-10 flex-1 flex flex-col justify-end">
                                 <div className="text-[32px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center">
-                                    {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-emerald-600" /> : (stats?.acceptedQuotations ?? 0)}
+                                    {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-emerald-600" /> : <AnimatedNumber value={stats?.acceptedQuotations ?? 0} />}
                                 </div>
                                 <div className="text-[12px] font-medium text-text-muted mt-2">Excludes Trash</div>
                             </div>
@@ -490,7 +496,7 @@ export default function Dashboard() {
                         </div>
 
                         {/* 4. Total Invoiced */}
-                        <div className="acx-card p-5 flex flex-col justify-between relative overflow-hidden group min-h-[140px]">
+                        <div className="acx-card p-5 flex flex-col justify-between relative overflow-hidden group min-h-[140px] animate-stagger-4">
                             <div className="flex items-center gap-3 mb-4 relative z-10">
                                 <div className="w-10 h-10 bg-blue-50 dark:bg-blue-500/10 rounded-[12px] flex items-center justify-center shrink-0">
                                     <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-500" />
@@ -499,7 +505,7 @@ export default function Dashboard() {
                             </div>
                             <div className="relative z-10 flex-1 flex flex-col justify-end">
                                 <div className="text-[26px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center truncate">
-                                    Rs. {Number(receivablesStats?.totalInvoiced || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    Rs. <AnimatedNumber value={receivablesStats?.totalInvoiced || 0} formatter={(v) => Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} />
                                 </div>
                                 <div className="text-[12px] font-medium text-text-muted mt-2">Total Issued Tax Invoices</div>
                             </div>
@@ -608,12 +614,12 @@ export default function Dashboard() {
                                                                         const tealFill = overviewData.length === 1 ? tealPath : `${tealPath} L ${tealPts[tealPts.length-1].x},100 L ${tealPts[0].x},100 Z`;
                                                                         return (
                                                                             <>
-                                                                                <path d={blueFill} fill="url(#fadeBlue)" />
-                                                                                <path d={tealFill} fill="url(#fadeTeal)" />
-                                                                                <path d={bluePath} fill="none" stroke="#3B82F6" strokeWidth="3" strokeLinecap="round" />
-                                                                                <path d={tealPath} fill="none" stroke="#14B8A6" strokeWidth="3" strokeLinecap="round" />
+                                                                                <path d={blueFill} fill="url(#fadeBlue)" className="animate-fade-in-up" style={{ animationDelay: '200ms' }} />
+                                                                                <path d={tealFill} fill="url(#fadeTeal)" className="animate-fade-in-up" style={{ animationDelay: '300ms' }} />
+                                                                                <path d={bluePath} fill="none" stroke="#3B82F6" strokeWidth="3" strokeLinecap="round" pathLength="1" className="animate-draw-line" />
+                                                                                <path d={tealPath} fill="none" stroke="#14B8A6" strokeWidth="3" strokeLinecap="round" pathLength="1" className="animate-draw-line" style={{ animationDelay: '100ms' }} />
                                                                                 {overviewData.map((d, i) => (
-                                                                                    <g key={i}>
+                                                                                    <g key={i} className="animate-fade-in-up" style={{ animationDelay: `${(i * 50) + 400}ms` }}>
                                                                                         <circle cx={(i + 0.5) * step} cy={100 - (Math.max(1, (d.totalEnquiries / niceMax) * 100))} r="4" fill="#3B82F6" stroke="#fff" strokeWidth="2" />
                                                                                         <circle cx={(i + 0.5) * step} cy={100 - (Math.max(1, (d.newEnquiries / niceMax) * 100))} r="4" fill="#14B8A6" stroke="#fff" strokeWidth="2" />
                                                                                     </g>

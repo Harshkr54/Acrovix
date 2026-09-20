@@ -118,7 +118,7 @@ export default function ActionMenu({
                 <div
                     ref={menuRef}
                     style={position}
-                    className="w-[216px] bg-bg-card border border-border-subtle rounded-[14px] shadow-xl p-1.5 z-[9999] animate-in fade-in-50 zoom-in-95 duration-150 text-left"
+                    className="w-[216px] bg-bg-card border border-border-subtle rounded-[14px] shadow-xl p-1.5 z-[9999] animate-modal-entrance text-left"
                     onClick={(e) => e.stopPropagation()}
                 >
                     {renderContent ? (

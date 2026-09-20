@@ -124,7 +124,7 @@ export default function QuotationColumnConfigModal({ isOpen, onClose, activeConf
 
     return (
         <div className="fixed inset-0 bg-text-primary/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-            <div className="acx-card p-6 md:p-8 max-w-2xl w-full border border-border-subtle shadow-2xl relative animate-in fade-in zoom-in-95 duration-200 my-8">
+            <div className="acx-card p-6 md:p-8 max-w-2xl w-full border border-border-subtle shadow-2xl relative animate-modal-entrance my-8">
                 <button
                     onClick={onClose}
                     className="btn btn-primary btn-icon absolute top-5 right-5 inset-y-0 right-0 pr-3"

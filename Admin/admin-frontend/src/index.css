@@ -83,7 +83,7 @@
 
 @layer base {
   body {
-    @apply bg-bg-main text-text-primary antialiased selection:bg-brand-teal/30 selection:text-brand-teal;
+    @apply bg-bg-main text-text-primary antialiased selection:bg-brand-teal/30 selection:text-brand-teal transition-colors duration-200 ease-in-out;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     font-weight: 400; /* Regular body */
@@ -100,6 +100,16 @@
     width: 0;
     height: 0;
   }
+
+  /* Reduce motion */
+  @media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
 
 @layer components {
@@ -112,7 +122,7 @@
   /* --- GLOBAL BUTTON SYSTEM --- */
   
   .btn {
-    @apply inline-flex items-center justify-center gap-1.5 font-semibold transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50 disabled:opacity-50 disabled:cursor-not-allowed select-none flex-shrink-0;
+    @apply inline-flex items-center justify-center gap-1.5 font-semibold transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50 disabled:opacity-50 disabled:cursor-not-allowed select-none flex-shrink-0 hover:scale-[1.01] active:scale-[0.98];
   }
 
   /* Sizes */
@@ -175,7 +185,7 @@
   }
 
   .acx-table-cell {
-    @apply px-6 py-4 whitespace-nowrap text-sm text-text-secondary border-b border-border-subtle/50 group-hover:bg-bg-hover/50 transition-colors;
+    @apply px-6 py-4 whitespace-nowrap text-sm text-text-secondary border-b border-border-subtle/50 group-hover:bg-bg-hover/80 transition-colors duration-150 ease-in-out;
   }
 
   .acx-badge {
@@ -337,5 +347,49 @@
 
   .header-divider {
     @apply w-px h-[32px] bg-border-subtle shrink-0;
+  }
+
+  /* --- CUSTOM ANIMATIONS --- */
+  
+  @keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  @keyframes modal-entrance {
+    from { opacity: 0; transform: scale(0.98); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  
+  @keyframes dropdown-entrance {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .animate-fade-in-up {
+    animation: fade-in-up 200ms ease-out forwards;
+  }
+  
+  .animate-modal-entrance {
+    animation: modal-entrance 150ms ease-out forwards;
+  }
+  
+  .animate-dropdown-entrance {
+    animation: dropdown-entrance 150ms ease-out forwards;
+    transform-origin: top;
+  }
+  
+  .animate-stagger-1 { animation-delay: 50ms; opacity: 0; animation-fill-mode: forwards; }
+  .animate-stagger-2 { animation-delay: 100ms; opacity: 0; animation-fill-mode: forwards; }
+  .animate-stagger-3 { animation-delay: 150ms; opacity: 0; animation-fill-mode: forwards; }
+  .animate-stagger-4 { animation-delay: 200ms; opacity: 0; animation-fill-mode: forwards; }
+
+  @keyframes drawLine {
+    from { stroke-dashoffset: 1; }
+    to { stroke-dashoffset: 0; }
+  }
+  .animate-draw-line {
+    stroke-dasharray: 1;
+    animation: drawLine 800ms ease-out forwards;
   }
 }

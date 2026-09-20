@@ -19,7 +19,7 @@ export default function QuotationPreviewModal({
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={onClose}></div>
             
-            <div className="bg-bg-card rounded-2xl shadow-2xl w-full max-w-[1200px] h-[90vh] flex flex-col relative z-10 overflow-hidden border border-border-subtle animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-bg-card rounded-2xl shadow-2xl w-full max-w-[1200px] h-[90vh] flex flex-col relative z-10 overflow-hidden border border-border-subtle animate-modal-entrance">
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-bg-muted/50">
                     <div className="flex items-center space-x-3">

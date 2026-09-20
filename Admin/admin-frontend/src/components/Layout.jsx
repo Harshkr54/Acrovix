@@ -61,6 +61,16 @@ export default function Layout() {
     const [isSearching, setIsSearching] = useState(false);
     const [searchDropdownOpen, setSearchDropdownOpen] = useState(false);
     const searchRef = useRef(null);
+    const mainContentRef = useRef(null);
+
+    // Route transition effect without remounting
+    useEffect(() => {
+        if (mainContentRef.current) {
+            mainContentRef.current.classList.remove('animate-fade-in-up');
+            void mainContentRef.current.offsetWidth; // trigger reflow
+            mainContentRef.current.classList.add('animate-fade-in-up');
+        }
+    }, [location.pathname]);
 
     useEffect(() => {
         let active = true;
@@ -311,7 +321,7 @@ export default function Layout() {
             {/* Main content */}
             <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-bg-main relative z-0">
                 {/* Dotted Pattern Decorators */}
-                <div className="absolute top-0 right-0 w-[500px] h-[350px] bg-dotted-pattern opacity-70 pointer-events-none z-[-1] animate-in fade-in duration-1000"></div>
+                <div className="absolute top-0 right-0 w-[500px] h-[350px] bg-dotted-pattern opacity-70 pointer-events-none z-[-1] animate-fade-in-up"></div>
                 <div className="absolute bottom-0 left-0 w-[400px] h-[250px] bg-dotted-pattern opacity-50 pointer-events-none z-[-1]"></div>
                 
                 {/* Top Header */}
@@ -362,7 +372,7 @@ export default function Layout() {
 
                             {/* Dropdown Overlay */}
                             {searchDropdownOpen && (
-                                <div className="absolute top-full left-0 right-0 mt-2 bg-bg-card border border-border-subtle rounded-xl shadow-lg overflow-hidden z-50 max-h-[70vh] overflow-y-auto">
+                                <div className="absolute top-full left-0 right-0 mt-2 bg-bg-card border border-border-subtle rounded-xl shadow-lg overflow-hidden z-50 max-h-[70vh] overflow-y-auto animate-dropdown-entrance">
                                     {(searchResults.quotations.length === 0 && searchResults.enquiries.length === 0 && searchResults.customers.length === 0) ? (
                                         <div className="p-4 text-center text-text-muted text-sm">
                                             No customers found
@@ -467,7 +477,7 @@ export default function Layout() {
                 </header>
 
                 {/* Page content */}
-                <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 pt-2">
+                <main ref={mainContentRef} className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 pt-2">
                     <Outlet />
                 </main>
             </div>

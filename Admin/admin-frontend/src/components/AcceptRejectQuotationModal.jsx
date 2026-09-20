@@ -37,7 +37,7 @@ export default function AcceptRejectQuotationModal({ isOpen, onClose, quotation,
 
     return (
         <div className="fixed inset-0 bg-text-primary/30 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-            <div className="acx-card p-6 md:p-8 max-w-md w-full shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+            <div className="acx-card p-6 md:p-8 max-w-md w-full shadow-2xl relative animate-modal-entrance">
                 <div className="flex items-center space-x-3 mb-6">
                     <div className={`w-12 h-12 flex items-center justify-center rounded-[20px] shadow-sm border ${
                         isAccept ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : 'bg-red-50 border-red-200 text-red-600'

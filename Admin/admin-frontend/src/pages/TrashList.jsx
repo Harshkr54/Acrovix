@@ -208,7 +208,7 @@ export default function TrashList() {
             {/* Permanent Delete Modal */}
             {permanentModalQuotation && (
                 <div className="fixed inset-0 bg-text-primary/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="acx-card p-6 md:p-8 max-w-md w-full border border-border-subtle shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+                    <div className="acx-card p-6 md:p-8 max-w-md w-full border border-border-subtle shadow-2xl relative animate-modal-entrance">
                         <div className="w-12 h-12 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/50 rounded-2xl flex items-center justify-center mb-5 text-red-600 dark:text-red-400">
                             <AlertTriangle className="w-6 h-6" />
                         </div>
