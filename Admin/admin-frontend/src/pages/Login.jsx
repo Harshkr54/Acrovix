@@ -1,23 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { Shield, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Shield, Mail, Lock, AlertCircle, Loader2, Info } from 'lucide-react';
 import { API_BASE_URL } from '../services/api';
 
 export default function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [inactivityMsg, setInactivityMsg] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [showResumePrompt, setShowResumePrompt] = useState(false);
+    const [resumePathState, setResumePathState] = useState('');
+    
     const { login, user } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
+
+    // Check for reason=inactivity
+    useEffect(() => {
+        const queryParams = new URLSearchParams(location.search);
+        if (queryParams.get('reason') === 'inactivity') {
+            setInactivityMsg('Your session expired due to inactivity. Please sign in again.');
+            // Clean up the URL to prevent showing it continuously if they refresh
+            window.history.replaceState({}, document.title, '/login');
+        }
+    }, [location.search]);
 
     // Redirect already authenticated users to dashboard
     useEffect(() => {
-        if (user) {
+        if (user && !showResumePrompt) {
             navigate('/', { replace: true });
         }
-    }, [user, navigate]);
+    }, [user, navigate, showResumePrompt]);
 
     // Fire-and-forget warm-up ping: wakes the Render backend while the admin
     // is reading the login form, giving the JVM a head start before login.
@@ -27,14 +42,30 @@ export default function Login() {
         fetch(healthUrl).catch(() => {/* intentionally ignored */});
     }, []);
 
+    const validateResumePath = (path) => {
+        if (!path || typeof path !== 'string') return false;
+        if (!path.startsWith('/')) return false;
+        if (path.startsWith('//')) return false;
+        if (path.includes('login')) return false;
+        return true;
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        setInactivityMsg('');
         setIsLoading(true);
         try {
             const success = await login(email, password);
             if (success) {
-                navigate('/', { replace: true });
+                const storedPath = localStorage.getItem('acrovix_resume_path');
+                if (validateResumePath(storedPath)) {
+                    setResumePathState(storedPath);
+                    setShowResumePrompt(true);
+                } else {
+                    localStorage.removeItem('acrovix_resume_path');
+                    navigate('/', { replace: true });
+                }
             } else {
                 setError('Invalid email or password. Please try again.');
             }
@@ -44,6 +75,40 @@ export default function Login() {
             setIsLoading(false);
         }
     };
+
+    const handleResume = () => {
+        localStorage.removeItem('acrovix_resume_path');
+        navigate(resumePathState, { replace: true });
+    };
+
+    const handleStartFresh = () => {
+        localStorage.removeItem('acrovix_resume_path');
+        navigate('/', { replace: true });
+    };
+
+    if (showResumePrompt) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-bg-main p-4 relative overflow-hidden">
+                <div className="max-w-md w-full bg-bg-card p-8 rounded-[24px] shadow-xl border border-border-subtle relative z-10 text-center animate-fade-in-up">
+                    <div className="w-16 h-16 bg-brand-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Info className="w-8 h-8 text-brand-primary" />
+                    </div>
+                    <h3 className="text-xl font-bold text-text-primary mb-2">Resume previous work?</h3>
+                    <p className="text-sm text-text-secondary mb-8">
+                        You were working on another page before your session expired.
+                    </p>
+                    <div className="flex gap-3">
+                        <button onClick={handleStartFresh} className="flex-1 btn bg-bg-main border border-border-subtle hover:bg-bg-hover text-text-secondary">
+                            Start Fresh
+                        </button>
+                        <button onClick={handleResume} className="flex-1 btn btn-primary">
+                            Resume
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-bg-main p-4 relative overflow-hidden">
@@ -65,10 +130,17 @@ export default function Login() {
                 </div>
 
                 <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+                    {inactivityMsg && !error && (
+                        <div className="flex items-start p-4 bg-brand-primary/10 border border-brand-primary/20 rounded-xl">
+                            <Info className="w-5 h-5 text-brand-primary mt-0.5 flex-shrink-0" />
+                            <p className="text-[13px] text-brand-primary font-semibold ml-2">{inactivityMsg}</p>
+                        </div>
+                    )}
+
                     {error && (
                         <div className="flex items-start p-4 bg-brand-danger/10 border border-brand-danger/30 rounded-xl dark:bg-[#7f1d1d]/20 dark:border-[#ef4444]/30">
                             <AlertCircle className="w-5 h-5 text-brand-danger mt-0.5 flex-shrink-0" />
-                            <p className="text-[13px] text-[#991b1b] dark:text-[#fca5a5] font-semibold">{error}</p>
+                            <p className="text-[13px] text-[#991b1b] dark:text-[#fca5a5] font-semibold ml-2">{error}</p>
                         </div>
                     )}
                     

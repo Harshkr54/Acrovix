@@ -26,6 +26,7 @@ import CrmLeads from './pages/CrmLeads';
 import CrmLeadDetails from './pages/CrmLeadDetails';
 import CrmPipeline from './pages/CrmPipeline';
 import CrmFollowUps from './pages/CrmFollowUps';
+import SessionManager from './components/SessionManager';
 
 const ProtectedRoute = ({ children }) => {
     const { user } = useAuth();
@@ -40,7 +41,7 @@ function App() {
         <Routes>
             <Route path="/login" element={<Login />} />
             
-            <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+            <Route path="/" element={<ProtectedRoute><SessionManager><Layout /></SessionManager></ProtectedRoute>}>
                 <Route index element={<Dashboard />} />
                 <Route path="crm" element={<CrmDashboard />} />
                 <Route path="crm/leads" element={<CrmLeads />} />
