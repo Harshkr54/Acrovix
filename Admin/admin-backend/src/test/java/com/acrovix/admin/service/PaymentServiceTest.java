@@ -29,6 +29,7 @@ public class PaymentServiceTest {
     @Mock private SequenceGeneratorService sequenceGeneratorService;
     @Mock private AdminActivityRepository activityRepository;
     @Mock private PdfService pdfService;
+    @Mock private NotificationService notificationService;
 
     @InjectMocks private PaymentService paymentService;
 

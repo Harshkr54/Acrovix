@@ -139,15 +139,27 @@ export default function HeaderControls() {
 
     const getNotificationLink = (notification) => {
         if (notification.type === 'ENQUIRY_ASSIGNED') {
-            if (notification.relatedEntityType === 'ENQUIRY' && notification.relatedEntityId) {
-                return '/enquiries'; // Routes to the enquiry list as there is no single-enquiry view
-            }
             return '/enquiries';
-        } else if (notification.type === 'QUOTATION_SENT') {
+        } else if (notification.type === 'QUOTATION_SENT' || notification.type === 'QUOTATION_RESPONDED') {
             if (notification.relatedEntityType === 'QUOTATION' && notification.relatedEntityId) {
                 return `/quotations/edit/${notification.relatedEntityId}`;
             }
             return '/quotations';
+        } else if (notification.type === 'NEW_LEAD_CREATED' || notification.type === 'LEAD_ASSIGNED') {
+            return '/crm/leads';
+        } else if (notification.type === 'FOLLOW_UP_DUE' || notification.type === 'FOLLOW_UP_OVERDUE') {
+            return '/crm/leads';
+        } else if (notification.type === 'INVOICE_CREATED' || notification.type === 'INVOICE_OVERDUE' || notification.type === 'INVOICE_FULLY_PAID') {
+            return '/invoices';
+        } else if (notification.type === 'PAYMENT_RECEIVED' || notification.type === 'PAYMENT_PARTIAL') {
+            return '/payments';
+        } else if (notification.type === 'CUSTOMER_CREATED') {
+            return '/customers';
+        } else if (notification.type === 'ENQUIRY_CONVERTED') {
+            return '/crm/leads';
+        } else if (notification.type === 'LOGIN_FAILED' || notification.type === 'LOGIN_RATE_LIMITED') {
+            // Probably no specific page, but security/activity page if exists. Default to root.
+            return '/';
         }
         return '/';
     };

@@ -113,7 +113,7 @@ class BusinessEmailIntegrationTest {
 
         paymentService = new PaymentService(
                 paymentRepository, invoiceRepository, customerRepository,
-                sequenceGeneratorService, activityRepository, pdfService, emailService, authorizationService
+                sequenceGeneratorService, activityRepository, pdfService, emailService, authorizationService, notificationService
         );
 
         quotationService = new QuotationService(

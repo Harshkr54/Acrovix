@@ -64,6 +64,225 @@ public class NotificationService {
         notificationRepository.save(notification);
     }
 
+    @Transactional
+    public void createNewLeadCreatedNotification(AdminUser recipient, String leadNumber, Long leadId, String companyName) {
+        if (recipient == null) return;
+        Notification notification = Notification.builder()
+                .recipient(recipient)
+                .type(NotificationType.NEW_LEAD_CREATED)
+                .title("New Lead Created")
+                .message("New CRM lead " + leadNumber + " has been created for " + companyName + ".")
+                .relatedEntityType("CRM_LEAD")
+                .relatedEntityId(leadId)
+                .read(false)
+                .build();
+        notificationRepository.save(notification);
+    }
+
+    @Transactional
+    public void createLeadAssignedNotification(AdminUser recipient, String leadNumber, Long leadId) {
+        if (recipient == null) return;
+        Notification notification = Notification.builder()
+                .recipient(recipient)
+                .type(NotificationType.LEAD_ASSIGNED)
+                .title("Lead Assigned")
+                .message("Lead " + leadNumber + " has been assigned to you.")
+                .relatedEntityType("CRM_LEAD")
+                .relatedEntityId(leadId)
+                .read(false)
+                .build();
+        notificationRepository.save(notification);
+    }
+
+    @Transactional
+    public void createFollowUpDueNotification(AdminUser recipient, String customerName, Long leadId, Long followUpId) {
+        if (recipient == null) return;
+        boolean exists = notificationRepository.existsByRecipientIdAndTypeAndRelatedEntityTypeAndRelatedEntityId(
+                recipient.getId(), NotificationType.FOLLOW_UP_DUE, "CRM_FOLLOW_UP", followUpId);
+        if (exists) return;
+        
+        Notification notification = Notification.builder()
+                .recipient(recipient)
+                .type(NotificationType.FOLLOW_UP_DUE)
+                .title("Follow-up Due")
+                .message("Your follow-up with " + customerName + " is due today.")
+                .relatedEntityType("CRM_FOLLOW_UP")
+                .relatedEntityId(followUpId)
+                .read(false)
+                .build();
+        notificationRepository.save(notification);
+    }
+
+    @Transactional
+    public void createFollowUpOverdueNotification(AdminUser recipient, String customerName, Long leadId, Long followUpId) {
+        if (recipient == null) return;
+        boolean exists = notificationRepository.existsByRecipientIdAndTypeAndRelatedEntityTypeAndRelatedEntityId(
+                recipient.getId(), NotificationType.FOLLOW_UP_OVERDUE, "CRM_FOLLOW_UP", followUpId);
+        if (exists) return;
+
+        Notification notification = Notification.builder()
+                .recipient(recipient)
+                .type(NotificationType.FOLLOW_UP_OVERDUE)
+                .title("Follow-up Overdue")
+                .message("Your follow-up with " + customerName + " is overdue.")
+                .relatedEntityType("CRM_FOLLOW_UP")
+                .relatedEntityId(followUpId)
+                .read(false)
+                .build();
+        notificationRepository.save(notification);
+    }
+
+    @Transactional
+    public void createInvoiceCreatedNotification(AdminUser recipient, String invoiceNumber, Long invoiceId) {
+        if (recipient == null) return;
+        Notification notification = Notification.builder()
+                .recipient(recipient)
+                .type(NotificationType.INVOICE_CREATED)
+                .title("Invoice Created")
+                .message("Invoice " + invoiceNumber + " has been created.")
+                .relatedEntityType("INVOICE")
+                .relatedEntityId(invoiceId)
+                .read(false)
+                .build();
+        notificationRepository.save(notification);
+    }
+
+    @Transactional
+    public void createInvoiceOverdueNotification(AdminUser recipient, String invoiceNumber, Long invoiceId) {
+        if (recipient == null) return;
+        boolean exists = notificationRepository.existsByRecipientIdAndTypeAndRelatedEntityTypeAndRelatedEntityId(
+                recipient.getId(), NotificationType.INVOICE_OVERDUE, "INVOICE", invoiceId);
+        if (exists) return;
+
+        Notification notification = Notification.builder()
+                .recipient(recipient)
+                .type(NotificationType.INVOICE_OVERDUE)
+                .title("Invoice Overdue")
+                .message("Invoice " + invoiceNumber + " is overdue.")
+                .relatedEntityType("INVOICE")
+                .relatedEntityId(invoiceId)
+                .read(false)
+                .build();
+        notificationRepository.save(notification);
+    }
+
+    @Transactional
+    public void createPaymentReceivedNotification(AdminUser recipient, String invoiceNumber, Long invoiceId, Long paymentId, java.math.BigDecimal amount) {
+        if (recipient == null) return;
+        boolean exists = notificationRepository.existsByRecipientIdAndTypeAndRelatedEntityTypeAndRelatedEntityId(
+                recipient.getId(), NotificationType.PAYMENT_RECEIVED, "PAYMENT", paymentId);
+        if (exists) return;
+
+        Notification notification = Notification.builder()
+                .recipient(recipient)
+                .type(NotificationType.PAYMENT_RECEIVED)
+                .title("Payment Received")
+                .message("Payment of " + amount + " has been received for invoice " + invoiceNumber + ".")
+                .relatedEntityType("PAYMENT")
+                .relatedEntityId(paymentId)
+                .read(false)
+                .build();
+        notificationRepository.save(notification);
+    }
+
+    @Transactional
+    public void createPaymentPartialNotification(AdminUser recipient, String invoiceNumber, Long invoiceId, Long paymentId, java.math.BigDecimal amount) {
+        if (recipient == null) return;
+        boolean exists = notificationRepository.existsByRecipientIdAndTypeAndRelatedEntityTypeAndRelatedEntityId(
+                recipient.getId(), NotificationType.PAYMENT_PARTIAL, "PAYMENT", paymentId);
+        if (exists) return;
+
+        Notification notification = Notification.builder()
+                .recipient(recipient)
+                .type(NotificationType.PAYMENT_PARTIAL)
+                .title("Partial Payment Received")
+                .message("Partial payment of " + amount + " has been received for invoice " + invoiceNumber + ".")
+                .relatedEntityType("PAYMENT")
+                .relatedEntityId(paymentId)
+                .read(false)
+                .build();
+        notificationRepository.save(notification);
+    }
+
+    @Transactional
+    public void createInvoiceFullyPaidNotification(AdminUser recipient, String invoiceNumber, Long invoiceId) {
+        if (recipient == null) return;
+        boolean exists = notificationRepository.existsByRecipientIdAndTypeAndRelatedEntityTypeAndRelatedEntityId(
+                recipient.getId(), NotificationType.INVOICE_FULLY_PAID, "INVOICE", invoiceId);
+        if (exists) return;
+
+        Notification notification = Notification.builder()
+                .recipient(recipient)
+                .type(NotificationType.INVOICE_FULLY_PAID)
+                .title("Invoice Fully Paid")
+                .message("Invoice " + invoiceNumber + " has been fully paid.")
+                .relatedEntityType("INVOICE")
+                .relatedEntityId(invoiceId)
+                .read(false)
+                .build();
+        notificationRepository.save(notification);
+    }
+
+    @Transactional
+    public void createCustomerCreatedNotification(AdminUser recipient, String customerName, Long customerId) {
+        if (recipient == null) return;
+        Notification notification = Notification.builder()
+                .recipient(recipient)
+                .type(NotificationType.CUSTOMER_CREATED)
+                .title("Customer Created")
+                .message("Customer " + customerName + " has been created.")
+                .relatedEntityType("CUSTOMER")
+                .relatedEntityId(customerId)
+                .read(false)
+                .build();
+        notificationRepository.save(notification);
+    }
+
+    @Transactional
+    public void createEnquiryConvertedNotification(AdminUser recipient, Long enquiryId) {
+        if (recipient == null) return;
+        Notification notification = Notification.builder()
+                .recipient(recipient)
+                .type(NotificationType.ENQUIRY_CONVERTED)
+                .title("Enquiry Converted")
+                .message("Enquiry has been converted to CRM/customer workflow.")
+                .relatedEntityType("ENQUIRY")
+                .relatedEntityId(enquiryId)
+                .read(false)
+                .build();
+        notificationRepository.save(notification);
+    }
+
+    @Transactional
+    public void createLoginFailedNotification(AdminUser recipient) {
+        if (recipient == null) return;
+        Notification notification = Notification.builder()
+                .recipient(recipient)
+                .type(NotificationType.LOGIN_FAILED)
+                .title("Failed Login Attempt")
+                .message("An unsuccessful login attempt was detected.")
+                .relatedEntityType("ADMIN_USER")
+                .relatedEntityId(recipient.getId())
+                .read(false)
+                .build();
+        notificationRepository.save(notification);
+    }
+
+    @Transactional
+    public void createLoginRateLimitedNotification(AdminUser recipient) {
+        if (recipient == null) return;
+        Notification notification = Notification.builder()
+                .recipient(recipient)
+                .type(NotificationType.LOGIN_RATE_LIMITED)
+                .title("Login Rate Limited")
+                .message("Multiple unsuccessful login attempts triggered temporary rate limiting.")
+                .relatedEntityType("ADMIN_USER")
+                .relatedEntityId(recipient.getId())
+                .read(false)
+                .build();
+        notificationRepository.save(notification);
+    }
+
     public Page<NotificationResponse> getNotifications(Long adminId, Pageable pageable) {
         return notificationRepository.findByRecipientIdOrderByCreatedAtDesc(adminId, pageable)
                 .map(this::mapToResponse);

@@ -28,6 +28,12 @@ class CustomerServiceTest {
     @Mock
     private AdminActivityRepository activityRepository;
 
+    @Mock
+    private NotificationService notificationService;
+
+    @Mock
+    private com.acrovix.admin.repository.AdminUserRepository adminUserRepository;
+
     @InjectMocks
     private CustomerService customerService;
 

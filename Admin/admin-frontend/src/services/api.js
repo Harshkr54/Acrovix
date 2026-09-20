@@ -84,6 +84,11 @@ export const fetchApi = async (endpoint, options = {}) => {
             return {};
         }
 
+        const method = options.method ? options.method.toUpperCase() : 'GET';
+        if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+            window.dispatchEvent(new Event('notification-update'));
+        }
+
         try {
             return JSON.parse(text);
         } catch (e) {

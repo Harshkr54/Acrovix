@@ -221,6 +221,8 @@ public class InvoiceService {
         Invoice saved = invoiceRepository.save(invoice);
         logActivity(admin.getId(), "Created Draft Invoice", "Invoice", saved.getId());
         
+        notificationService.createInvoiceCreatedNotification(admin, saved.getInvoiceNumber() != null ? saved.getInvoiceNumber() : "Draft", saved.getId());
+        
         try {
             emailService.sendInvoiceNotificationAsync(saved, "CREATED");
         } catch (Exception e) {
@@ -535,6 +537,9 @@ public class InvoiceService {
         
         Invoice saved = invoiceRepository.save(taxInvoice);
         logActivity(admin.getId(), "Converted Proforma " + proforma.getInvoiceNumber() + " to Tax Invoice Draft", "Invoice", saved.getId());
+        
+        notificationService.createInvoiceCreatedNotification(admin, saved.getInvoiceNumber() != null ? saved.getInvoiceNumber() : "Draft", saved.getId());
+        
         return saved;
     }
 

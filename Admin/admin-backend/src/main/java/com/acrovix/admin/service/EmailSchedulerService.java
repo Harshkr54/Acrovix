@@ -25,6 +25,7 @@ public class EmailSchedulerService {
     private final InvoiceRepository invoiceRepository;
     private final EmailLogRepository emailLogRepository;
     private final EmailService emailService;
+    private final NotificationService notificationService;
 
     // Run every hour
     @Scheduled(cron = "0 0 * * * *")
@@ -38,6 +39,13 @@ public class EmailSchedulerService {
         // Due Today
         List<CrmFollowUp> dueToday = followUpRepository.findDueBetween(startOfDay, endOfDay, null);
         for (CrmFollowUp followUp : dueToday) {
+            notificationService.createFollowUpDueNotification(
+                    followUp.getAssignedTo(), 
+                    followUp.getLead().getCustomer() != null ? followUp.getLead().getCustomer().getName() : followUp.getLead().getFullName(), 
+                    followUp.getLead().getId(), 
+                    followUp.getId()
+            );
+            
             boolean alreadySent = emailLogRepository.existsByEmailTypeAndRelatedEntityTypeAndRelatedEntityId(
                     EmailType.FOLLOW_UP_DUE, "CrmFollowUp", followUp.getId());
             if (!alreadySent) {
@@ -52,6 +60,13 @@ public class EmailSchedulerService {
         // Overdue (scheduled before today)
         List<CrmFollowUp> overdue = followUpRepository.findOverdueBefore(startOfDay, null);
         for (CrmFollowUp followUp : overdue) {
+            notificationService.createFollowUpOverdueNotification(
+                    followUp.getAssignedTo(), 
+                    followUp.getLead().getCustomer() != null ? followUp.getLead().getCustomer().getName() : followUp.getLead().getFullName(), 
+                    followUp.getLead().getId(), 
+                    followUp.getId()
+            );
+
             boolean alreadySent = emailLogRepository.existsByEmailTypeAndRelatedEntityTypeAndRelatedEntityId(
                     EmailType.FOLLOW_UP_OVERDUE, "CrmFollowUp", followUp.getId());
             if (!alreadySent) {
@@ -75,6 +90,12 @@ public class EmailSchedulerService {
         List<Invoice> overdueInvoices = invoiceRepository.findOverdueInvoices(today);
         
         for (Invoice invoice : overdueInvoices) {
+            notificationService.createInvoiceOverdueNotification(
+                    invoice.getCreatedBy(), 
+                    invoice.getInvoiceNumber(), 
+                    invoice.getId()
+            );
+
             boolean alreadySent = emailLogRepository.existsByEmailTypeAndRelatedEntityTypeAndRelatedEntityId(
                     EmailType.INVOICE_OVERDUE, "Invoice", invoice.getId());
             if (!alreadySent) {

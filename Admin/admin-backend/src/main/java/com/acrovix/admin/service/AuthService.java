@@ -28,6 +28,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final EmailService emailService;
     private final LoginRateLimiterService rateLimiterService;
+    private final NotificationService notificationService;
 
     @Transactional
     public AuthResponse authenticate(AuthRequest request, String clientIp) {
@@ -39,6 +40,7 @@ public class AuthService {
                     .description("IP: " + clientIp)
                     .build();
             activityRepository.save(activity);
+            
             throw new RateLimitExceededException("Too many login attempts. Please try again later.");
         }
 

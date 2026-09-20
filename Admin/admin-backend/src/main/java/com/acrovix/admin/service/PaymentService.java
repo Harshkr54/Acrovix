@@ -33,6 +33,7 @@ public class PaymentService {
     private final PdfService pdfService;
     private final EmailService emailService;
     private final AuthorizationService authorizationService;
+    private final NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public void sendPaymentReceiptEmail(Long id, String overrideEmail, AdminUser admin) {
@@ -125,6 +126,13 @@ public class PaymentService {
 
         logActivity(admin.getId(), "PAYMENT_RECORDED", "Recorded payment " + savedPayment.getPaymentNumber() + 
                 " of Rs. " + savedPayment.getAmount() + " against " + invoice.getInvoiceNumber(), savedPayment.getId());
+                
+        if (invoice.getStatus() == InvoiceStatus.PAID) {
+            notificationService.createInvoiceFullyPaidNotification(admin, invoice.getInvoiceNumber(), invoice.getId());
+            notificationService.createPaymentReceivedNotification(admin, invoice.getInvoiceNumber(), invoice.getId(), savedPayment.getId(), savedPayment.getAmount());
+        } else {
+            notificationService.createPaymentPartialNotification(admin, invoice.getInvoiceNumber(), invoice.getId(), savedPayment.getId(), savedPayment.getAmount());
+        }
 
         try {
             emailService.sendPaymentNotificationAsync(savedPayment, "RECORDED");

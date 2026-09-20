@@ -123,6 +123,12 @@ public class CrmService {
         lead = crmLeadRepository.save(lead);
 
         logActivity(currentUser.getId(), "LEAD_CREATED", "CrmLead", lead.getId(), "Created CRM Lead #" + lead.getLeadNumber());
+        
+        notificationService.createNewLeadCreatedNotification(assignedUser != null ? assignedUser : currentUser, lead.getLeadNumber(), lead.getId(), companyName != null ? companyName : fullName);
+        
+        if (enquiry != null) {
+            notificationService.createEnquiryConvertedNotification(assignedUser != null ? assignedUser : currentUser, enquiry.getId());
+        }
 
         try {
             emailService.sendCrmLeadNotification(lead);
@@ -301,6 +307,10 @@ public class CrmService {
 
         logActivity(currentUser.getId(), "LEAD_ASSIGNED", "CrmLead", lead.getId(),
                 "Assigned CRM Lead #" + lead.getLeadNumber() + " to user #" + assigneeId);
+
+        if (!currentUser.getId().equals(assignee.getId())) {
+            notificationService.createLeadAssignedNotification(assignee, lead.getLeadNumber(), lead.getId());
+        }
 
         try {
             emailService.sendLeadAssignmentAsync(lead);

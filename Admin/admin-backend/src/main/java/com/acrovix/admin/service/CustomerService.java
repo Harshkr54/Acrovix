@@ -26,6 +26,8 @@ public class CustomerService {
 
     private final CustomerRepository customerRepository;
     private final AdminActivityRepository activityRepository;
+    private final com.acrovix.admin.repository.AdminUserRepository adminUserRepository;
+    private final NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public Page<CustomerResponse> getCustomers(String search, Boolean active, int page, int size) {
@@ -71,6 +73,10 @@ public class CustomerService {
 
         Customer savedCustomer = customerRepository.save(customer);
         logActivity(adminId, "CUSTOMER_CREATED", savedCustomer.getId(), "Created customer: " + savedCustomer.getName());
+
+        adminUserRepository.findById(adminId).ifPresent(user -> 
+                notificationService.createCustomerCreatedNotification(user, savedCustomer.getName(), savedCustomer.getId())
+        );
 
         return mapToResponse(savedCustomer);
     }

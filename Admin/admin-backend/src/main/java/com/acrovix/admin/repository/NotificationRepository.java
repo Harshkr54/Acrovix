@@ -21,4 +21,6 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     void markAllAsRead(@Param("recipientId") Long recipientId, @Param("readAt") LocalDateTime readAt);
     
     void deleteByRelatedEntityTypeAndRelatedEntityIdIn(String relatedEntityType, java.util.List<Long> relatedEntityIds);
+
+    boolean existsByRecipientIdAndTypeAndRelatedEntityTypeAndRelatedEntityId(Long recipientId, com.acrovix.admin.entity.NotificationType type, String relatedEntityType, Long relatedEntityId);
 }

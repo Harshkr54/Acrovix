@@ -31,6 +31,7 @@ public class CrmServiceTest {
     @Autowired private CustomerRepository customerRepository;
     @Autowired private AdminUserRepository userRepository;
     @Autowired private AdminActivityRepository activityRepository;
+    @Autowired private NotificationRepository notificationRepository;
 
     private AdminUser superAdmin;
     private AdminUser salesRep1;
@@ -39,6 +40,7 @@ public class CrmServiceTest {
 
     @BeforeEach
     void setUp() {
+        notificationRepository.deleteAll();
         crmFollowUpRepository.deleteAll();
         crmLeadRepository.deleteAll();
         enquiryRepository.deleteAll();

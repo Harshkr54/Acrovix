@@ -44,12 +44,16 @@ public class ReportServiceTest {
     @Autowired
     private AdminUserRepository adminUserRepository;
 
+    @Autowired
+    private NotificationRepository notificationRepository;
+
     private Customer testCustomer;
     private AdminUser testAdmin;
     private Quotation testQuotation;
 
     @BeforeEach
     void setUp() {
+        notificationRepository.deleteAll();
         paymentRepository.deleteAll();
         invoiceRepository.deleteAll();
         purchaseOrderRepository.deleteAll();
@@ -87,6 +91,7 @@ public class ReportServiceTest {
 
     @Test
     void testEmptyDatabaseSummary() {
+        notificationRepository.deleteAll();
         paymentRepository.deleteAll();
         invoiceRepository.deleteAll();
         purchaseOrderRepository.deleteAll();
