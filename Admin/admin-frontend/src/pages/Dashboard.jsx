@@ -8,6 +8,8 @@ import CreateQuotationModal from '../components/CreateQuotationModal';
 import EnquiryDetailModal from '../components/EnquiryDetailModal';
 import ActionMenu from '../components/ActionMenu';
 import CardSparkline from '../components/ui/CardSparkline';
+import Skeleton from '../components/ui/Skeleton';
+import EmptyState from '../components/ui/EmptyState';
 import { useCountUp } from '../hooks/useCountUp';
 
 function AnimatedNumber({ value, formatter }) {
@@ -433,7 +435,7 @@ export default function Dashboard() {
                             </div>
                             <div className="relative z-10 flex-1 flex flex-col justify-end">
                                 <div className="text-[32px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center">
-                                    {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-blue-600" /> : <AnimatedNumber value={stats?.totalEnquiries ?? 0} />}
+                                    {isLoading ? <Skeleton variant="title" className="h-8 w-24 mb-1" /> : <AnimatedNumber value={stats?.totalEnquiries ?? 0} />}
                                 </div>
                                 {(() => {
                                     if (!stats?.monthlyOverview || stats.monthlyOverview.length < 2) return <div className="text-[12px] font-medium text-text-muted mt-2">Filtered count</div>;
@@ -467,7 +469,7 @@ export default function Dashboard() {
                             </div>
                             <div className="relative z-10 flex-1 flex flex-col justify-end">
                                 <div className="text-[32px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center">
-                                    {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-purple-600" /> : <AnimatedNumber value={stats?.totalQuotations ?? 0} />}
+                                    {isLoading ? <Skeleton variant="title" className="h-8 w-24 mb-1" /> : <AnimatedNumber value={stats?.totalQuotations ?? 0} />}
                                 </div>
                                 <div className="text-[12px] font-medium text-text-muted mt-2">Excludes Trash</div>
                             </div>
@@ -486,7 +488,7 @@ export default function Dashboard() {
                             </div>
                             <div className="relative z-10 flex-1 flex flex-col justify-end">
                                 <div className="text-[32px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center">
-                                    {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-emerald-600" /> : <AnimatedNumber value={stats?.acceptedQuotations ?? 0} />}
+                                    {isLoading ? <Skeleton variant="title" className="h-8 w-24 mb-1" /> : <AnimatedNumber value={stats?.acceptedQuotations ?? 0} />}
                                 </div>
                                 <div className="text-[12px] font-medium text-text-muted mt-2">Excludes Trash</div>
                             </div>
@@ -505,7 +507,7 @@ export default function Dashboard() {
                             </div>
                             <div className="relative z-10 flex-1 flex flex-col justify-end">
                                 <div className="text-[26px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center truncate">
-                                    Rs. <AnimatedNumber value={receivablesStats?.totalInvoiced || 0} formatter={(v) => Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} />
+                                    {isLoading ? <Skeleton variant="title" className="h-8 w-32 mb-1" /> : <>Rs. <AnimatedNumber value={receivablesStats?.totalInvoiced || 0} formatter={(v) => Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} /></>}
                                 </div>
                                 <div className="text-[12px] font-medium text-text-muted mt-2">Total Issued Tax Invoices</div>
                             </div>
@@ -546,7 +548,7 @@ export default function Dashboard() {
                                         
                                         {isLoading ? (
                                             <div className="w-full flex justify-center items-center h-full">
-                                                <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+                                                <Skeleton variant="rectangle" className="w-full h-full rounded-xl" />
                                             </div>
                                         ) : stats?.monthlyOverview && stats.monthlyOverview.length > 0 ? (
                                             (() => {
@@ -697,9 +699,14 @@ export default function Dashboard() {
                                                 );
                                             })()
                                         ) : (
-                                            <div className="w-full flex flex-col items-center justify-center text-text-muted py-12 mt-6">
-                                                <Activity className="w-8 h-8 mb-2 opacity-40" />
-                                                <span className="text-[13px] font-medium">No enquiry data available</span>
+                                            <div className="w-full h-full flex items-center justify-center">
+                                                <EmptyState 
+                                                    icon={PieChart}
+                                                    emptyMessage="No trend data available for this period." 
+                                                    isFiltered={hasActiveFilters}
+                                                    actionLabel="Clear Filters"
+                                                    onAction={handleResetFilters}
+                                                />
                                             </div>
                                         )}
                                     </div>
@@ -735,8 +742,16 @@ export default function Dashboard() {
                                 </div>
                                 <div className="flex-1 overflow-y-auto pr-2 hide-scrollbar relative min-h-[300px] max-h-[400px]">
                                     {isLoading ? (
-                                        <div className="flex justify-center items-center py-12">
-                                            <Loader2 className="w-6 h-6 animate-spin text-[var(--color-brand-primary)]" />
+                                        <div className="space-y-4 py-2">
+                                            {[1, 2, 3, 4].map((n) => (
+                                                <div key={n} className="flex items-start gap-4">
+                                                    <Skeleton variant="rectangle" className="w-10 h-10 rounded-xl shrink-0" />
+                                                    <div className="flex-1 space-y-2">
+                                                        <Skeleton variant="rectangle" className="w-full h-4 rounded-md" />
+                                                        <Skeleton variant="rectangle" className="w-1/2 h-3 rounded-md" />
+                                                    </div>
+                                                </div>
+                                            ))}
                                         </div>
                                     ) : stats?.recentActivities && stats.recentActivities.length > 0 ? (
                                         <div className="space-y-4">

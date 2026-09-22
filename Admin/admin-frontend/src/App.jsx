@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
-import { ToastProvider } from './context/ToastContext';
+import { ToastProvider, useToast } from './context/ToastContext';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -37,9 +37,41 @@ const ProtectedRoute = ({ children }) => {
     return children;
 };
 
+function NetworkStatus() {
+    const { showToast } = useToast();
+
+    useEffect(() => {
+        const handleOffline = () => {
+            showToast({
+                type: 'warning',
+                message: "You're offline. Some features may not work until your connection is restored.",
+                duration: 0 // Keep until online
+            });
+        };
+
+        const handleOnline = () => {
+            showToast({
+                type: 'success',
+                message: "Connection restored."
+            });
+        };
+
+        window.addEventListener('offline', handleOffline);
+        window.addEventListener('online', handleOnline);
+
+        return () => {
+            window.removeEventListener('offline', handleOffline);
+            window.removeEventListener('online', handleOnline);
+        };
+    }, [showToast]);
+
+    return null;
+}
+
 function App() {
     return (
         <ToastProvider>
+            <NetworkStatus />
             <Routes>
             <Route path="/login" element={<Login />} />
             

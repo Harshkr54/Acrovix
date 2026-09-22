@@ -20,19 +20,19 @@ class ErrorBoundary extends React.Component {
             return (
                 <div className="min-h-screen bg-bg-main flex flex-col items-center justify-center p-4">
                     <div className="max-w-md w-full bg-bg-card rounded-3xl shadow-sm border border-border-subtle p-8 text-center flex flex-col items-center">
-                        <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mb-5 border border-red-100">
+                        <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center mb-5 border border-red-500/20">
                             <AlertTriangle className="w-8 h-8 text-red-500" />
                         </div>
                         <h1 className="text-xl font-bold text-text-primary mb-2 tracking-tight">Something went wrong</h1>
                         <p className="text-[13px] text-text-secondary mb-8 leading-relaxed">
-                            We're sorry, but the application encountered an unexpected error. Please reload the page to try again.
+                            We couldn't load this section. Please reload the page to try again.
                         </p>
                         <button 
                             onClick={() => window.location.reload()} 
                             className="btn btn-primary btn-md w-full"
                         >
-                            <RefreshCw className="w-4 h-4 " />
-                            Reload Application
+                            <RefreshCw className="w-4 h-4 mr-2" />
+                            Try Again
                         </button>
                         
                         {(import.meta.env?.DEV || (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development')) && this.state.error && (

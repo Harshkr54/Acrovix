@@ -8,11 +8,21 @@ export default function EmptyState({
     message,
     emptyMessage,
     onRetry = null, 
-    icon: Icon = null 
+    icon: Icon = null,
+    isFiltered = false,
+    actionLabel,
+    onAction,
 }) {
     const isError = type === 'error' || Boolean(error);
     const isLoading = type === 'loading' || Boolean(loading);
-    const displayMessage = message || emptyMessage || (isError ? (typeof error === 'string' ? error : 'An error occurred') : 'No items found.');
+    
+    // Determine the main display message based on state
+    let displayMessage = message || emptyMessage || 'No items found.';
+    if (isError) {
+        displayMessage = typeof error === 'string' ? error : 'An error occurred';
+    } else if (isFiltered && !isLoading && !isError) {
+        displayMessage = 'No results found';
+    }
 
     if (isLoading) {
         return (
@@ -45,13 +55,35 @@ export default function EmptyState({
     }
 
     return (
-        <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+        <div className="flex flex-col items-center justify-center py-12 px-4 text-center max-w-sm mx-auto">
             {Icon ? (
-                <Icon className="w-10 h-10 text-text-muted/40 mb-3" />
+                <Icon className="w-10 h-10 text-text-muted/40 mb-4" />
             ) : (
-                <Inbox className="w-10 h-10 text-text-muted/40 mb-3" />
+                <Inbox className="w-10 h-10 text-text-muted/40 mb-4" />
             )}
-            <p className="text-sm font-medium text-text-muted">{displayMessage}</p>
+            
+            <h3 className="text-[15px] font-bold text-text-primary tracking-tight mb-1">
+                {displayMessage}
+            </h3>
+            
+            {(isFiltered || message || emptyMessage) && !isFiltered && (
+                <p className="text-[13px] text-text-secondary mb-5">
+                    {isFiltered ? 'Try changing your search or filters.' : 'New items will appear here once they are created.'}
+                </p>
+            )}
+            
+            {isFiltered && (
+                <p className="text-[13px] text-text-secondary mb-5">Try changing your search or filters.</p>
+            )}
+
+            {onAction && actionLabel && (
+                <button 
+                    onClick={onAction}
+                    className={`btn btn-sm ${isFiltered ? 'btn-secondary' : 'btn-primary'}`}
+                >
+                    {actionLabel}
+                </button>
+            )}
         </div>
     );
 }

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getCrmLeads, getAdminUsers } from '../services/api';
 import PageHeader from '../components/ui/PageHeader';
 import EmptyState from '../components/ui/EmptyState';
+import Skeleton from '../components/ui/Skeleton';
 import StatusBadge from '../components/ui/StatusBadge';
 import CreateLeadModal from '../components/CreateLeadModal';
 import StatusUpdateModal from '../components/StatusUpdateModal';
@@ -236,13 +237,20 @@ export default function CrmLeads() {
             {/* Leads Table Container */}
             <div className="bg-bg-card border border-border-subtle rounded-2xl shadow-sm overflow-hidden">
                 {loading ? (
-                    <EmptyState loading message="Loading CRM leads..." />
+                    <div className="p-6 space-y-4">
+                        {[1, 2, 3, 4, 5].map(i => (
+                            <Skeleton key={i} variant="table-row" className="h-16" />
+                        ))}
+                    </div>
                 ) : error ? (
                     <EmptyState type="error" error={error} onRetry={fetchLeads} />
                 ) : leads.length === 0 ? (
                     <EmptyState 
-                        emptyMessage={hasActiveFilters ? "No leads match your search or filters." : "No CRM leads found."} 
+                        emptyMessage="No CRM leads found." 
                         icon={Target}
+                        isFiltered={hasActiveFilters}
+                        actionLabel="Clear Filters"
+                        onAction={handleClearFilters}
                     />
                 ) : (
                     <>

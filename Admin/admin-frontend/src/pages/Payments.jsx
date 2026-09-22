@@ -32,6 +32,9 @@ import {
     Mail,
     Loader2
 } from 'lucide-react';
+import Skeleton from '../components/ui/Skeleton';
+import EmptyState from '../components/ui/EmptyState';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 
 export default function Payments() {
     const navigate = useNavigate();
@@ -411,14 +414,23 @@ export default function Payments() {
             {/* Table */}
             <div className="bg-bg-card border border-border-subtle rounded-2xl overflow-hidden shadow-sm">
                 {loading ? (
-                    <div className="p-12 text-center text-xs text-text-muted flex items-center justify-center gap-2">
-                        <Loader2 className="w-4 h-4 animate-spin text-brand-primary" />
-                        <span>Loading payments ledger...</span>
+                    <div className="p-6">
+                        <div className="space-y-4">
+                            {[1, 2, 3, 4, 5].map(i => (
+                                <Skeleton key={i} variant="table-row" className="h-16" />
+                            ))}
+                        </div>
                     </div>
                 ) : error ? (
                     <div className="p-8 text-center text-xs text-red-500">{error}</div>
                 ) : payments.length === 0 ? (
-                    <div className="p-12 text-center text-xs text-text-muted">No payment records found matching criteria.</div>
+                    <EmptyState 
+                        icon={CreditCard}
+                        emptyMessage="No payment records found."
+                        isFiltered={Boolean(search || statusFilter || methodFilter || startDate || endDate)}
+                        actionLabel="Clear Filters"
+                        onAction={handleClearFilters}
+                    />
                 ) : (
                     <div className="acx-table-container">
                         <table className="w-full text-left border-collapse text-xs">
@@ -806,7 +818,9 @@ export default function Payments() {
                                     disabled={recordingPayment || !selectedInvoice || isOverpayment}
                                     className="btn btn-primary btn-md"
                                 >
-                                    {recordingPayment ? 'Recording...' : 'Record Payment'}
+                                    {recordingPayment ? (
+                                        <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Recording...</>
+                                    ) : 'Record Payment'}
                                 </button>
                             </div>
                         </form>
@@ -951,32 +965,25 @@ export default function Payments() {
             )}
 
             {/* Cancel Payment Modal */}
+            <ConfirmDialog 
+                isOpen={Boolean(cancellingPayment)}
+                title={`Cancel Payment ${cancellingPayment?.paymentNumber}`}
+                description="Please confirm you want to cancel this payment. The associated Tax Invoice amount paid and balance due will be automatically updated."
+                onConfirm={handleCancelSubmit}
+                onCancel={() => setCancellingPayment(null)}
+                isLoading={submittingCancel}
+                variant="destructive"
+                confirmText="Confirm Cancellation"
+            />
             {cancellingPayment && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-bg-card border border-border-subtle rounded-2xl w-full max-w-md flex flex-col overflow-hidden shadow-2xl animate-modal-entrance">
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle shrink-0">
-                            <h2 className="text-base font-bold text-red-500 flex items-center gap-2">
-                                <AlertCircle className="w-5 h-5" /> Cancel Payment {cancellingPayment.paymentNumber}
-                            </h2>
-                            <button 
-                                onClick={() => setCancellingPayment(null)}
-                                className="btn btn-ghost btn-icon text-text-muted"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-
-                        <form onSubmit={handleCancelSubmit} className="p-6 space-y-4">
+                <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 pointer-events-none">
+                    <div className="bg-bg-card border border-border-subtle rounded-2xl w-full max-w-md flex flex-col overflow-hidden shadow-2xl animate-modal-entrance pointer-events-auto mt-32 absolute">
+                        <form onSubmit={(e) => { e.preventDefault(); handleCancelSubmit(e); }} className="p-6 space-y-4">
                             {cancelError && (
                                 <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-500 font-medium">
                                     {cancelError}
                                 </div>
                             )}
-
-                            <p className="text-xs text-text-muted leading-relaxed">
-                                Please provide a non-empty cancellation reason. The associated Tax Invoice amount paid and balance due will be automatically updated.
-                            </p>
-
                             <div>
                                 <label className="block text-xs font-semibold text-text-muted mb-1">Cancellation Reason *</label>
                                 <textarea
@@ -987,23 +994,6 @@ export default function Payments() {
                                     onChange={(e) => setCancelReason(e.target.value)}
                                     className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-red-500 resize-none"
                                 />
-                            </div>
-
-                            <div className="flex items-center justify-end gap-3 pt-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setCancellingPayment(null)}
-                                    className="btn btn-secondary btn-md"
-                                >
-                                    Close
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={submittingCancel}
-                                    className="btn btn-danger btn-md"
-                                >
-                                    {submittingCancel ? 'Cancelling...' : 'Confirm Cancellation'}
-                                </button>
                             </div>
                         </form>
                     </div>

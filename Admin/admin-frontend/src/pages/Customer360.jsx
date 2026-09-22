@@ -10,6 +10,7 @@ import {
     List, AlertCircle, Inbox, Briefcase, Clock, 
     ArrowUpRight, PieChart, Tag, Receipt, Eye, UsersRound, Search, Filter, X
 } from 'lucide-react';
+import Skeleton from '../components/ui/Skeleton';
 
 export default function Customer360() {
     const { id } = useParams();
@@ -78,14 +79,14 @@ export default function Customer360() {
         return (
             <div className="max-w-[1600px] mx-auto p-4 space-y-6">
                 <div className="flex items-center space-x-4 mb-8">
-                    <div className="w-10 h-10 bg-bg-muted animate-pulse rounded-full"></div>
-                    <div className="h-8 w-64 bg-bg-muted animate-pulse rounded"></div>
+                    <Skeleton variant="circular" className="w-10 h-10" />
+                    <Skeleton variant="text" className="h-8 w-64" />
                 </div>
-                <div className="h-32 bg-bg-muted animate-pulse rounded-2xl w-full"></div>
+                <Skeleton variant="rectangular" className="h-32 w-full rounded-2xl" />
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {[1, 2, 3].map(i => <div key={i} className="h-28 bg-bg-muted animate-pulse rounded-2xl w-full"></div>)}
+                    {[1, 2, 3].map(i => <Skeleton key={i} variant="rectangular" className="h-28 w-full rounded-2xl" />)}
                 </div>
-                <div className="h-64 bg-bg-muted animate-pulse rounded-2xl w-full mt-6"></div>
+                <Skeleton variant="rectangular" className="h-64 w-full rounded-2xl mt-6" />
             </div>
         );
     }

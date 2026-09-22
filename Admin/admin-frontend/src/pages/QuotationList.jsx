@@ -9,6 +9,9 @@ import QuotationHistoryModal from '../components/QuotationHistoryModal';
 import ActionMenu from '../components/ActionMenu';
 import { createInvoiceFromQuotation } from '../services/api';
 import { formatCurrency } from '../utils/formatters';
+import Skeleton from '../components/ui/Skeleton';
+import EmptyState from '../components/ui/EmptyState';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 
 export default function QuotationList() {
     const [quotations, setQuotations] = useState([]);
@@ -26,15 +29,19 @@ export default function QuotationList() {
     const [acceptRejectModalInfo, setAcceptRejectModalInfo] = useState(null); // { quotation, type: 'ACCEPT' | 'REJECT' }
     const [historyModalQuotation, setHistoryModalQuotation] = useState(null);
     
+    // Dialog states
+    const [proformaDialogId, setProformaDialogId] = useState(null);
+    const [revisionDialogId, setRevisionDialogId] = useState(null);
+
     const [isDeleting, setIsDeleting] = useState(false);
     const [isConverting, setIsConverting] = useState(false);
     const itemsPerPage = 10;
 
-    const handleCreateProforma = async (quotationId) => {
-        if (!window.confirm('Create a Proforma Invoice from this Quotation?')) return;
+    const handleCreateProforma = async () => {
+        if (!proformaDialogId) return;
         setIsConverting(true);
         try {
-            const invoice = await createInvoiceFromQuotation(quotationId, 'PROFORMA');
+            const invoice = await createInvoiceFromQuotation(proformaDialogId, 'PROFORMA');
             navigate(`/invoices/${invoice.id}`);
         } catch (err) {
             console.error(err);
@@ -76,10 +83,10 @@ export default function QuotationList() {
         }
     };
 
-    const handleCreateRevision = async (id) => {
-        if (!window.confirm("Create a new revision from this quotation? This will lock the current one as REVISED.")) return;
+    const handleCreateRevision = async () => {
+        if (!revisionDialogId) return;
         try {
-            const revision = await fetchApi(`/quotations/${id}/revisions`, { method: 'POST' });
+            const revision = await fetchApi(`/quotations/${revisionDialogId}/revisions`, { method: 'POST' });
             navigate(`/quotations/edit/${revision.id}`);
         } catch (err) {
             console.error("Create Revision Error:", err);
@@ -172,7 +179,7 @@ export default function QuotationList() {
             label: 'Create Revision',
             icon: RefreshCw,
             variant: 'accent',
-            onClick: () => handleCreateRevision(q.id)
+            onClick: () => setRevisionDialogId(q.id)
         };
 
         switch (status) {
@@ -237,7 +244,7 @@ export default function QuotationList() {
                         icon: FileText,
                         variant: 'accent',
                         disabled: isConverting,
-                        onClick: () => handleCreateProforma(q.id)
+                        onClick: () => setProformaDialogId(q.id)
                     }
                 ];
 
@@ -273,31 +280,21 @@ export default function QuotationList() {
 
     if (error && quotations.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center h-[60vh] text-center max-w-md mx-auto">
-                <div className="w-16 h-16 bg-brand-danger/10 border border-brand-danger/30 flex items-center justify-center rounded-[20px] mb-6 shadow-sm">
-                    <AlertCircle className="w-8 h-8 text-brand-danger" />
-                </div>
-                <h2 className="text-[20px] font-bold text-text-primary mb-2 tracking-tight">Failed to load</h2>
-                <p className="text-text-secondary mb-6 text-[13px] leading-relaxed">{error}</p>
-                <button onClick={fetchQuotations} className="btn btn-primary btn-md">
-                    Try Again
-                </button>
+            <div className="pt-12">
+                <EmptyState type="error" error={error} onRetry={fetchQuotations} />
             </div>
         );
     }
 
     if (!isLoading && quotations.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center h-[70vh] text-center max-w-md mx-auto">
-                <div className="w-24 h-24 bg-bg-card border border-border-subtle flex items-center justify-center rounded-[28px] mb-8 shadow-sm">
-                    <FileText className="w-10 h-10 text-text-muted" />
-                </div>
-                <h2 className="text-[24px] font-bold text-text-primary mb-3 tracking-tight">No quotations yet</h2>
-                <p className="text-text-secondary mb-8 text-[13px] leading-relaxed">Create your first quotation to get started.</p>
-                <button onClick={() => setIsCreateModalOpen(true)} className="btn btn-primary btn-md">
-                    <Plus className="w-4 h-4 " />
-                    Create Quotation
-                </button>
+            <div className="pt-12">
+                <EmptyState 
+                    icon={FileText}
+                    emptyMessage="No quotations yet."
+                    actionLabel="Create Quotation"
+                    onAction={() => setIsCreateModalOpen(true)}
+                />
                 <CreateQuotationModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
             </div>
         );
@@ -334,57 +331,69 @@ export default function QuotationList() {
                             </tr>
                         </thead>
                         <tbody className="bg-bg-card divide-y divide-border-subtle/40">
-                            {quotations.map((q) => (
-                                <tr key={q.id} className="hover:bg-bg-hover transition-colors group">
-                                    <td className="px-6 py-4 whitespace-nowrap text-[13px] font-bold text-text-primary align-top">
-                                        <div className="flex items-center">
-                                            <File className="w-4 h-4 text-text-muted" />
-                                            <span>
-                                                {q.quotationNumber}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 align-top">
-                                        <div className="text-[13px] font-semibold text-text-primary leading-tight">{q.clientName}</div>
-                                        <div className="text-[12px] text-text-secondary mt-0.5">{q.clientCompany || '—'}</div>
-                                        <div>{renderSourceBadge(q)}</div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap align-top">
-                                        <div className="text-[13px] font-bold text-text-primary tracking-tight">
-                                            {formatCurrency(q.grandTotal, q.currency, 2)}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap align-top">
-                                        <span className={`inline-flex items-center text-[10px] font-bold uppercase tracking-wider ${getStatusStyle(q.status)}`}>
-                                            <span className="w-1.5 h-1.5 rounded-full bg-current "></span>
-                                            {normalizeStatus(q.status)}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-[12px] text-text-muted font-medium align-top hidden sm:table-cell">
-                                        {new Date(q.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-center align-top">
-                                        <div className="flex items-center justify-center space-x-2">
-                                            <button
-                                                onClick={() => handleViewPdf(q.id)}
-                                                disabled={downloadingPdfId === q.id}
-                                                className="btn btn-secondary btn-sm"
-                                                title="View PDF"
-                                            >
-                                                {downloadingPdfId === q.id ? (
-                                                    <><span className="animate-spin w-3 h-3 border-b-2 border-text-primary rounded-full "></span> Loading</>
-                                                ) : (
-                                                    <><FileText className="w-3.5 h-3.5 text-text-muted" /> View PDF</>
-                                                )}
-                                            </button>
-                                            <ActionMenu
-                                                ariaLabel="More quotation actions"
-                                                items={getQuotationActionItems(q)}
-                                            />
+                            {isLoading ? (
+                                <tr>
+                                    <td colSpan="6" className="p-6">
+                                        <div className="space-y-4">
+                                            {[1, 2, 3, 4, 5].map(i => (
+                                                <Skeleton key={i} variant="table-row" className="h-16" />
+                                            ))}
                                         </div>
                                     </td>
                                 </tr>
-                            ))}
+                            ) : (
+                                quotations.map((q) => (
+                                    <tr key={q.id} className="hover:bg-bg-hover transition-colors group">
+                                        <td className="px-6 py-4 whitespace-nowrap text-[13px] font-bold text-text-primary align-top">
+                                            <div className="flex items-center">
+                                                <File className="w-4 h-4 text-text-muted" />
+                                                <span>
+                                                    {q.quotationNumber}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 align-top">
+                                            <div className="text-[13px] font-semibold text-text-primary leading-tight">{q.clientName}</div>
+                                            <div className="text-[12px] text-text-secondary mt-0.5">{q.clientCompany || '—'}</div>
+                                            <div>{renderSourceBadge(q)}</div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap align-top">
+                                            <div className="text-[13px] font-bold text-text-primary tracking-tight">
+                                                {formatCurrency(q.grandTotal, q.currency, 2)}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap align-top">
+                                            <span className={`inline-flex items-center text-[10px] font-bold uppercase tracking-wider ${getStatusStyle(q.status)}`}>
+                                                <span className="w-1.5 h-1.5 rounded-full bg-current "></span>
+                                                {normalizeStatus(q.status)}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-[12px] text-text-muted font-medium align-top hidden sm:table-cell">
+                                            {new Date(q.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-center align-top">
+                                            <div className="flex items-center justify-center space-x-2">
+                                                <button
+                                                    onClick={() => handleViewPdf(q.id)}
+                                                    disabled={downloadingPdfId === q.id}
+                                                    className="btn btn-secondary btn-sm"
+                                                    title="View PDF"
+                                                >
+                                                    {downloadingPdfId === q.id ? (
+                                                        <><span className="animate-spin w-3 h-3 border-b-2 border-text-primary rounded-full "></span> Loading</>
+                                                    ) : (
+                                                        <><FileText className="w-3.5 h-3.5 text-text-muted" /> View PDF</>
+                                                    )}
+                                                </button>
+                                                <ActionMenu
+                                                    ariaLabel="More quotation actions"
+                                                    items={getQuotationActionItems(q)}
+                                                />
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
                         </tbody>
                     </table>
                 </div>
@@ -470,6 +479,25 @@ export default function QuotationList() {
                 onClose={() => setHistoryModalQuotation(null)}
                 quotation={historyModalQuotation}
                 onViewPdf={handleViewPdf}
+            />
+
+            <ConfirmDialog 
+                isOpen={Boolean(proformaDialogId)}
+                title="Create Proforma Invoice"
+                description="Create a Proforma Invoice from this Quotation?"
+                onConfirm={handleCreateProforma}
+                onCancel={() => setProformaDialogId(null)}
+                isLoading={isConverting}
+                confirmText="Create Invoice"
+            />
+            
+            <ConfirmDialog 
+                isOpen={Boolean(revisionDialogId)}
+                title="Create Revision"
+                description="Create a new revision from this quotation? This will lock the current one as REVISED."
+                onConfirm={handleCreateRevision}
+                onCancel={() => setRevisionDialogId(null)}
+                confirmText="Create Revision"
             />
         </div>
     );

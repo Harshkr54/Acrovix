@@ -4,6 +4,8 @@ import { fetchApi } from '../services/api';
 import { Link } from 'react-router-dom';
 import { Search, Filter, Calendar, ChevronLeft, ChevronRight, Plus, Inbox, MoreHorizontal, AlertCircle, RefreshCw, Eye, Check, FileText } from 'lucide-react';
 import EnquiryDetailModal from '../components/EnquiryDetailModal';
+import Skeleton from '../components/ui/Skeleton';
+import EmptyState from '../components/ui/EmptyState';
 
 export default function EnquiryList() {
     const [enquiries, setEnquiries] = useState([]);
@@ -306,41 +308,32 @@ export default function EnquiryList() {
                         <tbody className="bg-bg-card divide-y divide-border-subtle/40">
                             {error ? (
                                 <tr>
-                                    <td colSpan="6" className="px-6 py-20 text-center">
-                                        <div className="flex flex-col items-center justify-center space-y-4 max-w-sm mx-auto">
-                                            <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mb-1">
-                                                <AlertCircle className="w-6 h-6 text-red-500" />
-                                            </div>
-                                            <p className="text-[15px] font-bold text-text-primary">Failed to load enquiries</p>
-                                            <p className="text-[13px] text-text-secondary leading-relaxed">{error}</p>
-                                            <button onClick={fetchEnquiries} className="btn btn-primary btn-md mt-2">
-                                                <RefreshCw className="w-4 h-4 " />
-                                                Retry
-                                            </button>
-                                        </div>
+                                    <td colSpan="6" className="p-0">
+                                        <EmptyState type="error" error={error} onRetry={fetchEnquiries} />
                                     </td>
                                 </tr>
                             ) : isLoading ? (
                                 <tr>
-                                    <td colSpan="6" className="px-6 py-16 text-center">
-                                        <div className="flex flex-col items-center justify-center space-y-3">
-                                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-teal"></div>
-                                            <span className="text-[13px] font-medium text-text-muted">Loading enquiries...</span>
+                                    <td colSpan="6" className="p-6">
+                                        <div className="space-y-4">
+                                            {[1, 2, 3, 4, 5].map(i => (
+                                                <Skeleton key={i} variant="table-row" className="h-16" />
+                                            ))}
                                         </div>
                                     </td>
                                 </tr>
                             ) : enquiries.length === 0 ? (
                                 <tr>
-                                    <td colSpan="6" className="px-6 py-24 text-center">
-                                        <div className="flex flex-col items-center justify-center space-y-4">
-                                            <div className="w-12 h-12 bg-bg-muted rounded-full flex items-center justify-center">
-                                                <Inbox className="w-5 h-5 text-text-muted" />
-                                            </div>
-                                            <div>
-                                                <p className="text-[14px] font-bold text-text-primary">No enquiries yet</p>
-                                                <p className="text-[12px] text-text-muted mt-1 max-w-sm mx-auto">When enquiries arrive, they will appear here.</p>
-                                            </div>
-                                        </div>
+                                    <td colSpan="6" className="p-0">
+                                        <EmptyState 
+                                            icon={Inbox}
+                                            emptyMessage="No enquiries found."
+                                            isFiltered={Boolean(searchTerm || statusFilter || industryFilter || serviceFilter || fromDate || toDate)}
+                                            actionLabel="Clear Filters"
+                                            onAction={() => {
+                                                setSearchTerm(''); setStatusFilter(''); setIndustryFilter(''); setServiceFilter(''); setFromDate(''); setToDate(''); setCurrentPage(0);
+                                            }}
+                                        />
                                     </td>
                                 </tr>
                             ) : (

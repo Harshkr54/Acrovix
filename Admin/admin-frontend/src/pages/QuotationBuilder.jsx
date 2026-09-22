@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { fetchApi, getCustomers, getCatalog } from '../services/api';
-import { Plus, Trash2, Send, Save, Wand2, ArrowUp, ArrowDown, Calculator, User, Hash, AlertCircle, RefreshCw, Download, Settings, Eye } from 'lucide-react';
+import { Plus, Trash2, Send, Save, Wand2, ArrowUp, ArrowDown, Calculator, User, Hash, AlertCircle, RefreshCw, Download, Settings, Eye, Loader2 } from 'lucide-react';
 import SendQuotationModal from '../components/SendQuotationModal';
 import QuotationColumnConfigModal from '../components/QuotationColumnConfigModal';
 import QuotationPreviewModal from '../components/QuotationPreviewModal';
@@ -641,14 +641,14 @@ export default function QuotationBuilder() {
                         disabled={isSaving || isSending}
                         className="btn btn-primary btn-md"
                     >
-                        {isSaving ? <><span className="animate-spin w-4 h-4 border-b-2 border-text-primary rounded-full "></span> Saving</> : <><Save className="mr-2 h-4 w-4 text-text-secondary" /> Save Draft</>}
+                        {isSaving ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Saving...</> : <><Save className="mr-2 h-4 w-4 text-text-secondary" /> Save Draft</>}
                     </button>
                     <button 
                         onClick={handleSend} 
                         disabled={isSending || isSaving}
                         className="btn btn-primary btn-md"
                     >
-                        {isSending ? <><span className="animate-spin w-4 h-4 border-b-2 border-white rounded-full "></span> Sending...</> : <><Send className="mr-2 h-4 w-4" /> Send Quotation</>}
+                        {isSending ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Sending...</> : <><Send className="mr-2 h-4 w-4" /> Send Quotation</>}
                     </button>
                 </div>
             </div>
