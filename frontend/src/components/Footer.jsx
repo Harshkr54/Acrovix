@@ -29,7 +29,7 @@ const Footer = () => {
             <p className="font-semibold text-acrovix-teal-bright text-sm tracking-widest uppercase">
               {COMPANY_INFO.name}
             </p>
-            
+
             <div className="flex flex-col gap-1 text-xs text-slate-400 pb-1">
               <div className="flex flex-wrap items-baseline gap-1.5">
                 <span className="font-semibold text-slate-500">CIN:</span>

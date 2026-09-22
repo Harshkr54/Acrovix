@@ -172,3 +172,158 @@ const Hero = () => {
 };
 
 export default Hero;
+                        
+                        <circle cx="20" cy="25" r="2.5" fill="white" stroke="#2563EB" strokeWidth="2" />
+                        <circle cx="70" cy="35" r="2.5" fill="white" stroke="#0D9488" strokeWidth="2" />
+                        <circle cx="80" cy="10" r="2.5" fill="white" stroke="#2563EB" strokeWidth="2" />
+                        
+                        <defs>
+                          <linearGradient id="gradientBlue" x1="0" x2="0" y1="0" y2="1">
+                            <stop offset="0%" stopColor="#2563EB" />
+                            <stop offset="100%" stopColor="#2563EB" stopOpacity="0" />
+                          </linearGradient>
+                          <linearGradient id="gradientTeal" x1="0" x2="0" y1="0" y2="1">
+                            <stop offset="0%" stopColor="#0D9488" />
+                            <stop offset="100%" stopColor="#0D9488" stopOpacity="0" />
+                          </linearGradient>
+                        </defs>
+                      </svg >
+                    </div >
+
+  {/* Metric Cards */ }
+  < div className = "grid grid-cols-3 gap-4" >
+                      <div className="bg-[#F9FAFB] dark:bg-slate-700/80 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-600 transition-transform hover:-translate-y-1 duration-300">
+                        <div className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">System Status</div>
+                        <div className="text-sm font-extrabold text-[#0D9488] mt-1.5">Active</div>
+                      </div>
+                      <div className="bg-[#F9FAFB] dark:bg-slate-700/80 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-600 transition-transform hover:-translate-y-1 duration-300">
+                        <div className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">Infrastructure</div>
+                        <div className="text-sm font-extrabold text-[#2563EB] mt-1.5">Optimal</div>
+                      </div>
+                      <div className="bg-[#F9FAFB] dark:bg-slate-700/80 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-600 transition-transform hover:-translate-y-1 duration-300">
+                        <div className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">Security Layer</div>
+                        <div className="text-sm font-extrabold text-[#0D9488] mt-1.5">Enabled</div>
+                      </div>
+                    </div >
+                  </div >
+                </div >
+              </div >
+            </FloatingElement >
+
+  {/* Right Floating Card: Threat Protection */ }
+  < FloatingElement
+yOffset = {- 15}
+duration = { 1.1}
+delay = { 0.3}
+className = "absolute top-[20%] right-[-10%] z-30"
+  >
+  <div className="bg-white dark:bg-slate-800 backdrop-blur-xl text-acrovix-navy dark:text-white shadow-[0_15px_40px_rgba(11,25,44,0.12)] rounded-[20px] py-4 px-6 flex items-center gap-4 border border-[#CCFBF1]/50 dark:border-slate-700">
+    <div className="w-12 h-12 rounded-[14px] bg-gradient-to-br from-[#0D9488] to-[#14B8A6] flex items-center justify-center shadow-md">
+      <ShieldCheck className="w-6 h-6 text-white" />
+    </div>
+    <div>
+      <div className="text-sm font-bold tracking-tight">Threat Protection</div>
+      <div className="text-[11px] text-slate-500 font-semibold mt-0.5">Always Active</div>
+    </div>
+    <div className="pl-4 opacity-20 flex gap-1">
+      <div className="w-1.5 h-1.5 rounded-full bg-acrovix-navy dark:bg-white"></div>
+      <div className="w-1.5 h-1.5 rounded-full bg-acrovix-navy dark:bg-white"></div>
+      <div className="w-1.5 h-1.5 rounded-full bg-acrovix-navy dark:bg-white"></div>
+    </div>
+  </div>
+            </FloatingElement >
+
+  {/* Bottom Right Floating Card: API Integration */ }
+  < FloatingElement
+yOffset = { 10}
+duration = { 0.9}
+delay = { 0.4}
+className = "absolute bottom-[5%] right-[-5%] z-30"
+  >
+  <div className="bg-white dark:bg-slate-800 backdrop-blur-xl text-acrovix-navy dark:text-white shadow-[0_15px_40px_rgba(11,25,44,0.12)] rounded-[20px] py-4 px-6 flex items-center gap-4 border border-[#DBEAFE]/50 dark:border-slate-700">
+    <div className="w-12 h-12 rounded-full bg-[#ECFEFF] flex items-center justify-center shadow-inner border border-[#CCFBF1]">
+      <Database className="w-6 h-6 text-[#0D9488]" />
+    </div>
+    <div>
+      <div className="text-sm font-bold tracking-tight">API Integration</div>
+      <div className="text-[11px] text-slate-500 font-semibold mt-0.5">Connected Systems</div>
+    </div>
+    <div className="pl-4 opacity-20 flex gap-1">
+      <div className="w-1.5 h-1.5 rounded-full bg-acrovix-navy dark:bg-white"></div>
+      <div className="w-1.5 h-1.5 rounded-full bg-acrovix-navy dark:bg-white"></div>
+      <div className="w-1.5 h-1.5 rounded-full bg-acrovix-navy dark:bg-white"></div>
+    </div>
+  </div>
+            </FloatingElement >
+
+  {/* Bottom Left: Server Stack Visual */ }
+  < FloatingElement
+yOffset = {- 12}
+duration = { 1.2}
+delay = { 0.5}
+className = "absolute bottom-[-5%] left-[5%] z-20"
+  >
+  <div className="relative">
+    <div className="absolute inset-0 bg-[#0D9488]/30 blur-[40px] transform translate-y-10"></div>
+    <div className="flex flex-col gap-2 relative z-10 perspective-1000 rotate-x-12 rotate-y-[-15deg] scale-110">
+      <div className="w-32 h-8 bg-[#0B192C] rounded-md border-t-2 border-[#1E3A5F] border-l-2 border-[#1E3A5F] flex items-center justify-between px-3 shadow-[0_15px_30px_rgba(11,25,44,0.4)]">
+        <div className="flex gap-1.5">
+          <div className="w-1.5 h-1.5 bg-[#0D9488] rounded-full"></div>
+          <div className="w-1.5 h-1.5 bg-[#0D9488] rounded-full"></div>
+        </div>
+      </div>
+      <div className="w-32 h-8 bg-[#0B192C] rounded-md border-t-2 border-[#1E3A5F] border-l-2 border-[#1E3A5F] flex items-center justify-between px-3 shadow-[0_15px_30px_rgba(11,25,44,0.4)]">
+        <div className="flex gap-1.5">
+          <div className="w-1.5 h-1.5 bg-[#0D9488] rounded-full"></div>
+          <div className="w-1.5 h-1.5 bg-[#0D9488] rounded-full"></div>
+        </div>
+      </div>
+      <div className="w-32 h-8 bg-[#0B192C] rounded-md border-t-2 border-[#1E3A5F] border-l-2 border-[#1E3A5F] flex items-center justify-between px-3 shadow-[0_15px_30px_rgba(11,25,44,0.4)]">
+        <div className="flex gap-1.5">
+          <div className="w-1.5 h-1.5 bg-[#0D9488] rounded-full"></div>
+          <div className="w-1.5 h-1.5 bg-[#2563EB] rounded-full"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+            </FloatingElement >
+           </motion.div >
+
+  {/* Feature Row - Placed after illustration in source order so it stacks bottom on mobile, but placed via grid in Desktop */ }
+  < motion.div
+initial = {{ opacity: 0, y: 20 }}
+animate = {{ opacity: 1, y: 0 }}
+transition = {{ duration: 0.6, delay: 0.4 }}
+className = "order-3 lg:row-start-2 lg:col-start-1 lg:self-start w-full pt-8 lg:pt-0 border-t border-slate-200/50 dark:border-slate-800/50 lg:border-t-0"
+  >
+  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center sm:text-left max-w-lg mx-auto lg:mx-0 lg:border-t lg:border-slate-200/60 lg:dark:border-slate-800/60 lg:pt-6">
+    <div className="group cursor-default">
+      <div className="w-12 h-12 mx-auto sm:mx-0 rounded-full bg-gradient-to-br from-[#DBEAFE] to-[#CCFBF1] dark:from-blue-900/40 dark:to-teal-900/40 flex items-center justify-center mb-4 shadow-inner">
+        <Activity className="w-6 h-6 text-[#2563EB]" />
+      </div>
+      <h4 className="font-extrabold text-[#0B192C] dark:text-white text-base">Innovate</h4>
+      <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5 font-medium leading-relaxed">Modern technology solutions</p>
+    </div>
+    <div className="group cursor-default">
+      <div className="w-12 h-12 mx-auto sm:mx-0 rounded-full bg-gradient-to-br from-[#CCFBF1] to-[#14B8A6]/20 dark:from-teal-900/40 dark:to-teal-800/40 flex items-center justify-center mb-4 shadow-inner">
+        <ShieldCheck className="w-6 h-6 text-[#0D9488]" />
+      </div>
+      <h4 className="font-extrabold text-[#0B192C] dark:text-white text-base">Secure</h4>
+      <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5 font-medium leading-relaxed">Resilient and compliant</p>
+    </div>
+    <div className="group cursor-default">
+      <div className="w-12 h-12 mx-auto sm:mx-0 rounded-full bg-gradient-to-br from-[#DBEAFE] to-[#2563EB]/20 dark:from-blue-900/40 dark:to-blue-800/40 flex items-center justify-center mb-4 shadow-inner">
+        <LineChart className="w-6 h-6 text-[#2563EB]" />
+      </div>
+      <h4 className="font-extrabold text-[#0B192C] dark:text-white text-base">Scale</h4>
+      <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5 font-medium leading-relaxed">Built for what's next</p>
+    </div>
+  </div>
+           </motion.div >
+        </div >
+      </div >
+    </section >
+  );
+};
+
+export default Hero;

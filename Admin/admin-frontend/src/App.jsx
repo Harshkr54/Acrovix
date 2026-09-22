@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
+import { ToastProvider } from './context/ToastContext';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -38,7 +39,8 @@ const ProtectedRoute = ({ children }) => {
 
 function App() {
     return (
-        <Routes>
+        <ToastProvider>
+            <Routes>
             <Route path="/login" element={<Login />} />
             
             <Route path="/" element={<ProtectedRoute><SessionManager><Layout /></SessionManager></ProtectedRoute>}>
@@ -68,6 +70,7 @@ function App() {
                 <Route path="settings" element={<Settings />} />
             </Route>
         </Routes>
+        </ToastProvider>
     );
 }
 

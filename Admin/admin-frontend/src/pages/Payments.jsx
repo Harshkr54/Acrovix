@@ -8,6 +8,7 @@ import {
     recordPayment 
 } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { API_BASE_URL } from '../services/api';
 import { formatCurrency } from '../utils/formatters';
 import { 
@@ -35,6 +36,7 @@ import {
 export default function Payments() {
     const navigate = useNavigate();
     const { user } = useAuth();
+    const { showToast } = useToast();
 
     const [payments, setPayments] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -71,7 +73,6 @@ export default function Payments() {
     });
     const [paymentError, setPaymentError] = useState(null);
     const [recordingPayment, setRecordingPayment] = useState(false);
-    const [successToast, setSuccessToast] = useState(null);
 
     // Cancel Payment Modal state
     const [cancellingPayment, setCancellingPayment] = useState(null);
@@ -206,8 +207,10 @@ export default function Payments() {
             });
 
             setIsRecordModalOpen(false);
-            setSuccessToast(`Payment ${result.paymentNumber || 'record'} of Rs. ${numAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} recorded successfully!`);
-            setTimeout(() => setSuccessToast(null), 5000);
+            showToast({
+                type: 'success',
+                message: `Payment ${result.paymentNumber || 'record'} of Rs. ${numAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} recorded successfully!`
+            });
             await fetchPaymentsList();
         } catch (err) {
             console.error('Failed to record payment', err);
@@ -307,17 +310,6 @@ export default function Payments() {
 
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-6 pb-24">
-            {/* Success Toast */}
-            {successToast && (
-                <div className="fixed top-20 right-8 z-50 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-dropdown-entrance">
-                    <CheckCircle className="w-5 h-5 shrink-0" />
-                    <span className="text-xs font-semibold">{successToast}</span>
-                    <button onClick={() => setSuccessToast(null)} className="btn btn-ghost btn-icon ml-2 text-white hover:bg-white/20">
-                        <X className="w-4 h-4" />
-                    </button>
-                </div>
-            )}
-
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>

@@ -49,6 +49,7 @@ export const AuthProvider = ({ children }) => {
             localStorage.setItem('adminToken', data.token);
             const userData = { name: data.name, email: data.email, role: data.role };
             localStorage.setItem('adminUser', JSON.stringify(userData));
+            localStorage.setItem('acrovix_last_activity', Date.now().toString());
             setUser(userData);
             return true;
         } catch (error) {
@@ -60,6 +61,7 @@ export const AuthProvider = ({ children }) => {
     const logout = () => {
         localStorage.removeItem('adminToken');
         localStorage.removeItem('adminUser');
+        localStorage.removeItem('acrovix_last_activity');
         setUser(null);
     };
 

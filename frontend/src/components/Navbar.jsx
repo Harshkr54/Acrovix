@@ -67,8 +67,8 @@ const Navbar = () => {
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 rounded-b-2xl ${isScrolled
-          ? 'bg-white/75 dark:bg-[#081923]/95 backdrop-blur-md shadow-[0_4px_20px_rgba(16,42,67,0.06)] border-b border-acrovix-teal-primary/14'
-          : 'bg-white/68 dark:bg-[#081923]/85 backdrop-blur-sm'
+        ? 'bg-white/75 dark:bg-[#081923]/95 backdrop-blur-md shadow-[0_4px_20px_rgba(16,42,67,0.06)] border-b border-acrovix-teal-primary/14'
+        : 'bg-white/68 dark:bg-[#081923]/85 backdrop-blur-sm'
         }`}
     >
       <div className="w-full px-4 sm:px-6 md:px-8 lg:px-10">
@@ -82,7 +82,7 @@ const Navbar = () => {
           >
             {/* Subtle glow effect on hover */}
             <div className="absolute inset-0 bg-gradient-to-r from-acrovix-teal-primary/0 via-acrovix-teal-primary/5 to-acrovix-teal-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out" />
-            
+
             <img
               src={acrovixLogo}
               alt="ACROVIX INNOVATIONS PRIVATE LIMITED"
@@ -99,9 +99,8 @@ const Navbar = () => {
                   key={link.path}
                   to={link.path}
                   onClick={() => handleNavClick(link.path)}
-                  className={`text-xs xl:text-sm font-bold transition-colors duration-200 hover:text-acrovix-teal-primary relative py-1 whitespace-nowrap ${
-                    active ? 'text-acrovix-teal-primary' : 'text-acrovix-heading'
-                  }`}
+                  className={`text-xs xl:text-sm font-bold transition-colors duration-200 hover:text-acrovix-teal-primary relative py-1 whitespace-nowrap ${active ? 'text-acrovix-teal-primary' : 'text-acrovix-heading'
+                    }`}
                 >
                   {link.name}
                   {active && (
@@ -151,8 +150,8 @@ const Navbar = () => {
                 to={link.path}
                 onClick={() => handleNavClick(link.path)}
                 className={`text-base font-semibold py-2.5 px-3 rounded-lg transition-colors ${isActive(link.path)
-                    ? 'text-acrovix-teal-primary bg-acrovix-card font-bold border-l-4 border-acrovix-teal-primary'
-                    : 'text-acrovix-heading hover:bg-acrovix-bg-secondary'
+                  ? 'text-acrovix-teal-primary bg-acrovix-card font-bold border-l-4 border-acrovix-teal-primary'
+                  : 'text-acrovix-heading hover:bg-acrovix-bg-secondary'
                   }`}
               >
                 {link.name}

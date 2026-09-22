@@ -18,10 +18,17 @@ export default function SessionManager({ children }) {
 
     // Initialize activity on mount
     useEffect(() => {
-        if (!localStorage.getItem('acrovix_last_activity')) {
-            localStorage.setItem('acrovix_last_activity', Date.now().toString());
+        const raw = localStorage.getItem('acrovix_last_activity');
+        const parsed = parseInt(raw, 10);
+        const now = Date.now();
+        
+        // If missing, invalid, negative, or inexplicably in the future
+        if (!raw || isNaN(parsed) || parsed <= 0 || parsed > now + 60000) {
+            localStorage.setItem('acrovix_last_activity', now.toString());
+            lastActivityRef.current = now;
+        } else {
+            lastActivityRef.current = parsed;
         }
-        lastActivityRef.current = parseInt(localStorage.getItem('acrovix_last_activity'), 10) || Date.now();
     }, []);
 
     // Activity tracking (Throttled)
@@ -55,8 +62,24 @@ export default function SessionManager({ children }) {
     // Timer check interval
     useEffect(() => {
         const intervalId = setInterval(() => {
-            const storedTime = parseInt(localStorage.getItem('acrovix_last_activity'), 10) || Date.now();
-            const elapsed = Date.now() - storedTime;
+            // Defensive: if we are no longer authenticated, don't run logout timers
+            if (!localStorage.getItem('adminToken')) {
+                clearInterval(intervalId);
+                return;
+            }
+
+            const raw = localStorage.getItem('acrovix_last_activity');
+            let storedTime = parseInt(raw, 10);
+            const now = Date.now();
+
+            // Recover from corrupted storage state rather than crashing/logging out
+            if (!raw || isNaN(storedTime) || storedTime <= 0 || storedTime > now + 60000) {
+                storedTime = now;
+                localStorage.setItem('acrovix_last_activity', storedTime.toString());
+                lastActivityRef.current = storedTime;
+            }
+
+            const elapsed = now - storedTime;
 
             if (elapsed >= IDLE_TIMEOUT_MS) {
                 // Inactivity Logout
@@ -85,12 +108,16 @@ export default function SessionManager({ children }) {
                 // Token removed by another tab (e.g., manual logout or its own inactivity logout)
                 navigate('/login');
             }
-            if (e.key === 'acrovix_last_activity') {
-                // Another tab registered activity, update our ref
-                lastActivityRef.current = parseInt(e.newValue, 10) || Date.now();
-                const elapsed = Date.now() - lastActivityRef.current;
-                if (elapsed < WARNING_TIMEOUT_MS) {
-                    setShowWarning(false);
+            if (e.key === 'acrovix_last_activity' && e.newValue) {
+                // Another tab registered activity, update our ref defensively
+                const parsed = parseInt(e.newValue, 10);
+                const now = Date.now();
+                if (!isNaN(parsed) && parsed > 0 && parsed <= now + 60000) {
+                    lastActivityRef.current = parsed;
+                    const elapsed = now - parsed;
+                    if (elapsed < WARNING_TIMEOUT_MS) {
+                        setShowWarning(false);
+                    }
                 }
             }
         };
@@ -113,6 +140,11 @@ export default function SessionManager({ children }) {
         const seconds = totalSeconds % 60;
         return `${minutes}:${seconds.toString().padStart(2, '0')}`;
     };
+
+    // Do not render session management UI if unauthenticated
+    if (!localStorage.getItem('adminToken') && !user) {
+        return <>{children}</>;
+    }
 
     return (
         <>

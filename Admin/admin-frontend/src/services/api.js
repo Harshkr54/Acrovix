@@ -54,17 +54,36 @@ export const fetchApi = async (endpoint, options = {}) => {
                 // Fallback to HTTP status messages below
             }
 
-            if (errorMessage === 'An unexpected error occurred') {
-                if (response.status === 400) errorMessage = "Please check the information you entered.";
-                else if (response.status === 401) errorMessage = "Your session has expired or unauthorized.";
-                else if (response.status === 403) errorMessage = "You do not have permission to perform this action.";
-                else if (response.status === 404) errorMessage = "The requested item could not be found.";
-                else if (response.status === 409) errorMessage = "The requested change conflicts with existing data.";
-                else if (response.status === 500) errorMessage = "Something went wrong on the server. Please try again.";
+            // Safe error mapping for known statuses
+            let finalMessage = errorMessage;
+            let dispatchToast = false;
+
+            if (response.status >= 500) {
+                finalMessage = "Something went wrong. Please try again.";
+                dispatchToast = true;
+            } else if (response.status === 404) {
+                finalMessage = "Requested resource was not found.";
+                dispatchToast = true;
+            } else if (response.status === 403) {
+                finalMessage = "You don't have permission to perform this action.";
+                dispatchToast = true;
+            } else if (response.status === 409) {
+                finalMessage = "Unable to complete this action because the data has changed.";
+                dispatchToast = true;
+            } else if (errorMessage === 'An unexpected error occurred') {
+                if (response.status === 400) finalMessage = "Please check the information you entered.";
+                else if (response.status === 401) finalMessage = "Your session has expired or unauthorized.";
+            }
+
+            if (dispatchToast) {
+                window.dispatchEvent(new CustomEvent('acrovix-toast', {
+                    detail: { type: 'error', message: finalMessage }
+                }));
             }
             
-            const error = new Error(errorMessage);
+            const error = new Error(finalMessage);
             error.status = response.status;
+            error.isGlobalToastHandled = dispatchToast;
             throw error;
         }
 
@@ -97,7 +116,13 @@ export const fetchApi = async (endpoint, options = {}) => {
     } catch (error) {
         // Network failures or manually thrown errors
         if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
-            throw new Error('Network error. Please check your connection.');
+            const networkErrorMsg = 'Unable to connect to the server. Please try again.';
+            window.dispatchEvent(new CustomEvent('acrovix-toast', {
+                detail: { type: 'error', message: networkErrorMsg }
+            }));
+            const networkError = new Error(networkErrorMsg);
+            networkError.isGlobalToastHandled = true;
+            throw networkError;
         }
         throw error;
     }

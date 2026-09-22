@@ -22,12 +22,12 @@ const AnimatedCounter = ({ target, duration, isDecimal = false, suffix = '' }) =
 
   useEffect(() => {
     if (!isVisible) return;
-    
+
     let startTimestamp = null;
     const step = (timestamp) => {
       if (!startTimestamp) startTimestamp = timestamp;
       const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-      
+
       const currentVal = progress * target;
       setCount(currentVal);
 
@@ -96,11 +96,11 @@ const StatsSection = () => {
       {/* Background Glows */}
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-acrovix-teal-primary/5 rounded-full blur-3xl mix-blend-screen" />
       <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-[#00A3FF]/5 rounded-full blur-3xl mix-blend-screen" />
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
           {stats.map((stat, index) => (
-            <motion.div 
+            <motion.div
               key={stat.id}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -112,13 +112,13 @@ const StatsSection = () => {
                 <div className="p-3 bg-acrovix-teal-primary/10 rounded-xl group-hover:scale-110 group-hover:bg-acrovix-teal-primary/20 transition-all duration-300">
                   {stat.icon}
                 </div>
-                
+
                 <div>
                   <h3 className="text-4xl lg:text-5xl font-bold text-white mb-2 tracking-tight">
                     {stat.prefix}
-                    <AnimatedCounter 
-                      target={stat.target} 
-                      duration={2000} 
+                    <AnimatedCounter
+                      target={stat.target}
+                      duration={2000}
                       isDecimal={stat.isDecimal}
                       suffix={stat.suffix}
                     />
