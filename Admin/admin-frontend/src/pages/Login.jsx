@@ -12,6 +12,7 @@ export default function Login() {
     const [isLoading, setIsLoading] = useState(false);
     const [showResumePrompt, setShowResumePrompt] = useState(false);
     const [resumePathState, setResumePathState] = useState('');
+    const [isExiting, setIsExiting] = useState(false);
     
     const { login, user } = useAuth();
     const navigate = useNavigate();
@@ -29,10 +30,13 @@ export default function Login() {
 
     // Redirect already authenticated users to dashboard
     useEffect(() => {
-        if (user && !showResumePrompt) {
-            navigate('/', { replace: true });
+        if (user && !showResumePrompt && !isExiting) {
+            setIsExiting(true);
+            setTimeout(() => {
+                navigate('/', { replace: true });
+            }, 250);
         }
-    }, [user, navigate, showResumePrompt]);
+    }, [user, navigate, showResumePrompt, isExiting]);
 
     // Fire-and-forget warm-up ping: wakes the Render backend while the admin
     // is reading the login form, giving the JVM a head start before login.
@@ -64,7 +68,10 @@ export default function Login() {
                     setShowResumePrompt(true);
                 } else {
                     localStorage.removeItem('acrovix_resume_path');
-                    navigate('/', { replace: true });
+                    setIsExiting(true);
+                    setTimeout(() => {
+                        navigate('/', { replace: true });
+                    }, 250);
                 }
             } else {
                 setError('Invalid email or password. Please try again.');
@@ -78,17 +85,23 @@ export default function Login() {
 
     const handleResume = () => {
         localStorage.removeItem('acrovix_resume_path');
-        navigate(resumePathState, { replace: true });
+        setIsExiting(true);
+        setTimeout(() => {
+            navigate(resumePathState, { replace: true });
+        }, 250);
     };
 
     const handleStartFresh = () => {
         localStorage.removeItem('acrovix_resume_path');
-        navigate('/', { replace: true });
+        setIsExiting(true);
+        setTimeout(() => {
+            navigate('/', { replace: true });
+        }, 250);
     };
 
     if (showResumePrompt) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-bg-main p-4 relative overflow-hidden">
+            <div className={`min-h-screen flex items-center justify-center bg-bg-main p-4 relative overflow-hidden ${isExiting ? 'animate-page-exit' : 'animate-page-entrance'}`}>
                 <div className="max-w-md w-full bg-bg-card p-8 rounded-[24px] shadow-xl border border-border-subtle relative z-10 text-center animate-fade-in-up">
                     <div className="w-16 h-16 bg-brand-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
                         <Info className="w-8 h-8 text-brand-primary" />
@@ -111,7 +124,7 @@ export default function Login() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-bg-main p-4 relative overflow-hidden">
+        <div className={`min-h-screen flex items-center justify-center bg-bg-main p-4 relative overflow-hidden ${isExiting ? 'animate-page-exit' : 'animate-page-entrance'}`}>
             {/* Subtle background decoration */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
                 <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-[#14B8A6]/10 blur-[120px]" />

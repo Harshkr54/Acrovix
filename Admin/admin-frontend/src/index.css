@@ -381,6 +381,16 @@
     from { opacity: 0; transform: translateY(-4px); }
     to { opacity: 1; transform: translateY(0); }
   }
+
+  @keyframes page-entrance {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes page-exit {
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 0; transform: translateY(-6px); }
+  }
   
   .animate-fade-in-up {
     animation: fade-in-up 200ms ease-out forwards;
@@ -395,6 +405,14 @@
     transform-origin: top;
   }
   
+  .animate-page-entrance {
+    animation: page-entrance 250ms ease-out forwards;
+  }
+
+  .animate-page-exit {
+    animation: page-exit 200ms ease-out forwards;
+  }
+
   @keyframes toast-slide-in {
     from { opacity: 0; transform: translateX(100%); }
     to { opacity: 1; transform: translateX(0); }
@@ -416,6 +434,17 @@
       transform: none;
     }
     
+    .animate-page-entrance {
+      animation: fade-in-up 200ms ease-out forwards;
+      transform: none;
+    }
+    
+    .animate-page-exit {
+      opacity: 0;
+      transition: opacity 200ms ease-out;
+      transform: none;
+    }
+
     .before\:animate-\[shimmer_2s_infinite\]::before {
       animation: none !important;
       display: none !important;

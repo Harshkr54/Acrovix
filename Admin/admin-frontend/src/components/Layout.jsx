@@ -48,6 +48,7 @@ export default function Layout() {
         const saved = localStorage.getItem('admin_sidebar_collapsed');
         return saved === 'true';
     });
+    const [isExiting, setIsExiting] = useState(false);
 
     const toggleSidebar = () => {
         const newState = !isCollapsed;
@@ -133,8 +134,11 @@ export default function Layout() {
     };
 
     const handleLogout = () => {
-        logout();
-        navigate('/login', { replace: true });
+        setIsExiting(true);
+        setTimeout(() => {
+            logout();
+            navigate('/login', { replace: true });
+        }, 200);
     };
 
     const workspaceItems = [
@@ -168,7 +172,7 @@ export default function Layout() {
     ];
 
     return (
-        <div className="flex h-screen bg-bg-main text-text-primary overflow-hidden">
+        <div className={`flex h-screen bg-bg-main text-text-primary overflow-hidden ${isExiting ? 'animate-page-exit' : 'animate-page-entrance'}`}>
             {/* Mobile Sidebar Overlay */}
             {isSidebarOpen && (
                 <div 
@@ -548,7 +552,7 @@ export default function Layout() {
 
                     <div className="flex items-center gap-3 ml-2 lg:ml-4 shrink-0">
                         <DateTimeDisplay />
-                        <HeaderControls />
+                        <HeaderControls onLogout={handleLogout} />
                     </div>
                 </header>
 

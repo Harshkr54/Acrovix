@@ -6,7 +6,7 @@ import { useTheme } from '../context/ThemeContext';
 import { fetchApi } from '../services/api';
 import { getInitials } from '../utils/userUtils';
 
-export default function HeaderControls() {
+export default function HeaderControls({ onLogout }) {
     const { user, logout } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
@@ -23,8 +23,12 @@ export default function HeaderControls() {
     const [unreadCount, setUnreadCount] = useState(0);
 
     const handleLogout = () => {
-        logout();
-        navigate('/login', { replace: true });
+        if (onLogout) {
+            onLogout();
+        } else {
+            logout();
+            navigate('/login', { replace: true });
+        }
     };
 
     const toggleDropdown = (dropdownName) => {
