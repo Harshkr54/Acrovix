@@ -177,7 +177,15 @@ export default function Login() {
                         </div>
                         
                         <div>
-                            <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2 ml-1">Password</label>
+                            <div className="flex items-center justify-between mb-2">
+                                <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider ml-1">Password</label>
+                                <Link 
+                                    to="/forgot-password" 
+                                    className="text-[11px] font-bold text-brand-primary/80 hover:text-brand-primary transition-colors focus:outline-none focus:underline"
+                                >
+                                    Forgot Password?
+                                </Link>
+                            </div>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                     <Lock className="h-5 w-5 text-text-muted" />
@@ -191,14 +199,6 @@ export default function Login() {
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                 />
-                            </div>
-                            <div className="flex justify-end mt-2">
-                                <Link 
-                                    to="/forgot-password" 
-                                    className="text-[12px] font-semibold text-brand-primary hover:text-brand-primary-hover transition-colors focus:outline-none focus:underline"
-                                >
-                                    Forgot Password?
-                                </Link>
                             </div>
                         </div>
                     </div>
