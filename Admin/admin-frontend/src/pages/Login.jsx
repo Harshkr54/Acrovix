@@ -129,7 +129,7 @@ export default function Login() {
     }
 
     return (
-        <div className={`min-h-screen w-full flex bg-bg-main relative overflow-hidden pb-16 ${isExiting ? 'animate-page-exit' : 'animate-page-entrance'}`}>
+        <div className={`h-[100dvh] min-h-[100dvh] w-full flex bg-bg-main relative overflow-hidden pb-16 ${isExiting ? 'animate-page-exit' : 'animate-page-entrance'}`}>
             {/* Theme Toggle Top Right */}
             <div className="absolute top-6 right-6 z-50 flex items-center bg-bg-card rounded-full p-1 shadow-sm border border-border-subtle">
                 <button 
@@ -287,7 +287,7 @@ export default function Login() {
                                         name="email"
                                         type="email"
                                         required
-                                        className="w-full pl-11 pr-4 rounded-xl h-12 text-[14px] bg-[#F1F5F9] dark:bg-[#102936] border border-border-subtle focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] outline-none text-text-primary transition-all"
+                                        className="w-full pl-11 pr-4 rounded-xl h-12 text-[14px] bg-[#F3F7FA] text-[#0B192C] dark:bg-[#102936] dark:text-[#F8FAFC] border border-border-subtle focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] outline-none transition-all placeholder-[#64748b] dark:placeholder-[#94a3b8]"
                                         placeholder="admin@acrovix.com"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
@@ -305,7 +305,7 @@ export default function Login() {
                                         name="password"
                                         type={showPassword ? "text" : "password"}
                                         required
-                                        className="w-full pl-11 pr-11 rounded-xl h-12 text-[14px] bg-[#F1F5F9] dark:bg-[#102936] border border-border-subtle focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] outline-none text-text-primary transition-all"
+                                        className="w-full pl-11 pr-11 rounded-xl h-12 text-[14px] bg-[#F3F7FA] text-[#0B192C] dark:bg-[#102936] dark:text-[#F8FAFC] border border-border-subtle focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] outline-none transition-all placeholder-[#64748b] dark:placeholder-[#94a3b8]"
                                         placeholder="••••••••"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
