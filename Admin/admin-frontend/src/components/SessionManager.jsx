@@ -16,8 +16,10 @@ export default function SessionManager({ children }) {
     const [displayTimeLeft, setDisplayTimeLeft] = useState(0);
     const lastActivityRef = useRef(Date.now());
 
-    // Initialize activity on mount
+    // Initialize activity and check expiration immediately on mount
     useEffect(() => {
+        if (!localStorage.getItem('adminToken')) return;
+        
         const raw = localStorage.getItem('acrovix_last_activity');
         const parsed = parseInt(raw, 10);
         const now = Date.now();
@@ -28,23 +30,36 @@ export default function SessionManager({ children }) {
             lastActivityRef.current = now;
         } else {
             lastActivityRef.current = parsed;
+            // CRITICAL: Immediate expiration check on app load to prevent rendering
+            // the dashboard if the user has been gone overnight.
+            if (now - parsed >= IDLE_TIMEOUT_MS) {
+                if (location.pathname !== '/login' && location.pathname !== '/') {
+                    localStorage.setItem('acrovix_resume_path', location.pathname + location.search);
+                }
+                logout();
+                navigate('/login?reason=inactivity', { replace: true });
+            }
         }
-    }, []);
+    }, [location.pathname, location.search, logout, navigate]);
 
     // Activity tracking (Throttled)
     useEffect(() => {
         const handleActivity = () => {
             const now = Date.now();
-            if (now - lastActivityRef.current > THROTTLE_MS) {
+            const elapsed = now - lastActivityRef.current;
+            
+            // CRITICAL FIX: Do NOT extend session if it has ALREADY expired.
+            // If the user was away for 30+ mins and suddenly moves the mouse,
+            // we must not blindly push the activity timestamp forward.
+            // We must let the check loop or visibility handler expire it.
+            if (elapsed >= IDLE_TIMEOUT_MS) {
+                return;
+            }
+
+            if (elapsed > THROTTLE_MS) {
                 lastActivityRef.current = now;
                 localStorage.setItem('acrovix_last_activity', now.toString());
                 
-                // If warning is showing and user acts (e.g. types), we might want to auto-dismiss,
-                // but the prompt says "When the user clicks: Continue Session ... close the warning modal".
-                // So genuine activity outside the modal might not auto-dismiss it if it's already open,
-                // or maybe it should? It's better to force them to click "Continue Session" if the modal is up,
-                // to explicitly acknowledge. However, if they just move the mouse, we update the timestamp.
-                // Wait, if the modal is open, we can just hide it since they are active.
                 if (showWarning) {
                     setShowWarning(false);
                 }
@@ -59,9 +74,11 @@ export default function SessionManager({ children }) {
         };
     }, [showWarning]);
 
-    // Timer check interval
+    // Timer check interval and Tab Visibility handling
     useEffect(() => {
-        const intervalId = setInterval(() => {
+        let intervalId;
+
+        const checkExpiration = () => {
             // Defensive: if we are no longer authenticated, don't run logout timers
             if (!localStorage.getItem('adminToken')) {
                 clearInterval(intervalId);
@@ -89,16 +106,36 @@ export default function SessionManager({ children }) {
                     localStorage.setItem('acrovix_resume_path', location.pathname + location.search);
                 }
                 logout();
-                navigate('/login?reason=inactivity');
+                navigate('/login?reason=inactivity', { replace: true });
             } else if (elapsed >= WARNING_TIMEOUT_MS) {
                 setShowWarning(true);
                 // displayTimeLeft is handled by the smooth timer effect
             } else {
                 setShowWarning(false);
             }
-        }, CHECK_INTERVAL_MS);
+        };
 
-        return () => clearInterval(intervalId);
+        // Periodically check
+        intervalId = setInterval(checkExpiration, CHECK_INTERVAL_MS);
+
+        // Instantly check when user returns to a dormant tab/window
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                checkExpiration();
+            }
+        };
+        const handleFocus = () => {
+            checkExpiration();
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('focus', handleFocus);
+
+        return () => {
+            clearInterval(intervalId);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('focus', handleFocus);
+        };
     }, [location, logout, navigate]);
 
     // Multi-tab sync for logout
