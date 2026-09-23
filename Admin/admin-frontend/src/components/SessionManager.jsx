@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { AlertTriangle } from 'lucide-react';
+import { Timer, LogOut } from 'lucide-react';
 
 const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 const WARNING_TIMEOUT_MS = 27 * 60 * 1000;
@@ -13,7 +13,7 @@ export default function SessionManager({ children }) {
     const navigate = useNavigate();
     const location = useLocation();
     const [showWarning, setShowWarning] = useState(false);
-    const [timeLeft, setTimeLeft] = useState(0);
+    const [displayTimeLeft, setDisplayTimeLeft] = useState(0);
     const lastActivityRef = useRef(Date.now());
 
     // Initialize activity on mount
@@ -92,7 +92,7 @@ export default function SessionManager({ children }) {
                 navigate('/login?reason=inactivity');
             } else if (elapsed >= WARNING_TIMEOUT_MS) {
                 setShowWarning(true);
-                setTimeLeft(IDLE_TIMEOUT_MS - elapsed);
+                // displayTimeLeft is handled by the smooth timer effect
             } else {
                 setShowWarning(false);
             }
@@ -126,6 +126,27 @@ export default function SessionManager({ children }) {
         return () => window.removeEventListener('storage', handleStorage);
     }, [navigate]);
 
+    // Smooth countdown for warning modal
+    useEffect(() => {
+        if (!showWarning) return;
+
+        const updateTimer = () => {
+            const raw = localStorage.getItem('acrovix_last_activity');
+            const storedTime = parseInt(raw, 10);
+            if (!raw || isNaN(storedTime)) return;
+
+            const expirationTimestamp = storedTime + IDLE_TIMEOUT_MS;
+            const remainingMs = expirationTimestamp - Date.now();
+            
+            setDisplayTimeLeft(Math.max(0, remainingMs));
+        };
+
+        updateTimer();
+        const intervalId = setInterval(updateTimer, 1000);
+        
+        return () => clearInterval(intervalId);
+    }, [showWarning]);
+
     const handleContinueSession = () => {
         const now = Date.now();
         lastActivityRef.current = now;
@@ -133,12 +154,18 @@ export default function SessionManager({ children }) {
         setShowWarning(false);
     };
 
+    const handleLogout = () => {
+        setShowWarning(false);
+        logout();
+        navigate('/login');
+    };
+
     const formatTime = (ms) => {
-        if (ms <= 0) return '0:00';
-        const totalSeconds = Math.floor(ms / 1000);
+        if (ms <= 0) return '00:00';
+        const totalSeconds = Math.ceil(ms / 1000);
         const minutes = Math.floor(totalSeconds / 60);
         const seconds = totalSeconds % 60;
-        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     };
 
     // Do not render session management UI if unauthenticated
@@ -151,28 +178,40 @@ export default function SessionManager({ children }) {
             {children}
 
             {showWarning && (
-                <div className="fixed inset-0 bg-text-primary/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-fade-in-up">
-                    <div className="bg-bg-card border border-border-subtle rounded-2xl shadow-xl w-full max-w-md p-6 overflow-hidden">
-                        <div className="flex flex-col items-center text-center">
-                            <div className="w-16 h-16 bg-brand-warning/10 rounded-full flex items-center justify-center mb-4">
-                                <AlertTriangle className="w-8 h-8 text-brand-warning" />
-                            </div>
-                            <h3 className="text-xl font-bold text-text-primary mb-2">
-                                Your session is about to expire
-                            </h3>
-                            <p className="text-sm text-text-secondary mb-6">
-                                You have been inactive for a while. For security, you will be logged out soon.
-                            </p>
-                            
-                            <div className="text-2xl font-bold text-text-primary mb-8 font-mono">
-                                Expires in {formatTime(timeLeft)}
-                            </div>
+                <div className="fixed inset-0 bg-text-primary/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+                    <div className="bg-bg-card border border-border-subtle rounded-2xl shadow-xl w-full max-w-sm p-8 flex flex-col items-center text-center animate-modal-entrance">
+                        <div className="w-14 h-14 bg-brand-primary/10 border border-brand-primary/20 rounded-full flex items-center justify-center mb-6">
+                            <Timer className="w-7 h-7 text-brand-primary" />
+                        </div>
+                        
+                        <h3 className="text-[20px] font-bold text-text-primary mb-2 tracking-tight">
+                            Session Expiring Soon
+                        </h3>
+                        
+                        <p className="text-[14px] text-text-secondary leading-relaxed mb-6">
+                            You have been inactive for a while.<br/>Your session will expire in
+                        </p>
+                        
+                        <div className="text-[42px] font-bold text-text-primary mb-6 font-mono tracking-tight tabular-nums leading-none">
+                            {formatTime(displayTimeLeft)}
+                        </div>
+                        
+                        <p className="text-[13px] text-text-muted mb-8">
+                            Please continue working to stay signed in.
+                        </p>
 
+                        <div className="w-full flex flex-col space-y-3">
                             <button
                                 onClick={handleContinueSession}
-                                className="btn btn-primary w-full h-12 text-sm"
+                                className="btn btn-primary w-full h-11 text-[14px] font-bold"
                             >
                                 Continue Session
+                            </button>
+                            <button
+                                onClick={handleLogout}
+                                className="btn btn-ghost w-full h-11 text-[14px] font-bold text-text-secondary hover:text-text-primary"
+                            >
+                                Sign Out
                             </button>
                         </div>
                     </div>

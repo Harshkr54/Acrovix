@@ -266,10 +266,10 @@ export default function HeaderControls() {
             */
             }
 
-            {/* Theme Toggle */}
+            {/* Theme Toggle (Mobile only, Desktop is in Sidebar) */}
             <button
                 onClick={toggleTheme}
-                className="header-icon-button"
+                className="header-icon-button lg:hidden"
                 aria-label="Toggle Theme"
                 title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
             >
@@ -371,8 +371,8 @@ export default function HeaderControls() {
             
             <div className="hidden sm:block header-divider mx-1 lg:mx-2"></div>
 
-            {/* SA Profile / Account Menu */}
-            <div className="flex items-center relative">
+            {/* SA Profile / Account Menu (Mobile only, Desktop is in Sidebar) */}
+            <div className="flex items-center relative lg:hidden">
                 <div 
                     onClick={() => toggleDropdown('profile')}
                     className={`flex items-center gap-3 px-1.5 py-1.5 sm:pr-4 pr-1.5 rounded-full border shadow-sm cursor-pointer transition-all ${

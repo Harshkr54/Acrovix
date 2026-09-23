@@ -178,22 +178,41 @@ export default function Layout() {
             )}
 
             {/* Sidebar */}
-            <div className={`sidebar fixed inset-y-0 left-0 z-50 flex flex-col shrink-0 lg:relative lg:translate-x-0 lg:h-screen ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isCollapsed ? 'w-[96px]' : 'w-[260px]'}`}>
-                <div className="sidebar-logo-container">
-                    <img 
-                        src={logoLight} 
-                        alt="ACROVIX" 
-                        className={`sidebar-logo-image ${isCollapsed ? 'w-full max-w-[32px]' : ''}`} 
-                    />
+            <div className={`sidebar fixed inset-y-0 left-0 z-50 flex flex-col shrink-0 lg:relative lg:translate-x-0 lg:h-screen ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isCollapsed ? 'w-[72px]' : 'w-[240px]'}`}>
+                <div className="sidebar-logo-container relative">
+                    {!isCollapsed && (
+                        <img 
+                            src={theme === 'dark' ? logoDark : logoLight} 
+                            alt="ACROVIX" 
+                            className="h-[24px] w-auto object-contain transition-all" 
+                        />
+                    )}
+                    {isCollapsed && (
+                        <div className="w-full flex justify-center">
+                             <img 
+                                src={theme === 'dark' ? logoDark : logoLight} 
+                                alt="ACX" 
+                                className="h-[24px] w-auto object-cover object-left max-w-[24px] overflow-hidden transition-all" 
+                            />
+                        </div>
+                    )}
                     <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden absolute right-4 text-text-muted hover:text-text-primary transition-colors p-1 rounded-lg">
                         <X className="w-5 h-5" />
                     </button>
+                    {/* Desktop Collapse Toggle */}
+                    <button 
+                        onClick={toggleSidebar}
+                        className="hidden lg:flex absolute right-2 items-center justify-center w-[28px] h-[28px] shrink-0 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-hover transition-all"
+                        title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+                    >
+                        {isCollapsed ? <PanelLeftOpen className="w-[14px] h-[14px]" /> : <PanelLeftClose className="w-[14px] h-[14px]" />}
+                    </button>
                 </div>
                 
-                <div className="flex-1 overflow-y-auto py-4 hide-scrollbar">
-                    <nav className="space-y-4">
+                <div className="flex-1 overflow-y-auto py-3 hide-scrollbar flex flex-col">
+                    <nav className="space-y-1 flex-1">
                         {/* Workspace Section */}
-                        <div className="flex flex-col space-y-1">
+                        <div className="flex flex-col space-y-[2px]">
                             {workspaceItems.map((item) => {
                                 const Icon = item.icon;
                                 const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
@@ -209,7 +228,7 @@ export default function Layout() {
                                         {!isCollapsed && <span>{item.name}</span>}
                                         
                                         {isCollapsed && (
-                                            <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2.5 py-1.5 bg-text-primary text-bg-main text-[11px] font-bold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-lg">
+                                            <div className="sidebar-tooltip">
                                                 {item.name}
                                             </div>
                                         )}
@@ -218,8 +237,10 @@ export default function Layout() {
                             })}
                         </div>
 
+                        <div className="sidebar-separator"></div>
+
                         {/* CRM & Sales Section */}
-                        <div className="flex flex-col space-y-1">
+                        <div className="flex flex-col space-y-[2px]">
                             {!isCollapsed && <p className="sidebar-section-title">CRM & Sales</p>}
                             {crmItems.map((item) => {
                                 const Icon = item.icon;
@@ -231,14 +252,14 @@ export default function Layout() {
                                         key={item.name}
                                         to={item.path}
                                         onClick={() => setIsSidebarOpen(false)}
-                                        className={isActive ? 'sidebar-nav-item-active' : 'sidebar-nav-item'}
+                                        className={`group ${isActive ? 'sidebar-nav-item-active' : 'sidebar-nav-item'}`}
                                         style={isCollapsed ? { justifyContent: 'center' } : {}}
                                     >
                                         <Icon className={`sidebar-nav-icon ${isCollapsed ? '!mr-0' : ''}`} />
                                         {!isCollapsed && <span>{item.name}</span>}
                                         
                                         {isCollapsed && (
-                                            <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2.5 py-1.5 bg-text-primary text-bg-main text-[11px] font-bold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-lg">
+                                            <div className="sidebar-tooltip">
                                                 {item.name}
                                             </div>
                                         )}
@@ -247,37 +268,41 @@ export default function Layout() {
                             })}
                         </div>
 
-                        {/* Management Section */}
                         {managementItems.length > 0 && (
-                            <div className="flex flex-col space-y-1">
-                                {!isCollapsed && <p className="sidebar-section-title">Management</p>}
-                                {managementItems.map((item) => {
-                                    const Icon = item.icon;
-                                    const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
-                                    return (
-                                        <Link
-                                            key={item.name}
-                                            to={item.path}
-                                            onClick={() => setIsSidebarOpen(false)}
-                                            className={`group ${isActive ? 'sidebar-nav-item-active' : 'sidebar-nav-item'}`}
-                                            style={isCollapsed ? { justifyContent: 'center' } : {}}
-                                        >
-                                            <Icon className={`sidebar-nav-icon ${isCollapsed ? '!mr-0' : ''}`} />
-                                            {!isCollapsed && <span>{item.name}</span>}
-                                            
-                                            {isCollapsed && (
-                                                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2.5 py-1.5 bg-text-primary text-bg-main text-[11px] font-bold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-lg">
-                                                    {item.name}
-                                                </div>
-                                            )}
-                                        </Link>
-                                    );
-                                })}
-                            </div>
+                            <>
+                                <div className="sidebar-separator"></div>
+                                <div className="flex flex-col space-y-[2px]">
+                                    {!isCollapsed && <p className="sidebar-section-title">Management</p>}
+                                    {managementItems.map((item) => {
+                                        const Icon = item.icon;
+                                        const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
+                                        return (
+                                            <Link
+                                                key={item.name}
+                                                to={item.path}
+                                                onClick={() => setIsSidebarOpen(false)}
+                                                className={`group ${isActive ? 'sidebar-nav-item-active' : 'sidebar-nav-item'}`}
+                                                style={isCollapsed ? { justifyContent: 'center' } : {}}
+                                            >
+                                                <Icon className={`sidebar-nav-icon ${isCollapsed ? '!mr-0' : ''}`} />
+                                                {!isCollapsed && <span>{item.name}</span>}
+                                                
+                                                {isCollapsed && (
+                                                    <div className="sidebar-tooltip">
+                                                        {item.name}
+                                                    </div>
+                                                )}
+                                            </Link>
+                                        );
+                                    })}
+                                </div>
+                            </>
                         )}
                         
+                        <div className="sidebar-separator"></div>
+                        
                         {/* System Section */}
-                        <div className="flex flex-col space-y-1">
+                        <div className="flex flex-col space-y-[2px]">
                             {!isCollapsed && <p className="sidebar-section-title">System</p>}
                             {systemItems.map((item) => {
                                 const Icon = item.icon;
@@ -287,14 +312,14 @@ export default function Layout() {
                                         key={item.name}
                                         to={item.path}
                                         onClick={() => setIsSidebarOpen(false)}
-                                        className={isActive ? 'sidebar-nav-item-active' : 'sidebar-nav-item'}
+                                        className={`group ${isActive ? 'sidebar-nav-item-active' : 'sidebar-nav-item'}`}
                                         style={isCollapsed ? { justifyContent: 'center' } : {}}
                                     >
                                         <Icon className={`sidebar-nav-icon ${isCollapsed ? '!mr-0' : ''}`} />
                                         {!isCollapsed && <span>{item.name}</span>}
                                         
                                         {isCollapsed && (
-                                            <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2.5 py-1.5 bg-text-primary text-bg-main text-[11px] font-bold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-lg">
+                                            <div className="sidebar-tooltip">
                                                 {item.name}
                                             </div>
                                         )}
@@ -305,16 +330,76 @@ export default function Layout() {
                     </nav>
                 </div>
                 
-                <div className="sidebar-logout-container">
-                    <button
-                        onClick={handleLogout}
-                        className="sidebar-logout-btn group"
-                        style={isCollapsed ? { justifyContent: 'center', paddingLeft: 0, paddingRight: 0 } : {}}
-                        title="Sign Out"
-                    >
-                        <LogOut className={`w-[22px] h-[22px] transition-transform group-hover:-translate-x-1 ${isCollapsed ? '!mr-0 mx-auto' : 'mr-3'}`} />
-                        {!isCollapsed && <span>Sign Out</span>}
-                    </button>
+                <div className="sidebar-bottom-section">
+                    {/* Theme Segment Control */}
+                    <div className="theme-segment-container" style={isCollapsed ? { display: 'none' } : {}}>
+                        <button 
+                            onClick={() => theme !== 'light' && toggleTheme()}
+                            className={`theme-segment-btn ${theme === 'light' ? 'theme-segment-active' : 'theme-segment-inactive'}`}
+                        >
+                            <Sun className={`w-[14px] h-[14px] mr-2 ${theme === 'light' ? 'text-[#FACC15]' : ''}`} />
+                            Light
+                        </button>
+                        <button 
+                            onClick={() => theme !== 'dark' && toggleTheme()}
+                            className={`theme-segment-btn ${theme === 'dark' ? 'theme-segment-active' : 'theme-segment-inactive'}`}
+                        >
+                            <Moon className="w-[14px] h-[14px] mr-2" />
+                            Dark
+                        </button>
+                    </div>
+
+                    {isCollapsed && (
+                        <button
+                            onClick={toggleTheme}
+                            className="mx-auto w-[36px] h-[36px] flex items-center justify-center rounded-lg hover:bg-bg-hover text-text-muted hover:text-text-primary transition-colors group relative"
+                            title="Toggle Theme"
+                        >
+                            {theme === 'light' ? <Sun className="w-5 h-5 text-[#FACC15]" /> : <Moon className="w-5 h-5" />}
+                            <div className="sidebar-tooltip">Toggle Theme</div>
+                        </button>
+                    )}
+
+                    <div className="sidebar-separator"></div>
+
+                    {/* Compact User Profile */}
+                    <div className="flex items-center px-4 py-2" style={isCollapsed ? { justifyContent: 'center', padding: '8px' } : {}}>
+                        <div className="w-[32px] h-[32px] rounded-full bg-[var(--color-brand-primary)] flex items-center justify-center text-white font-bold text-[11px] shrink-0 shadow-sm relative group">
+                            {getInitials(user?.name)}
+                            {isCollapsed && (
+                                <div className="sidebar-tooltip">
+                                    {user?.name || 'User'}
+                                </div>
+                            )}
+                        </div>
+                        {!isCollapsed && (
+                            <div className="flex flex-col ml-3 min-w-0 flex-1">
+                                <span className="text-[13px] font-bold text-text-primary truncate">{user?.name || 'Admin'}</span>
+                                <div className="flex items-center gap-1.5 mt-[2px]">
+                                    <span className="text-[10px] text-text-muted truncate">{user?.role?.replace('_', ' ')}</span>
+                                    <span className="w-1 h-1 rounded-full bg-border-subtle shrink-0"></span>
+                                    <button 
+                                        onClick={handleLogout} 
+                                        className="text-[10px] font-bold text-brand-danger hover:text-brand-danger/80 transition-colors cursor-pointer shrink-0"
+                                    >
+                                        Sign out
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    {isCollapsed && (
+                        <button 
+                            onClick={handleLogout}
+                            className="mx-auto mb-1 w-[36px] h-[36px] flex items-center justify-center rounded-lg hover:bg-brand-danger/10 text-brand-danger transition-colors group relative"
+                            title="Sign out"
+                        >
+                            <LogOut className="w-4 h-4" />
+                            <div className="sidebar-tooltip">
+                                Sign out
+                            </div>
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -334,15 +419,6 @@ export default function Layout() {
                             <Menu className="w-6 h-6" />
                         </button>
                         
-                        {/* Sidebar Collapse Toggle (Desktop) */}
-                        <button 
-                            onClick={toggleSidebar}
-                            className="hidden lg:flex items-center justify-center w-[44px] h-[44px] shrink-0 rounded-2xl bg-bg-card border border-border-subtle text-text-muted hover:text-text-primary hover:bg-bg-hover hover:shadow-sm transition-all"
-                            title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-                        >
-                            {isCollapsed ? <PanelLeftOpen className="w-5 h-5" /> : <PanelLeftClose className="w-5 h-5" />}
-                        </button>
-
                         {/* Search Bar matching reference */}
                         <div ref={searchRef} className="relative w-full max-w-[560px] flex-1 min-w-0">
                                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
