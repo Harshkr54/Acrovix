@@ -4,6 +4,7 @@ import { getPurchaseOrderById, verifyPurchaseOrder, updatePurchaseOrderStatus, c
 import { useAuth } from '../context/AuthContext';
 import { ArrowLeft, Clock, CheckCircle, Package, XCircle, FileText, Download, AlertTriangle } from 'lucide-react';
 import { API_BASE_URL } from '../services/api';
+import { formatCurrency } from '../utils/formatters';
 
 export default function PurchaseOrderDetail() {
     const { id } = useParams();
@@ -190,7 +191,7 @@ export default function PurchaseOrderDetail() {
                             </div>
                             <div>
                                 <label className="text-xs text-text-muted">PO Value</label>
-                                <div className="font-medium text-text-primary mt-1">Rs. {Number(order.poValue).toLocaleString()}</div>
+                                <div className="font-medium text-text-primary mt-1">{formatCurrency(order.poValue, order.currency)}</div>
                             </div>
                             <div>
                                 <label className="text-xs text-text-muted">Received Via</label>
@@ -206,10 +207,10 @@ export default function PurchaseOrderDetail() {
                             <div>
                                 <h3 className="text-sm font-bold text-red-600 mb-1">Value Mismatch Detected</h3>
                                 <p className="text-sm text-red-500/80 mb-3">
-                                    The Purchase Order value (Rs. {Number(order.poValue).toLocaleString()}) differs from the Quotation value (Rs. {Number(order.quotationValue).toLocaleString()}).
+                                    The Purchase Order value ({formatCurrency(order.poValue, order.currency)}) differs from the Quotation value ({formatCurrency(order.quotationValue, order.currency)}).
                                 </p>
                                 <div className="text-sm font-medium text-red-600">
-                                    Difference: Rs. {Number(order.difference).toLocaleString()}
+                                    Difference: {formatCurrency(order.difference, order.currency)}
                                 </div>
                             </div>
                         </div>
@@ -245,7 +246,7 @@ export default function PurchaseOrderDetail() {
                             </div>
                             <div>
                                 <label className="text-xs text-text-muted">Quotation Value</label>
-                                <div className="font-medium text-text-primary mt-1">Rs. {Number(order.quotationValue).toLocaleString()}</div>
+                                <div className="font-medium text-text-primary mt-1">{formatCurrency(order.quotationValue, order.currency)}</div>
                             </div>
                         </div>
                     </div>

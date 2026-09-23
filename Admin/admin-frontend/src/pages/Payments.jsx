@@ -192,7 +192,7 @@ export default function Payments() {
         }
 
         if (numAmount > currentBalance + 0.001) {
-            setPaymentError(`Payment amount (Rs. ${numAmount.toLocaleString()}) cannot exceed remaining balance (Rs. ${currentBalance.toLocaleString()}).`);
+            setPaymentError(`Payment amount (${formatCurrency(numAmount, selectedInvoice?.currency)}) cannot exceed remaining balance (${formatCurrency(currentBalance, selectedInvoice?.currency)}).`);
             return;
         }
 
@@ -212,7 +212,7 @@ export default function Payments() {
             setIsRecordModalOpen(false);
             showToast({
                 type: 'success',
-                message: `Payment ${result.paymentNumber || 'record'} of Rs. ${numAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} recorded successfully!`
+                message: `Payment ${result.paymentNumber || 'record'} of ${formatCurrency(numAmount, selectedInvoice?.currency)} recorded successfully!`
             });
             await fetchPaymentsList();
         } catch (err) {

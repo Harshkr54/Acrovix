@@ -119,7 +119,7 @@ export default function InvoiceDetail() {
         }
 
         if (numAmount > currentBalance + 0.001) {
-            setPaymentError(`Payment amount (Rs. ${numAmount.toLocaleString()}) cannot exceed remaining balance (Rs. ${currentBalance.toLocaleString()}).`);
+            setPaymentError(`Payment amount (${formatCurrency(numAmount, invoice.currency)}) cannot exceed remaining balance (${formatCurrency(currentBalance, invoice.currency)}).`);
             return;
         }
 

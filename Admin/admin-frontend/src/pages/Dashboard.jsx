@@ -11,6 +11,7 @@ import CardSparkline from '../components/ui/CardSparkline';
 import Skeleton from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
 import { useCountUp } from '../hooks/useCountUp';
+import { formatCurrency } from '../utils/formatters';
 
 function AnimatedNumber({ value, formatter }) {
     const count = useCountUp(value, 600);
@@ -507,7 +508,7 @@ export default function Dashboard() {
                             </div>
                             <div className="relative z-10 flex-1 flex flex-col justify-end">
                                 <div className="text-[26px] font-bold text-text-primary tracking-tight leading-none mb-1 flex items-center truncate">
-                                    {isLoading ? <Skeleton variant="title" className="h-8 w-32 mb-1" /> : <>Rs. <AnimatedNumber value={receivablesStats?.totalInvoiced || 0} formatter={(v) => Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} /></>}
+                                    {isLoading ? <Skeleton variant="title" className="h-8 w-32 mb-1" /> : <AnimatedNumber value={receivablesStats?.totalInvoiced || 0} formatter={(v) => formatCurrency(v, 'INR', 2)} />}
                                 </div>
                                 <div className="text-[12px] font-medium text-text-muted mt-2">Total Issued Tax Invoices</div>
                             </div>
@@ -841,7 +842,7 @@ export default function Dashboard() {
                             </div>
                             <div>
                                 <div className="text-[22px] font-bold text-text-primary tracking-tight leading-none mb-1 truncate">
-                                    Rs. {Number(receivablesStats?.totalReceived || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    {formatCurrency(receivablesStats?.totalReceived || 0, 'INR', 2)}
                                 </div>
                                 <div className="text-[11px] font-medium text-text-muted">
                                     Active Payment Ledger
@@ -859,7 +860,7 @@ export default function Dashboard() {
                             </div>
                             <div>
                                 <div className="text-[22px] font-bold text-text-primary tracking-tight leading-none mb-1 truncate">
-                                    Rs. {Number(receivablesStats?.outstandingAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    {formatCurrency(receivablesStats?.outstandingAmount || 0, 'INR', 2)}
                                 </div>
                                 <div className="text-[11px] font-medium text-text-muted">
                                     Pending Receivables
@@ -877,7 +878,7 @@ export default function Dashboard() {
                             </div>
                             <div>
                                 <div className="text-[22px] font-bold text-text-primary tracking-tight leading-none mb-1 truncate">
-                                    Rs. {Number(receivablesStats?.overdueAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    {formatCurrency(receivablesStats?.overdueAmount || 0, 'INR', 2)}
                                 </div>
                                 <div className="text-[11px] font-medium text-text-muted">
                                     Past Due Date
