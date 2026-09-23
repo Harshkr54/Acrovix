@@ -33,9 +33,3 @@ export default {
   },
   plugins: [],
 }
-'glass': '12px',
-      }
-    },
-  },
-plugins: [],
-}

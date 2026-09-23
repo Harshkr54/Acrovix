@@ -71,4 +71,3 @@ const PhilosophySection = () => {
 };
 
 export default PhilosophySection;
-export default PhilosophySection;
