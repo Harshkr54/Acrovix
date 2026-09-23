@@ -4,6 +4,8 @@ import { useAuth } from './context/AuthContext';
 import { ToastProvider, useToast } from './context/ToastContext';
 import Layout from './components/Layout';
 import Login from './pages/Login';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import EnquiryList from './pages/EnquiryList';
 import QuotationBuilder from './pages/QuotationBuilder';
@@ -74,6 +76,8 @@ function App() {
             <NetworkStatus />
             <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             
             <Route path="/" element={<ProtectedRoute><SessionManager><Layout /></SessionManager></ProtectedRoute>}>
                 <Route index element={<Dashboard />} />

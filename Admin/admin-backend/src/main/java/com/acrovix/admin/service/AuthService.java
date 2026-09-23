@@ -17,6 +17,16 @@ import org.springframework.security.core.AuthenticationException;
 import com.acrovix.admin.exception.RateLimitExceededException;
 
 import java.time.LocalDateTime;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.util.Base64;
+import java.util.Optional;
+
+import com.acrovix.admin.entity.PasswordResetToken;
+import com.acrovix.admin.repository.PasswordResetTokenRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.beans.factory.annotation.Value;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +39,11 @@ public class AuthService {
     private final EmailService emailService;
     private final LoginRateLimiterService rateLimiterService;
     private final NotificationService notificationService;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    @Value("${acrovix.app.frontend-url:http://localhost:5173}")
+    private String frontendUrl;
 
     @Transactional
     public AuthResponse authenticate(AuthRequest request, String clientIp) {
@@ -92,6 +107,77 @@ public class AuthService {
             activityRepository.save(activity);
             
             throw ex;
+        }
+    }
+
+    @Transactional
+    public void requestPasswordReset(String email) {
+        Optional<AdminUser> userOpt = repository.findByEmail(email);
+        if (userOpt.isEmpty() || !userOpt.get().isEnabled()) {
+            return; // Do not reveal existence
+        }
+
+        AdminUser user = userOpt.get();
+        String rawToken = generateSecureToken();
+        String tokenHash = hashToken(rawToken);
+
+        PasswordResetToken resetToken = PasswordResetToken.builder()
+                .tokenHash(tokenHash)
+                .adminUser(user)
+                .expiryDate(LocalDateTime.now().plusMinutes(15))
+                .used(false)
+                .build();
+        
+        passwordResetTokenRepository.save(resetToken);
+
+        String resetLink = frontendUrl + "/reset-password?token=" + rawToken;
+        emailService.sendPasswordResetEmailAsync(user.getEmail(), resetLink);
+    }
+
+    @Transactional
+    public void resetPassword(String rawToken, String newPassword) {
+        String tokenHash = hashToken(rawToken);
+        PasswordResetToken resetToken = passwordResetTokenRepository.findByTokenHash(tokenHash)
+                .orElseThrow(() -> new IllegalArgumentException("Password reset link is invalid or has expired."));
+
+        if (resetToken.isUsed() || resetToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Password reset link is invalid or has expired.");
+        }
+
+        AdminUser user = resetToken.getAdminUser();
+        if (!user.isEnabled()) {
+            throw new IllegalArgumentException("Password reset link is invalid or has expired.");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        repository.save(user);
+
+        resetToken.setUsed(true);
+        passwordResetTokenRepository.save(resetToken);
+
+        AdminActivity activity = AdminActivity.builder()
+                .adminUserId(user.getId())
+                .action("Password reset completed")
+                .entityType("AUTH")
+                .entityId(user.getId())
+                .build();
+        activityRepository.save(activity);
+    }
+
+    private String generateSecureToken() {
+        SecureRandom random = new SecureRandom();
+        byte[] bytes = new byte[48];
+        random.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    private String hashToken(String token) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(token.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return java.util.HexFormat.of().formatHex(hash);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("Error hashing token", e);
         }
     }
 }

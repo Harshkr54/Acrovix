@@ -473,6 +473,15 @@ public class EmailService {
     }
 
     @Async("emailTaskExecutor")
+    public void sendPasswordResetEmailAsync(String targetEmail, String resetLink) {
+        if (targetEmail == null || targetEmail.trim().isEmpty()) return;
+        String subject = "Reset your ACROVIX password";
+        String htmlBody = templateBuilder.buildPasswordResetHtml(resetLink);
+        EmailRequest request = EmailRequest.builder().to(targetEmail).subject(subject).htmlBody(htmlBody).isHtml(true).emailType(EmailType.GENERAL).build();
+        sendEmailAsync(request);
+    }
+
+    @Async("emailTaskExecutor")
     public void sendWelcomeEmailAsync(AdminUser user) {
         if (user == null || user.getEmail() == null || user.getEmail().trim().isEmpty()) return;
         String subject = "Welcome to ACROVIX ERP";

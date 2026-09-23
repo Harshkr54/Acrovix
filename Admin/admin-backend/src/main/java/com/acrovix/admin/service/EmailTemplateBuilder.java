@@ -377,6 +377,14 @@ public class EmailTemplateBuilder {
         return buildCorporateEmail("Payment Notification: " + paymentRef, body.toString());
     }
 
+    public String buildPasswordResetHtml(String resetLink) {
+        StringBuilder body = new StringBuilder();
+        body.append("<p>Someone requested a password reset for your account.</p>\n");
+        body.append("<p>If you did not request this password reset, you can safely ignore this email.</p>\n");
+        body.append("<p style=\"margin-top: 20px; margin-bottom: 20px;\">This link expires in 15 minutes.</p>\n");
+        return buildCorporateEmail("Reset your ACROVIX password", body.toString(), "Reset Password", resetLink);
+    }
+
     private String escapeHtml(String input) {
         if (input == null) return "";
         return input.replace("&", "&amp;")

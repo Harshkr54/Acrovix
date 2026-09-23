@@ -128,6 +128,17 @@ export const fetchApi = async (endpoint, options = {}) => {
     }
 };
 
+// --- AUTH ---
+export const forgotPassword = (email) => fetchApi('/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email })
+});
+
+export const resetPassword = (data) => fetchApi('/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify(data)
+});
+
 // --- CUSTOMERS ---
 export const getCustomers = (params) => {
     const query = new URLSearchParams();

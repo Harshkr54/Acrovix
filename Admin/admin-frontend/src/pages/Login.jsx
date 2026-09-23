@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Shield, Mail, Lock, AlertCircle, Loader2, Info } from 'lucide-react';
 import { API_BASE_URL } from '../services/api';
 
@@ -192,6 +192,15 @@ export default function Login() {
                                     onChange={(e) => setPassword(e.target.value)}
                                 />
                             </div>
+                        </div>
+                        
+                        <div className="flex justify-end">
+                            <Link 
+                                to="/forgot-password" 
+                                className="text-[12px] font-semibold text-brand-primary hover:text-brand-primary-hover transition-colors"
+                            >
+                                Forgot password?
+                            </Link>
                         </div>
                     </div>
 
