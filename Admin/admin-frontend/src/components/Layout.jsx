@@ -425,7 +425,7 @@ export default function Layout() {
                         
                         {/* Search Bar matching reference */}
                         <div ref={searchRef} className="relative w-full max-w-[560px] flex-1 min-w-0">
-                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                 {isSearching ? (
                                     <div className="animate-spin w-4 h-4 border-2 border-[var(--color-brand-primary)] border-t-transparent rounded-full" />
                                 ) : (
@@ -434,7 +434,7 @@ export default function Layout() {
                             </div>
                             <input
                                 type="text"
-                                className="w-full pl-11 pr-12 h-[48px] bg-bg-card border border-border-subtle rounded-full text-[13.5px] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]/20 focus:border-[var(--color-brand-primary)] transition-all shadow-[0_2px_12px_rgba(11,25,44,0.03)] text-text-primary placeholder-text-muted font-medium"
+                                className="w-full pl-11 pr-12 h-[44px] bg-bg-card border border-border-subtle rounded-full text-[13.5px] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]/20 focus:border-[var(--color-brand-primary)] transition-all shadow-sm text-text-primary placeholder-text-muted font-medium"
                                 placeholder="Search anything..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}

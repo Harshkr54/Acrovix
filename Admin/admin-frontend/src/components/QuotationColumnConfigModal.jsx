@@ -127,7 +127,7 @@ export default function QuotationColumnConfigModal({ isOpen, onClose, activeConf
             <div className="acx-card p-6 md:p-8 max-w-2xl w-full border border-border-subtle shadow-2xl relative animate-modal-entrance my-8">
                 <button
                     onClick={onClose}
-                    className="btn btn-primary btn-icon absolute top-5 right-5 inset-y-0 right-0 pr-3"
+                    className="absolute top-4 right-4 p-2 text-text-muted hover:text-text-primary hover:bg-bg-hover rounded-lg transition-colors"
                     aria-label="Close modal"
                 >
                     <X className="w-5 h-5" />
@@ -177,16 +177,16 @@ export default function QuotationColumnConfigModal({ isOpen, onClose, activeConf
                                     
                                     <div className="flex items-center space-x-2">
                                         <div className="flex flex-col space-y-0.5 mr-2">
-                                            <button onClick={() => moveUp(index)} disabled={index === 0} className="btn btn-primary btn-md"><ArrowUp className="w-3.5 h-3.5"/></button>
-                                            <button onClick={() => moveDown(index)} disabled={index === configs.length - 1} className="btn btn-primary btn-md"><ArrowDown className="w-3.5 h-3.5"/></button>
+                                            <button onClick={() => moveUp(index)} disabled={index === 0} className="p-0.5 text-text-muted hover:text-text-primary hover:bg-bg-hover rounded transition-colors disabled:opacity-30"><ArrowUp className="w-3.5 h-3.5"/></button>
+                                            <button onClick={() => moveDown(index)} disabled={index === configs.length - 1} className="p-0.5 text-text-muted hover:text-text-primary hover:bg-bg-hover rounded transition-colors disabled:opacity-30"><ArrowDown className="w-3.5 h-3.5"/></button>
                                         </div>
                                         
                                         <button 
                                             onClick={() => toggleVisibility(index)}
-                                            className={`p-1.5 rounded-lg transition-colors ${config.visible ? 'text-brand-teal hover:bg-[#14B8A6]/10' : 'text-text-muted hover:bg-bg-hover'}`}
+                                            className={`p-1.5 rounded-md transition-colors ${config.visible ? 'text-brand-teal hover:bg-brand-teal/10' : 'text-text-muted hover:bg-bg-hover'}`}
                                             title={config.visible ? "Hide Column" : "Show Column"}
                                         >
-                                            {config.visible ? <Eye className="btn btn-secondary btn-md" /> : <EyeOff className="w-4 h-4" />}
+                                            {config.visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                                         </button>
                                         
                                         {config.isCustom && (
@@ -228,9 +228,9 @@ export default function QuotationColumnConfigModal({ isOpen, onClose, activeConf
                             <button 
                                 onClick={handleAddCustomColumn}
                                 disabled={!newColumnName.trim()}
-                                className="btn btn-primary btn-md"
+                                className="btn btn-primary px-4 py-2 text-[13px] flex items-center justify-center"
                             >
-                                <Plus className="w-4 h-4 " /> Add
+                                <Plus className="w-4 h-4 mr-1.5" /> Add
                             </button>
                         </div>
                         {error && (
@@ -241,16 +241,16 @@ export default function QuotationColumnConfigModal({ isOpen, onClose, activeConf
                     </div>
                 </div>
 
-                <div className="flex items-center justify-end space-x-3 mt-8 pt-4 border-t border-border-subtle/50">
+                <div className="flex items-center justify-end space-x-3 mt-6 pt-4 border-t border-border-subtle/50">
                     <button
                         onClick={onClose}
-                        className="btn btn-primary btn-md"
+                        className="btn btn-secondary px-5 py-2 text-[13px]"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleApply}
-                        className="btn btn-primary btn-md"
+                        className="btn btn-primary px-5 py-2 text-[13px]"
                     >
                         Apply Config
                     </button>

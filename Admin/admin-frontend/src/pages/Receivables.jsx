@@ -143,12 +143,6 @@ export default function Receivables() {
                             className="w-full pl-9 pr-4 py-2 bg-bg-main border border-border-subtle rounded-xl text-xs text-text-primary focus:outline-none focus:border-brand-primary"
                         />
                     </div>
-                    <button
-                        type="submit"
-                        className="btn btn-primary btn-sm"
-                    >
-                        Filter
-                    </button>
                 </form>
                 <div className="text-xs text-text-muted font-medium">
                     Showing <span className="font-bold text-text-primary">{receivables.length}</span> entries

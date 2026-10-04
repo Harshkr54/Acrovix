@@ -113,8 +113,8 @@ export default function CrmDashboard() {
     return (
         <div className="space-y-6 pb-12">
             <PageHeader 
-                title="CRM & Sales Dashboard" 
-                subtitle="Overview of leads, opportunities, pipeline and follow-up activities" 
+                title="CRM Dashboard" 
+                subtitle="Sales pipeline, leads and follow-up overview." 
                 icon={LayoutDashboard} 
                 action={quickActions}
             />
@@ -205,7 +205,7 @@ export default function CrmDashboard() {
                     </h2>
                     <button
                         onClick={() => navigate('/crm/pipeline')}
-                        className="btn btn-link btn-icon"
+                        className="btn btn-secondary btn-sm flex items-center gap-1.5"
                     >
                         View Full Pipeline <ArrowRight className="w-3.5 h-3.5" />
                     </button>
@@ -247,7 +247,7 @@ export default function CrmDashboard() {
                             </h2>
                             <button
                                 onClick={() => navigate('/crm/follow-ups')}
-                                className="btn btn-link btn-icon"
+                                className="btn btn-secondary btn-sm flex items-center gap-1.5"
                             >
                                 All Follow-ups <ArrowRight className="w-3.5 h-3.5" />
                             </button>
@@ -290,7 +290,7 @@ export default function CrmDashboard() {
                             </h2>
                             <button
                                 onClick={() => navigate('/crm/leads')}
-                                className="btn btn-link btn-icon"
+                                className="btn btn-secondary btn-sm flex items-center gap-1.5"
                             >
                                 View All Leads <ArrowRight className="w-3.5 h-3.5" />
                             </button>

@@ -640,14 +640,14 @@ export default function QuotationBuilder() {
                     <button 
                         onClick={handleSaveDraft} 
                         disabled={isSaving || isSending}
-                        className="btn btn-primary btn-md"
+                        className="btn btn-secondary btn-md flex items-center"
                     >
-                        {isSaving ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Saving...</> : <><Save className="mr-2 h-4 w-4 text-text-secondary" /> Save Draft</>}
+                        {isSaving ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Saving...</> : <><Save className="mr-2 h-4 w-4" /> Save Draft</>}
                     </button>
                     <button 
                         onClick={handleSend} 
                         disabled={isSending || isSaving}
-                        className="btn btn-primary btn-md"
+                        className="btn btn-primary btn-md flex items-center"
                     >
                         {isSending ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Sending...</> : <><Send className="mr-2 h-4 w-4" /> Send Quotation</>}
                     </button>
@@ -798,10 +798,10 @@ export default function QuotationBuilder() {
                         <button 
                             onClick={handleParseText}
                             disabled={isParsing || !roughText.trim()}
-                            className="btn btn-secondary btn-md w-full"
+                            className="btn btn-primary w-full py-2.5 text-[13px] flex items-center justify-center gap-2"
                         >
                             {isParsing ? (
-                                <><span className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-current mr-2"></span> Parsing</>
+                                <><span className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-current"></span> Parsing...</>
                             ) : (
                                 'Extract to Rows'
                             )}
@@ -819,15 +819,15 @@ export default function QuotationBuilder() {
                         </h2>
                         <p className="text-[12px] text-text-muted mt-1">Add products or services to this quotation</p>
                     </div>
-                    <div className="flex space-x-2">
-                        <button onClick={handlePreview} className="btn btn-primary btn-md">
-                            <Eye className="w-4 h-4 " /> Preview
+                    <div className="flex items-center space-x-2">
+                        <button onClick={handlePreview} className="btn btn-secondary btn-sm flex items-center gap-1.5">
+                            <Eye className="w-3.5 h-3.5" /> Preview
                         </button>
-                        <button onClick={() => setIsConfigModalOpen(true)} className="btn btn-primary btn-md">
-                            <Settings className="w-4 h-4 " /> Configure Columns
+                        <button onClick={() => setIsConfigModalOpen(true)} className="btn btn-secondary btn-sm flex items-center gap-1.5">
+                            <Settings className="w-3.5 h-3.5" /> Columns
                         </button>
-                        <button onClick={handleDownloadTemplate} className="btn btn-primary btn-md">
-                            <Download className="w-4 h-4 " /> Download Template
+                        <button onClick={handleDownloadTemplate} className="btn btn-secondary btn-sm flex items-center gap-1.5">
+                            <Download className="w-3.5 h-3.5" /> Template
                         </button>
                     </div>
                 </div>
@@ -1008,13 +1008,11 @@ export default function QuotationBuilder() {
                 
                 {/* Add Item Row */}
                 <div className="p-5 border-t border-border-subtle/50 bg-bg-card rounded-b-[24px] flex justify-between items-center">
-                    <button onClick={addItem} className="btn btn-primary btn-md">
-                        <Plus className="w-4 h-4 text-[var(--color-brand-primary)]" />
-                        Add Item
+                    <button onClick={addItem} className="btn btn-secondary btn-sm flex items-center gap-1.5">
+                        <Plus className="w-4 h-4" /> Add Item
                     </button>
-                    <button onClick={() => setItems([])} className="btn btn-danger btn-md">
-                        <Trash2 className="w-4 h-4 " />
-                        Clear All
+                    <button onClick={() => setItems([])} className="btn btn-danger btn-sm flex items-center gap-1.5">
+                        <Trash2 className="w-4 h-4" /> Clear All
                     </button>
                 </div>
             </div>
