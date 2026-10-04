@@ -379,17 +379,20 @@ export default function HeaderControls({ onLogout }) {
             <div className="flex items-center relative ml-1 sm:ml-2">
                 <div 
                     onClick={() => toggleDropdown('profile')}
-                    className={`flex items-center gap-2.5 pl-1 pr-3 py-1 rounded-[24px] border shadow-sm cursor-pointer transition-all h-[44px] ${
+                    className={`flex items-center gap-2.5 pl-1.5 pr-4 py-1.5 rounded-[28px] border shadow-sm cursor-pointer transition-all h-[52px] ${
                         activeDropdown === 'profile'
                             ? 'bg-bg-hover border-border-subtle'
                             : 'bg-bg-card border-border-subtle hover:bg-bg-hover'
                     }`}
                 >
-                    <div className="w-[36px] h-[36px] rounded-full bg-[var(--color-brand-primary)] flex items-center justify-center text-white font-bold text-[14px] shrink-0 shadow-sm">
+                    <div className="w-[40px] h-[40px] rounded-full bg-[var(--color-brand-primary)] flex items-center justify-center text-white font-bold text-[14px] shrink-0 shadow-[0_2px_8px_rgba(37,99,235,0.25)]">
                         {getInitials(user?.name)}
                     </div>
-                    <span className="text-[14px] font-semibold text-text-primary whitespace-nowrap hidden sm:block max-w-[120px] truncate">{user?.name || 'User'}</span>
-                    <ChevronRight className={`w-4 h-4 text-text-muted transition-transform ${activeDropdown === 'profile' ? '-rotate-90' : 'rotate-90'}`} />
+                    <div className="hidden sm:flex flex-col justify-center min-w-[90px] max-w-[140px] leading-[1.2]">
+                        <span className="text-[14px] font-bold text-text-primary truncate">{user?.name || 'User'}</span>
+                        <span className="text-[10px] font-medium text-text-muted uppercase tracking-[0.5px] truncate mt-0.5">{user?.role?.replace('_', ' ')}</span>
+                    </div>
+                    <ChevronRight className={`w-4 h-4 text-text-muted transition-transform ml-1 ${activeDropdown === 'profile' ? '-rotate-90' : 'rotate-90'}`} />
                 </div>
 
                 {activeDropdown === 'profile' && (

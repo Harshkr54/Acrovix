@@ -183,12 +183,12 @@ export default function Layout() {
 
             {/* Sidebar */}
             <div className={`sidebar fixed inset-y-0 left-0 z-50 flex flex-col shrink-0 lg:relative lg:translate-x-0 lg:h-screen ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isCollapsed ? 'w-[72px]' : 'w-[260px]'}`}>
-                <div className="sidebar-logo-container relative px-6 py-6 flex items-center">
+                <div className="w-full h-[96px] bg-white flex items-center justify-center shrink-0 rounded-br-[32px] shadow-sm relative z-10">
                     {!isCollapsed && (
                         <img 
-                            src={theme === 'dark' ? logoDark : logoLight} 
+                            src={logoLight} 
                             alt="ACROVIX" 
-                            className="h-[40px] w-auto object-contain transition-all" 
+                            className="h-[44px] w-auto object-contain transition-all" 
                         />
                     )}
                     {isCollapsed && (
@@ -337,8 +337,8 @@ export default function Layout() {
                 <div className="sidebar-bottom-section">
 
                     {/* Compact User Profile */}
-                    <div className="flex items-center px-6 py-3 mt-auto border-t" style={{ borderColor: 'var(--theme-sidebar-separator, #E2E8F0)', ...(isCollapsed ? { justifyContent: 'center', padding: '12px 8px' } : {}) }}>
-                        <div className="w-[40px] h-[40px] rounded-full bg-[var(--color-brand-primary)] flex items-center justify-center text-white font-bold text-[14px] shrink-0 shadow-sm relative group">
+                    <div className="mx-4 mb-4 mt-auto rounded-2xl border flex items-center px-3 py-2.5 transition-colors group cursor-pointer" style={{ borderColor: 'var(--theme-sidebar-separator, #E2E8F0)', backgroundColor: 'var(--theme-sidebar-item-hover-bg)' }}>
+                        <div className="w-[38px] h-[38px] rounded-full bg-[var(--color-brand-primary)] flex items-center justify-center text-white font-bold text-[14px] shrink-0 shadow-sm relative">
                             {getInitials(user?.name)}
                             {isCollapsed && (
                                 <div className="sidebar-tooltip">
