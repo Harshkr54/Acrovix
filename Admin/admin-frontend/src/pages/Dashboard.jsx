@@ -427,7 +427,7 @@ export default function Dashboard() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                         
                         {/* 1. Total Enquiries */}
-                        <div className="acx-card p-5 flex flex-col justify-between relative overflow-hidden group min-h-[140px] animate-stagger-1">
+                        <div className="acx-card p-5 flex flex-col justify-between relative overflow-hidden group min-h-[140px] animate-stagger-1 border-t-2 border-t-blue-500 dark:border-t-blue-400">
                             <div className="flex items-center gap-3 mb-4 relative z-10">
                                 <div className="w-10 h-10 bg-blue-50 dark:bg-blue-500/10 rounded-[12px] flex items-center justify-center shrink-0">
                                     <Inbox className="w-5 h-5 text-blue-600 dark:text-blue-500" />
@@ -461,7 +461,7 @@ export default function Dashboard() {
                         </div>
 
                         {/* 2. Total Quotations */}
-                        <div className="acx-card p-5 flex flex-col justify-between relative overflow-hidden group min-h-[140px] animate-stagger-2">
+                        <div className="acx-card p-5 flex flex-col justify-between relative overflow-hidden group min-h-[140px] animate-stagger-2 border-t-2 border-t-purple-500 dark:border-t-purple-400">
                             <div className="flex items-center gap-3 mb-4 relative z-10">
                                 <div className="w-10 h-10 bg-purple-50 dark:bg-purple-500/10 rounded-[12px] flex items-center justify-center shrink-0">
                                     <FileText className="w-5 h-5 text-purple-600 dark:text-purple-500" />
@@ -480,7 +480,7 @@ export default function Dashboard() {
                         </div>
 
                         {/* 3. Accepted Quotations */}
-                        <div className="acx-card p-5 flex flex-col justify-between relative overflow-hidden group min-h-[140px] animate-stagger-3">
+                        <div className="acx-card p-5 flex flex-col justify-between relative overflow-hidden group min-h-[140px] animate-stagger-3 border-t-2 border-t-emerald-500 dark:border-t-emerald-400">
                             <div className="flex items-center gap-3 mb-4 relative z-10">
                                 <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-500/10 rounded-[12px] flex items-center justify-center shrink-0">
                                     <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-500" />
@@ -499,7 +499,7 @@ export default function Dashboard() {
                         </div>
 
                         {/* 4. Total Invoiced */}
-                        <div className="acx-card p-5 flex flex-col justify-between relative overflow-hidden group min-h-[140px] animate-stagger-4">
+                        <div className="acx-card p-5 flex flex-col justify-between relative overflow-hidden group min-h-[140px] animate-stagger-4 border-t-2 border-t-blue-500 dark:border-t-blue-400">
                             <div className="flex items-center gap-3 mb-4 relative z-10">
                                 <div className="w-10 h-10 bg-blue-50 dark:bg-blue-500/10 rounded-[12px] flex items-center justify-center shrink-0">
                                     <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-500" />
