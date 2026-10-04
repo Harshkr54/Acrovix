@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { fetchApi, getCustomers, getCatalog } from '../services/api';
+import { formatCurrency } from '../utils/formatters';
 import { Plus, Trash2, Send, Save, Wand2, ArrowUp, ArrowDown, Calculator, User, Hash, AlertCircle, RefreshCw, Download, Settings, Eye, Loader2 } from 'lucide-react';
 import SendQuotationModal from '../components/SendQuotationModal';
 import QuotationColumnConfigModal from '../components/QuotationColumnConfigModal';

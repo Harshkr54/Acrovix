@@ -284,6 +284,7 @@ public class QuotationController {
         map.put("clientEmail", q.getClientEmail());
         map.put("clientPhone", q.getClientPhone());
         map.put("status", q.getStatus());
+        map.put("currency", q.getCurrency() != null ? q.getCurrency().name() : "INR");
         map.put("version", q.getVersion());
         map.put("baseQuotationId", q.getBaseQuotationId());
         map.put("parentQuotationId", q.getParentQuotationId());
@@ -330,6 +331,8 @@ public class QuotationController {
             for (com.acrovix.admin.entity.QuotationItem item : q.getItems()) {
                 java.util.Map<String, Object> itemMap = new java.util.HashMap<>();
                 itemMap.put("id", item.getId());
+                itemMap.put("sku", item.getSku());
+                itemMap.put("hsnSac", item.getHsnSac());
                 itemMap.put("description", item.getDescription());
                 if (item.getProductService() != null) {
                     itemMap.put("productServiceId", item.getProductService().getId());
@@ -337,6 +340,7 @@ public class QuotationController {
                 itemMap.put("category", item.getCategory());
                 itemMap.put("quantity", item.getQuantity());
                 itemMap.put("unit", item.getUnit());
+                itemMap.put("listPrice", item.getListPrice());
                 itemMap.put("unitPrice", item.getUnitPrice());
                 itemMap.put("discountPercent", item.getDiscountPercent());
                 itemMap.put("taxPercent", item.getTaxPercent());

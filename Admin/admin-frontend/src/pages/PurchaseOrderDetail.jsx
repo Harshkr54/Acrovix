@@ -79,7 +79,7 @@ export default function PurchaseOrderDetail() {
     };
 
     const handleDownloadPdf = () => {
-        const token = localStorage.getItem('admin_token');
+        const token = localStorage.getItem('adminToken');
         fetch(`${API_BASE_URL}/purchase-orders/${id}/pdf`, {
             headers: {
                 'Authorization': `Bearer ${token}`
