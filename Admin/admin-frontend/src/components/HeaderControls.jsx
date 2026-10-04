@@ -376,19 +376,20 @@ export default function HeaderControls({ onLogout }) {
             <div className="hidden sm:block header-divider mx-1 lg:mx-2"></div>
 
             {/* SA Profile / Account Menu */}
-            <div className="flex items-center relative">
+            <div className="flex items-center relative ml-1 sm:ml-2">
                 <div 
                     onClick={() => toggleDropdown('profile')}
-                    className={`flex items-center gap-1.5 p-1 pr-2 rounded-full border shadow-sm cursor-pointer transition-all ${
+                    className={`flex items-center gap-2.5 pl-1 pr-3 py-1 rounded-[24px] border shadow-sm cursor-pointer transition-all h-[44px] ${
                         activeDropdown === 'profile'
                             ? 'bg-bg-hover border-border-subtle'
                             : 'bg-bg-card border-border-subtle hover:bg-bg-hover'
                     }`}
                 >
-                    <div className="w-[36px] h-[36px] rounded-full bg-[var(--color-brand-primary)] flex items-center justify-center text-white font-bold text-[13px] shrink-0 shadow-sm">
+                    <div className="w-[36px] h-[36px] rounded-full bg-[var(--color-brand-primary)] flex items-center justify-center text-white font-bold text-[14px] shrink-0 shadow-sm">
                         {getInitials(user?.name)}
                     </div>
-                    <ChevronRight className={`w-3.5 h-3.5 text-text-muted transition-transform ${activeDropdown === 'profile' ? '-rotate-90' : 'rotate-90'}`} />
+                    <span className="text-[14px] font-semibold text-text-primary whitespace-nowrap hidden sm:block max-w-[120px] truncate">{user?.name || 'User'}</span>
+                    <ChevronRight className={`w-4 h-4 text-text-muted transition-transform ${activeDropdown === 'profile' ? '-rotate-90' : 'rotate-90'}`} />
                 </div>
 
                 {activeDropdown === 'profile' && (

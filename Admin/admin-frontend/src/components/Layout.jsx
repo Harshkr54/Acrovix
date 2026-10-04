@@ -188,7 +188,7 @@ export default function Layout() {
                         <img 
                             src={theme === 'dark' ? logoDark : logoLight} 
                             alt="ACROVIX" 
-                            className="h-[28px] w-auto object-contain transition-all" 
+                            className="h-[40px] w-auto object-contain transition-all" 
                         />
                     )}
                     {isCollapsed && (
@@ -337,8 +337,8 @@ export default function Layout() {
                 <div className="sidebar-bottom-section">
 
                     {/* Compact User Profile */}
-                    <div className="flex items-center px-5 py-4 mt-auto mb-2" style={isCollapsed ? { justifyContent: 'center', padding: '16px 8px' } : {}}>
-                        <div className="w-[36px] h-[36px] rounded-full bg-[var(--color-brand-primary)] flex items-center justify-center text-white font-bold text-[13px] shrink-0 shadow-sm relative group">
+                    <div className="flex items-center px-6 py-3 mt-auto border-t" style={{ borderColor: 'var(--theme-sidebar-separator, #E2E8F0)', ...(isCollapsed ? { justifyContent: 'center', padding: '12px 8px' } : {}) }}>
+                        <div className="w-[40px] h-[40px] rounded-full bg-[var(--color-brand-primary)] flex items-center justify-center text-white font-bold text-[14px] shrink-0 shadow-sm relative group">
                             {getInitials(user?.name)}
                             {isCollapsed && (
                                 <div className="sidebar-tooltip">
@@ -384,7 +384,7 @@ export default function Layout() {
                 <div className="absolute bottom-0 left-0 w-[400px] h-[250px] bg-dotted-pattern opacity-50 pointer-events-none z-[-1]"></div>
                 
                 {/* Top Header */}
-                <header className="h-[80px] flex items-center justify-between px-4 sm:px-6 lg:px-8 bg-bg-main lg:bg-transparent backdrop-blur-md relative z-30">
+                <header className="h-[80px] flex items-center justify-between px-4 sm:px-6 lg:px-8 bg-[var(--theme-sidebar-bg)] relative z-30">
                     <div className="flex items-center flex-1 gap-4 lg:gap-6 min-w-0">
                         <button 
                             onClick={() => setIsSidebarOpen(true)}
