@@ -182,13 +182,13 @@ export default function Layout() {
             )}
 
             {/* Sidebar */}
-            <div className={`sidebar fixed inset-y-0 left-0 z-50 flex flex-col shrink-0 lg:relative lg:translate-x-0 lg:h-screen ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isCollapsed ? 'w-[72px]' : 'w-[240px]'}`}>
-                <div className="sidebar-logo-container relative">
+            <div className={`sidebar fixed inset-y-0 left-0 z-50 flex flex-col shrink-0 lg:relative lg:translate-x-0 lg:h-screen ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isCollapsed ? 'w-[72px]' : 'w-[260px]'}`}>
+                <div className="sidebar-logo-container relative px-6 py-6 flex items-center">
                     {!isCollapsed && (
                         <img 
                             src={theme === 'dark' ? logoDark : logoLight} 
                             alt="ACROVIX" 
-                            className="h-[24px] w-auto object-contain transition-all" 
+                            className="h-[28px] w-auto object-contain transition-all" 
                         />
                     )}
                     {isCollapsed && (
@@ -335,40 +335,10 @@ export default function Layout() {
                 </div>
                 
                 <div className="sidebar-bottom-section">
-                    {/* Theme Segment Control */}
-                    <div className="theme-segment-container" style={isCollapsed ? { display: 'none' } : {}}>
-                        <button 
-                            onClick={() => theme !== 'light' && toggleTheme()}
-                            className={`theme-segment-btn ${theme === 'light' ? 'theme-segment-active' : 'theme-segment-inactive'}`}
-                        >
-                            <Sun className={`w-[14px] h-[14px] mr-2 ${theme === 'light' ? 'text-[#FACC15]' : ''}`} />
-                            Light
-                        </button>
-                        <button 
-                            onClick={() => theme !== 'dark' && toggleTheme()}
-                            className={`theme-segment-btn ${theme === 'dark' ? 'theme-segment-active' : 'theme-segment-inactive'}`}
-                        >
-                            <Moon className="w-[14px] h-[14px] mr-2" />
-                            Dark
-                        </button>
-                    </div>
-
-                    {isCollapsed && (
-                        <button
-                            onClick={toggleTheme}
-                            className="mx-auto w-[36px] h-[36px] flex items-center justify-center rounded-lg hover:bg-bg-hover text-text-muted hover:text-text-primary transition-colors group relative"
-                            title="Toggle Theme"
-                        >
-                            {theme === 'light' ? <Sun className="w-5 h-5 text-[#FACC15]" /> : <Moon className="w-5 h-5" />}
-                            <div className="sidebar-tooltip">Toggle Theme</div>
-                        </button>
-                    )}
-
-                    <div className="sidebar-separator"></div>
 
                     {/* Compact User Profile */}
-                    <div className="flex items-center px-4 py-2" style={isCollapsed ? { justifyContent: 'center', padding: '8px' } : {}}>
-                        <div className="w-[32px] h-[32px] rounded-full bg-[var(--color-brand-primary)] flex items-center justify-center text-white font-bold text-[11px] shrink-0 shadow-sm relative group">
+                    <div className="flex items-center px-5 py-4 mt-auto mb-2" style={isCollapsed ? { justifyContent: 'center', padding: '16px 8px' } : {}}>
+                        <div className="w-[36px] h-[36px] rounded-full bg-[var(--color-brand-primary)] flex items-center justify-center text-white font-bold text-[13px] shrink-0 shadow-sm relative group">
                             {getInitials(user?.name)}
                             {isCollapsed && (
                                 <div className="sidebar-tooltip">
@@ -379,17 +349,17 @@ export default function Layout() {
                         {!isCollapsed && (
                             <div className="flex flex-col ml-3 min-w-0 flex-1">
                                 <span className="text-[13px] font-bold text-text-primary truncate">{user?.name || 'Admin'}</span>
-                                <div className="flex items-center gap-1.5 mt-[2px]">
-                                    <span className="text-[10px] text-text-muted truncate">{user?.role?.replace('_', ' ')}</span>
-                                    <span className="w-1 h-1 rounded-full bg-border-subtle shrink-0"></span>
-                                    <button 
-                                        onClick={handleLogout} 
-                                        className="text-[10px] font-bold text-brand-danger hover:text-brand-danger/80 transition-colors cursor-pointer shrink-0"
-                                    >
-                                        Sign out
-                                    </button>
-                                </div>
+                                <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider truncate mt-[2px]">{user?.role?.replace('_', ' ')}</span>
                             </div>
+                        )}
+                        {!isCollapsed && (
+                            <button 
+                                onClick={handleLogout} 
+                                className="ml-2 w-[32px] h-[32px] flex items-center justify-center rounded-lg hover:bg-bg-hover text-text-muted hover:text-text-primary transition-colors shrink-0"
+                                title="Sign out"
+                            >
+                                <LogOut className="w-[18px] h-[18px]" />
+                            </button>
                         )}
                     </div>
                     {isCollapsed && (
@@ -414,7 +384,7 @@ export default function Layout() {
                 <div className="absolute bottom-0 left-0 w-[400px] h-[250px] bg-dotted-pattern opacity-50 pointer-events-none z-[-1]"></div>
                 
                 {/* Top Header */}
-                <header className="h-[76px] lg:h-[82px] flex items-center justify-between px-4 sm:px-6 lg:px-8 bg-bg-card/80 backdrop-blur-md border-b border-border-subtle shadow-[0_4px_24px_rgba(11,25,44,0.02)] relative z-30">
+                <header className="h-[80px] flex items-center justify-between px-4 sm:px-6 lg:px-8 bg-bg-main lg:bg-transparent backdrop-blur-md relative z-30">
                     <div className="flex items-center flex-1 gap-4 lg:gap-6 min-w-0">
                         <button 
                             onClick={() => setIsSidebarOpen(true)}
@@ -424,29 +394,36 @@ export default function Layout() {
                         </button>
                         
                         {/* Search Bar matching reference */}
-                        <div ref={searchRef} className="relative w-full max-w-[560px] flex-1 min-w-0">
+                        <div ref={searchRef} className="relative w-full max-w-[580px] flex-1 min-w-0">
                             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                 {isSearching ? (
-                                    <div className="animate-spin w-4 h-4 border-2 border-[var(--color-brand-primary)] border-t-transparent rounded-full" />
+                                    <div className="animate-spin w-[18px] h-[18px] border-2 border-[var(--color-brand-primary)] border-t-transparent rounded-full" />
                                 ) : (
                                     <Search className="h-[18px] w-[18px] text-text-muted" />
                                 )}
                             </div>
                             <input
                                 type="text"
-                                className="w-full pl-11 pr-12 h-[44px] bg-bg-card border border-border-subtle rounded-full text-[13.5px] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]/20 focus:border-[var(--color-brand-primary)] transition-all shadow-sm text-text-primary placeholder-text-muted font-medium"
+                                className="w-full pl-11 pr-16 h-[46px] sm:h-[48px] bg-bg-card border border-border-subtle rounded-[14px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]/20 focus:border-[var(--color-brand-primary)] transition-all shadow-[0_2px_12px_rgba(11,25,44,0.02)] text-text-primary placeholder-text-muted font-medium"
                                 placeholder="Search anything..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 onFocus={() => { if (searchQuery.trim() && (searchResults.enquiries.length > 0 || searchResults.quotations.length > 0 || searchResults.customers.length > 0)) setSearchDropdownOpen(true) }}
                             />
                             
+                            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                <div className="flex items-center gap-1 opacity-70">
+                                    <kbd className="px-1.5 py-0.5 text-[10px] font-bold bg-bg-muted text-text-muted rounded-[4px] border border-border-subtle shadow-sm">Ctrl</kbd>
+                                    <kbd className="px-1.5 py-0.5 text-[10px] font-bold bg-bg-muted text-text-muted rounded-[4px] border border-border-subtle shadow-sm">K</kbd>
+                                </div>
+                            </div>
+
                             {searchQuery && (
                                 <button
                                     onClick={handleClearSearch}
-                                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-text-muted hover:text-text-primary focus:outline-none"
+                                    className="absolute inset-y-0 right-14 pr-2 flex items-center text-text-muted hover:text-text-primary focus:outline-none z-10"
                                 >
-                                    <X className="h-4 w-4" />
+                                    <X className="h-[18px] w-[18px]" />
                                 </button>
                             )}
 

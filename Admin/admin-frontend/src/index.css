@@ -246,11 +246,11 @@
   }
 
   .sidebar-section-title {
-    @apply px-4 mt-2 mb-1 text-[11px] font-bold uppercase tracking-[1px] text-text-muted;
+    @apply px-5 mt-4 mb-2 text-[11px] font-bold uppercase tracking-[1px] text-text-muted;
   }
 
   .sidebar-nav-item {
-    @apply flex items-center h-[40px] px-3 mx-2 text-[14px] font-medium rounded-lg transition-colors duration-150 cursor-pointer;
+    @apply flex items-center h-[42px] px-[14px] mx-3 text-[14px] font-medium rounded-[10px] transition-colors duration-150 cursor-pointer;
     color: var(--theme-sidebar-item-text);
   }
   
@@ -260,13 +260,13 @@
   }
 
   .sidebar-nav-item-active {
-    @apply flex items-center h-[40px] px-3 mx-2 text-[14px] font-semibold rounded-lg transition-colors duration-150 cursor-pointer relative shadow-sm;
+    @apply flex items-center h-[42px] px-[14px] mx-3 text-[14px] font-semibold rounded-[10px] transition-colors duration-150 cursor-pointer relative shadow-sm;
     background-color: var(--theme-sidebar-active-bg);
     color: var(--theme-sidebar-active-text);
   }
 
   .sidebar-nav-icon {
-    @apply w-[19px] h-[19px] flex-shrink-0 mr-3.5 transition-colors;
+    @apply w-[20px] h-[20px] flex-shrink-0 mr-[12px] transition-colors;
     color: var(--theme-sidebar-icon);
   }
 
@@ -286,12 +286,12 @@
   }
 
   .sidebar-separator {
-    @apply h-px mx-4 my-2 shrink-0;
+    @apply h-px mx-5 my-3 shrink-0;
     background-color: var(--theme-sidebar-separator, #E2E8F0);
   }
 
   :root[data-theme="dark"] .sidebar-separator {
-    --theme-sidebar-separator: rgba(255, 255, 255, 0.08);
+    --theme-sidebar-separator: rgba(255, 255, 255, 0.05);
   }
 
   .sidebar-bottom-section {

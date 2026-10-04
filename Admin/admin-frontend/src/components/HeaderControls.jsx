@@ -270,10 +270,10 @@ export default function HeaderControls({ onLogout }) {
             */
             }
 
-            {/* Theme Toggle (Mobile only, Desktop is in Sidebar) */}
+            {/* Theme Toggle */}
             <button
                 onClick={toggleTheme}
-                className="header-icon-button lg:hidden"
+                className="header-icon-button"
                 aria-label="Toggle Theme"
                 title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
             >
@@ -375,24 +375,20 @@ export default function HeaderControls({ onLogout }) {
             
             <div className="hidden sm:block header-divider mx-1 lg:mx-2"></div>
 
-            {/* SA Profile / Account Menu (Mobile only, Desktop is in Sidebar) */}
-            <div className="flex items-center relative lg:hidden">
+            {/* SA Profile / Account Menu */}
+            <div className="flex items-center relative">
                 <div 
                     onClick={() => toggleDropdown('profile')}
-                    className={`flex items-center gap-3 px-1.5 py-1.5 sm:pr-4 pr-1.5 rounded-full border shadow-sm cursor-pointer transition-all ${
+                    className={`flex items-center gap-1.5 p-1 pr-2 rounded-full border shadow-sm cursor-pointer transition-all ${
                         activeDropdown === 'profile'
                             ? 'bg-bg-hover border-border-subtle'
                             : 'bg-bg-card border-border-subtle hover:bg-bg-hover'
                     }`}
                 >
-                    <div className="w-[40px] h-[40px] rounded-full bg-[var(--color-brand-primary)] flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-sm">
+                    <div className="w-[36px] h-[36px] rounded-full bg-[var(--color-brand-primary)] flex items-center justify-center text-white font-bold text-[13px] shrink-0 shadow-sm">
                         {getInitials(user?.name)}
                     </div>
-                    <div className="hidden sm:flex flex-col justify-center min-w-[100px] max-w-[160px]">
-                        <span className="text-[13.5px] font-bold text-text-primary leading-tight truncate">{user?.name || 'Admin User'}</span>
-                        <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider leading-tight mt-0.5 truncate">{user?.role?.replace('_', ' ')}</span>
-                    </div>
-                    <ChevronRight className={`hidden sm:block w-4 h-4 text-text-muted transition-transform ml-1 ${activeDropdown === 'profile' ? '-rotate-90' : 'rotate-90'}`} />
+                    <ChevronRight className={`w-3.5 h-3.5 text-text-muted transition-transform ${activeDropdown === 'profile' ? '-rotate-90' : 'rotate-90'}`} />
                 </div>
 
                 {activeDropdown === 'profile' && (
