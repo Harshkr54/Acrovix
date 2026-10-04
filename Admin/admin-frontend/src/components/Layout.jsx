@@ -86,8 +86,8 @@ export default function Layout() {
             setIsSearching(true);
             try {
                 const [enqRes, quotRes, custRes] = await Promise.all([
-                    fetchApi(`/admin/enquiries?search=${encodeURIComponent(searchQuery)}&size=5`),
-                    fetchApi(`/admin/quotations?search=${encodeURIComponent(searchQuery)}&size=5`),
+                    fetchApi(`/enquiries?search=${encodeURIComponent(searchQuery)}&size=5`),
+                    fetchApi(`/quotations?search=${encodeURIComponent(searchQuery)}&size=5`),
                     fetchApi(`/customers?search=${encodeURIComponent(searchQuery)}&size=5`)
                 ]);
                 if (active) {
