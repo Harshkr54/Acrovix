@@ -205,14 +205,6 @@ export default function Layout() {
                     <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden absolute right-4 text-text-muted hover:text-text-primary transition-colors p-1 rounded-lg">
                         <X className="w-5 h-5" />
                     </button>
-                    {/* Desktop Collapse Toggle */}
-                    <button
-                        onClick={toggleSidebar}
-                        className="hidden lg:flex absolute right-2 items-center justify-center w-[28px] h-[28px] shrink-0 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-hover transition-all"
-                        title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-                    >
-                        {isCollapsed ? <PanelLeftOpen className="w-[14px] h-[14px]" /> : <PanelLeftClose className="w-[14px] h-[14px]" />}
-                    </button>
                 </div>
 
                 <div className="flex-1 overflow-y-auto py-3 hide-scrollbar flex flex-col">
@@ -393,6 +385,15 @@ export default function Layout() {
                             className="lg:hidden text-text-muted hover:text-text-primary transition-colors focus:outline-none shrink-0"
                         >
                             <Menu className="w-6 h-6" />
+                        </button>
+
+                        {/* Desktop Collapse Toggle */}
+                        <button
+                            onClick={toggleSidebar}
+                            className="hidden lg:flex items-center justify-center w-[44px] h-[44px] rounded-xl text-text-muted hover:text-text-primary hover:bg-bg-card border border-transparent hover:border-border-subtle hover:shadow-sm transition-all focus:outline-none shrink-0"
+                            title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+                        >
+                            {isCollapsed ? <PanelLeftOpen className="w-[20px] h-[20px]" /> : <PanelLeftClose className="w-[20px] h-[20px]" />}
                         </button>
 
                         {/* Search Bar matching reference */}
