@@ -160,7 +160,7 @@ export default function Login() {
                         <img 
                             src={theme === 'dark' ? logoDark : logoLight} 
                             alt="Acrovix" 
-                            className="h-9 sm:h-10 w-auto object-contain mb-6"
+                            className="h-9 sm:h-14 w-auto object-contain mb-6"
                         />
                         <h2 className="text-[24px] sm:text-[26px] font-bold text-text-primary tracking-tight">Welcome back 👋</h2>
                         <p className="mt-1.5 text-center text-[14px] text-text-secondary">

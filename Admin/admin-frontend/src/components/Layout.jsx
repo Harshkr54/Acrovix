@@ -14,7 +14,7 @@ import logoDarkCollapsed from '../assets/Acrovix.png';
 
 const DateTimeDisplay = () => {
     const [time, setTime] = useState(new Date());
-    
+
     useEffect(() => {
         const timer = setInterval(() => setTime(new Date()), 60000);
         return () => clearInterval(timer);
@@ -162,7 +162,7 @@ export default function Layout() {
         { path: '/crm/pipeline', name: 'Pipeline', icon: TrendingUp },
         { path: '/crm/follow-ups', name: 'Follow-ups', icon: Clock }
     ];
-    
+
     const managementItems = [];
     if (user?.role === 'SUPER_ADMIN') {
         managementItems.push({ path: '/users', name: 'Users', icon: Shield });
@@ -177,7 +177,7 @@ export default function Layout() {
         <div className={`flex h-screen bg-bg-main text-text-primary overflow-hidden ${isExiting ? 'animate-page-exit' : 'animate-page-entrance'}`}>
             {/* Mobile Sidebar Overlay */}
             {isSidebarOpen && (
-                <div 
+                <div
                     className="fixed inset-0 bg-text-primary/20 backdrop-blur-sm z-40 lg:hidden"
                     onClick={() => setIsSidebarOpen(false)}
                 />
@@ -185,20 +185,20 @@ export default function Layout() {
 
             {/* Sidebar */}
             <div className={`sidebar fixed inset-y-0 left-0 z-50 flex flex-col shrink-0 lg:relative lg:translate-x-0 lg:h-screen ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isCollapsed ? 'w-[72px]' : 'w-[260px]'}`}>
-                <div className="w-full h-[96px] bg-white flex items-center justify-center shrink-0 rounded-br-[32px] shadow-sm relative z-10">
+                <div className="w-full h-[81px] bg-white flex items-center justify-center shrink-0 shadow-sm relative z-10">
                     {!isCollapsed && (
-                        <img 
-                            src={theme === 'dark' ? logoDarkExpanded : logoLightExpanded} 
-                            alt="ACROVIX" 
-                            className="h-[44px] w-auto object-contain transition-all" 
+                        <img
+                            src={theme === 'dark' ? logoDarkExpanded : logoLightExpanded}
+                            alt="ACROVIX"
+                            className="h-[80%] w-auto object-contain transition-all"
                         />
                     )}
                     {isCollapsed && (
                         <div className="w-full flex justify-center">
-                             <img 
-                                src={theme === 'dark' ? logoDarkCollapsed : logoLightCollapsed} 
-                                alt="ACX" 
-                                className="h-[24px] w-auto object-contain transition-all" 
+                            <img
+                                src={theme === 'dark' ? logoDarkCollapsed : logoLightCollapsed}
+                                alt="ACX"
+                                className="h-[24px] w-auto object-contain transition-all"
                             />
                         </div>
                     )}
@@ -206,7 +206,7 @@ export default function Layout() {
                         <X className="w-5 h-5" />
                     </button>
                     {/* Desktop Collapse Toggle */}
-                    <button 
+                    <button
                         onClick={toggleSidebar}
                         className="hidden lg:flex absolute right-2 items-center justify-center w-[28px] h-[28px] shrink-0 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-hover transition-all"
                         title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
@@ -214,7 +214,7 @@ export default function Layout() {
                         {isCollapsed ? <PanelLeftOpen className="w-[14px] h-[14px]" /> : <PanelLeftClose className="w-[14px] h-[14px]" />}
                     </button>
                 </div>
-                
+
                 <div className="flex-1 overflow-y-auto py-3 hide-scrollbar flex flex-col">
                     <nav className="space-y-1 flex-1">
                         {/* Workspace Section */}
@@ -232,7 +232,7 @@ export default function Layout() {
                                     >
                                         <Icon className={`sidebar-nav-icon ${isCollapsed ? '!mr-0' : ''}`} />
                                         {!isCollapsed && <span>{item.name}</span>}
-                                        
+
                                         {isCollapsed && (
                                             <div className="sidebar-tooltip">
                                                 {item.name}
@@ -250,8 +250,8 @@ export default function Layout() {
                             {!isCollapsed && <p className="sidebar-section-title">CRM & Sales</p>}
                             {crmItems.map((item) => {
                                 const Icon = item.icon;
-                                const isActive = item.exact 
-                                    ? location.pathname === item.path 
+                                const isActive = item.exact
+                                    ? location.pathname === item.path
                                     : (location.pathname === item.path || location.pathname.startsWith(item.path + '/'));
                                 return (
                                     <Link
@@ -263,7 +263,7 @@ export default function Layout() {
                                     >
                                         <Icon className={`sidebar-nav-icon ${isCollapsed ? '!mr-0' : ''}`} />
                                         {!isCollapsed && <span>{item.name}</span>}
-                                        
+
                                         {isCollapsed && (
                                             <div className="sidebar-tooltip">
                                                 {item.name}
@@ -292,7 +292,7 @@ export default function Layout() {
                                             >
                                                 <Icon className={`sidebar-nav-icon ${isCollapsed ? '!mr-0' : ''}`} />
                                                 {!isCollapsed && <span>{item.name}</span>}
-                                                
+
                                                 {isCollapsed && (
                                                     <div className="sidebar-tooltip">
                                                         {item.name}
@@ -304,9 +304,9 @@ export default function Layout() {
                                 </div>
                             </>
                         )}
-                        
+
                         <div className="sidebar-separator"></div>
-                        
+
                         {/* System Section */}
                         <div className="flex flex-col space-y-[2px]">
                             {!isCollapsed && <p className="sidebar-section-title">System</p>}
@@ -323,7 +323,7 @@ export default function Layout() {
                                     >
                                         <Icon className={`sidebar-nav-icon ${isCollapsed ? '!mr-0' : ''}`} />
                                         {!isCollapsed && <span>{item.name}</span>}
-                                        
+
                                         {isCollapsed && (
                                             <div className="sidebar-tooltip">
                                                 {item.name}
@@ -335,7 +335,7 @@ export default function Layout() {
                         </div>
                     </nav>
                 </div>
-                
+
                 <div className="sidebar-bottom-section">
 
                     {/* Compact User Profile */}
@@ -355,8 +355,8 @@ export default function Layout() {
                             </div>
                         )}
                         {!isCollapsed && (
-                            <button 
-                                onClick={handleLogout} 
+                            <button
+                                onClick={handleLogout}
                                 className="ml-2 w-[32px] h-[32px] flex items-center justify-center rounded-lg hover:bg-bg-hover text-text-muted hover:text-text-primary transition-colors shrink-0"
                                 title="Sign out"
                             >
@@ -365,7 +365,7 @@ export default function Layout() {
                         )}
                     </div>
                     {isCollapsed && (
-                        <button 
+                        <button
                             onClick={handleLogout}
                             className="mx-auto mb-1 w-[36px] h-[36px] flex items-center justify-center rounded-lg hover:bg-brand-danger/10 text-brand-danger transition-colors group relative"
                             title="Sign out"
@@ -384,17 +384,17 @@ export default function Layout() {
                 {/* Dotted Pattern Decorators */}
                 <div className="absolute top-0 right-0 w-[500px] h-[350px] bg-dotted-pattern opacity-70 pointer-events-none z-[-1] animate-fade-in-up"></div>
                 <div className="absolute bottom-0 left-0 w-[400px] h-[250px] bg-dotted-pattern opacity-50 pointer-events-none z-[-1]"></div>
-                
+
                 {/* Top Header */}
                 <header className="h-[80px] flex items-center justify-between px-4 sm:px-6 lg:px-8 bg-[var(--theme-sidebar-bg)] relative z-30">
                     <div className="flex items-center flex-1 gap-4 lg:gap-6 min-w-0">
-                        <button 
+                        <button
                             onClick={() => setIsSidebarOpen(true)}
                             className="lg:hidden text-text-muted hover:text-text-primary transition-colors focus:outline-none shrink-0"
                         >
                             <Menu className="w-6 h-6" />
                         </button>
-                        
+
                         {/* Search Bar matching reference */}
                         <div ref={searchRef} className="relative w-full max-w-[580px] flex-1 min-w-0">
                             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -406,24 +406,17 @@ export default function Layout() {
                             </div>
                             <input
                                 type="text"
-                                className="w-full pl-11 pr-16 h-[46px] sm:h-[48px] bg-bg-card border border-border-subtle rounded-[14px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]/20 focus:border-[var(--color-brand-primary)] transition-all shadow-[0_2px_12px_rgba(11,25,44,0.02)] text-text-primary placeholder-text-muted font-medium"
+                                className="w-full pl-11 pr-10 h-[46px] sm:h-[48px] bg-bg-card border border-border-subtle rounded-[14px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]/20 focus:border-[var(--color-brand-primary)] transition-all shadow-[0_2px_12px_rgba(11,25,44,0.02)] text-text-primary placeholder-text-muted font-medium"
                                 placeholder="Search anything..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 onFocus={() => { if (searchQuery.trim() && (searchResults.enquiries.length > 0 || searchResults.quotations.length > 0 || searchResults.customers.length > 0)) setSearchDropdownOpen(true) }}
                             />
-                            
-                            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                                <div className="flex items-center gap-1 opacity-70">
-                                    <kbd className="px-1.5 py-0.5 text-[10px] font-bold bg-bg-muted text-text-muted rounded-[4px] border border-border-subtle shadow-sm">Ctrl</kbd>
-                                    <kbd className="px-1.5 py-0.5 text-[10px] font-bold bg-bg-muted text-text-muted rounded-[4px] border border-border-subtle shadow-sm">K</kbd>
-                                </div>
-                            </div>
 
                             {searchQuery && (
                                 <button
                                     onClick={handleClearSearch}
-                                    className="absolute inset-y-0 right-14 pr-2 flex items-center text-text-muted hover:text-text-primary focus:outline-none z-10"
+                                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-text-muted hover:text-text-primary focus:outline-none z-10"
                                 >
                                     <X className="h-[18px] w-[18px]" />
                                 </button>
@@ -444,7 +437,7 @@ export default function Layout() {
                                                         Customers
                                                     </div>
                                                     {searchResults.customers.map(c => (
-                                                        <div 
+                                                        <div
                                                             key={c.id}
                                                             onClick={() => handleSearchNavigate(`/customers/${c.id}/360`)}
                                                             className="px-4 py-3 hover:bg-bg-hover cursor-pointer transition-colors border-l-2 border-transparent hover:border-brand-teal"
@@ -472,19 +465,18 @@ export default function Layout() {
                                                         Quotations
                                                     </div>
                                                     {searchResults.quotations.map(q => (
-                                                        <div 
+                                                        <div
                                                             key={q.id}
                                                             onClick={() => handleSearchNavigate(`/quotations/edit/${q.id}`)}
                                                             className="px-4 py-3 hover:bg-bg-hover cursor-pointer transition-colors border-l-2 border-transparent hover:border-brand-teal"
                                                         >
                                                             <div className="flex justify-between items-start mb-0.5">
                                                                 <span className="text-sm font-semibold text-text-primary">{q.quotationNumber}</span>
-                                                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
-                                                                    q.status === 'SENT' ? 'bg-brand-success/10 text-brand-success' : 
-                                                                    q.status === 'ACCEPTED' ? 'bg-brand-primary/10 text-brand-primary' : 
-                                                                    q.status === 'REJECTED' ? 'bg-brand-danger/10 text-brand-danger' : 
-                                                                    'bg-[#F3F4F6] text-[#4B5563]'
-                                                                }`}>{q.status}</span>
+                                                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${q.status === 'SENT' ? 'bg-brand-success/10 text-brand-success' :
+                                                                        q.status === 'ACCEPTED' ? 'bg-brand-primary/10 text-brand-primary' :
+                                                                            q.status === 'REJECTED' ? 'bg-brand-danger/10 text-brand-danger' :
+                                                                                'bg-[#F3F4F6] text-[#4B5563]'
+                                                                    }`}>{q.status}</span>
                                                             </div>
                                                             <div className="text-[12px] text-text-secondary truncate">
                                                                 {q.clientCompany || q.clientName}
@@ -493,25 +485,24 @@ export default function Layout() {
                                                     ))}
                                                 </div>
                                             )}
-                                            
+
                                             {searchResults.enquiries.length > 0 && (
                                                 <div>
                                                     <div className="px-4 py-1.5 text-[10px] font-bold text-text-muted uppercase tracking-wider bg-bg-main/50 mt-1">
                                                         Enquiries
                                                     </div>
                                                     {searchResults.enquiries.map(e => (
-                                                        <div 
+                                                        <div
                                                             key={e.id}
                                                             onClick={() => handleSearchNavigate(`/enquiries?id=${e.id}`)}
                                                             className="px-4 py-3 hover:bg-bg-hover cursor-pointer transition-colors border-l-2 border-transparent hover:border-brand-teal"
                                                         >
                                                             <div className="flex justify-between items-start mb-0.5">
                                                                 <span className="text-sm font-semibold text-text-primary">{e.referenceId || 'New Enquiry'}</span>
-                                                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
-                                                                    e.status === 'NEW' ? 'bg-brand-primary/10 text-[var(--color-brand-primary)]' :
-                                                                    e.status === 'QUOTED' ? 'bg-brand-success/10 text-brand-success' :
-                                                                    'bg-[#F3F4F6] text-[#4B5563]'
-                                                                }`}>{e.status}</span>
+                                                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${e.status === 'NEW' ? 'bg-brand-primary/10 text-[var(--color-brand-primary)]' :
+                                                                        e.status === 'QUOTED' ? 'bg-brand-success/10 text-brand-success' :
+                                                                            'bg-[#F3F4F6] text-[#4B5563]'
+                                                                    }`}>{e.status}</span>
                                                             </div>
                                                             <div className="text-[12px] text-text-secondary truncate">
                                                                 {e.companyName || e.fullName}
@@ -526,7 +517,7 @@ export default function Layout() {
                             )}
                         </div>
                     </div>
-                    
+
                     <div className="hidden lg:block header-divider mx-2"></div>
 
                     <div className="flex items-center gap-3 ml-2 lg:ml-4 shrink-0">
