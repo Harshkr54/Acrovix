@@ -7,8 +7,10 @@ import HeaderControls from './HeaderControls';
 import { getInitials } from '../utils/userUtils';
 import { fetchApi } from '../services/api';
 
-import logoLight from '../assets/acrovix-logo-light.png';
-import logoDark from '../assets/acrovix-logo-dark.png';
+import logoLightExpanded from '../assets/acrovix_logo1.png';
+import logoDarkExpanded from '../assets/Acrovix_logo.png';
+import logoLightCollapsed from '../assets/Acrovix_light.png';
+import logoDarkCollapsed from '../assets/Acrovix.png';
 
 const DateTimeDisplay = () => {
     const [time, setTime] = useState(new Date());
@@ -186,7 +188,7 @@ export default function Layout() {
                 <div className="w-full h-[96px] bg-white flex items-center justify-center shrink-0 rounded-br-[32px] shadow-sm relative z-10">
                     {!isCollapsed && (
                         <img 
-                            src={logoLight} 
+                            src={theme === 'dark' ? logoDarkExpanded : logoLightExpanded} 
                             alt="ACROVIX" 
                             className="h-[44px] w-auto object-contain transition-all" 
                         />
@@ -194,9 +196,9 @@ export default function Layout() {
                     {isCollapsed && (
                         <div className="w-full flex justify-center">
                              <img 
-                                src={theme === 'dark' ? logoDark : logoLight} 
+                                src={theme === 'dark' ? logoDarkCollapsed : logoLightCollapsed} 
                                 alt="ACX" 
-                                className="h-[24px] w-auto object-cover object-left max-w-[24px] overflow-hidden transition-all" 
+                                className="h-[24px] w-auto object-contain transition-all" 
                             />
                         </div>
                     )}

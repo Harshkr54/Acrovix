@@ -2,7 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, Globe, Phone, ArrowUpRight } from 'lucide-react';
 import { COMPANY_INFO } from '../data/company';
-import acrovixLogo from '../assets/Acrovix_logo.png';
+import logoLight from '../assets/acrovix_logo1.png';
+import logoDark from '../assets/Acrovix_logo.png';
 
 const Footer = () => {
   return (
@@ -20,9 +21,14 @@ const Footer = () => {
               aria-label="ACROVIX INNOVATIONS PRIVATE LIMITED Home"
             >
               <img
-                src={acrovixLogo}
+                src={logoLight}
                 alt="ACROVIX INNOVATIONS PRIVATE LIMITED"
-                className="h-12 sm:h-14 w-auto object-contain"
+                className="dark:hidden h-12 sm:h-14 w-auto object-contain"
+              />
+              <img
+                src={logoDark}
+                alt="ACROVIX INNOVATIONS PRIVATE LIMITED"
+                className="hidden dark:block h-12 sm:h-14 w-auto object-contain"
               />
             </Link>
 

@@ -4,8 +4,8 @@ import { useTheme } from '../context/ThemeContext';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Shield, Mail, Lock, AlertCircle, Loader2, Info, Sun, Moon, Eye, EyeOff, ArrowRight, Crown, User } from 'lucide-react';
 import { API_BASE_URL } from '../services/api';
-import logoLight from '../assets/acrovix-logo-light.png';
-import logoDark from '../assets/acrovix-logo-dark.png';
+import logoLight from '../assets/acrovix_logo1.png';
+import logoDark from '../assets/Acrovix_logo.png';
 
 export default function Login() {
     const [email, setEmail] = useState('');
@@ -153,7 +153,7 @@ export default function Login() {
 
             {/* Main Content Area */}
             <div className="flex-1 flex items-center justify-center p-4">
-                <div className="w-full max-w-[420px] md:max-w-[460px] bg-bg-card p-8 sm:p-10 rounded-[20px] border border-border-subtle shadow-sm flex flex-col z-10 relative mt-[-4vh]">
+                <div className="w-full max-w-[420px] md:max-w-[460px] bg-bg-card p-8 sm:p-10 rounded-[20px] border border-border-subtle shadow-sm flex flex-col z-10 relative mt-[2vh]">
                     
                     {/* Header */}
                     <div className="flex flex-col items-center mb-8">

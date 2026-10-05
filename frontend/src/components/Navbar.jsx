@@ -4,7 +4,8 @@ import { motion } from 'framer-motion';
 import { Menu, X, ArrowRight } from 'lucide-react';
 import Button from './Button';
 import ThemeToggle from './ThemeToggle';
-import acrovixLogo from '../assets/acrovix_logo1.png';
+import logoLight from '../assets/acrovix_logo1.png';
+import logoDark from '../assets/Acrovix_logo.png';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -84,9 +85,14 @@ const Navbar = () => {
             <div className="absolute inset-0 bg-gradient-to-r from-acrovix-teal-primary/0 via-acrovix-teal-primary/5 to-acrovix-teal-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out" />
 
             <img
-              src={acrovixLogo}
+              src={logoLight}
               alt="ACROVIX INNOVATIONS PRIVATE LIMITED"
-              className="h-[36px] sm:h-[42px] w-auto object-contain transition-transform duration-300 group-hover:scale-105 relative z-10"
+              className="dark:hidden h-[36px] sm:h-[42px] w-auto object-contain transition-transform duration-300 group-hover:scale-105 relative z-10"
+            />
+            <img
+              src={logoDark}
+              alt="ACROVIX INNOVATIONS PRIVATE LIMITED"
+              className="hidden dark:block h-[36px] sm:h-[42px] w-auto object-contain transition-transform duration-300 group-hover:scale-105 relative z-10"
             />
           </Link>
 

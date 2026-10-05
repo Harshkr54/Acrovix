@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { resetPassword } from '../services/api';
-import logoLight from '../assets/acrovix-logo-light.png';
-import logoDark from '../assets/acrovix-logo-dark.png';
+import logoLight from '../assets/acrovix_logo1.png';
+import logoDark from '../assets/Acrovix_logo.png';
 import { Loader2 } from 'lucide-react';
 
 const ResetPassword = () => {
