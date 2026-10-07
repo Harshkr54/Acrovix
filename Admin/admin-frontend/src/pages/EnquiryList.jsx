@@ -29,6 +29,7 @@ export default function EnquiryList() {
     // Action menu state for enquiry row actions
     const [activeActionMenuId, setActiveActionMenuId] = useState(null);
     const [actionMenuPosition, setActionMenuPosition] = useState({});
+    const [actionMenuDirection, setActionMenuDirection] = useState('down');
     const actionMenuRef = useRef(null);
 
     // Enquiry detail modal state
@@ -104,19 +105,72 @@ export default function EnquiryList() {
             }
         };
         
-        const handleScroll = () => {
-            if (activeActionMenuId) {
+        const updatePosition = () => {
+            if (!activeActionMenuId) return;
+            const btn = document.getElementById(`action-btn-${activeActionMenuId}`);
+            if (!btn) {
                 setActiveActionMenuId(null);
+                return;
             }
+            const rect = btn.getBoundingClientRect();
+            
+            // Check if anchor is outside viewport
+            if (rect.bottom < 0 || rect.top > window.innerHeight || rect.right < 0 || rect.left > window.innerWidth) {
+                setActiveActionMenuId(null);
+                return;
+            }
+
+            const dropdownWidth = 224; // w-56
+            const spaceBelow = window.innerHeight - rect.bottom;
+            const spaceAbove = rect.top;
+            
+            const position = {
+                position: 'fixed',
+                zIndex: 9999,
+                left: Math.max(16, rect.right - dropdownWidth)
+            };
+            
+            const menuHeight = 420;
+            let direction = 'down';
+
+            if (spaceBelow < menuHeight && spaceAbove > spaceBelow) {
+                direction = 'up';
+                position.bottom = window.innerHeight - rect.top + 8;
+                position.maxHeight = `calc(100vh - ${window.innerHeight - rect.top + 16}px)`;
+            } else {
+                direction = 'down';
+                position.top = rect.bottom + 8;
+                position.maxHeight = `calc(100vh - ${rect.bottom + 16}px)`;
+            }
+            
+            setActionMenuDirection(direction);
+            setActionMenuPosition(position);
         };
 
-        document.addEventListener('mousedown', handleClickOutside);
-        document.addEventListener('keydown', handleEscape);
-        window.addEventListener('scroll', handleScroll, true); // Use capture to catch scrolling inside divs
+        const handleScroll = (event) => {
+            // Ignore scroll events originating from within the dropdown menu
+            if (actionMenuRef.current && actionMenuRef.current.contains(event.target)) {
+                return;
+            }
+            requestAnimationFrame(updatePosition);
+        };
+
+        const handleResize = () => {
+            requestAnimationFrame(updatePosition);
+        };
+
+        if (activeActionMenuId) {
+            document.addEventListener('mousedown', handleClickOutside);
+            document.addEventListener('keydown', handleEscape);
+            window.addEventListener('scroll', handleScroll, true);
+            window.addEventListener('resize', handleResize);
+        }
+
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
             document.removeEventListener('keydown', handleEscape);
             window.removeEventListener('scroll', handleScroll, true);
+            window.removeEventListener('resize', handleResize);
         };
     }, [activeActionMenuId]);
 
@@ -219,16 +273,22 @@ export default function EnquiryList() {
                 left: Math.max(16, rect.right - dropdownWidth)
             };
             
-            if (spaceBelow < 420 && spaceAbove > spaceBelow) {
+            const menuHeight = 420;
+            let direction = 'down';
+
+            if (spaceBelow < menuHeight && spaceAbove > spaceBelow) {
                 // Open upwards
+                direction = 'up';
                 position.bottom = window.innerHeight - rect.top + 8;
                 position.maxHeight = `calc(100vh - ${window.innerHeight - rect.top + 16}px)`;
             } else {
                 // Open downwards
+                direction = 'down';
                 position.top = rect.bottom + 8;
                 position.maxHeight = `calc(100vh - ${rect.bottom + 16}px)`;
             }
             
+            setActionMenuDirection(direction);
             setActionMenuPosition(position);
             setActiveActionMenuId(enqId);
             
@@ -455,6 +515,7 @@ export default function EnquiryList() {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-center align-top relative" onClick={(e) => e.stopPropagation()}>
                                             <button
+                                                id={`action-btn-${enq.id}`}
                                                 onClick={(e) => handleToggleActionMenu(e, enq.id)}
                                                 className={`action-menu-trigger w-10 h-10 flex items-center justify-center rounded-xl border transition-colors ${
                                                     activeActionMenuId === enq.id
@@ -471,120 +532,146 @@ export default function EnquiryList() {
                                                 <div
                                                     ref={actionMenuRef}
                                                     style={{...actionMenuPosition, overflowY: 'auto'}}
-                                                    className="w-56 bg-bg-card rounded-xl shadow-xl border border-border-subtle p-1.5 animate-modal-entrance text-left"
+                                                    className="w-56 bg-bg-card rounded-xl shadow-xl border border-border-subtle p-1.5 animate-modal-entrance text-left flex flex-col"
                                                     onClick={(e) => e.stopPropagation()}
                                                 >
-                                                    {/* OPEN SECTION */}
-                                                    <div className="px-2.5 py-1 text-[11px] font-semibold text-text-muted uppercase tracking-tight">
-                                                        Open
-                                                    </div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setActiveActionMenuId(null);
-                                                            handleOpenEnquiry(enq);
-                                                        }}
-                                                        className="flex items-center w-full px-2.5 py-2 text-[13px] font-medium text-text-primary hover:bg-brand-primary/5 hover:text-[var(--color-brand-primary)] rounded-lg transition-colors mb-0.5"
-                                                    >
-                                                        <ExternalLink className="w-4 h-4 mr-2 text-[var(--color-brand-primary)]" />
-                                                        Open Enquiry
-                                                    </button>
+                                                    {(() => {
+                                                        const isUp = actionMenuDirection === 'up';
+                                                        const divider = <div className="my-1 border-t border-border-subtle mx-1"></div>;
 
-                                                    <div className="my-1 border-t border-border-subtle mx-1"></div>
+                                                        const openSection = (
+                                                            <React.Fragment key="open">
+                                                                <div className="px-2.5 py-1 text-[11px] font-semibold text-text-muted uppercase tracking-tight">
+                                                                    Open
+                                                                </div>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setActiveActionMenuId(null);
+                                                                        handleOpenEnquiry(enq);
+                                                                    }}
+                                                                    className="flex items-center w-full px-2.5 py-2 text-[13px] font-medium text-text-primary hover:bg-brand-primary/5 hover:text-[var(--color-brand-primary)] rounded-lg transition-colors mb-0.5"
+                                                                >
+                                                                    <ExternalLink className="w-4 h-4 mr-2 text-[var(--color-brand-primary)]" />
+                                                                    Open Enquiry
+                                                                </button>
+                                                            </React.Fragment>
+                                                        );
 
-                                                    {/* QUOTATION SECTION */}
-                                                    <div className="px-2.5 py-1 text-[11px] font-semibold text-text-muted uppercase tracking-tight">
-                                                        Quotation
-                                                    </div>
-                                                    <Link
-                                                        to={`/quotations/new/${enq.id}`}
-                                                        onClick={() => setActiveActionMenuId(null)}
-                                                        className="flex items-center w-full px-2.5 py-2 text-[13px] font-medium text-text-primary hover:bg-brand-primary/5 hover:text-[var(--color-brand-primary)] rounded-lg transition-colors mb-0.5"
-                                                    >
-                                                        <Plus className="w-4 h-4 mr-2 text-[var(--color-brand-primary)]" />
-                                                        Create Quotation
-                                                    </Link>
+                                                        const quotationSection = (
+                                                            <React.Fragment key="quotation">
+                                                                <div className="px-2.5 py-1 text-[11px] font-semibold text-text-muted uppercase tracking-tight">
+                                                                    Quotation
+                                                                </div>
+                                                                <Link
+                                                                    to={`/quotations/new/${enq.id}`}
+                                                                    onClick={() => setActiveActionMenuId(null)}
+                                                                    className="flex items-center w-full px-2.5 py-2 text-[13px] font-medium text-text-primary hover:bg-brand-primary/5 hover:text-[var(--color-brand-primary)] rounded-lg transition-colors mb-0.5"
+                                                                >
+                                                                    <Plus className="w-4 h-4 mr-2 text-[var(--color-brand-primary)]" />
+                                                                    Create Quotation
+                                                                </Link>
 
-                                                    {rowQuotationsMap[enq.id] && rowQuotationsMap[enq.id].length > 0 && (
-                                                        rowQuotationsMap[enq.id].length === 1 ? (
-                                                            <Link
-                                                                to={`/quotations/edit/${rowQuotationsMap[enq.id][0].id}`}
-                                                                onClick={() => setActiveActionMenuId(null)}
-                                                                className="flex items-center w-full px-2.5 py-2 text-[13px] font-medium text-text-primary hover:bg-brand-primary/5 hover:text-[var(--color-brand-primary)] rounded-lg transition-colors mb-0.5"
-                                                            >
-                                                                <FileText className="w-4 h-4 mr-2 text-purple-600" />
-                                                                Open Quotation
-                                                            </Link>
-                                                        ) : (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    setActiveActionMenuId(null);
-                                                                    handleOpenEnquiry(enq);
-                                                                }}
-                                                                className="flex items-center justify-between w-full px-2.5 py-2 text-[13px] font-medium text-text-primary hover:bg-brand-primary/5 hover:text-[var(--color-brand-primary)] rounded-lg transition-colors mb-0.5"
-                                                            >
-                                                                <span className="flex items-center">
-                                                                    <FileText className="w-4 h-4 mr-2 text-purple-600" />
-                                                                    Open Quotations
-                                                                </span>
-                                                                <span className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full font-bold">
-                                                                    {rowQuotationsMap[enq.id].length}
-                                                                </span>
-                                                            </button>
-                                                        )
-                                                    )}
+                                                                {rowQuotationsMap[enq.id] && rowQuotationsMap[enq.id].length > 0 && (
+                                                                    rowQuotationsMap[enq.id].length === 1 ? (
+                                                                        <Link
+                                                                            to={`/quotations/edit/${rowQuotationsMap[enq.id][0].id}`}
+                                                                            onClick={() => setActiveActionMenuId(null)}
+                                                                            className="flex items-center w-full px-2.5 py-2 text-[13px] font-medium text-text-primary hover:bg-brand-primary/5 hover:text-[var(--color-brand-primary)] rounded-lg transition-colors mb-0.5"
+                                                                        >
+                                                                            <FileText className="w-4 h-4 mr-2 text-purple-600" />
+                                                                            Open Quotation
+                                                                        </Link>
+                                                                    ) : (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                setActiveActionMenuId(null);
+                                                                                handleOpenEnquiry(enq);
+                                                                            }}
+                                                                            className="flex items-center justify-between w-full px-2.5 py-2 text-[13px] font-medium text-text-primary hover:bg-brand-primary/5 hover:text-[var(--color-brand-primary)] rounded-lg transition-colors mb-0.5"
+                                                                        >
+                                                                            <span className="flex items-center">
+                                                                                <FileText className="w-4 h-4 mr-2 text-purple-600" />
+                                                                                Open Quotations
+                                                                            </span>
+                                                                            <span className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full font-bold">
+                                                                                {rowQuotationsMap[enq.id].length}
+                                                                            </span>
+                                                                        </button>
+                                                                    )
+                                                                )}
+                                                            </React.Fragment>
+                                                        );
 
-                                                    {normalizeStatus(enq.status) !== 'CONVERTED' && normalizeStatus(enq.status) !== 'CLOSED' && (
-                                                        <>
-                                                            <div className="my-1 border-t border-border-subtle mx-1"></div>
-                                                            <div className="px-2.5 py-1 text-[11px] font-semibold text-text-muted uppercase tracking-tight">
-                                                                CRM
-                                                            </div>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    setActiveActionMenuId(null);
-                                                                    handleConvertToLead(enq);
-                                                                }}
-                                                                className="flex items-center w-full px-2.5 py-2 text-[13px] font-medium text-text-primary hover:bg-[#0D9488]/10 hover:text-[#0D9488] rounded-lg transition-colors mb-0.5"
-                                                            >
-                                                                <Briefcase className="w-4 h-4 mr-2 text-[#0D9488]" />
-                                                                Convert to Lead
-                                                            </button>
-                                                        </>
-                                                    )}
+                                                        let crmSection = null;
+                                                        if (normalizeStatus(enq.status) !== 'CONVERTED' && normalizeStatus(enq.status) !== 'CLOSED') {
+                                                            crmSection = (
+                                                                <React.Fragment key="crm">
+                                                                    <div className="px-2.5 py-1 text-[11px] font-semibold text-text-muted uppercase tracking-tight">
+                                                                        CRM
+                                                                    </div>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setActiveActionMenuId(null);
+                                                                            handleConvertToLead(enq);
+                                                                        }}
+                                                                        className="flex items-center w-full px-2.5 py-2 text-[13px] font-medium text-text-primary hover:bg-[#0D9488]/10 hover:text-[#0D9488] rounded-lg transition-colors mb-0.5"
+                                                                    >
+                                                                        <Briefcase className="w-4 h-4 mr-2 text-[#0D9488]" />
+                                                                        Convert to Lead
+                                                                    </button>
+                                                                </React.Fragment>
+                                                            );
+                                                        }
 
-                                                    <div className="my-1 border-t border-border-subtle mx-1"></div>
+                                                        const statuses = ['NEW', 'CONTACTED', 'QUOTED', 'CONVERTED', 'CLOSED'];
+                                                        const displayStatuses = isUp ? [...statuses].reverse() : statuses;
 
-                                                    {/* UPDATE STATUS SECTION */}
-                                                    <div className="px-2.5 py-1 text-[11px] font-semibold text-text-muted uppercase tracking-tight">
-                                                        Update Status
-                                                    </div>
-                                                    
-                                                    {['NEW', 'CONTACTED', 'QUOTED', 'CONVERTED', 'CLOSED'].map((st) => (
-                                                        <button
-                                                            key={st}
-                                                            type="button"
-                                                            onClick={() => {
-                                                                setActiveActionMenuId(null);
-                                                                updateStatus(enq.id, st);
-                                                            }}
-                                                            className={`flex items-center justify-between w-full px-2.5 py-1.5 text-[13px] rounded-lg transition-colors mb-0.5 ${
-                                                                normalizeStatus(enq.status) === st
-                                                                    ? 'bg-brand-primary/10 text-[var(--color-brand-primary)] font-semibold dark:bg-[#312E81]/30'
-                                                                    : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
-                                                            }`}
-                                                        >
-                                                            <span className="flex items-center">
-                                                                <span className={`w-1.5 h-1.5 rounded-full mr-2 border border-current ${normalizeStatus(enq.status) === st ? 'bg-current' : 'bg-transparent'}`} />
-                                                                {st.charAt(0).toUpperCase() + st.slice(1).toLowerCase()}
-                                                            </span>
-                                                            {normalizeStatus(enq.status) === st && (
-                                                                <Check className="w-3.5 h-3.5 text-[var(--color-brand-primary)]" />
-                                                            )}
-                                                        </button>
-                                                    ))}
+                                                        const statusSection = (
+                                                            <React.Fragment key="status">
+                                                                <div className="px-2.5 py-1 text-[11px] font-semibold text-text-muted uppercase tracking-tight">
+                                                                    Update Status
+                                                                </div>
+                                                                
+                                                                {displayStatuses.map((st) => (
+                                                                    <button
+                                                                        key={st}
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setActiveActionMenuId(null);
+                                                                            updateStatus(enq.id, st);
+                                                                        }}
+                                                                        className={`flex items-center justify-between w-full px-2.5 py-1.5 text-[13px] rounded-lg transition-colors mb-0.5 ${
+                                                                            normalizeStatus(enq.status) === st
+                                                                                ? 'bg-brand-primary/10 text-[var(--color-brand-primary)] font-semibold dark:bg-[#312E81]/30'
+                                                                                : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
+                                                                        }`}
+                                                                    >
+                                                                        <span className="flex items-center">
+                                                                            <span className={`w-1.5 h-1.5 rounded-full mr-2 border border-current ${normalizeStatus(enq.status) === st ? 'bg-current' : 'bg-transparent'}`} />
+                                                                            {st.charAt(0).toUpperCase() + st.slice(1).toLowerCase()}
+                                                                        </span>
+                                                                        {normalizeStatus(enq.status) === st && (
+                                                                            <Check className="w-3.5 h-3.5 text-[var(--color-brand-primary)]" />
+                                                                        )}
+                                                                    </button>
+                                                                ))}
+                                                            </React.Fragment>
+                                                        );
+
+                                                        const allSections = isUp 
+                                                            ? [statusSection, crmSection, quotationSection, openSection].filter(Boolean)
+                                                            : [openSection, quotationSection, crmSection, statusSection].filter(Boolean);
+
+                                                        return allSections.map((section, index) => (
+                                                            <React.Fragment key={section.key}>
+                                                                {section}
+                                                                {index < allSections.length - 1 && divider}
+                                                            </React.Fragment>
+                                                        ));
+                                                    })()}
                                                 </div>,
                                                 document.body
                                             )}
