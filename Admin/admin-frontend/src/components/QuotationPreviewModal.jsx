@@ -109,23 +109,11 @@ export default function QuotationPreviewModal({
                                 {activeTab === 'pdf' && pdfBlobUrl && (
                                     <div className="w-full h-full p-4 sm:p-8 flex items-center justify-center">
                                         <div className="w-full max-w-[850px] h-full bg-white shadow-xl rounded-sm overflow-hidden">
-                                            <object 
-                                                data={pdfBlobUrl} 
-                                                type="application/pdf" 
-                                                className="w-full h-full"
-                                            >
-                                                <div className="flex flex-col items-center justify-center h-full text-center p-8">
-                                                    <FileText className="w-12 h-12 text-slate-300 mb-4" />
-                                                    <p className="text-slate-600 font-medium mb-2">Your browser doesn't support native PDF viewing.</p>
-                                                    <a 
-                                                        href={pdfBlobUrl} 
-                                                        download={emailDetails?.filename || 'quotation.pdf'}
-                                                        className="text-[var(--color-brand-primary)] font-semibold hover:underline"
-                                                    >
-                                                        Download PDF to view
-                                                    </a>
-                                                </div>
-                                            </object>
+                                            <iframe
+                                                src={pdfBlobUrl} 
+                                                title="Quotation PDF Preview"
+                                                className="w-full h-full border-0"
+                                            />
                                         </div>
                                     </div>
                                 )}

@@ -70,6 +70,15 @@ export default function QuotationBuilder() {
     const [previewError, setPreviewError] = useState(null);
     const [validationError, setValidationError] = useState(null);
 
+    // Cleanup Blob URL to prevent memory leaks
+    useEffect(() => {
+        return () => {
+            if (previewPdfUrl) {
+                URL.revokeObjectURL(previewPdfUrl);
+            }
+        };
+    }, [previewPdfUrl]);
+
     const [error, setError] = useState(null);
     const [isInitializing, setIsInitializing] = useState(true);
 
