@@ -571,8 +571,8 @@ export default function Dashboard() {
                                                         <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
                                                             {ticks.map((t, i) => (
                                                                 <div key={i} className="w-full flex items-center -mt-2">
-                                                                    <div className="w-[30px] shrink-0 text-left text-[12px] font-medium text-text-muted">{t}</div>
-                                                                    <div className="flex-1 border-t border-dashed border-border-subtle" />
+                                                                    <div className="w-[30px] shrink-0 text-left text-[12px] text-[#64748B]">{t}</div>
+                                                                    <div className="flex-1 border-t border-[#E5E7EB]" />
                                                                 </div>
                                                             ))}
                                                         </div>
@@ -584,12 +584,12 @@ export default function Dashboard() {
                                                                 <svg viewBox={`0 0 ${overviewData.length * 100} 100`} preserveAspectRatio="none" className="w-full h-full overflow-visible">
                                                                     <defs>
                                                                         <linearGradient id="fadeBlue" x1="0" y1="0" x2="0" y2="1">
-                                                                            <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.3" />
-                                                                            <stop offset="100%" stopColor="#3B82F6" stopOpacity="0" />
+                                                                            <stop offset="0%" stopColor="#2563EB" stopOpacity="0.15" />
+                                                                            <stop offset="100%" stopColor="#2563EB" stopOpacity="0" />
                                                                         </linearGradient>
                                                                         <linearGradient id="fadeTeal" x1="0" y1="0" x2="0" y2="1">
-                                                                            <stop offset="0%" stopColor="#14B8A6" stopOpacity="0.3" />
-                                                                            <stop offset="100%" stopColor="#14B8A6" stopOpacity="0" />
+                                                                            <stop offset="0%" stopColor="#0D9488" stopOpacity="0.15" />
+                                                                            <stop offset="100%" stopColor="#0D9488" stopOpacity="0" />
                                                                         </linearGradient>
                                                                     </defs>
                                                                     {(() => {
@@ -619,14 +619,26 @@ export default function Dashboard() {
                                                                             <>
                                                                                 <path d={blueFill} fill="url(#fadeBlue)" className="animate-fade-in-up" style={{ animationDelay: '200ms' }} />
                                                                                 <path d={tealFill} fill="url(#fadeTeal)" className="animate-fade-in-up" style={{ animationDelay: '300ms' }} />
-                                                                                <path d={bluePath} fill="none" stroke="#3B82F6" strokeWidth="3" strokeLinecap="round" pathLength="1" className="animate-draw-line" />
-                                                                                <path d={tealPath} fill="none" stroke="#14B8A6" strokeWidth="3" strokeLinecap="round" pathLength="1" className="animate-draw-line" style={{ animationDelay: '100ms' }} />
-                                                                                {overviewData.map((d, i) => (
-                                                                                    <g key={i} className="animate-fade-in-up" style={{ animationDelay: `${(i * 50) + 400}ms` }}>
-                                                                                        <circle cx={(i + 0.5) * step} cy={100 - (Math.max(1, (d.totalEnquiries / niceMax) * 100))} r="4" fill="#3B82F6" stroke="#fff" strokeWidth="2" />
-                                                                                        <circle cx={(i + 0.5) * step} cy={100 - (Math.max(1, (d.newEnquiries / niceMax) * 100))} r="4" fill="#14B8A6" stroke="#fff" strokeWidth="2" />
-                                                                                    </g>
-                                                                                ))}
+                                                                                <path d={bluePath} fill="none" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" pathLength="1" className="animate-draw-line" />
+                                                                                <path d={tealPath} fill="none" stroke="#0D9488" strokeWidth="2" strokeLinecap="round" pathLength="1" className="animate-draw-line" style={{ animationDelay: '100ms' }} />
+                                                                                {overviewData.map((d, i) => {
+                                                                                    const isOverlap = d.totalEnquiries === d.newEnquiries;
+                                                                                    return (
+                                                                                        <g key={i} className="animate-fade-in-up" style={{ animationDelay: `${(i * 50) + 400}ms` }}>
+                                                                                            {isOverlap ? (
+                                                                                                <>
+                                                                                                    <circle cx={(i + 0.5) * step} cy={100 - (Math.max(1, (d.totalEnquiries / niceMax) * 100))} r="5" fill="#2563EB" stroke="#fff" strokeWidth="1.5" />
+                                                                                                    <circle cx={(i + 0.5) * step} cy={100 - (Math.max(1, (d.newEnquiries / niceMax) * 100))} r="2.5" fill="#0D9488" />
+                                                                                                </>
+                                                                                            ) : (
+                                                                                                <>
+                                                                                                    <circle cx={(i + 0.5) * step} cy={100 - (Math.max(1, (d.totalEnquiries / niceMax) * 100))} r="3.5" fill="#2563EB" stroke="#fff" strokeWidth="1.5" />
+                                                                                                    <circle cx={(i + 0.5) * step} cy={100 - (Math.max(1, (d.newEnquiries / niceMax) * 100))} r="3.5" fill="#0D9488" stroke="#fff" strokeWidth="1.5" />
+                                                                                                </>
+                                                                                            )}
+                                                                                        </g>
+                                                                                    );
+                                                                                })}
                                                                             </>
                                                                         );
                                                                     })()}
@@ -663,23 +675,25 @@ export default function Dashboard() {
                                                                             
                                                                             {/* Tooltip */}
                                                                             <div 
-                                                                                className="opacity-0 group-hover:opacity-100 transition-opacity absolute acx-card p-3 pointer-events-none w-[160px] z-[100]"
+                                                                                className="opacity-0 group-hover:opacity-100 transition-opacity absolute bg-white border border-[#E5E7EB] shadow-sm rounded-[12px] p-3 pointer-events-none w-[160px] z-[100]"
                                                                                 style={tooltipStyle}
                                                                             >
-                                                                                <div className="text-[13px] font-bold text-text-primary mb-2">{item.month}</div>
-                                                                                <div className="flex justify-between items-center mb-1.5">
-                                                                                    <div className="flex items-center gap-1.5">
-                                                                                        <div className="w-2 h-2 rounded-full bg-[#14B8A6]"></div>
-                                                                                        <span className="text-[11px] font-medium text-text-secondary">Total Quotations</span>
+                                                                                <div className="text-[12px] font-semibold text-[#64748B] mb-2">{item.month}</div>
+                                                                                <div className="flex flex-col gap-1.5">
+                                                                                    <div className="flex justify-between items-center">
+                                                                                        <div className="flex items-center gap-1.5">
+                                                                                            <div className="w-2 h-2 rounded-full bg-[#2563EB]"></div>
+                                                                                            <span className="text-[12px] text-[#0B192C]">Total Enquiries</span>
+                                                                                        </div>
+                                                                                        <span className="text-[12px] font-bold text-[#0B192C]">{item.totalEnquiries}</span>
                                                                                     </div>
-                                                                                    <span className="text-[12px] font-bold text-text-primary">{item.newEnquiries}</span>
-                                                                                </div>
-                                                                                <div className="flex justify-between items-center">
-                                                                                    <div className="flex items-center gap-1.5">
-                                                                                        <div className="w-2 h-2 rounded-full bg-[#3B82F6]"></div>
-                                                                                        <span className="text-[11px] font-medium text-text-secondary">Total Enquiries</span>
+                                                                                    <div className="flex justify-between items-center">
+                                                                                        <div className="flex items-center gap-1.5">
+                                                                                            <div className="w-2 h-2 rounded-full bg-[#0D9488]"></div>
+                                                                                            <span className="text-[12px] text-[#0B192C]">Total Quotations</span>
+                                                                                        </div>
+                                                                                        <span className="text-[12px] font-bold text-[#0B192C]">{item.newEnquiries}</span>
                                                                                     </div>
-                                                                                    <span className="text-[12px] font-bold text-text-primary">{item.totalEnquiries}</span>
                                                                                 </div>
                                                                             </div>
                                                                         </div>
@@ -688,9 +702,9 @@ export default function Dashboard() {
                                                             </div>
                                                             
                                                             {/* X Axis Labels */}
-                                                            <div className="absolute top-full left-0 right-0 flex pt-3 border-t border-border-subtle">
+                                                            <div className="absolute top-full left-0 right-0 flex pt-3 border-t border-[#E5E7EB]">
                                                                 {overviewData.map((item, idx) => (
-                                                                    <div key={idx} className="flex-1 text-center text-[12px] font-medium text-text-muted">
+                                                                    <div key={idx} className="flex-1 text-center text-[12px] text-[#64748B] font-normal">
                                                                         {item.month}
                                                                     </div>
                                                                 ))}
@@ -716,12 +730,12 @@ export default function Dashboard() {
                                 {/* Legend */}
                                 <div className="flex items-center justify-center gap-8 mt-10">
                                     <div className="flex items-center gap-2">
-                                        <div className="w-3 h-3 rounded bg-[#3B82F6]"></div>
-                                        <span className="text-[13px] font-medium text-text-secondary">Total Enquiries</span>
+                                        <div className="w-2.5 h-2.5 rounded-full bg-[#2563EB]"></div>
+                                        <span className="text-[13px] font-medium text-[#64748B]">Total Enquiries</span>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <div className="w-3 h-3 rounded bg-[#14B8A6]"></div>
-                                        <span className="text-[13px] font-medium text-text-secondary">Total Quotations</span>
+                                        <div className="w-2.5 h-2.5 rounded-full bg-[#0D9488]"></div>
+                                        <span className="text-[13px] font-medium text-[#64748B]">Total Quotations</span>
                                     </div>
                                 </div>
                             </div>
