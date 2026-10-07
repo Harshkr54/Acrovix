@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { fetchApi } from '../services/api';
 import { Link } from 'react-router-dom';
-import { Search, Filter, Calendar, ChevronLeft, ChevronRight, Plus, Inbox, MoreHorizontal, AlertCircle, RefreshCw, Eye, Check, FileText, Briefcase } from 'lucide-react';
+import { Search, Filter, Calendar, ChevronLeft, ChevronRight, Plus, Inbox, MoreHorizontal, AlertCircle, RefreshCw, Eye, Check, FileText, Briefcase, ExternalLink } from 'lucide-react';
 import EnquiryDetailModal from '../components/EnquiryDetailModal';
 import Skeleton from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
@@ -209,7 +209,7 @@ export default function EnquiryList() {
             setActiveActionMenuId(null);
         } else {
             const rect = e.currentTarget.getBoundingClientRect();
-            const dropdownWidth = 208; // 13rem (w-52)
+            const dropdownWidth = 224; // w-56
             const spaceBelow = window.innerHeight - rect.bottom;
             const spaceAbove = rect.top;
             
@@ -219,12 +219,14 @@ export default function EnquiryList() {
                 left: Math.max(16, rect.right - dropdownWidth)
             };
             
-            if (spaceBelow < 280 && spaceAbove > spaceBelow) {
+            if (spaceBelow < 420 && spaceAbove > spaceBelow) {
                 // Open upwards
                 position.bottom = window.innerHeight - rect.top + 8;
+                position.maxHeight = `calc(100vh - ${window.innerHeight - rect.top + 16}px)`;
             } else {
                 // Open downwards
                 position.top = rect.bottom + 8;
+                position.maxHeight = `calc(100vh - ${rect.bottom + 16}px)`;
             }
             
             setActionMenuPosition(position);
@@ -454,26 +456,26 @@ export default function EnquiryList() {
                                         <td className="px-6 py-4 whitespace-nowrap text-center align-top relative" onClick={(e) => e.stopPropagation()}>
                                             <button
                                                 onClick={(e) => handleToggleActionMenu(e, enq.id)}
-                                                className={`action-menu-trigger p-1.5 rounded-lg border transition-all ${
+                                                className={`action-menu-trigger w-10 h-10 flex items-center justify-center rounded-xl border transition-colors ${
                                                     activeActionMenuId === enq.id
-                                                        ? 'bg-brand-primary/10 border-[#818CF8] text-[var(--color-brand-primary)] dark:bg-[#312E81]/30 dark:border-[#6366F1] dark:text-[#818CF8] shadow-sm'
-                                                        : 'bg-bg-card border-border-subtle text-text-secondary hover:text-text-primary hover:shadow-sm'
+                                                        ? 'bg-brand-primary/10 border-border-subtle text-[var(--color-brand-primary)]'
+                                                        : 'bg-white border-border-subtle text-text-secondary hover:bg-bg-hover hover:text-text-primary'
                                                 }`}
-                                                title="More actions"
-                                                aria-label="More actions"
+                                                title="Actions"
+                                                aria-label="Actions"
                                             >
-                                                <MoreHorizontal className="w-5 h-5" />
+                                                <MoreHorizontal className="w-[18px] h-[18px]" />
                                             </button>
 
                                             {activeActionMenuId === enq.id && createPortal(
                                                 <div
                                                     ref={actionMenuRef}
-                                                    style={actionMenuPosition}
-                                                    className="w-52 bg-bg-card rounded-2xl shadow-xl border border-border-subtle p-2 animate-modal-entrance text-left"
+                                                    style={{...actionMenuPosition, overflowY: 'auto'}}
+                                                    className="w-56 bg-bg-card rounded-xl shadow-xl border border-border-subtle p-1.5 animate-modal-entrance text-left"
                                                     onClick={(e) => e.stopPropagation()}
                                                 >
                                                     {/* OPEN SECTION */}
-                                                    <div className="px-3 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
+                                                    <div className="px-2.5 py-1 text-[11px] font-semibold text-text-muted uppercase tracking-tight">
                                                         Open
                                                     </div>
                                                     <button
@@ -482,24 +484,24 @@ export default function EnquiryList() {
                                                             setActiveActionMenuId(null);
                                                             handleOpenEnquiry(enq);
                                                         }}
-                                                        className="btn btn-primary btn-sm w-full"
+                                                        className="flex items-center w-full px-2.5 py-2 text-[13px] font-medium text-text-primary hover:bg-brand-primary/5 hover:text-[var(--color-brand-primary)] rounded-lg transition-colors mb-0.5"
                                                     >
-                                                        <Eye className="w-3.5 h-3.5 text-[var(--color-brand-primary)]" />
+                                                        <ExternalLink className="w-4 h-4 mr-2 text-[var(--color-brand-primary)]" />
                                                         Open Enquiry
                                                     </button>
 
-                                                    <div className="my-1 border-t border-border-subtle"></div>
+                                                    <div className="my-1 border-t border-border-subtle mx-1"></div>
 
                                                     {/* QUOTATION SECTION */}
-                                                    <div className="px-3 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
+                                                    <div className="px-2.5 py-1 text-[11px] font-semibold text-text-muted uppercase tracking-tight">
                                                         Quotation
                                                     </div>
                                                     <Link
                                                         to={`/quotations/new/${enq.id}`}
                                                         onClick={() => setActiveActionMenuId(null)}
-                                                        className="flex items-center w-full px-3 py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover rounded-xl transition-colors"
+                                                        className="flex items-center w-full px-2.5 py-2 text-[13px] font-medium text-text-primary hover:bg-brand-primary/5 hover:text-[var(--color-brand-primary)] rounded-lg transition-colors mb-0.5"
                                                     >
-                                                        <Plus className="w-3.5 h-3.5 text-brand-success" />
+                                                        <Plus className="w-4 h-4 mr-2 text-[var(--color-brand-primary)]" />
                                                         Create Quotation
                                                     </Link>
 
@@ -508,9 +510,9 @@ export default function EnquiryList() {
                                                             <Link
                                                                 to={`/quotations/edit/${rowQuotationsMap[enq.id][0].id}`}
                                                                 onClick={() => setActiveActionMenuId(null)}
-                                                                className="flex items-center w-full px-3 py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover rounded-xl transition-colors"
+                                                                className="flex items-center w-full px-2.5 py-2 text-[13px] font-medium text-text-primary hover:bg-brand-primary/5 hover:text-[var(--color-brand-primary)] rounded-lg transition-colors mb-0.5"
                                                             >
-                                                                <FileText className="w-3.5 h-3.5 text-purple-600" />
+                                                                <FileText className="w-4 h-4 mr-2 text-purple-600" />
                                                                 Open Quotation
                                                             </Link>
                                                         ) : (
@@ -520,11 +522,11 @@ export default function EnquiryList() {
                                                                     setActiveActionMenuId(null);
                                                                     handleOpenEnquiry(enq);
                                                                 }}
-                                                                className="btn btn-primary btn-sm w-full"
+                                                                className="flex items-center justify-between w-full px-2.5 py-2 text-[13px] font-medium text-text-primary hover:bg-brand-primary/5 hover:text-[var(--color-brand-primary)] rounded-lg transition-colors mb-0.5"
                                                             >
                                                                 <span className="flex items-center">
-                                                                    <FileText className="w-3.5 h-3.5 text-purple-600" />
-                                                                    Open Quotation
+                                                                    <FileText className="w-4 h-4 mr-2 text-purple-600" />
+                                                                    Open Quotations
                                                                 </span>
                                                                 <span className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full font-bold">
                                                                     {rowQuotationsMap[enq.id].length}
@@ -535,8 +537,8 @@ export default function EnquiryList() {
 
                                                     {normalizeStatus(enq.status) !== 'CONVERTED' && normalizeStatus(enq.status) !== 'CLOSED' && (
                                                         <>
-                                                            <div className="my-1 border-t border-border-subtle"></div>
-                                                            <div className="px-3 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
+                                                            <div className="my-1 border-t border-border-subtle mx-1"></div>
+                                                            <div className="px-2.5 py-1 text-[11px] font-semibold text-text-muted uppercase tracking-tight">
                                                                 CRM
                                                             </div>
                                                             <button
@@ -545,21 +547,21 @@ export default function EnquiryList() {
                                                                     setActiveActionMenuId(null);
                                                                     handleConvertToLead(enq);
                                                                 }}
-                                                                className="flex items-center w-full px-3 py-2 text-xs font-semibold text-brand-success hover:bg-brand-success/10 rounded-xl transition-colors mb-1"
+                                                                className="flex items-center w-full px-2.5 py-2 text-[13px] font-medium text-text-primary hover:bg-[#0D9488]/10 hover:text-[#0D9488] rounded-lg transition-colors mb-0.5"
                                                             >
-                                                                <Briefcase className="w-3.5 h-3.5 mr-2" />
+                                                                <Briefcase className="w-4 h-4 mr-2 text-[#0D9488]" />
                                                                 Convert to Lead
                                                             </button>
                                                         </>
                                                     )}
 
-                                                    <div className="my-1 border-t border-border-subtle"></div>
+                                                    <div className="my-1 border-t border-border-subtle mx-1"></div>
 
                                                     {/* UPDATE STATUS SECTION */}
-                                                    <div className="px-3 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
+                                                    <div className="px-2.5 py-1 text-[11px] font-semibold text-text-muted uppercase tracking-tight">
                                                         Update Status
                                                     </div>
-
+                                                    
                                                     {['NEW', 'CONTACTED', 'QUOTED', 'CONVERTED', 'CLOSED'].map((st) => (
                                                         <button
                                                             key={st}
@@ -568,15 +570,15 @@ export default function EnquiryList() {
                                                                 setActiveActionMenuId(null);
                                                                 updateStatus(enq.id, st);
                                                             }}
-                                                            className={`flex items-center justify-between w-full px-3 py-1.5 text-xs rounded-lg transition-colors ${
+                                                            className={`flex items-center justify-between w-full px-2.5 py-1.5 text-[13px] rounded-lg transition-colors mb-0.5 ${
                                                                 normalizeStatus(enq.status) === st
-                                                                    ? 'bg-brand-primary/10 text-[var(--color-brand-primary)] font-bold dark:bg-[#312E81]/30'
-                                                                    : 'text-text-secondary hover:bg-bg-hover font-medium'
+                                                                    ? 'bg-brand-primary/10 text-[var(--color-brand-primary)] font-semibold dark:bg-[#312E81]/30'
+                                                                    : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
                                                             }`}
                                                         >
-                                                            <span className="btn btn-secondary btn-md">
-                                                                <span className={`w-1.5 h-1.5 rounded-full mr-2 ${getStatusStyle(st).replace('text-', 'bg-')}`} />
-                                                                {getStatusLabel(st)}
+                                                            <span className="flex items-center">
+                                                                <span className={`w-1.5 h-1.5 rounded-full mr-2 border border-current ${normalizeStatus(enq.status) === st ? 'bg-current' : 'bg-transparent'}`} />
+                                                                {st.charAt(0).toUpperCase() + st.slice(1).toLowerCase()}
                                                             </span>
                                                             {normalizeStatus(enq.status) === st && (
                                                                 <Check className="w-3.5 h-3.5 text-[var(--color-brand-primary)]" />
