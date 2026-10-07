@@ -124,29 +124,35 @@ export default function ActionMenu({
                     {renderContent ? (
                         renderContent(() => setIsOpen(false))
                     ) : (
-                        <div className="space-y-0.5">
+                        <div className="space-y-0">
                             {items.map((item, idx) => {
                                 if (item.type === 'divider') {
-                                    return <div key={`div-${idx}`} className="my-1 border-t border-border-subtle/60" />;
+                                    return <div key={`div-${idx}`} className="my-1 border-t border-[#E5E7EB]" />;
                                 }
                                 if (item.type === 'header') {
                                     return (
-                                        <div key={`head-${idx}`} className="px-3 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider">
+                                        <div key={`head-${idx}`} className="px-[10px] py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider">
                                             {item.label}
                                         </div>
                                     );
                                 }
 
                                 const Icon = item.icon;
-                                const colorClass = item.variant === 'danger'
-                                    ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40'
-                                    : item.variant === 'success'
-                                    ? 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
-                                    : item.variant === 'accent'
-                                    ? 'text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/40'
-                                    : item.variant === 'brand'
-                                    ? 'text-brand-teal dark:text-[#2DD4BF] hover:bg-brand-teal/10'
-                                    : 'text-text-primary hover:bg-bg-hover';
+                                
+                                const hoverBg = item.disabled ? 'hover:bg-transparent' : 
+                                                (item.variant === 'danger' ? 'hover:bg-[#DC2626]/[0.08]' : 
+                                                 (item.variant === 'success' || item.variant === 'brand') ? 'hover:bg-[rgba(13,148,136,0.08)]' : 
+                                                 item.variant === 'accent' ? 'hover:bg-[#6D28D9]/[0.08]' : 
+                                                 'hover:bg-[#F3F7FA]');
+
+                                const activeBg = item.disabled ? '' : 'active:bg-[rgba(37,99,235,0.10)]';
+
+                                const textColor = item.variant === 'danger' ? 'text-[#DC2626]' :
+                                                  (item.variant === 'success' || item.variant === 'brand') ? 'text-[#0D9488]' :
+                                                  item.variant === 'accent' ? 'text-[#6D28D9]' :
+                                                  'text-[#0B192C]';
+
+                                const colorClass = `${textColor} ${hoverBg} ${activeBg}`;
 
                                 return (
                                     <button
@@ -154,13 +160,14 @@ export default function ActionMenu({
                                         type="button"
                                         onClick={(e) => {
                                             e.stopPropagation();
+                                            if (item.disabled) return;
                                             setIsOpen(false);
                                             item.onClick && item.onClick();
                                         }}
                                         disabled={item.disabled}
-                                        className={`flex items-center w-full px-3 py-2 text-xs font-semibold rounded-xl transition-colors duration-150 disabled:opacity-50 disabled:pointer-events-none ${colorClass}`}
+                                        className={`flex items-center w-full px-[10px] py-[8px] min-h-[38px] gap-[10px] rounded-[8px] text-[13px] font-semibold bg-transparent transition-colors duration-150 ease-in-out disabled:opacity-[0.45] disabled:cursor-not-allowed focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-[rgba(37,99,235,0.35)] focus-visible:-outline-offset-2 ${colorClass}`}
                                     >
-                                        {Icon && <Icon className="w-4 h-4 mr-2.5 opacity-80" />}
+                                        {Icon && <Icon className="w-[18px] h-[18px] flex-shrink-0" />}
                                         <span className="truncate">{item.label}</span>
                                     </button>
                                 );
