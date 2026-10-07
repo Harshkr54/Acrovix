@@ -55,6 +55,9 @@ public class EmailService {
     @Value("${app.demo-mode:false}")
     private boolean demoMode;
 
+    @Value("${spring.mail.host:}")
+    private String mailHost;
+
     @Autowired
     public EmailService(
             PdfService pdfService,
@@ -139,7 +142,7 @@ public class EmailService {
         String activeFromName = (fromName != null && !fromName.trim().isEmpty()) ? fromName.trim() : "ACROVIX INNOVATIONS PRIVATE LIMITED";
 
         try {
-            if (mailSender != null) {
+            if (mailSender != null && mailHost != null && !mailHost.trim().isEmpty()) {
                 MimeMessage mimeMessage = mailSender.createMimeMessage();
                 MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
 
@@ -186,7 +189,6 @@ public class EmailService {
             } else {
                 String errMsg = "Email service configuration is incomplete. Please configure MAIL_HOST or RESEND_API_KEY.";
                 logger.error("Email send failed for recipient {}: {}", targetEmail, errMsg);
-                logEmail(targetEmail, subject, type, EmailStatus.FAILED, errMsg, request.getRelatedEntityType(), request.getRelatedEntityId());
                 throw new IllegalStateException(errMsg);
             }
         } catch (IllegalArgumentException | IllegalStateException e) {

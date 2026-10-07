@@ -155,7 +155,7 @@ export default function QuotationPreviewModal({
                                                 <iframe
                                                     title="Email Body Preview"
                                                     srcDoc={emailDetails.htmlContent}
-                                                    sandbox=""
+                                                    sandbox="allow-same-origin"
                                                     className="w-full h-full min-h-[300px] border-0"
                                                 />
                                             </div>

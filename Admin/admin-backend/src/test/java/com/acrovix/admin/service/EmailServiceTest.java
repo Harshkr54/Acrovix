@@ -49,6 +49,7 @@ class EmailServiceTest {
         
         ReflectionTestUtils.setField(emailService, "fromEmail", "sales@acrovix.com");
         ReflectionTestUtils.setField(emailService, "fromName", "ACROVIX INNOVATIONS PRIVATE LIMITED");
+        ReflectionTestUtils.setField(emailService, "mailHost", "localhost");
 
         testQuotation = Quotation.builder()
                 .id(101L)
