@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, GripVertical, Eye, EyeOff, Plus, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
 
 export default function QuotationColumnConfigModal({ isOpen, onClose, activeConfigs, onApply }) {
@@ -122,27 +123,30 @@ export default function QuotationColumnConfigModal({ isOpen, onClose, activeConf
         onApply(configs);
     };
 
-    return (
-        <div className="fixed inset-0 bg-text-primary/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-            <div className="acx-card p-6 md:p-8 max-w-2xl w-full border border-border-subtle shadow-2xl relative animate-modal-entrance my-8">
-                <button
-                    onClick={onClose}
-                    className="absolute top-4 right-4 p-2 text-text-muted hover:text-text-primary hover:bg-bg-hover rounded-lg transition-colors"
-                    aria-label="Close modal"
-                >
-                    <X className="w-5 h-5" />
-                </button>
-
-                <div className="mb-6">
-                    <h2 className="text-[22px] font-bold text-text-primary tracking-tight">Configure Line Item Columns</h2>
-                    <p className="text-[13px] text-text-secondary mt-1">
-                        Choose which columns appear in this quotation and arrange their order.
-                    </p>
+    const modalContent = (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={onClose}></div>
+            
+            <div className="bg-bg-card rounded-2xl shadow-2xl w-full max-w-[700px] max-h-[85vh] flex flex-col relative z-10 overflow-hidden border border-border-subtle animate-modal-entrance">
+                {/* Header */}
+                <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-bg-muted/50 shrink-0">
+                    <div>
+                        <h2 className="text-[18px] font-bold text-text-primary tracking-tight leading-none mb-1">Column Configuration</h2>
+                        <p className="text-[13px] text-text-secondary">Choose which columns appear in this quotation and arrange their order.</p>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="btn btn-primary btn-icon ml-4"
+                        aria-label="Close modal"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
                 </div>
 
-                <div className="space-y-4">
+                {/* Body (Scrollable) */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-4">
                     <div className="bg-bg-main border border-border-subtle rounded-xl overflow-hidden">
-                        <div className="max-h-[350px] overflow-y-auto p-2 space-y-1">
+                        <div className="p-2 space-y-1">
                             {configs.map((config, index) => (
                                 <div 
                                     key={config.columnKey}
@@ -228,7 +232,7 @@ export default function QuotationColumnConfigModal({ isOpen, onClose, activeConf
                             <button 
                                 onClick={handleAddCustomColumn}
                                 disabled={!newColumnName.trim()}
-                                className="btn btn-primary px-4 py-2 text-[13px] flex items-center justify-center"
+                                className="btn btn-primary px-4 py-2 text-[13px] flex items-center justify-center shrink-0"
                             >
                                 <Plus className="w-4 h-4 mr-1.5" /> Add
                             </button>
@@ -241,7 +245,8 @@ export default function QuotationColumnConfigModal({ isOpen, onClose, activeConf
                     </div>
                 </div>
 
-                <div className="flex items-center justify-end space-x-3 mt-6 pt-4 border-t border-border-subtle/50">
+                {/* Footer */}
+                <div className="flex items-center justify-end space-x-3 px-6 py-4 border-t border-border-subtle/50 bg-bg-muted/50 shrink-0">
                     <button
                         onClick={onClose}
                         className="btn btn-secondary px-5 py-2 text-[13px]"
@@ -258,4 +263,6 @@ export default function QuotationColumnConfigModal({ isOpen, onClose, activeConf
             </div>
         </div>
     );
+
+    return createPortal(modalContent, document.body);
 }
