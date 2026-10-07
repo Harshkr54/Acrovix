@@ -41,5 +41,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
             @Param("search") String search,
             Pageable pageable
     );
+
+    boolean existsByTransactionReference(String transactionReference);
 }
 

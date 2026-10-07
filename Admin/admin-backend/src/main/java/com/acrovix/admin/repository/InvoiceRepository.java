@@ -39,4 +39,8 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long>, JpaSpec
 
     @Query("SELECT i FROM Invoice i WHERE i.invoiceType = 'TAX_INVOICE' AND (i.status = 'ISSUED' OR i.status = 'PARTIALLY_PAID') AND i.dueDate < :now")
     java.util.List<Invoice> findOverdueInvoices(@Param("now") java.time.LocalDate now);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("UPDATE Invoice i SET i.reminderLevel = :newLevel, i.lastReminderSentAt = CURRENT_TIMESTAMP WHERE i.id = :id AND i.reminderLevel < :newLevel")
+    int updateReminderLevelSafely(@Param("id") Long id, @Param("newLevel") int newLevel);
 }

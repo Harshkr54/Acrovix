@@ -37,17 +37,18 @@ export default function QuotationList() {
     const [isConverting, setIsConverting] = useState(false);
     const itemsPerPage = 10;
 
-    const handleCreateProforma = async () => {
+    const handleCreateInvoice = async () => {
         if (!proformaDialogId) return;
         setIsConverting(true);
         try {
-            const invoice = await createInvoiceFromQuotation(proformaDialogId, 'PROFORMA');
+            const invoice = await createInvoiceFromQuotation(proformaDialogId.id, proformaDialogId.type);
             navigate(`/invoices/${invoice.id}`);
         } catch (err) {
             console.error(err);
-            alert(err.message || 'Failed to create Proforma Invoice');
+            alert(err.message || `Failed to create ${proformaDialogId.type.replace('_', ' ')}`);
         } finally {
             setIsConverting(false);
+            setProformaDialogId(null);
         }
     };
 
@@ -240,11 +241,18 @@ export default function QuotationList() {
                         onClick: () => setPoModalQuotation(q)
                     },
                     {
+                        label: 'Create Tax Invoice',
+                        icon: FileText,
+                        variant: 'success',
+                        disabled: isConverting,
+                        onClick: () => setProformaDialogId({ id: q.id, type: 'TAX_INVOICE' })
+                    },
+                    {
                         label: 'Create Proforma',
                         icon: FileText,
                         variant: 'accent',
                         disabled: isConverting,
-                        onClick: () => setProformaDialogId(q.id)
+                        onClick: () => setProformaDialogId({ id: q.id, type: 'PROFORMA' })
                     }
                 ];
 
@@ -483,9 +491,9 @@ export default function QuotationList() {
 
             <ConfirmDialog 
                 isOpen={Boolean(proformaDialogId)}
-                title="Create Proforma Invoice"
-                description="Create a Proforma Invoice from this Quotation?"
-                onConfirm={handleCreateProforma}
+                title={`Create ${proformaDialogId?.type === 'TAX_INVOICE' ? 'Tax Invoice' : 'Proforma Invoice'}`}
+                description={`Create a ${proformaDialogId?.type === 'TAX_INVOICE' ? 'Tax Invoice' : 'Proforma Invoice'} from this Quotation?`}
+                onConfirm={handleCreateInvoice}
                 onCancel={() => setProformaDialogId(null)}
                 isLoading={isConverting}
                 confirmText="Create Invoice"

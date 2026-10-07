@@ -157,6 +157,20 @@ public class Invoice {
     @Column(name = "amount_in_words", columnDefinition = "TEXT")
     private String amountInWords;
 
+    // Payment Gateway & Automation
+    @Column(name = "payment_link_id", length = 100)
+    private String paymentLinkId;
+
+    @Column(name = "payment_link_url", length = 255)
+    private String paymentLinkUrl;
+
+    @Column(name = "reminder_level", nullable = false)
+    @Builder.Default
+    private Integer reminderLevel = 0;
+
+    @Column(name = "last_reminder_sent_at")
+    private LocalDateTime lastReminderSentAt;
+
     // Audit
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")

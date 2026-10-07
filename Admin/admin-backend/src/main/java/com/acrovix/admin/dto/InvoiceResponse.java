@@ -56,6 +56,9 @@ public class InvoiceResponse {
     private BigDecimal balanceDue;
     private String amountInWords;
 
+    private String paymentLinkUrl;
+    private Integer reminderLevel;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     

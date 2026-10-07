@@ -718,6 +718,9 @@ public class InvoiceService {
         response.setBalanceDue(invoice.getBalanceDue() != null ? invoice.getBalanceDue() : grandTotal);
         response.setAmountInWords(invoice.getAmountInWords());
 
+        response.setPaymentLinkUrl(invoice.getPaymentLinkUrl());
+        response.setReminderLevel(invoice.getReminderLevel());
+
         response.setCreatedAt(invoice.getCreatedAt());
         response.setUpdatedAt(invoice.getUpdatedAt());
 

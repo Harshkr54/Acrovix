@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 public class InvoiceController {
 
     private final InvoiceService invoiceService;
+    private final com.acrovix.admin.service.PaymentGatewayService paymentGatewayService;
 
     @GetMapping
     public ResponseEntity<Page<InvoiceResponse>> getInvoices(
@@ -136,5 +137,15 @@ public class InvoiceController {
         String overrideEmail = body != null ? body.get("recipientEmail") : null;
         invoiceService.sendInvoiceEmail(id, overrideEmail, admin);
         return ResponseEntity.ok(java.util.Map.of("success", true, "message", "Invoice email sent successfully"));
+    }
+
+    @PostMapping("/{id}/payment-link")
+    public ResponseEntity<InvoiceResponse> generatePaymentLink(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AdminUser admin) {
+        // Just verify access via InvoiceService
+        invoiceService.getInvoiceById(id, admin); 
+        Invoice invoice = paymentGatewayService.generatePaymentLink(id);
+        return ResponseEntity.ok(invoiceService.mapToResponse(invoice));
     }
 }

@@ -83,6 +83,7 @@ public class EmailSchedulerService {
 
     // Run daily at 9:00 AM
     @Scheduled(cron = "0 0 9 * * *")
+    @org.springframework.transaction.annotation.Transactional
     public void processOverdueInvoices() {
         logger.info("Starting scheduled job: processOverdueInvoices");
         
@@ -90,15 +91,42 @@ public class EmailSchedulerService {
         List<Invoice> overdueInvoices = invoiceRepository.findOverdueInvoices(today);
         
         for (Invoice invoice : overdueInvoices) {
-            notificationService.createInvoiceOverdueNotification(
-                    invoice.getCreatedBy(), 
-                    invoice.getInvoiceNumber(), 
-                    invoice.getId()
-            );
+            // Safe guard: only process issued/partially_paid invoices with balance > 0
+            if ((invoice.getStatus() != InvoiceStatus.ISSUED && invoice.getStatus() != InvoiceStatus.PARTIALLY_PAID) 
+                    || invoice.getBalanceDue().compareTo(java.math.BigDecimal.ZERO) <= 0) {
+                continue;
+            }
 
-            boolean alreadySent = emailLogRepository.existsByEmailTypeAndRelatedEntityTypeAndRelatedEntityId(
-                    EmailType.INVOICE_OVERDUE, "Invoice", invoice.getId());
-            if (!alreadySent) {
+            long daysOverdue = java.time.temporal.ChronoUnit.DAYS.between(invoice.getDueDate(), today);
+            
+            int expectedLevel = 0;
+            if (daysOverdue >= 15) {
+                expectedLevel = 3;
+            } else if (daysOverdue >= 7) {
+                expectedLevel = 2;
+            } else if (daysOverdue >= 3) {
+                expectedLevel = 1;
+            }
+
+            if (expectedLevel > 0 && (invoice.getReminderLevel() == null || invoice.getReminderLevel() < expectedLevel)) {
+                // Ensure we don't send multiple in the same day if the job restarts
+                if (invoice.getLastReminderSentAt() != null && 
+                    invoice.getLastReminderSentAt().toLocalDate().isEqual(today)) {
+                    continue;
+                }
+
+                // ATOMIC UPDATE: secure the lock by updating DB directly. If 0 updated, another thread won.
+                int updatedRows = invoiceRepository.updateReminderLevelSafely(invoice.getId(), expectedLevel);
+                if (updatedRows == 0) {
+                    continue;
+                }
+
+                notificationService.createInvoiceOverdueNotification(
+                        invoice.getCreatedBy(), 
+                        invoice.getInvoiceNumber(), 
+                        invoice.getId()
+                );
+
                 try {
                     emailService.sendInvoiceOverdueAsync(invoice);
                 } catch (Exception e) {

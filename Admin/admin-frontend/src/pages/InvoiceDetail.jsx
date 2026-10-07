@@ -9,10 +9,11 @@ import {
     getInvoicePayments,
     recordPayment,
     cancelPayment,
-    getPaymentReceiptPdf
+    getPaymentReceiptPdf,
+    generatePaymentLink
 } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { ArrowLeft, Clock, CheckCircle, XCircle, FileText, Download, Edit3, X, CreditCard, Plus, AlertCircle, RefreshCw, Mail } from 'lucide-react';
+import { ArrowLeft, Clock, CheckCircle, XCircle, FileText, Download, Edit3, X, CreditCard, Plus, AlertCircle, RefreshCw, Mail, Link as LinkIcon, Copy, ExternalLink } from 'lucide-react';
 import { API_BASE_URL } from '../services/api';
 import { formatCurrency } from '../utils/formatters';
 
@@ -277,6 +278,28 @@ export default function InvoiceDetail() {
         }
     };
 
+    const handleCreatePaymentLink = async () => {
+        try {
+            setActionLoading(true);
+            await generatePaymentLink(id);
+            await fetchInvoice();
+        } catch (error) {
+            console.error('Failed to generate payment link', error);
+            alert(error.message || 'Failed to generate payment link');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const copyPaymentLink = () => {
+        if (invoice?.paymentLinkUrl) {
+            navigator.clipboard.writeText(invoice.paymentLinkUrl);
+            window.dispatchEvent(new CustomEvent('acrovix-toast', {
+                detail: { type: 'success', message: 'Payment link copied to clipboard' }
+            }));
+        }
+    };
+
     const [sendingEmail, setSendingEmail] = useState(false);
 
     const handleSendEmail = async () => {
@@ -455,14 +478,38 @@ export default function InvoiceDetail() {
                             <CreditCard className="w-5 h-5 text-brand-primary" />
                             <h3 className="text-sm font-bold uppercase tracking-wider text-text-primary">Payment & Ledger Status</h3>
                         </div>
-                        {isRecordPaymentEligible && (
-                            <button 
-                                onClick={handleOpenRecordPaymentModal}
-                                className="btn btn-success btn-md"
-                            >
-                                <Plus className="w-3.5 h-3.5" /> Record Payment
-                            </button>
-                        )}
+                        <div className="flex items-center gap-2">
+                            {invoice.paymentLinkUrl ? (
+                                <div className="flex items-center gap-2 bg-bg-main border border-border-subtle rounded-lg p-1 pr-2">
+                                    <span className="px-2 py-1 text-xs font-mono text-text-secondary truncate max-w-[200px]">
+                                        {invoice.paymentLinkUrl}
+                                    </span>
+                                    <button onClick={copyPaymentLink} className="p-1.5 hover:bg-bg-hover rounded text-text-muted hover:text-brand-primary transition-colors" title="Copy Link">
+                                        <Copy className="w-3.5 h-3.5" />
+                                    </button>
+                                    <a href={invoice.paymentLinkUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 hover:bg-bg-hover rounded text-text-muted hover:text-brand-primary transition-colors" title="Open Link">
+                                        <ExternalLink className="w-3.5 h-3.5" />
+                                    </a>
+                                </div>
+                            ) : isRecordPaymentEligible && (
+                                <button 
+                                    onClick={handleCreatePaymentLink}
+                                    disabled={actionLoading}
+                                    className="btn btn-secondary btn-md border-border-subtle"
+                                >
+                                    <LinkIcon className="w-3.5 h-3.5" /> Generate Payment Link
+                                </button>
+                            )}
+                            
+                            {isRecordPaymentEligible && (
+                                <button 
+                                    onClick={handleOpenRecordPaymentModal}
+                                    className="btn btn-success btn-md"
+                                >
+                                    <Plus className="w-3.5 h-3.5" /> Record Payment
+                                </button>
+                            )}
+                        </div>
                     </div>
                     <div className="grid grid-cols-4 gap-4">
                         <div className="p-4 bg-bg-main rounded-xl border border-border-subtle">

@@ -282,6 +282,10 @@ export const issueInvoice = (id) => fetchApi(`/invoices/${id}/issue`, {
     method: 'POST'
 });
 
+export const generatePaymentLink = (id) => fetchApi(`/invoices/${id}/payment-link`, {
+    method: 'POST'
+});
+
 export const cancelInvoice = (id) => fetchApi(`/invoices/${id}/cancel`, {
     method: 'POST'
 });
