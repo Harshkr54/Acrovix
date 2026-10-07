@@ -2,10 +2,11 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { fetchApi } from '../services/api';
 import { Link } from 'react-router-dom';
-import { Search, Filter, Calendar, ChevronLeft, ChevronRight, Plus, Inbox, MoreHorizontal, AlertCircle, RefreshCw, Eye, Check, FileText } from 'lucide-react';
+import { Search, Filter, Calendar, ChevronLeft, ChevronRight, Plus, Inbox, MoreHorizontal, AlertCircle, RefreshCw, Eye, Check, FileText, Briefcase } from 'lucide-react';
 import EnquiryDetailModal from '../components/EnquiryDetailModal';
 import Skeleton from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 
 export default function EnquiryList() {
     const [enquiries, setEnquiries] = useState([]);
@@ -33,6 +34,10 @@ export default function EnquiryList() {
     // Enquiry detail modal state
     const [selectedEnquiry, setSelectedEnquiry] = useState(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+    // Convert to Lead state
+    const [convertToLeadEnquiry, setConvertToLeadEnquiry] = useState(null);
+    const [isConvertingToLead, setIsConvertingToLead] = useState(false);
 
     // Cache of active quotations per enquiry
     const [rowQuotationsMap, setRowQuotationsMap] = useState({});
@@ -126,6 +131,70 @@ export default function EnquiryList() {
         } catch (error) {
             console.error(error);
             alert(error.message || "Failed to update status");
+        }
+    };
+
+    const handleConvertToLead = (enq) => {
+        if (!enq.id) {
+            window.dispatchEvent(new CustomEvent('acrovix-toast', { 
+                detail: { type: 'error', message: 'Enquiry ID is missing.' } 
+            }));
+            return;
+        }
+        if (!enq.fullName?.trim()) {
+            window.dispatchEvent(new CustomEvent('acrovix-toast', { 
+                detail: { type: 'error', message: 'Full Name is required to convert to a CRM lead.' } 
+            }));
+            return;
+        }
+        if (!enq.businessEmail?.trim()) {
+            window.dispatchEvent(new CustomEvent('acrovix-toast', { 
+                detail: { type: 'error', message: 'Business Email is required to convert to a CRM lead.' } 
+            }));
+            return;
+        }
+        setConvertToLeadEnquiry(enq);
+    };
+
+    const executeConversion = async () => {
+        if (!convertToLeadEnquiry) return;
+        setIsConvertingToLead(true);
+        const enq = convertToLeadEnquiry;
+        
+        try {
+            await fetchApi('/crm/leads', {
+                method: 'POST',
+                body: JSON.stringify({
+                    enquiryId: enq.id,
+                    fullName: enq.fullName,
+                    businessEmail: enq.businessEmail,
+                    companyName: enq.companyName,
+                    phoneNumber: enq.phoneNumber,
+                    industrySector: enq.industrySector,
+                    serviceRequired: enq.serviceRequired,
+                    status: 'NEW'
+                })
+            });
+            
+            // Auto update enquiry status to CONVERTED
+            await fetchApi(`/enquiries/${enq.id}/status`, {
+                method: 'PATCH',
+                body: JSON.stringify({ status: 'CONVERTED' })
+            });
+            
+            window.dispatchEvent(new CustomEvent('acrovix-toast', { 
+                detail: { type: 'success', message: 'Enquiry converted to CRM lead successfully.' } 
+            }));
+            window.dispatchEvent(new Event('notification-update'));
+            setConvertToLeadEnquiry(null);
+            fetchEnquiries();
+        } catch (error) {
+            console.error(error);
+            window.dispatchEvent(new CustomEvent('acrovix-toast', { 
+                detail: { type: 'error', message: error.message || "Failed to convert to lead" } 
+            }));
+        } finally {
+            setIsConvertingToLead(false);
         }
     };
 
@@ -393,7 +462,7 @@ export default function EnquiryList() {
                                                 title="More actions"
                                                 aria-label="More actions"
                                             >
-                                                <MoreHorizontal className="btn btn-secondary btn-md" />
+                                                <MoreHorizontal className="w-5 h-5" />
                                             </button>
 
                                             {activeActionMenuId === enq.id && createPortal(
@@ -462,6 +531,26 @@ export default function EnquiryList() {
                                                                 </span>
                                                             </button>
                                                         )
+                                                    )}
+
+                                                    {normalizeStatus(enq.status) !== 'CONVERTED' && normalizeStatus(enq.status) !== 'CLOSED' && (
+                                                        <>
+                                                            <div className="my-1 border-t border-border-subtle"></div>
+                                                            <div className="px-3 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
+                                                                CRM
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setActiveActionMenuId(null);
+                                                                    handleConvertToLead(enq);
+                                                                }}
+                                                                className="flex items-center w-full px-3 py-2 text-xs font-semibold text-brand-success hover:bg-brand-success/10 rounded-xl transition-colors mb-1"
+                                                            >
+                                                                <Briefcase className="w-3.5 h-3.5 mr-2" />
+                                                                Convert to Lead
+                                                            </button>
+                                                        </>
                                                     )}
 
                                                     <div className="my-1 border-t border-border-subtle"></div>
@@ -539,6 +628,19 @@ export default function EnquiryList() {
                 onClose={() => setIsDetailModalOpen(false)}
                 enquiry={selectedEnquiry}
                 onStatusUpdate={fetchEnquiries}
+            />
+
+            {/* Convert to Lead Confirmation */}
+            <ConfirmDialog
+                isOpen={!!convertToLeadEnquiry}
+                title="Convert to CRM Lead"
+                description={`Convert this enquiry (${convertToLeadEnquiry?.referenceId}) into a CRM lead?`}
+                confirmText="Convert to Lead"
+                cancelText="Cancel"
+                onConfirm={executeConversion}
+                onCancel={() => setConvertToLeadEnquiry(null)}
+                isLoading={isConvertingToLead}
+                variant="primary"
             />
         </div>
     );
