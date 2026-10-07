@@ -544,198 +544,169 @@ export default function Dashboard() {
                                 </div>
 
                                 {/* Dynamic Chart Area */}
-                                <div className="flex-1 min-h-[300px] flex flex-col relative w-full overflow-x-auto hide-scrollbar pb-8">
-                                    <div className="min-w-[400px] lg:min-w-full h-full flex flex-col relative">
-                                        
-                                        {isLoading ? (
-                                            <div className="w-full flex justify-center items-center h-full">
-                                                <Skeleton variant="rectangle" className="w-full h-full rounded-xl" />
-                                            </div>
-                                        ) : stats?.monthlyOverview && stats.monthlyOverview.length > 0 ? (
-                                            (() => {
-                                                const overviewData = stats.monthlyOverview;
-                                                const getNiceMax = (max) => {
-                                                    if (max <= 10) return 10;
-                                                    const magnitude = Math.pow(10, Math.floor(Math.log10(max)));
-                                                    return Math.ceil(max / magnitude) * magnitude;
-                                                };
-                                                const maxVal = Math.max(0, ...overviewData.map(i => Math.max(Number(i.totalEnquiries) || 0, Number(i.newEnquiries) || 0)));
-                                                const niceMax = getNiceMax(maxVal);
-                                                
-                                                const rawTicks = [1, 0.75, 0.5, 0.25, 0].map(m => Math.round(niceMax * m));
-                                                const ticks = Array.from(new Set(rawTicks));
+                                <div className="flex-1 flex flex-col md:flex-row min-h-[300px] w-full mt-4">
+                                    <div className="flex-1 relative w-full overflow-x-auto hide-scrollbar pb-8 md:pb-0">
+                                        <div className="min-w-[400px] lg:min-w-full h-full flex flex-col relative">
+                                            
+                                            {isLoading ? (
+                                                <div className="w-full flex justify-center items-center h-full">
+                                                    <Skeleton variant="rectangle" className="w-full h-full rounded-xl" />
+                                                </div>
+                                            ) : stats?.monthlyOverview && stats.monthlyOverview.length > 0 ? (
+                                                (() => {
+                                                    const overviewData = stats.monthlyOverview;
+                                                    const getNiceMax = (max) => {
+                                                        if (max <= 10) return 10;
+                                                        const magnitude = Math.pow(10, Math.floor(Math.log10(max)));
+                                                        return Math.ceil(max / magnitude) * magnitude;
+                                                    };
+                                                    const maxVal = Math.max(0, ...overviewData.map(i => Math.max(Number(i.totalEnquiries) || 0, Number(i.newEnquiries) || 0)));
+                                                    const niceMax = getNiceMax(maxVal);
+                                                    
+                                                    const rawTicks = [1, 0.75, 0.5, 0.25, 0].map(m => Math.round(niceMax * m));
+                                                    const ticks = Array.from(new Set(rawTicks));
 
-                                                return (
-                                                    <div className="flex-1 relative flex mt-4">
-                                                        {/* Y Axis & Horizontal Grids */}
-                                                        <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
-                                                            {ticks.map((t, i) => (
-                                                                <div key={i} className="w-full flex items-center -mt-2">
-                                                                    <div className="w-[30px] shrink-0 text-left text-[12px] text-[#64748B]">{t}</div>
-                                                                    <div className="flex-1 border-t border-[#E5E7EB]" />
-                                                                </div>
-                                                            ))}
-                                                        </div>
-
-                                                        {/* Chart Content Area */}
-                                                        <div className="flex-1 relative ml-[40px]">
-                                                            {/* SVG Lines and Fades */}
-                                                            <div className="absolute inset-0 pointer-events-none">
-                                                                <svg viewBox={`0 0 ${overviewData.length * 100} 100`} preserveAspectRatio="none" className="w-full h-full overflow-visible">
-                                                                    <defs>
-                                                                        <linearGradient id="fadeBlue" x1="0" y1="0" x2="0" y2="1">
-                                                                            <stop offset="0%" stopColor="#2563EB" stopOpacity="0.15" />
-                                                                            <stop offset="100%" stopColor="#2563EB" stopOpacity="0" />
-                                                                        </linearGradient>
-                                                                        <linearGradient id="fadeTeal" x1="0" y1="0" x2="0" y2="1">
-                                                                            <stop offset="0%" stopColor="#0D9488" stopOpacity="0.15" />
-                                                                            <stop offset="100%" stopColor="#0D9488" stopOpacity="0" />
-                                                                        </linearGradient>
-                                                                    </defs>
-                                                                    {(() => {
-                                                                        const w = overviewData.length * 100;
-                                                                        const step = 100;
-                                                                        const getPath = (key) => {
-                                                                            if (overviewData.length === 1) {
-                                                                                const y = 100 - (Math.max(1, (overviewData[0][key] / niceMax) * 100));
-                                                                                return `M 0,${y} L ${w},${y}`;
-                                                                            }
-                                                                            const pts = overviewData.map((d, i) => ({ x: (i + 0.5) * step, y: 100 - (Math.max(1, (d[key] / niceMax) * 100)) }));
-                                                                            let p = `M ${pts[0].x},${pts[0].y}`;
-                                                                            for (let i = 1; i < pts.length; i++) {
-                                                                                p += ` C ${pts[i-1].x + step/3},${pts[i-1].y} ${pts[i].x - step/3},${pts[i].y} ${pts[i].x},${pts[i].y}`;
-                                                                            }
-                                                                            return { p, pts };
-                                                                        };
-                                                                        const blueData = getPath('totalEnquiries');
-                                                                        const tealData = getPath('newEnquiries');
-                                                                        const bluePath = blueData.p;
-                                                                        const tealPath = tealData.p;
-                                                                        const bluePts = blueData.pts;
-                                                                        const tealPts = tealData.pts;
-                                                                        const blueFill = overviewData.length === 1 ? bluePath : `${bluePath} L ${bluePts[bluePts.length-1].x},100 L ${bluePts[0].x},100 Z`;
-                                                                        const tealFill = overviewData.length === 1 ? tealPath : `${tealPath} L ${tealPts[tealPts.length-1].x},100 L ${tealPts[0].x},100 Z`;
-                                                                        return (
-                                                                            <>
-                                                                                <path d={blueFill} fill="url(#fadeBlue)" className="animate-fade-in-up" style={{ animationDelay: '200ms' }} />
-                                                                                <path d={tealFill} fill="url(#fadeTeal)" className="animate-fade-in-up" style={{ animationDelay: '300ms' }} />
-                                                                                <path d={bluePath} fill="none" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" pathLength="1" className="animate-draw-line" />
-                                                                                <path d={tealPath} fill="none" stroke="#0D9488" strokeWidth="2" strokeLinecap="round" pathLength="1" className="animate-draw-line" style={{ animationDelay: '100ms' }} />
-                                                                                {overviewData.map((d, i) => {
-                                                                                    const isOverlap = d.totalEnquiries === d.newEnquiries;
-                                                                                    return (
-                                                                                        <g key={i} className="animate-fade-in-up" style={{ animationDelay: `${(i * 50) + 400}ms` }}>
-                                                                                            {isOverlap ? (
-                                                                                                <>
-                                                                                                    <circle cx={(i + 0.5) * step} cy={100 - (Math.max(1, (d.totalEnquiries / niceMax) * 100))} r="5" fill="#2563EB" stroke="#fff" strokeWidth="1.5" />
-                                                                                                    <circle cx={(i + 0.5) * step} cy={100 - (Math.max(1, (d.newEnquiries / niceMax) * 100))} r="2.5" fill="#0D9488" />
-                                                                                                </>
-                                                                                            ) : (
-                                                                                                <>
-                                                                                                    <circle cx={(i + 0.5) * step} cy={100 - (Math.max(1, (d.totalEnquiries / niceMax) * 100))} r="3.5" fill="#2563EB" stroke="#fff" strokeWidth="1.5" />
-                                                                                                    <circle cx={(i + 0.5) * step} cy={100 - (Math.max(1, (d.newEnquiries / niceMax) * 100))} r="3.5" fill="#0D9488" stroke="#fff" strokeWidth="1.5" />
-                                                                                                </>
-                                                                                            )}
-                                                                                        </g>
-                                                                                    );
-                                                                                })}
-                                                                            </>
-                                                                        );
-                                                                    })()}
-                                                                </svg>
-                                                            </div>
-
-                                                            {/* Interactive Columns for Tooltips */}
-                                                            <div className="absolute inset-0 flex">
-                                                                {overviewData.map((item, idx) => {
-                                                                    const totalHeightPct = Math.max(1, (item.totalEnquiries / niceMax) * 100);
-                                                                    const newHeightPct = Math.max(1, (item.newEnquiries / niceMax) * 100);
-                                                                    const maxHeightPct = Math.max(totalHeightPct, newHeightPct);
-                                                                    const isHigh = maxHeightPct > 70;
-                                                                    
-                                                                    const tooltipStyle = {
-                                                                        ...(isHigh ? { top: '10px' } : { bottom: `calc(${maxHeightPct}% + 12px)` })
-                                                                    };
-                                                                    
-                                                                    if (idx === 0) {
-                                                                        tooltipStyle.left = '0';
-                                                                        tooltipStyle.transform = 'none';
-                                                                    } else if (idx === overviewData.length - 1) {
-                                                                        tooltipStyle.right = '0';
-                                                                        tooltipStyle.transform = 'none';
-                                                                    } else {
-                                                                        tooltipStyle.left = '50%';
-                                                                        tooltipStyle.transform = 'translateX(-50%)';
-                                                                    }
-                                                                    
-                                                                    return (
-                                                                        <div key={idx} className="flex-1 h-full relative group cursor-crosshair">
-                                                                            {/* Vertical Hover Line */}
-                                                                            <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[1px] bg-border-subtle opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                                                            
-                                                                            {/* Tooltip */}
-                                                                            <div 
-                                                                                className="opacity-0 group-hover:opacity-100 transition-opacity absolute bg-white border border-[#E5E7EB] shadow-sm rounded-[12px] p-3 pointer-events-none w-[160px] z-[100]"
-                                                                                style={tooltipStyle}
-                                                                            >
-                                                                                <div className="text-[12px] font-semibold text-[#64748B] mb-2">{item.month}</div>
-                                                                                <div className="flex flex-col gap-1.5">
-                                                                                    <div className="flex justify-between items-center">
-                                                                                        <div className="flex items-center gap-1.5">
-                                                                                            <div className="w-2 h-2 rounded-full bg-[#2563EB]"></div>
-                                                                                            <span className="text-[12px] text-[#0B192C]">Total Enquiries</span>
-                                                                                        </div>
-                                                                                        <span className="text-[12px] font-bold text-[#0B192C]">{item.totalEnquiries}</span>
-                                                                                    </div>
-                                                                                    <div className="flex justify-between items-center">
-                                                                                        <div className="flex items-center gap-1.5">
-                                                                                            <div className="w-2 h-2 rounded-full bg-[#0D9488]"></div>
-                                                                                            <span className="text-[12px] text-[#0B192C]">Total Quotations</span>
-                                                                                        </div>
-                                                                                        <span className="text-[12px] font-bold text-[#0B192C]">{item.newEnquiries}</span>
-                                                                                    </div>
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                            
-                                                            {/* X Axis Labels */}
-                                                            <div className="absolute top-full left-0 right-0 flex pt-3 border-t border-[#E5E7EB]">
-                                                                {overviewData.map((item, idx) => (
-                                                                    <div key={idx} className="flex-1 text-center text-[12px] text-[#64748B] font-normal">
-                                                                        {item.month}
+                                                    return (
+                                                        <div className="flex-1 relative flex mt-4">
+                                                            {/* Y Axis & Horizontal Grids */}
+                                                            <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+                                                                {ticks.map((t, i) => (
+                                                                    <div key={i} className="w-full flex items-center -mt-2">
+                                                                        <div className="w-[30px] shrink-0 text-left text-[12px] text-[#64748B]">{t}</div>
+                                                                        <div className="flex-1 border-t border-[#E5E7EB]" />
                                                                     </div>
                                                                 ))}
                                                             </div>
+
+                                                            {/* Chart Content Area */}
+                                                            <div className="flex-1 relative ml-[40px]">
+                                                                
+                                                                {/* Interactive Columns for Tooltips & Bars */}
+                                                                <div className="absolute inset-0 flex">
+                                                                    {overviewData.map((item, idx) => {
+                                                                        const totalHeightPct = Math.max(0, (item.totalEnquiries / niceMax) * 100);
+                                                                        const newHeightPct = Math.max(0, (item.newEnquiries / niceMax) * 100);
+                                                                        
+                                                                        const maxHeightPct = Math.max(totalHeightPct, newHeightPct);
+                                                                        const isHigh = maxHeightPct > 70;
+                                                                        
+                                                                        const tooltipStyle = {
+                                                                            ...(isHigh ? { top: '10px' } : { bottom: `calc(${maxHeightPct}% + 40px)` })
+                                                                        };
+                                                                        
+                                                                        if (idx === 0) {
+                                                                            tooltipStyle.left = '0';
+                                                                            tooltipStyle.transform = 'none';
+                                                                        } else if (idx === overviewData.length - 1) {
+                                                                            tooltipStyle.right = '0';
+                                                                            tooltipStyle.transform = 'none';
+                                                                        } else {
+                                                                            tooltipStyle.left = '50%';
+                                                                            tooltipStyle.transform = 'translateX(-50%)';
+                                                                        }
+                                                                        
+                                                                        return (
+                                                                            <div key={idx} className="flex-1 h-full relative group cursor-crosshair">
+                                                                                {/* Vertical Hover Line */}
+                                                                                <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[1px] bg-border-subtle opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                                                                
+                                                                                {/* Bars */}
+                                                                                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex items-end justify-center gap-[6px] h-full pointer-events-none pt-[30px]">
+                                                                                    {/* Blue Bar (Enquiries) */}
+                                                                                    <div className="flex flex-col items-center justify-end h-full">
+                                                                                        {item.totalEnquiries > 0 ? (
+                                                                                            <>
+                                                                                                <span className="text-[11px] font-bold text-[#2563EB] mb-1.5 animate-fade-in-up" style={{ animationDelay: `${(idx * 50) + 100}ms` }}>{item.totalEnquiries}</span>
+                                                                                                <div 
+                                                                                                    className="w-[10px] sm:w-[12px] bg-[#2563EB] rounded-t-[4px] animate-fade-in-up" 
+                                                                                                    style={{ height: `${totalHeightPct}%`, animationDelay: `${(idx * 50) + 100}ms` }}
+                                                                                                ></div>
+                                                                                            </>
+                                                                                        ) : (
+                                                                                            <div className="w-[5px] h-[5px] rounded-full bg-[#2563EB] mb-[1px] animate-fade-in-up" style={{ animationDelay: `${(idx * 50) + 100}ms` }}></div>
+                                                                                        )}
+                                                                                    </div>
+                                                                                    
+                                                                                    {/* Teal Bar (Quotations) */}
+                                                                                    <div className="flex flex-col items-center justify-end h-full">
+                                                                                        {item.newEnquiries > 0 ? (
+                                                                                            <>
+                                                                                                <span className="text-[11px] font-bold text-[#0D9488] mb-1.5 animate-fade-in-up" style={{ animationDelay: `${(idx * 50) + 150}ms` }}>{item.newEnquiries}</span>
+                                                                                                <div 
+                                                                                                    className="w-[10px] sm:w-[12px] bg-[#0D9488] rounded-t-[4px] animate-fade-in-up" 
+                                                                                                    style={{ height: `${newHeightPct}%`, animationDelay: `${(idx * 50) + 150}ms` }}
+                                                                                                ></div>
+                                                                                            </>
+                                                                                        ) : (
+                                                                                            <div className="w-[5px] h-[5px] rounded-full bg-[#0D9488] mb-[1px] animate-fade-in-up" style={{ animationDelay: `${(idx * 50) + 150}ms` }}></div>
+                                                                                        )}
+                                                                                    </div>
+                                                                                </div>
+
+                                                                                {/* Tooltip */}
+                                                                                <div 
+                                                                                    className="opacity-0 group-hover:opacity-100 transition-opacity absolute bg-white border border-[#E5E7EB] shadow-sm rounded-[12px] p-3 pointer-events-none w-[160px] z-[100]"
+                                                                                    style={tooltipStyle}
+                                                                                >
+                                                                                    <div className="text-[12px] font-semibold text-[#64748B] mb-2">{item.month}</div>
+                                                                                    <div className="flex flex-col gap-1.5">
+                                                                                        <div className="flex justify-between items-center">
+                                                                                            <div className="flex items-center gap-1.5">
+                                                                                                <div className="w-2 h-2 rounded-full bg-[#2563EB]"></div>
+                                                                                                <span className="text-[12px] text-[#0B192C]">Total Enquiries</span>
+                                                                                            </div>
+                                                                                            <span className="text-[12px] font-bold text-[#0B192C]">{item.totalEnquiries}</span>
+                                                                                        </div>
+                                                                                        <div className="flex justify-between items-center">
+                                                                                            <div className="flex items-center gap-1.5">
+                                                                                                <div className="w-2 h-2 rounded-full bg-[#0D9488]"></div>
+                                                                                                <span className="text-[12px] text-[#0B192C]">Total Quotations</span>
+                                                                                            </div>
+                                                                                            <span className="text-[12px] font-bold text-[#0B192C]">{item.newEnquiries}</span>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                                
+                                                                {/* X Axis Labels */}
+                                                                <div className="absolute top-full left-0 right-0 flex pt-3 border-t border-[#E5E7EB]">
+                                                                    {overviewData.map((item, idx) => (
+                                                                        <div className="flex-1 text-center text-[12px] text-[#64748B] font-normal" key={idx}>
+                                                                            {item.month}
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                );
-                                            })()
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center">
-                                                <EmptyState 
-                                                    icon={PieChart}
-                                                    emptyMessage="No trend data available for this period." 
-                                                    isFiltered={hasActiveFilters}
-                                                    actionLabel="Clear Filters"
-                                                    onAction={handleResetFilters}
-                                                />
-                                            </div>
-                                        )}
+                                                    );
+                                                })()
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center">
+                                                    <EmptyState 
+                                                        icon={PieChart}
+                                                        emptyMessage="No trend data available for this period." 
+                                                        isFiltered={hasActiveFilters}
+                                                        actionLabel="Clear Filters"
+                                                        onAction={handleResetFilters}
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                                
-                                {/* Legend */}
-                                <div className="flex items-center justify-center gap-8 mt-10">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2.5 h-2.5 rounded-full bg-[#2563EB]"></div>
-                                        <span className="text-[13px] font-medium text-[#64748B]">Total Enquiries</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2.5 h-2.5 rounded-full bg-[#0D9488]"></div>
-                                        <span className="text-[13px] font-medium text-[#64748B]">Total Quotations</span>
+
+                                    {/* Legend */}
+                                    <div className="flex md:flex-col items-center md:items-start justify-center gap-6 md:gap-4 md:pl-6 md:ml-2 md:border-l border-t md:border-t-0 border-[#E5E7EB] pt-4 md:pt-0 shrink-0">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2.5 h-2.5 rounded-full bg-[#2563EB]"></div>
+                                            <span className="text-[13px] font-medium text-[#64748B] whitespace-nowrap">Total Enquiries</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2.5 h-2.5 rounded-full bg-[#0D9488]"></div>
+                                            <span className="text-[13px] font-medium text-[#64748B] whitespace-nowrap">Total Quotations</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
