@@ -419,7 +419,8 @@ export default function QuotationBuilder() {
                 method: 'POST',
                 body: JSON.stringify(payload)
             });
-            const pdfBlob = await pdfResponse.blob();
+            const arrayBuffer = await pdfResponse.arrayBuffer();
+            const pdfBlob = new Blob([arrayBuffer], { type: 'application/pdf' });
             const pdfUrl = URL.createObjectURL(pdfBlob);
             setPreviewPdfUrl(pdfUrl);
 

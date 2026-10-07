@@ -120,14 +120,22 @@ public class PdfService {
             String custPhone = quotation.getClientPhone() != null ? quotation.getClientPhone() : "";
             String billAddress = "";
             String state = "";
+            String custGstin = "";
             if (quotation.getCustomer() != null) {
                 billAddress = quotation.getCustomer().getBillingAddress() != null ? quotation.getCustomer().getBillingAddress() : "";
                 state = quotation.getCustomer().getState() != null ? quotation.getCustomer().getState() : "";
+                custGstin = quotation.getCustomer().getGstin() != null ? quotation.getCustomer().getGstin() : "";
             }
             
             PdfPCell custCell1 = new PdfPCell(); custCell1.setBorder(Rectangle.NO_BORDER);
             custCell1.addElement(new Paragraph("Customer Details:", regularFont));
             custCell1.addElement(new Paragraph(custCompany, headerBoldFont));
+            if (!custGstin.isEmpty()) {
+                Paragraph gPara = new Paragraph();
+                gPara.add(new Chunk("GSTIN: ", regularFont));
+                gPara.add(new Chunk(custGstin, headerBoldFont));
+                custCell1.addElement(gPara);
+            }
             if (!custPhone.isEmpty()) {
                 custCell1.addElement(new Paragraph("Ph: " + custPhone, regularFont));
             }
@@ -288,7 +296,7 @@ public class PdfService {
             taxVal.setPaddingTop(5f);
             table.addCell(taxVal);
             
-            PdfPCell igstLabel = new PdfPCell(new Phrase("IGST 18.0%", headerBoldFont)); 
+            PdfPCell igstLabel = new PdfPCell(new Phrase("Total Tax", headerBoldFont)); 
             igstLabel.setColspan(emptyCols + 1);
             igstLabel.setBorderWidth(0);
             igstLabel.setHorizontalAlignment(Element.ALIGN_RIGHT);

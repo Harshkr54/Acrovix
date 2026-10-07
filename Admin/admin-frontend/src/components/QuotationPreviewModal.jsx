@@ -79,7 +79,7 @@ export default function QuotationPreviewModal({
                     </div>
 
                     {/* Right Content Area */}
-                    <div className="btn btn-secondary btn-md">
+                    <div className="flex-1 relative bg-bg-main overflow-hidden">
                         {isLoading && (
                             <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-bg-card/80 backdrop-blur-sm">
                                 <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-primary mb-4"></div>
