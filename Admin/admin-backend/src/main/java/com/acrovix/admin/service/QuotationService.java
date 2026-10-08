@@ -196,6 +196,9 @@ public class QuotationService {
         }
         quotation.setSourceNotes(request.getSourceNotes());
         quotation.setTermsAndConditions(request.getTermsAndConditions());
+        if (request.getValidUntil() != null) {
+            quotation.setValidUntil(request.getValidUntil());
+        }
         
         if (request.getCustomerId() != null) {
             quotation.setCustomer(customerRepository.findById(request.getCustomerId()).orElse(null));
@@ -473,6 +476,9 @@ public class QuotationService {
         transientQ.setQuotationSource(request.getQuotationSource() != null ? request.getQuotationSource() : QuotationSource.OTHER);
         transientQ.setSourceNotes(request.getSourceNotes());
         transientQ.setTermsAndConditions(request.getTermsAndConditions());
+        if (request.getValidUntil() != null) {
+            transientQ.setValidUntil(request.getValidUntil());
+        }
         
         if (request.getCustomerId() != null) {
             transientQ.setCustomer(customerRepository.findById(request.getCustomerId()).orElse(null));

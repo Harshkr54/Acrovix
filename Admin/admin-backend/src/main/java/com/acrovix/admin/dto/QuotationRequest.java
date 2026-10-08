@@ -32,6 +32,7 @@ public class QuotationRequest {
     private com.acrovix.admin.entity.QuotationSource quotationSource;
     private String sourceNotes;
     private String termsAndConditions;
+    private java.time.LocalDate validUntil;
     
     @Valid
     private List<QuotationItemRequest> items;

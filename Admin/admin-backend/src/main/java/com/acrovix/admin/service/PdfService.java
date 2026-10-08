@@ -528,15 +528,17 @@ public class PdfService {
     }
 
     private void addNotesAndTerms(Document document, Quotation quotation, CompanySettingsResponse settings) throws DocumentException {
-        Font headerBoldFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9);
         Font regularFont = FontFactory.getFont(FontFactory.HELVETICA, 9);
+        Font termsHeaderFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, new java.awt.Color(37, 99, 235));
 
         boolean hasQuotationTerms = quotation.getTermsAndConditions() != null && !quotation.getTermsAndConditions().isBlank();
         boolean hasDefaultTerms = settings != null && settings.getDefaultTermsAndConditions() != null && !settings.getDefaultTermsAndConditions().isBlank();
 
         if (hasQuotationTerms || hasDefaultTerms) {
-            document.add(new Paragraph("Notes:", headerBoldFont));
-            document.add(new Paragraph("Terms & Conditions:-", regularFont));
+            Paragraph termsHeader = new Paragraph("Terms & Conditions", termsHeaderFont);
+            termsHeader.setSpacingBefore(15f);
+            termsHeader.setSpacingAfter(5f);
+            document.add(termsHeader);
             
             String terms = hasQuotationTerms ? quotation.getTermsAndConditions() : settings.getDefaultTermsAndConditions();
             String[] lines = terms.split("\n");

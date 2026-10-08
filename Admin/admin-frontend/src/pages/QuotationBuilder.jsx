@@ -39,6 +39,10 @@ export default function QuotationBuilder() {
     const [currency, setCurrency] = useState('INR');
     const [quotationSource, setQuotationSource] = useState('ENQUIRY');
     const [sourceNotes, setSourceNotes] = useState('');
+    const [validUntil, setValidUntil] = useState('');
+    const [termsAndConditions, setTermsAndConditions] = useState('');
+    const [gstin, setGstin] = useState('');
+    const [isFetchingGst, setIsFetchingGst] = useState(false);
 
     const [roughText, setRoughText] = useState('');
     const [isParsing, setIsParsing] = useState(false);
@@ -103,6 +107,8 @@ export default function QuotationBuilder() {
                 setCustomerId(q.customerId || null);
                 setQuotationSource(q.quotationSource || (q.enquiry ? 'ENQUIRY' : 'DIRECT'));
                 setSourceNotes(q.sourceNotes || '');
+                setValidUntil(q.validUntil || '');
+                setTermsAndConditions(q.termsAndConditions || '');
 
                 setEnquiry(q.enquiry ? {
                     referenceId: q.enquiry.referenceId,
@@ -195,6 +201,24 @@ export default function QuotationBuilder() {
         setClientPhone(c.phone || '');
         setCustomerSearch('');
         setIsCustomerDropdownOpen(false);
+    };
+
+    const handleGstLookup = async () => {
+        if (!gstin.trim()) {
+            showToast({ type: 'error', message: 'Please enter a GSTIN' });
+            return;
+        }
+        setIsFetchingGst(true);
+        try {
+            const res = await fetchApi(`/gst-lookup/${gstin.trim()}`);
+            setClientName(res.tradeName || res.legalName || '');
+            setClientCompany(res.legalName || '');
+            showToast({ type: 'success', message: 'Business details fetched successfully' });
+        } catch (err) {
+            showToast({ type: 'error', message: 'Invalid GSTIN or provider error' });
+        } finally {
+            setIsFetchingGst(false);
+        }
     };
 
     const addCatalogItem = (c) => {
@@ -415,6 +439,8 @@ export default function QuotationBuilder() {
                 currency: currency,
                 quotationSource: quotationSource,
                 sourceNotes: sourceNotes,
+                validUntil: validUntil || null,
+                termsAndConditions: termsAndConditions,
                 columnConfigs: columnConfigs,
                 items: items.map((item, index) => ({
                     productServiceId: item.productServiceId,
@@ -484,6 +510,8 @@ export default function QuotationBuilder() {
                 currency: currency,
                 quotationSource: quotationSource,
                 sourceNotes: sourceNotes,
+                validUntil: validUntil || null,
+                termsAndConditions: termsAndConditions,
                 columnConfigs: columnConfigs,
                 items: items.map((item, index) => ({
                     productServiceId: item.productServiceId,
@@ -696,44 +724,65 @@ export default function QuotationBuilder() {
                         </span>
                     )}
                 </div>
-                <div className="mb-6 relative">
-                    <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Load from Customer Master</p>
-                    <div className="relative">
-                        <input
-                            type="text"
-                            placeholder="Search existing customer..."
-                            value={customerSearch}
-                            onChange={(e) => {
-                                setCustomerSearch(e.target.value);
-                                setIsCustomerDropdownOpen(true);
-                            }}
-                            onFocus={() => setIsCustomerDropdownOpen(true)}
-                            onBlur={() => setTimeout(() => setIsCustomerDropdownOpen(false), 200)}
-                            className="w-full bg-bg-main border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
-                        />
-                        {isCustomerDropdownOpen && (
-                            <div className="absolute z-50 w-full mt-1 bg-bg-card border border-border-subtle rounded-xl shadow-lg max-h-48 overflow-y-auto">
-                                {isLoadingCustomers ? (
-                                    <div className="p-3 text-[12px] text-text-muted text-center">Loading...</div>
-                                ) : customers.length === 0 ? (
-                                    <div className="p-3 text-[12px] text-text-muted text-center">No customers found</div>
-                                ) : (
-                                    customers.map(c => (
-                                        <div 
-                                            key={c.id}
-                                            onClick={() => selectCustomer(c)}
-                                            className="px-4 py-2 hover:bg-bg-hover cursor-pointer border-b border-border-subtle/40 last:border-0"
-                                        >
-                                            <div className="text-[13px] font-bold text-text-primary">{c.name} {c.companyName ? `(${c.companyName})` : ''}</div>
-                                            <div className="text-[11px] text-text-muted">{c.email} | {c.phone}</div>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Load from Customer Master</p>
+                        <div className="relative">
+                            <input
+                                type="text"
+                                placeholder="Search existing customer..."
+                                value={customerSearch}
+                                onChange={(e) => {
+                                    setCustomerSearch(e.target.value);
+                                    setIsCustomerDropdownOpen(true);
+                                }}
+                                onFocus={() => setIsCustomerDropdownOpen(true)}
+                                onBlur={() => setTimeout(() => setIsCustomerDropdownOpen(false), 200)}
+                                className="w-full bg-bg-main border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
+                            />
+                            {isCustomerDropdownOpen && (
+                                <div className="absolute z-50 w-full mt-1 bg-bg-card border border-border-subtle rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                                    {isLoadingCustomers ? (
+                                        <div className="p-3 text-[12px] text-text-muted text-center">Loading...</div>
+                                    ) : customers.length === 0 ? (
+                                        <div className="p-3 text-[12px] text-text-muted text-center">No customers found</div>
+                                    ) : (
+                                        customers.map(c => (
+                                            <div 
+                                                key={c.id}
+                                                onClick={() => selectCustomer(c)}
+                                                className="px-4 py-2 hover:bg-bg-hover cursor-pointer border-b border-border-subtle/40 last:border-0"
+                                            >
+                                                <div className="text-[13px] font-bold text-text-primary">{c.name} {c.companyName ? `(${c.companyName})` : ''}</div>
+                                                <div className="text-[11px] text-text-muted">{c.email} | {c.phone}</div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    <div>
+                        <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Or Auto-Fetch via GSTIN</p>
+                        <div className="flex gap-2">
+                            <input 
+                                type="text"
+                                placeholder="Enter GSTIN"
+                                value={gstin}
+                                onChange={(e) => setGstin(e.target.value.toUpperCase())}
+                                className="flex-1 bg-bg-main border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
+                            />
+                            <button 
+                                onClick={handleGstLookup}
+                                disabled={isFetchingGst || !gstin.trim()}
+                                className="btn btn-secondary px-4 whitespace-nowrap"
+                            >
+                                {isFetchingGst ? 'Fetching...' : 'Fetch'}
+                            </button>
+                        </div>
                     </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
                     <div>
                         <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Currency</p>
                         <select
@@ -785,6 +834,15 @@ export default function QuotationBuilder() {
                             placeholder="+91..."
                         />
                     </div>
+                    <div>
+                        <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Valid Until</p>
+                        <input
+                            type="date"
+                            value={validUntil}
+                            onChange={(e) => setValidUntil(e.target.value)}
+                            className="w-full bg-bg-main border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] font-medium text-text-primary outline-none transition-colors"
+                        />
+                    </div>
                 </div>
 
                 {sourceNotes && (
@@ -793,6 +851,16 @@ export default function QuotationBuilder() {
                         <p className="text-[13px] text-text-secondary italic">{sourceNotes}</p>
                     </div>
                 )}
+                
+                <div className="mt-4 pt-4 border-t border-border-subtle/50">
+                    <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Terms & Conditions</p>
+                    <textarea
+                        value={termsAndConditions}
+                        onChange={(e) => setTermsAndConditions(e.target.value)}
+                        placeholder="Quotation-specific terms (leaves blank to use default settings)"
+                        className="w-full bg-bg-main border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] text-text-primary outline-none transition-colors min-h-[80px]"
+                    />
+                </div>
             </div>
 
             {/* Gemini Import */}

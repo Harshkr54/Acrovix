@@ -107,14 +107,12 @@ export default function QuotationPreviewModal({
                         {!isLoading && !error && (
                             <div className="w-full h-full overflow-y-auto">
                                 {activeTab === 'pdf' && pdfBlobUrl && (
-                                    <div className="w-full h-full p-4 sm:p-8 flex items-center justify-center">
-                                        <div className="w-full max-w-[850px] h-full bg-white shadow-xl rounded-sm overflow-hidden">
-                                            <iframe
-                                                src={pdfBlobUrl} 
-                                                title="Quotation PDF Preview"
-                                                className="w-full h-full border-0"
-                                            />
-                                        </div>
+                                    <div className="w-full h-full">
+                                        <iframe
+                                            src={pdfBlobUrl} 
+                                            title="Quotation PDF Preview"
+                                            className="w-full h-full border-0 block"
+                                        />
                                     </div>
                                 )}
 
