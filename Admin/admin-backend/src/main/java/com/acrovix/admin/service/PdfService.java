@@ -639,36 +639,50 @@ public class PdfService {
             city = "Bengaluru";
         }
 
-        // Top line (Logo / Company Name)
+        // Top line (PO Header Image)
         try {
-            Image logo = null;
-            if (settings != null && settings.getLogoUrl() != null && !settings.getLogoUrl().trim().isEmpty()) {
-                try {
-                    logo = Image.getInstance(new java.net.URL(settings.getLogoUrl()));
-                } catch (Exception e) {
-                    log.warn("Failed to load logo from URL: " + settings.getLogoUrl(), e);
-                }
+            Image poHeaderImg = null;
+            java.net.URL poHeaderUrl = getClass().getResource("/static/PO_header.png");
+            if (poHeaderUrl != null) {
+                poHeaderImg = Image.getInstance(poHeaderUrl);
             }
-            if (logo == null) {
-                java.net.URL defaultLogoUrl = getClass().getResource("/static/Acrovix_logo.png");
-                if (defaultLogoUrl != null) {
-                    logo = Image.getInstance(defaultLogoUrl);
-                }
-            }
-            if (logo != null) {
-                logo.scaleToFit(150f, 60f);
-                logo.setAlignment(Element.ALIGN_LEFT);
-                document.add(logo);
+
+            if (poHeaderImg != null) {
+                poHeaderImg.scaleToFit(500f, 120f);
+                poHeaderImg.setAlignment(Element.ALIGN_CENTER);
+                document.add(poHeaderImg);
                 document.add(new Paragraph("\n"));
             } else {
-                Font compNameFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 22, new java.awt.Color(11, 25, 44));
-                String companyName = (settings != null && settings.getCompanyName() != null) ? settings.getCompanyName() : "ACROVIX INNOVATIONS PRIVATE LIMITED";
-                Paragraph logoPara = new Paragraph(companyName, compNameFont);
-                logoPara.setAlignment(Element.ALIGN_LEFT);
-                document.add(logoPara);
+                log.warn("PO_header.png not found, falling back to logo/text");
+                Image logo = null;
+                if (settings != null && settings.getLogoUrl() != null && !settings.getLogoUrl().trim().isEmpty()) {
+                    try {
+                        logo = Image.getInstance(new java.net.URL(settings.getLogoUrl()));
+                    } catch (Exception ex) {
+                        log.warn("Failed to load logo from URL: " + settings.getLogoUrl(), ex);
+                    }
+                }
+                if (logo == null) {
+                    java.net.URL defaultLogoUrl = getClass().getResource("/static/Acrovix_logo.png");
+                    if (defaultLogoUrl != null) {
+                        logo = Image.getInstance(defaultLogoUrl);
+                    }
+                }
+                if (logo != null) {
+                    logo.scaleToFit(150f, 60f);
+                    logo.setAlignment(Element.ALIGN_LEFT);
+                    document.add(logo);
+                    document.add(new Paragraph("\n"));
+                } else {
+                    Font compNameFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 22, new java.awt.Color(11, 25, 44));
+                    String companyName = (settings != null && settings.getCompanyName() != null) ? settings.getCompanyName() : "ACROVIX INNOVATIONS PRIVATE LIMITED";
+                    Paragraph logoPara = new Paragraph(companyName, compNameFont);
+                    logoPara.setAlignment(Element.ALIGN_LEFT);
+                    document.add(logoPara);
+                }
             }
         } catch (Exception e) {
-            log.warn("Failed to add logo to PO PDF", e);
+            log.warn("Failed to add PO header to PDF", e);
             Font compNameFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 22, new java.awt.Color(11, 25, 44));
             String companyName = (settings != null && settings.getCompanyName() != null) ? settings.getCompanyName() : "ACROVIX INNOVATIONS PRIVATE LIMITED";
             Paragraph logoPara = new Paragraph(companyName, compNameFont);

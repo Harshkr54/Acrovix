@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getPurchaseOrderById, verifyPurchaseOrder, updatePurchaseOrderStatus, createInvoiceFromPurchaseOrder, fetchApi, getCompanySettings } from '../services/api';
-import { useAuth } from '../context/AuthContext';
 import { ArrowLeft, Clock, CheckCircle, Package, XCircle, FileText, Download, AlertTriangle, Eye, X, Building2, MapPin, Mail, Phone, Hash, CalendarDays, Receipt, UserSquare2, Loader2, Link, ShoppingCart, User, FileDigit, Activity } from 'lucide-react';
 import { API_BASE_URL } from '../services/api';
 import { formatCurrency } from '../utils/formatters';
@@ -168,7 +167,7 @@ export default function PurchaseOrderDetail() {
     const getStatusIcon = (status) => {
         switch (status) {
             case 'RECEIVED': return <Clock className="w-4 h-4 text-yellow-500"/>;
-            case 'VERIFIED': return <CheckCircle className="w-4 h-4 text-blue-500"/>;
+            case 'VERIFIED': return <CheckCircle className="w-4 h-4 text-brand-teal"/>;
             case 'PARTIALLY_FULFILLED': return <Package className="w-4 h-4 text-purple-500"/>;
             case 'FULFILLED': return <CheckCircle className="w-4 h-4 text-green-500"/>;
             case 'CANCELLED': return <XCircle className="w-4 h-4 text-red-500"/>;
@@ -184,6 +183,30 @@ export default function PurchaseOrderDetail() {
         return item.customValues?.[colKey] || "-";
     };
 
+    const getColumnClass = (col) => {
+        let classes = "px-5 py-3 text-[13px] text-text-primary";
+        if (col.columnType === 'CURRENCY' || col.columnKey.toLowerCase().includes('total') || col.columnKey.toLowerCase().includes('price') || col.columnKey.toLowerCase().includes('percent')) {
+            classes += " text-right whitespace-nowrap font-mono";
+        } else if (col.columnKey === 'quantity') {
+            classes += " text-center whitespace-nowrap";
+        } else if (col.columnKey === 'hsnSac') {
+            classes += " whitespace-nowrap";
+        }
+        return classes;
+    };
+    
+    const getHeaderClass = (col) => {
+        let classes = "px-5 py-3 text-[11px] font-bold text-text-secondary uppercase tracking-wider";
+        if (col.columnType === 'CURRENCY' || col.columnKey.toLowerCase().includes('total') || col.columnKey.toLowerCase().includes('price') || col.columnKey.toLowerCase().includes('percent')) {
+            classes += " text-right whitespace-nowrap";
+        } else if (col.columnKey === 'quantity') {
+            classes += " text-center whitespace-nowrap";
+        } else if (col.columnKey === 'hsnSac') {
+            classes += " whitespace-nowrap";
+        }
+        return classes;
+    };
+
     const renderColumnContent = (item, col) => {
         const value = getColumnValue(item, col.columnKey);
         if (col.columnType === "CURRENCY") {
@@ -195,7 +218,6 @@ export default function PurchaseOrderDetail() {
         return value;
     };
 
-    // Calculation for footer totals from quotation items
     const calculateTotals = () => {
         let subtotalBeforeTax = 0;
         let taxableAmount = 0;
@@ -233,7 +255,7 @@ export default function PurchaseOrderDetail() {
                 <div className="flex items-center gap-4">
                     <button 
                         onClick={() => navigate('/purchase-orders')}
-                        className="btn btn-secondary btn-icon border-border-subtle hover:bg-bg-muted"
+                        className="btn btn-secondary btn-icon border-border-subtle hover:bg-bg-muted shrink-0"
                     >
                         <ArrowLeft className="w-4 h-4" />
                     </button>
@@ -243,15 +265,15 @@ export default function PurchaseOrderDetail() {
                                 {companySettings?.logoUrl ? (
                                     <img src={companySettings.logoUrl} alt="Logo" className="h-8 object-contain" />
                                 ) : (
-                                    <Building2 className="w-7 h-7 text-brand-primary" />
+                                    <Building2 className="w-7 h-7 text-brand-primary shrink-0" />
                                 )}
-                                <span className="opacity-40 font-light mx-1">|</span>
+                                <span className="opacity-40 font-light mx-1 hidden sm:inline">|</span>
                                 Purchase Order
                             </h1>
                         </div>
-                        <p className="text-[13px] font-mono text-text-muted flex items-center mt-1">
+                        <p className="text-[13px] font-mono text-text-muted flex items-center mt-1 flex-wrap gap-2">
                             {order.poNumber}
-                            <span className="inline-flex items-center ml-3 px-2 py-0.5 rounded-full text-[10px] font-bold bg-bg-muted border border-border-subtle uppercase tracking-wider gap-1.5 text-text-secondary">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-bg-muted border border-border-subtle uppercase tracking-wider gap-1.5 text-text-secondary">
                                 {getStatusIcon(order.status)}
                                 {order.status}
                             </span>
@@ -259,44 +281,47 @@ export default function PurchaseOrderDetail() {
                     </div>
                 </div>
 
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-3 flex-wrap justify-end gap-y-3">
                     <button 
                         onClick={handlePreviewPdf}
                         disabled={isPreviewLoading}
-                        className="btn btn-secondary btn-md flex items-center"
+                        className="btn btn-secondary btn-md flex items-center bg-white border border-border-subtle hover:bg-bg-muted shadow-sm"
                     >
                         {isPreviewLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
                         Preview PDF
                     </button>
                     <button 
                         onClick={handleDownloadPdf}
-                        className="btn btn-secondary btn-md flex items-center"
+                        className="btn btn-secondary btn-md flex items-center bg-white border border-border-subtle hover:bg-bg-muted shadow-sm"
                     >
                         <Download className="w-4 h-4 mr-2" /> PDF
                     </button>
+                    
+                    {['VERIFIED', 'PARTIALLY_FULFILLED'].includes(order.status) && (
+                        <button 
+                            onClick={handleCreateTaxInvoice}
+                            disabled={actionLoading}
+                            className="btn btn-secondary btn-md flex items-center text-brand-teal border-brand-teal/20 hover:bg-brand-teal/5 shadow-sm"
+                        >
+                            <FileText className="w-4 h-4 mr-2" /> Create Tax Invoice
+                        </button>
+                    )}
                     
                     {order.status === 'RECEIVED' && (
                         <button 
                             onClick={handleVerify}
                             disabled={actionLoading}
-                            className="btn btn-primary btn-md flex items-center"
+                            className="btn btn-primary btn-md flex items-center shadow-sm"
                         >
-                            <CheckCircle className="w-4 h-4 mr-2" /> Verify
+                            {actionLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}
+                            Verify
                         </button>
                     )}
-                    {['VERIFIED', 'PARTIALLY_FULFILLED'].includes(order.status) && (
-                        <button 
-                            onClick={handleCreateTaxInvoice}
-                            disabled={actionLoading}
-                            className="btn btn-success btn-md flex items-center"
-                        >
-                            <FileText className="w-4 h-4 mr-2" /> Tax Invoice
-                        </button>
-                    )}
+
                     {['VERIFIED', 'PARTIALLY_FULFILLED'].includes(order.status) && (
                         <button 
                             onClick={() => { setNewStatus(''); setStatusModalOpen(true); }}
-                            className="btn btn-primary btn-md"
+                            className="btn btn-secondary btn-md bg-white border border-border-subtle hover:bg-bg-muted shadow-sm"
                         >
                             Update Status
                         </button>
@@ -371,18 +396,18 @@ export default function PurchaseOrderDetail() {
             )}
 
             {/* Main Content 2-Column */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
                 
                 {/* LEFT COLUMN: Bill To, Ship To, Details, Terms */}
-                <div className="lg:col-span-2 space-y-6">
+                <div className="xl:col-span-2 space-y-6">
                     
                     {/* Bill To & Ship To Side-by-Side */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="acx-card p-6 border-t-4 border-t-[var(--color-brand-primary)]">
+                        <div className="acx-card p-6 border-t-4 border-t-[var(--color-brand-primary)] flex flex-col">
                             <h3 className="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-4 flex items-center">
                                 <Building2 className="w-3.5 h-3.5 mr-2" /> BILL TO (ACROVIX)
                             </h3>
-                            <div className="space-y-3">
+                            <div className="space-y-4 flex-1">
                                 <div>
                                     <p className="text-[14px] font-bold text-text-primary">{companySettings?.companyName || 'ACROVIX INNOVATIONS PRIVATE LIMITED'}</p>
                                 </div>
@@ -392,40 +417,46 @@ export default function PurchaseOrderDetail() {
                                         <p className="leading-relaxed">{companySettings.registeredAddress}</p>
                                     </div>
                                 )}
-                                <div className="pt-2 border-t border-border-subtle/50 grid grid-cols-2 gap-y-2">
-                                    {companySettings?.gstin && (
-                                        <div>
-                                            <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">GSTIN</p>
-                                            <p className="text-[12px] font-mono text-text-primary">{companySettings.gstin}</p>
-                                        </div>
-                                    )}
-                                    {companySettings?.pan && (
-                                        <div>
-                                            <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">PAN</p>
-                                            <p className="text-[12px] font-mono text-text-primary">{companySettings.pan}</p>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="pt-2 border-t border-border-subtle/50 space-y-2">
-                                    {companySettings?.email && (
-                                        <div className="flex items-center text-[12px] text-text-secondary">
-                                            <Mail className="w-3.5 h-3.5 mr-2 text-text-muted" /> {companySettings.email}
-                                        </div>
-                                    )}
-                                    {companySettings?.phone && (
-                                        <div className="flex items-center text-[12px] text-text-secondary">
-                                            <Phone className="w-3.5 h-3.5 mr-2 text-text-muted" /> {companySettings.phone}
-                                        </div>
-                                    )}
-                                </div>
+                                
+                                {((companySettings?.gstin) || (companySettings?.pan)) && (
+                                    <div className="pt-3 border-t border-border-subtle/50 flex flex-wrap gap-x-8 gap-y-3">
+                                        {companySettings?.gstin && (
+                                            <div>
+                                                <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">GSTIN</p>
+                                                <p className="text-[12px] font-mono text-text-primary">{companySettings.gstin}</p>
+                                            </div>
+                                        )}
+                                        {companySettings?.pan && (
+                                            <div>
+                                                <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">PAN</p>
+                                                <p className="text-[12px] font-mono text-text-primary">{companySettings.pan}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                                
+                                {((companySettings?.email) || (companySettings?.phone)) && (
+                                    <div className="pt-3 border-t border-border-subtle/50 space-y-2">
+                                        {companySettings?.email && (
+                                            <div className="flex items-center text-[12px] text-text-secondary">
+                                                <Mail className="w-3.5 h-3.5 mr-2 text-text-muted" /> {companySettings.email}
+                                            </div>
+                                        )}
+                                        {companySettings?.phone && (
+                                            <div className="flex items-center text-[12px] text-text-secondary">
+                                                <Phone className="w-3.5 h-3.5 mr-2 text-text-muted" /> {companySettings.phone}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
 
-                        <div className="acx-card p-6 border-t-4 border-t-brand-teal">
+                        <div className="acx-card p-6 border-t-4 border-t-brand-teal flex flex-col">
                             <h3 className="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-4 flex items-center">
                                 <UserSquare2 className="w-3.5 h-3.5 mr-2" /> SHIP TO / VENDOR
                             </h3>
-                            <div className="space-y-3">
+                            <div className="space-y-4 flex-1">
                                 <div>
                                     <p className="text-[14px] font-bold text-text-primary">{order.clientCompany || order.clientName}</p>
                                     {order.clientCompany && order.clientName !== order.clientCompany && (
@@ -440,43 +471,46 @@ export default function PurchaseOrderDetail() {
                                         <p className="leading-relaxed">{quotation.customer.billingAddress}</p>
                                     </div>
                                 )}
-                                <div className="pt-2 border-t border-border-subtle/50 grid grid-cols-2 gap-y-2">
-                                    {quotation?.customer?.gstin && (
-                                        <div className="col-span-2">
-                                            <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">Vendor GSTIN</p>
-                                            <p className="text-[12px] font-mono text-text-primary">{quotation.customer.gstin}</p>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="pt-2 border-t border-border-subtle/50 space-y-2">
-                                    {quotation?.clientEmail && (
-                                        <div className="flex items-center text-[12px] text-text-secondary">
-                                            <Mail className="w-3.5 h-3.5 mr-2 text-text-muted" /> {quotation.clientEmail}
-                                        </div>
-                                    )}
-                                    {quotation?.clientPhone && (
-                                        <div className="flex items-center text-[12px] text-text-secondary">
-                                            <Phone className="w-3.5 h-3.5 mr-2 text-text-muted" /> {quotation.clientPhone}
-                                        </div>
-                                    )}
-                                </div>
+                                
+                                {quotation?.customer?.gstin && (
+                                    <div className="pt-3 border-t border-border-subtle/50">
+                                        <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">Vendor GSTIN</p>
+                                        <p className="text-[12px] font-mono text-text-primary">{quotation.customer.gstin}</p>
+                                    </div>
+                                )}
+                                
+                                {((quotation?.clientEmail) || (quotation?.clientPhone)) && (
+                                    <div className="pt-3 border-t border-border-subtle/50 space-y-2">
+                                        {quotation?.clientEmail && (
+                                            <div className="flex items-center text-[12px] text-text-secondary">
+                                                <Mail className="w-3.5 h-3.5 mr-2 text-text-muted" /> {quotation.clientEmail}
+                                            </div>
+                                        )}
+                                        {quotation?.clientPhone && (
+                                            <div className="flex items-center text-[12px] text-text-secondary">
+                                                <Phone className="w-3.5 h-3.5 mr-2 text-text-muted" /> {quotation.clientPhone}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
 
                     {/* Order Details Table */}
                     <div className="acx-card overflow-hidden">
-                        <div className="px-6 py-5 border-b border-border-subtle flex justify-between items-center bg-bg-card">
+                        <div className="px-6 py-5 border-b border-border-subtle bg-bg-card">
                             <h3 className="text-[14px] font-bold text-text-primary tracking-tight flex items-center">
                                 <ShoppingCart className="w-4 h-4 mr-2 text-brand-teal" /> Order Details
+                                <span className="ml-3 text-[11px] font-normal text-text-muted tracking-wide">Line Items</span>
                             </h3>
                         </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
+                        <div className="overflow-x-auto w-full table-wrapper">
+                            <table className="w-full text-left border-collapse min-w-[700px]">
                                 <thead>
                                     <tr className="bg-bg-muted border-b border-border-subtle">
                                         {visibleColumns.map((col) => (
-                                            <th key={col.columnKey} className="px-5 py-3 text-[11px] font-bold text-text-secondary uppercase tracking-wider">
+                                            <th key={col.columnKey} className={getHeaderClass(col)}>
                                                 {col.displayName}
                                             </th>
                                         ))}
@@ -486,7 +520,7 @@ export default function PurchaseOrderDetail() {
                                     {quotation?.items?.map((item, idx) => (
                                         <tr key={idx} className="border-b border-border-subtle/40 hover:bg-bg-hover transition-colors">
                                             {visibleColumns.map((col) => (
-                                                <td key={col.columnKey} className="px-5 py-3 text-[13px] text-text-primary">
+                                                <td key={col.columnKey} className={getColumnClass(col)}>
                                                     {renderColumnContent(item, col)}
                                                 </td>
                                             ))}
@@ -505,9 +539,9 @@ export default function PurchaseOrderDetail() {
                         
                         {/* Summary / Totals inside Table Card Footer */}
                         <div className="bg-bg-muted/30 p-6 border-t border-border-subtle">
-                            <div className="w-full md:w-1/2 ml-auto space-y-3">
+                            <div className="w-full sm:w-[320px] ml-auto space-y-3">
                                 <div className="flex justify-between text-[13px] text-text-secondary">
-                                    <span className="font-medium">Subtotal (Before Tax)</span>
+                                    <span className="font-medium">Subtotal</span>
                                     <span className="font-mono font-semibold text-text-primary">{formatCurrency(totals.subtotalBeforeTax, order.currency)}</span>
                                 </div>
                                 {totals.discount > 0 && (
@@ -525,8 +559,8 @@ export default function PurchaseOrderDetail() {
                                     <span className="font-mono font-semibold text-text-primary">{formatCurrency(totals.tax, order.currency)}</span>
                                 </div>
                                 <div className="flex justify-between items-end pt-2">
-                                    <span className="text-[15px] font-bold text-text-primary">Grand Total</span>
-                                    <span className="text-[28px] font-bold text-brand-teal font-mono tracking-tight leading-none">
+                                    <span className="text-[14px] font-bold text-text-primary uppercase tracking-wide">Grand Total</span>
+                                    <span className="text-[26px] font-bold text-brand-teal font-mono tracking-tight leading-none">
                                         {formatCurrency(totals.grandTotal, order.currency)}
                                     </span>
                                 </div>
@@ -534,12 +568,12 @@ export default function PurchaseOrderDetail() {
                         </div>
                     </div>
 
-                    {/* Terms & Remarks */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Terms & Remarks - Full Width */}
+                    <div className="space-y-6">
                         {quotation?.termsAndConditions && (
-                            <div className="acx-card p-6">
-                                <h3 className="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-4">Terms & Conditions</h3>
-                                <div className="text-[12px] text-text-secondary whitespace-pre-wrap leading-relaxed">
+                            <div className="acx-card p-8">
+                                <h3 className="text-[12px] font-bold text-text-secondary uppercase tracking-wider mb-5 pb-3 border-b border-border-subtle">Terms & Conditions</h3>
+                                <div className="text-[13px] text-text-secondary whitespace-pre-wrap leading-relaxed font-normal">
                                     {quotation.termsAndConditions}
                                 </div>
                             </div>
@@ -547,7 +581,7 @@ export default function PurchaseOrderDetail() {
                         {order.remarks && (
                             <div className="acx-card p-6">
                                 <h3 className="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-4">Internal Remarks</h3>
-                                <div className="text-[12px] text-text-secondary whitespace-pre-wrap leading-relaxed bg-yellow-500/5 p-3 rounded-lg border border-yellow-500/10">
+                                <div className="text-[13px] text-text-secondary whitespace-pre-wrap leading-relaxed bg-yellow-500/5 p-4 rounded-xl border border-yellow-500/10">
                                     {order.remarks}
                                 </div>
                             </div>
@@ -558,22 +592,27 @@ export default function PurchaseOrderDetail() {
                 {/* RIGHT COLUMN: Quotation, Timeline */}
                 <div className="space-y-6">
                     {/* Source Quotation */}
-                    <div className="acx-card p-6">
-                        <h3 className="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-5 flex items-center">
+                    <div className="acx-card p-5">
+                        <h3 className="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-4 flex items-center">
                             <FileDigit className="w-3.5 h-3.5 mr-2" /> Source Quotation
                         </h3>
-                        <div className="space-y-5">
-                            <div className="bg-bg-muted/50 rounded-xl p-4 border border-border-subtle">
-                                <p className="text-[11px] text-text-muted uppercase font-bold tracking-wider mb-1">Ref Number</p>
-                                <button 
-                                    onClick={() => navigate(`/quotations?search=${order.quotationNumber}`)}
-                                    className="text-[14px] font-mono font-bold text-[var(--color-brand-primary)] hover:underline flex items-center"
-                                >
-                                    {order.quotationNumber} <Eye className="w-3 h-3 ml-1.5" />
-                                </button>
+                        <div className="space-y-4">
+                            <div className="bg-bg-muted/50 rounded-xl p-3 border border-border-subtle flex justify-between items-center">
+                                <div>
+                                    <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">Ref Number</p>
+                                    <button 
+                                        onClick={() => navigate(`/quotations?search=${order.quotationNumber}`)}
+                                        className="text-[13px] font-mono font-bold text-[var(--color-brand-primary)] hover:underline flex items-center"
+                                    >
+                                        {order.quotationNumber}
+                                    </button>
+                                </div>
+                                <div className="w-8 h-8 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                                    <FileDigit className="w-4 h-4" />
+                                </div>
                             </div>
                             <div>
-                                <p className="text-[11px] text-text-muted uppercase font-bold tracking-wider mb-1">Quotation Value</p>
+                                <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-1">Quotation Value</p>
                                 <p className="text-[16px] font-mono font-semibold text-text-primary tracking-tight">
                                     {formatCurrency(order.quotationValue, order.currency)}
                                 </p>
@@ -582,14 +621,14 @@ export default function PurchaseOrderDetail() {
                     </div>
 
                     {/* Timeline */}
-                    <div className="acx-card p-6">
+                    <div className="acx-card p-5">
                         <h3 className="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-5 flex items-center">
                             <Activity className="w-3.5 h-3.5 mr-2" /> Timeline
                         </h3>
-                        <div className="relative border-l-2 border-border-subtle ml-3 space-y-6">
+                        <div className="relative border-l-2 border-border-subtle ml-2.5 space-y-6 pb-2">
                             <div className="relative pl-6">
                                 <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-brand-primary border-4 border-bg-card"></div>
-                                <p className="text-[13px] font-bold text-text-primary">PO Created</p>
+                                <p className="text-[12px] font-bold text-text-primary">PO Created</p>
                                 <p className="text-[11px] text-text-muted mt-0.5">
                                     {new Date(order.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                 </p>
@@ -597,8 +636,8 @@ export default function PurchaseOrderDetail() {
                             </div>
                             {order.verifiedAt && (
                                 <div className="relative pl-6">
-                                    <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-blue-500 border-4 border-bg-card"></div>
-                                    <p className="text-[13px] font-bold text-text-primary">Verified</p>
+                                    <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-brand-teal border-4 border-bg-card"></div>
+                                    <p className="text-[12px] font-bold text-text-primary">Verified</p>
                                     <p className="text-[11px] text-text-muted mt-0.5">
                                         {new Date(order.verifiedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                     </p>
@@ -608,7 +647,7 @@ export default function PurchaseOrderDetail() {
                             {order.status === 'FULFILLED' && (
                                 <div className="relative pl-6">
                                     <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-green-500 border-4 border-bg-card"></div>
-                                    <p className="text-[13px] font-bold text-text-primary">Fulfilled</p>
+                                    <p className="text-[12px] font-bold text-text-primary">Fulfilled</p>
                                     <p className="text-[11px] text-text-muted mt-0.5">
                                         {new Date(order.updatedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                     </p>

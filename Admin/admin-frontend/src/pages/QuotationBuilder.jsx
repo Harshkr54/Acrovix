@@ -668,20 +668,8 @@ export default function QuotationBuilder() {
                         )}
                     </p>
                 </div>
-                <div className="flex items-center justify-between w-full md:w-auto">
-                    <button 
-                        onClick={() => setIsClearConfirmOpen(true)}
-                        className="btn btn-secondary btn-md text-brand-danger border-brand-danger/20 hover:bg-brand-danger/5 md:hidden mr-auto"
-                    >
-                        <Trash2 className="w-4 h-4 mr-1.5" /> Clear All
-                    </button>
+                <div className="flex items-center justify-end w-full md:w-auto">
                     <div className="flex items-center space-x-3 ml-auto">
-                        <button 
-                            onClick={() => setIsClearConfirmOpen(true)}
-                            className="btn btn-secondary btn-md text-brand-danger border-brand-danger/20 hover:bg-brand-danger/5 hidden md:flex"
-                        >
-                            <Trash2 className="w-4 h-4 mr-1.5" /> Clear All
-                        </button>
                         <button 
                             onClick={handleSaveDraft} 
                             disabled={isSaving || isSending}
@@ -1089,10 +1077,16 @@ export default function QuotationBuilder() {
                     </table>
                 </div>
                 
-                {/* Add Item Row */}
-                <div className="p-5 border-t border-border-subtle/50 bg-bg-card rounded-b-[24px] flex justify-start items-center">
+                {/* Add Item & Clear All Row */}
+                <div className="p-5 border-t border-border-subtle/50 bg-bg-card rounded-b-[24px] flex justify-between items-center">
                     <button onClick={addItem} className="btn btn-secondary btn-sm flex items-center gap-1.5">
                         <Plus className="w-4 h-4" /> Add Item
+                    </button>
+                    <button 
+                        onClick={() => setIsClearConfirmOpen(true)}
+                        className="flex items-center bg-white border border-brand-danger/30 text-brand-danger hover:bg-brand-danger/5 h-[38px] md:h-[40px] px-3 md:px-4 rounded-[10px] md:rounded-[12px] text-[13px] md:text-[14px] font-medium transition-colors"
+                    >
+                        <Trash2 className="w-4 h-4 mr-1.5" /> Clear All
                     </button>
                 </div>
             </div>
