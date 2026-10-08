@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useGstinVerification } from '../hooks/useGstinVerification';
 import { CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 

@@ -129,9 +129,6 @@ public class GstinApiVerificationService implements GstVerificationService {
         } catch (HttpClientErrorException.TooManyRequests e) {
             log.warn("GST verification: GSTIN={} ProviderStatus=429", cleanGstin);
             throw new IllegalStateException("GST verification limit reached. Please try again later.");
-        } catch (HttpClientErrorException.PaymentRequired e) {
-            log.error("GST API Payment Required (402): {}", e.getResponseBodyAsString());
-            throw new IllegalStateException("GST verification service requires configuration update (credits exhausted).");
         } catch (org.springframework.web.client.HttpServerErrorException.BadGateway e) {
             // 502
             log.error("GST API Bad Gateway (502)");
@@ -141,8 +138,12 @@ public class GstinApiVerificationService implements GstVerificationService {
             throw new IllegalStateException("GST verification service is temporarily unavailable.");
         } catch (HttpClientErrorException e) {
             log.error("GST verification: GSTIN={} ProviderStatus={} ProviderResponse={}", cleanGstin, e.getStatusCode(), e.getResponseBodyAsString());
-            // Map 400 to a different message so it's not misclassified as "not registered"
-            if (e.getStatusCode().value() == 400) {
+            
+            int status = e.getStatusCode().value();
+            if (status == 402) {
+                throw new IllegalStateException("GST verification service requires configuration update (credits exhausted).");
+            }
+            if (status == 400) {
                 throw new IllegalStateException("GST verification request could not be processed.");
             }
             throw new IllegalStateException("GST verification is currently unavailable.");
