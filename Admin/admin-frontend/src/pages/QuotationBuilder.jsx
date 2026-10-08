@@ -6,6 +6,7 @@ import { Plus, Trash2, Send, Save, Wand2, ArrowUp, ArrowDown, Calculator, User, 
 import SendQuotationModal from '../components/SendQuotationModal';
 import QuotationColumnConfigModal from '../components/QuotationColumnConfigModal';
 import QuotationPreviewModal from '../components/QuotationPreviewModal';
+import { useToast } from '../context/ToastContext';
 
 const defaultConfigs = [
     { columnKey: "rowNumber", displayName: "#", columnType: "TEXT", visible: true, sortOrder: 0, isCustom: false },
@@ -25,6 +26,7 @@ export default function QuotationBuilder() {
     const { enquiryId, quotationId } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
+    const { showToast } = useToast();
     
     // Determine mode based on URL
     const isEditMode = location.pathname.includes('/edit/');
@@ -360,35 +362,40 @@ export default function QuotationBuilder() {
         setValidationError(null);
         
         if (!clientName?.trim()) {
-            setValidationError("Please enter a Client Name before previewing.");
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            const msg = "Please enter a Client Name before previewing.";
+            setValidationError(msg);
+            showToast({ type: 'error', message: msg });
             return;
         }
 
         if (!items || items.length === 0) {
-            setValidationError("Add at least one line item before previewing the quotation.");
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            const msg = "Add at least one line item before previewing the quotation.";
+            setValidationError(msg);
+            showToast({ type: 'error', message: msg });
             return;
         }
 
         const missingDescIndex = items.findIndex(item => !item.description?.trim());
         if (missingDescIndex !== -1) {
-            setValidationError(`Please enter a description for line item ${missingDescIndex + 1} before previewing.`);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            const msg = `Please enter a description for line item ${missingDescIndex + 1} before previewing.`;
+            setValidationError(msg);
+            showToast({ type: 'error', message: msg });
             return;
         }
 
         const invalidQtyIndex = items.findIndex(item => parseFloat(item.quantity) <= 0 || isNaN(parseFloat(item.quantity)));
         if (invalidQtyIndex !== -1) {
-            setValidationError(`Quantity for line item ${invalidQtyIndex + 1} must be greater than 0.`);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            const msg = `Quantity for line item ${invalidQtyIndex + 1} must be greater than 0.`;
+            setValidationError(msg);
+            showToast({ type: 'error', message: msg });
             return;
         }
 
         const invalidPriceIndex = items.findIndex(item => parseFloat(item.unitPrice) < 0 || isNaN(parseFloat(item.unitPrice)));
         if (invalidPriceIndex !== -1) {
-            setValidationError(`Unit Price for line item ${invalidPriceIndex + 1} cannot be negative or invalid.`);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            const msg = `Unit Price for line item ${invalidPriceIndex + 1} cannot be negative or invalid.`;
+            setValidationError(msg);
+            showToast({ type: 'error', message: msg });
             return;
         }
 
