@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { fetchApi } from '../services/api';
 
 export function useGstinVerification({ onVerified } = {}) {
@@ -6,7 +6,14 @@ export function useGstinVerification({ onVerified } = {}) {
     const [verificationSuccess, setVerificationSuccess] = useState(false);
     const [verificationError, setVerificationError] = useState(null);
     const [verifiedGstin, setVerifiedGstin] = useState(null);
+    
     const abortControllerRef = useRef(null);
+    const lastRequestedGstinRef = useRef(null);
+    const onVerifiedRef = useRef(onVerified);
+
+    useEffect(() => {
+        onVerifiedRef.current = onVerified;
+    }, [onVerified]);
 
     const verify = useCallback(async (gstin) => {
         if (!gstin || typeof gstin !== 'string') return;
@@ -27,6 +34,11 @@ export function useGstinVerification({ onVerified } = {}) {
             return;
         }
 
+        // Deduplication: if the same GSTIN is currently being verified, do not send another request
+        if (cleanGstin === lastRequestedGstinRef.current && isVerifying) {
+            return;
+        }
+
         // Cancel previous request if any
         if (abortControllerRef.current) {
             abortControllerRef.current.abort();
@@ -34,6 +46,7 @@ export function useGstinVerification({ onVerified } = {}) {
 
         const abortController = new AbortController();
         abortControllerRef.current = abortController;
+        lastRequestedGstinRef.current = cleanGstin;
 
         setIsVerifying(true);
         setVerificationError(null);
@@ -52,8 +65,8 @@ export function useGstinVerification({ onVerified } = {}) {
                 setVerifiedGstin(cleanGstin);
                 setVerificationError(null);
                 
-                if (onVerified) {
-                    onVerified(res);
+                if (onVerifiedRef.current) {
+                    onVerifiedRef.current(res);
                 }
             }
         } catch (err) {
@@ -65,8 +78,10 @@ export function useGstinVerification({ onVerified } = {}) {
             // Map the errors gracefully
             if (err.message && err.message.toLowerCase().includes('not configured')) {
                 setVerificationError(err.message);
-            } else if (err.status === 400 || err.status === 404) {
+            } else if (err.status === 404) {
                 setVerificationError('GSTIN is invalid or not registered.');
+            } else if (err.status === 400) {
+                setVerificationError('GST verification request could not be processed.');
             } else if (err.status === 429) {
                 setVerificationError('GST verification limit reached. Please try again later.');
             } else {
@@ -75,15 +90,19 @@ export function useGstinVerification({ onVerified } = {}) {
         } finally {
             if (!abortController.signal.aborted) {
                 setIsVerifying(false);
+                if (lastRequestedGstinRef.current === cleanGstin) {
+                    lastRequestedGstinRef.current = null;
+                }
             }
         }
-    }, [verifiedGstin, verificationSuccess, onVerified]);
+    }, [verifiedGstin, verificationSuccess, isVerifying]);
 
     const resetVerification = useCallback(() => {
         setIsVerifying(false);
         setVerificationSuccess(false);
         setVerificationError(null);
         setVerifiedGstin(null);
+        lastRequestedGstinRef.current = null;
         if (abortControllerRef.current) {
             abortControllerRef.current.abort();
             abortControllerRef.current = null;

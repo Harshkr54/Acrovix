@@ -20,6 +20,7 @@ export default function GstinAutoLookup({
     } = useGstinVerification({ onVerified });
 
     const [localValue, setLocalValue] = useState(value || '');
+    const lastAttemptedGstinRef = useRef(null);
 
     useEffect(() => {
         setLocalValue(value || '');
@@ -29,15 +30,20 @@ export default function GstinAutoLookup({
         const timer = setTimeout(() => {
             const cleanGstin = localValue.trim().toUpperCase();
             if (cleanGstin.length >= 15) {
-                // If the value changed from the verified one, re-verify
-                if (cleanGstin !== verifiedGstin) {
+                // If the value changed from the verified one, and we haven't just attempted it
+                if (cleanGstin !== verifiedGstin && cleanGstin !== lastAttemptedGstinRef.current) {
+                    lastAttemptedGstinRef.current = cleanGstin;
                     verify(cleanGstin);
                 }
             } else if (cleanGstin.length > 0 && cleanGstin.length < 15) {
                 // Not enough characters yet, but we should reset verification states
                 if (verificationSuccess || verificationError) {
+                    lastAttemptedGstinRef.current = null;
                     resetVerification();
                 }
+            } else if (cleanGstin.length === 0) {
+                 lastAttemptedGstinRef.current = null;
+                 resetVerification();
             }
         }, 600); // 600ms debounce
 
