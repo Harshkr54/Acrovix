@@ -8,6 +8,7 @@ import QuotationColumnConfigModal from '../components/QuotationColumnConfigModal
 import QuotationPreviewModal from '../components/QuotationPreviewModal';
 import { useToast } from '../context/ToastContext';
 import GstinAutoLookup from '../components/GstinAutoLookup';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 
 const defaultConfigs = [
     { columnKey: "rowNumber", displayName: "#", columnType: "TEXT", visible: true, sortOrder: 0, isCustom: false },
@@ -54,6 +55,7 @@ export default function QuotationBuilder() {
     const [isSendModalOpen, setIsSendModalOpen] = useState(false);
     const [columnConfigs, setColumnConfigs] = useState(defaultConfigs);
     const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
+    const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
 
     // Customer Selector State
     const [customerId, setCustomerId] = useState(null);
@@ -666,21 +668,42 @@ export default function QuotationBuilder() {
                         )}
                     </p>
                 </div>
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center justify-between w-full md:w-auto">
                     <button 
-                        onClick={handleSaveDraft} 
-                        disabled={isSaving || isSending}
-                        className="btn btn-secondary btn-md flex items-center"
+                        onClick={() => setIsClearConfirmOpen(true)}
+                        className="btn btn-secondary btn-md text-brand-danger border-brand-danger/20 hover:bg-brand-danger/5 md:hidden mr-auto"
                     >
-                        {isSaving ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Saving...</> : <><Save className="mr-2 h-4 w-4" /> Save Draft</>}
+                        <Trash2 className="w-4 h-4 mr-1.5" /> Clear All
                     </button>
-                    <button 
-                        onClick={handleSend} 
-                        disabled={isSending || isSaving}
-                        className="btn btn-primary btn-md flex items-center"
-                    >
-                        {isSending ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Sending...</> : <><Send className="mr-2 h-4 w-4" /> Send Quotation</>}
-                    </button>
+                    <div className="flex items-center space-x-3 ml-auto">
+                        <button 
+                            onClick={() => setIsClearConfirmOpen(true)}
+                            className="btn btn-secondary btn-md text-brand-danger border-brand-danger/20 hover:bg-brand-danger/5 hidden md:flex"
+                        >
+                            <Trash2 className="w-4 h-4 mr-1.5" /> Clear All
+                        </button>
+                        <button 
+                            onClick={handleSaveDraft} 
+                            disabled={isSaving || isSending}
+                            className="btn btn-secondary btn-md flex items-center"
+                        >
+                            {isSaving ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Saving...</> : <><Save className="mr-2 h-4 w-4" /> Save Draft</>}
+                        </button>
+                        <button 
+                            onClick={handlePreview} 
+                            disabled={isSaving || isSending}
+                            className="btn btn-secondary btn-md flex items-center"
+                        >
+                            <Eye className="mr-2 h-4 w-4" /> Preview PDF
+                        </button>
+                        <button 
+                            onClick={handleSend} 
+                            disabled={isSending || isSaving}
+                            className="btn btn-primary btn-md flex items-center"
+                        >
+                            {isSending ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Sending...</> : <><Send className="mr-2 h-4 w-4" /> Send Quotation</>}
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -836,16 +859,6 @@ export default function QuotationBuilder() {
                         <p className="text-[13px] text-text-secondary italic">{sourceNotes}</p>
                     </div>
                 )}
-                
-                <div className="mt-4 pt-4 border-t border-border-subtle/50">
-                    <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Terms & Conditions</p>
-                    <textarea
-                        value={termsAndConditions}
-                        onChange={(e) => setTermsAndConditions(e.target.value)}
-                        placeholder="Quotation-specific terms (leaves blank to use default settings)"
-                        className="w-full bg-bg-main border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] text-text-primary outline-none transition-colors min-h-[80px]"
-                    />
-                </div>
             </div>
 
             {/* Gemini Import */}
@@ -1077,12 +1090,9 @@ export default function QuotationBuilder() {
                 </div>
                 
                 {/* Add Item Row */}
-                <div className="p-5 border-t border-border-subtle/50 bg-bg-card rounded-b-[24px] flex justify-between items-center">
+                <div className="p-5 border-t border-border-subtle/50 bg-bg-card rounded-b-[24px] flex justify-start items-center">
                     <button onClick={addItem} className="btn btn-secondary btn-sm flex items-center gap-1.5">
                         <Plus className="w-4 h-4" /> Add Item
-                    </button>
-                    <button onClick={() => setItems([])} className="btn btn-danger btn-sm flex items-center gap-1.5">
-                        <Trash2 className="w-4 h-4" /> Clear All
                     </button>
                 </div>
             </div>
@@ -1164,6 +1174,19 @@ export default function QuotationBuilder() {
                 isLoading={isPreviewLoading}
                 error={previewError}
                 onRetry={handlePreview}
+            />
+
+            <ConfirmDialog
+                isOpen={isClearConfirmOpen}
+                title="Clear quotation?"
+                message="All entered quotation data will be removed. This action cannot be undone."
+                confirmLabel="Clear All"
+                cancelLabel="Cancel"
+                onConfirm={() => {
+                    setItems([]);
+                    setIsClearConfirmOpen(false);
+                }}
+                onCancel={() => setIsClearConfirmOpen(false)}
             />
         </div>
     );

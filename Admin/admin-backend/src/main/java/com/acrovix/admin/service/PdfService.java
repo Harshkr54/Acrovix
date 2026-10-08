@@ -639,12 +639,42 @@ public class PdfService {
             city = "Bengaluru";
         }
 
-        // Top line (Logo placeholder)
-        Font compNameFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 22, new java.awt.Color(11, 25, 44));
-        String companyName = (settings != null && settings.getCompanyName() != null) ? settings.getCompanyName() : "ACROVIX INNOVATIONS PRIVATE LIMITED";
-        Paragraph logoPara = new Paragraph(companyName, compNameFont);
-        logoPara.setAlignment(Element.ALIGN_LEFT);
-        document.add(logoPara);
+        // Top line (Logo / Company Name)
+        try {
+            Image logo = null;
+            if (settings != null && settings.getLogoUrl() != null && !settings.getLogoUrl().trim().isEmpty()) {
+                try {
+                    logo = Image.getInstance(new java.net.URL(settings.getLogoUrl()));
+                } catch (Exception e) {
+                    log.warn("Failed to load logo from URL: " + settings.getLogoUrl(), e);
+                }
+            }
+            if (logo == null) {
+                java.net.URL defaultLogoUrl = getClass().getResource("/static/Acrovix_logo.png");
+                if (defaultLogoUrl != null) {
+                    logo = Image.getInstance(defaultLogoUrl);
+                }
+            }
+            if (logo != null) {
+                logo.scaleToFit(150f, 60f);
+                logo.setAlignment(Element.ALIGN_LEFT);
+                document.add(logo);
+                document.add(new Paragraph("\n"));
+            } else {
+                Font compNameFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 22, new java.awt.Color(11, 25, 44));
+                String companyName = (settings != null && settings.getCompanyName() != null) ? settings.getCompanyName() : "ACROVIX INNOVATIONS PRIVATE LIMITED";
+                Paragraph logoPara = new Paragraph(companyName, compNameFont);
+                logoPara.setAlignment(Element.ALIGN_LEFT);
+                document.add(logoPara);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to add logo to PO PDF", e);
+            Font compNameFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 22, new java.awt.Color(11, 25, 44));
+            String companyName = (settings != null && settings.getCompanyName() != null) ? settings.getCompanyName() : "ACROVIX INNOVATIONS PRIVATE LIMITED";
+            Paragraph logoPara = new Paragraph(companyName, compNameFont);
+            logoPara.setAlignment(Element.ALIGN_LEFT);
+            document.add(logoPara);
+        }
         
         // Horizontal line
         LineSeparator ls = new LineSeparator();
