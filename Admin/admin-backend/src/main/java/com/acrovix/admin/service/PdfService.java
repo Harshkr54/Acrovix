@@ -103,14 +103,30 @@ public class PdfService {
         origRecPara.setSpacingAfter(10f);
         rightHeader.addElement(origRecPara);
 
-        if (settings != null && settings.getLogoUrl() != null && !settings.getLogoUrl().isEmpty()) {
+        boolean logoAdded = false;
+        if (settings != null && settings.getLogoUrl() != null && !settings.getLogoUrl().trim().isEmpty()) {
             try {
                 Image logo = Image.getInstance(new java.net.URL(settings.getLogoUrl()));
-                logo.scaleToFit(150, 50);
+                logo.scaleToFit(130, 50);
                 logo.setAlignment(Element.ALIGN_RIGHT);
                 rightHeader.addElement(logo);
+                logoAdded = true;
             } catch(Exception e) {
                 log.warn("Could not load company logo from URL: {}", settings.getLogoUrl(), e);
+            }
+        }
+        
+        if (!logoAdded) {
+            try {
+                java.net.URL defaultLogoUrl = PdfService.class.getResource("/static/Acrovix_logo.png");
+                if (defaultLogoUrl != null) {
+                    Image defaultLogo = Image.getInstance(defaultLogoUrl);
+                    defaultLogo.scaleToFit(120, 50);
+                    defaultLogo.setAlignment(Element.ALIGN_RIGHT);
+                    rightHeader.addElement(defaultLogo);
+                }
+            } catch (Exception e) {
+                log.warn("Could not load default bundled company logo", e);
             }
         }
 
@@ -254,23 +270,44 @@ public class PdfService {
         float[] widths = new float[colCount];
         for (int i = 0; i < colCount; i++) {
             String key = configs.get(i).getColumnKey();
-            if ("rowNumber".equals(key)) widths[i] = 5f;
-            else if ("description".equals(key) || "sku".equals(key)) widths[i] = 35f;
-            else widths[i] = 12f;
+            if ("rowNumber".equals(key)) widths[i] = 4f;
+            else if ("sku".equals(key)) widths[i] = 10f;
+            else if ("description".equals(key)) widths[i] = 30f;
+            else if ("hsnSac".equals(key)) widths[i] = 8f;
+            else if ("quantity".equals(key)) widths[i] = 6f;
+            else if ("listPrice".equals(key)) widths[i] = 10f;
+            else if ("discountPercent".equals(key)) widths[i] = 6f;
+            else if ("unitPrice".equals(key)) widths[i] = 10f;
+            else if ("taxPercent".equals(key)) widths[i] = 6f;
+            else if ("taxAmount".equals(key)) widths[i] = 10f;
+            else if ("total".equals(key)) widths[i] = 10f;
+            else widths[i] = 10f;
         }
         table.setWidths(widths);
 
         for (com.acrovix.admin.entity.QuotationColumnConfig c : configs) {
-            PdfPCell headerCell = new PdfPCell(new Phrase(c.getDisplayName(), headerBoldFont));
+            String dispName = c.getDisplayName();
+            if (dispName != null && dispName.toUpperCase().contains("TAX AMOUNT")) {
+                dispName = "TAX AMT.";
+            }
+            PdfPCell headerCell = new PdfPCell(new Phrase(dispName, headerBoldFont));
             headerCell.setBorderWidth(0);
             headerCell.setBorderWidthTop(1.5f);
             headerCell.setBorderWidthBottom(1.5f);
             headerCell.setBorderColor(new java.awt.Color(37, 99, 235)); 
-            headerCell.setPaddingTop(5f);
-            headerCell.setPaddingBottom(5f);
-            if (!"rowNumber".equals(c.getColumnKey()) && !"description".equals(c.getColumnKey())) {
+            headerCell.setPaddingTop(6f);
+            headerCell.setPaddingBottom(6f);
+            headerCell.setPaddingLeft(4f);
+            headerCell.setPaddingRight(4f);
+            
+            if ("rowNumber".equals(c.getColumnKey()) || "sku".equals(c.getColumnKey()) || "description".equals(c.getColumnKey()) || "hsnSac".equals(c.getColumnKey())) {
+                headerCell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            } else if ("quantity".equals(c.getColumnKey()) || "taxPercent".equals(c.getColumnKey())) {
+                headerCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            } else {
                 headerCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
             }
+            
             table.addCell(headerCell);
         }
 
@@ -304,9 +341,6 @@ public class PdfService {
                             case "sku": val = item.getSku() != null ? item.getSku() : ""; break;
                             case "description": 
                                 val = item.getDescription() != null ? item.getDescription() : "";
-                                if (item.getSku() != null && !item.getSku().isEmpty()) {
-                                    val = item.getSku() + " :- " + val;
-                                }
                                 break;
                             case "hsnSac": val = item.getHsnSac() != null ? item.getHsnSac() : ""; isRightAlign = true; break;
                             case "quantity": val = qty.toString(); isRightAlign = true; break;
@@ -333,24 +367,20 @@ public class PdfService {
                     cell.setBorderColorBottom(new java.awt.Color(220, 220, 220));
                     cell.setPaddingTop(8f);
                     cell.setPaddingBottom(8f);
-                    if (isRightAlign) {
-                        cell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+                    cell.setPaddingLeft(4f);
+                    cell.setPaddingRight(4f);
+                    
+                    int align = Element.ALIGN_RIGHT;
+                    if ("rowNumber".equals(c.getColumnKey()) || "sku".equals(c.getColumnKey()) || "description".equals(c.getColumnKey()) || "hsnSac".equals(c.getColumnKey())) {
+                        align = Element.ALIGN_LEFT;
+                    } else if ("quantity".equals(c.getColumnKey()) || "taxPercent".equals(c.getColumnKey())) {
+                        align = Element.ALIGN_CENTER;
                     }
+                    cell.setHorizontalAlignment(align);
 
-                    if (c.getColumnKey().equals("rowNumber")) {
-                        cell.addElement(new Paragraph(val, regularFont));
-                    } else if (c.getColumnKey().equals("description")) {
-                        Paragraph desc = new Paragraph(val, regularFont);
-                        cell.addElement(desc);
-                    } else if (c.getColumnKey().equals("taxAmount")) {
-                        Paragraph taxP = new Paragraph(val, regularFont);
-                        taxP.setAlignment(Element.ALIGN_RIGHT);
-                        cell.addElement(taxP);
-                    } else {
-                        Paragraph p = new Paragraph(val, regularFont);
-                        p.setAlignment(Element.ALIGN_RIGHT);
-                        cell.addElement(p);
-                    }
+                    Paragraph p = new Paragraph(val, regularFont);
+                    p.setAlignment(align);
+                    cell.addElement(p);
                     table.addCell(cell);
                 }
                 index++;
