@@ -10,6 +10,7 @@ import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfPageEventHelper;
 import com.lowagie.text.pdf.PdfWriter;
+import com.lowagie.text.pdf.draw.LineSeparator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -601,56 +602,377 @@ public class PdfService {
         if (n < 10000000) { return convertNumberToWords(n / 100000) + " Lakh" + ((n % 100000 != 0) ? " " : "") + convertNumberToWords(n % 100000); }
         return convertNumberToWords(n / 10000000) + " Crore" + ((n % 10000000 != 0) ? " " : "") + convertNumberToWords(n % 10000000);
     }
-public byte[] generatePurchaseOrderPdf(com.acrovix.admin.entity.PurchaseOrder po) {
+    public byte[] generatePurchaseOrderPdf(com.acrovix.admin.entity.PurchaseOrder po) {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            Document document = new Document();
-            PdfWriter.getInstance(document, out);
+            Document document = new Document(PageSize.A4, 36, 36, 36, 48);
+            PdfWriter writer = PdfWriter.getInstance(document, out);
+            writer.setPageEvent(new QuotationFooterEvent());
             document.open();
 
-            // Header
-            Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 24);
-            Paragraph title = new Paragraph("ACROVIX INNOVATIONS PRIVATE LIMITED", titleFont);
-            title.setAlignment(Element.ALIGN_CENTER);
-            document.add(title);
-            
-            document.add(new Paragraph("PURCHASE ORDER", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16)));
-            document.add(new Paragraph("PO Number: " + (po.getPoNumber() != null ? po.getPoNumber() : "")));
-            String createdDateStr = po.getPoDate() != null ? po.getPoDate().format(DateTimeFormatter.ofPattern("dd-MMM-yyyy")) : "";
-            document.add(new Paragraph("PO Date: " + createdDateStr));
-            document.add(new Paragraph("Client PO Number: " + (po.getClientPoNumber() != null ? po.getClientPoNumber() : "N/A")));
-            document.add(new Paragraph(" "));
+            CompanySettingsResponse settings = companySettingsService != null ? companySettingsService.getCompanySettings() : null;
 
-            // Client Info (from Quotation)
-            if (po.getQuotation() != null) {
-                document.add(new Paragraph("To: " + (po.getQuotation().getClientName() != null ? po.getQuotation().getClientName() : "")));
-                if (po.getQuotation().getClientCompany() != null && !po.getQuotation().getClientCompany().isBlank()) {
-                    document.add(new Paragraph(po.getQuotation().getClientCompany()));
-                }
-                document.add(new Paragraph("Email: " + (po.getQuotation().getClientEmail() != null ? po.getQuotation().getClientEmail() : "")));
-                if (po.getQuotation().getClientPhone() != null && !po.getQuotation().getClientPhone().isBlank()) {
-                    document.add(new Paragraph("Phone: " + po.getQuotation().getClientPhone()));
-                }
-                document.add(new Paragraph("Source Quotation: " + po.getQuotation().getQuotationNumber()));
-            }
-            document.add(new Paragraph(" "));
-
-            // PO Details
-            document.add(new Paragraph("PO Value: Rs. " + (po.getPoValue() != null ? po.getPoValue().toString() : "0.00"), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12)));
-            document.add(new Paragraph("Status: " + po.getStatus().name()));
-            document.add(new Paragraph("Received Via: " + (po.getReceivedVia() != null ? po.getReceivedVia().name() : "N/A")));
-            
-            if (po.getRemarks() != null && !po.getRemarks().isBlank()) {
-                document.add(new Paragraph(" "));
-                document.add(new Paragraph("Remarks:", FontFactory.getFont(FontFactory.HELVETICA_BOLD)));
-                document.add(new Paragraph(po.getRemarks()));
-            }
+            addPoHeader(document, settings);
+            addPoMetadata(document, po);
+            addBillToShipTo(document, po, settings);
+            addPoOrderDetails(document, po, settings);
+            addPoTermsAndConditions(document, po, settings);
+            addPoAuthorization(document, po, settings);
 
             document.close();
             return out.toByteArray();
         } catch (Exception e) {
+            log.error("Failed to generate Purchase Order PDF", e);
             throw new RuntimeException("Failed to generate Purchase Order PDF", e);
         }
     }
+
+    private void addPoHeader(Document document, CompanySettingsResponse settings) throws DocumentException {
+        Font contactFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10);
+        Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16, new java.awt.Color(11, 25, 44)); // Navy #0B192C
+
+        String supportEmail = (settings != null && settings.getEmail() != null) ? settings.getEmail() : "support@acrovix.com";
+        String companyPhone = (settings != null && settings.getPhone() != null) ? settings.getPhone() : "+91-8092848065";
+        String city = "Bengaluru"; // Simplification; could extract from address if needed
+        if (settings != null && settings.getRegisteredAddress() != null && settings.getRegisteredAddress().contains("Mumbai")) {
+            city = "Mumbai";
+        } else if (settings != null && settings.getRegisteredAddress() != null && settings.getRegisteredAddress().contains("Bengaluru")) {
+            city = "Bengaluru";
+        }
+
+        // Top line (Logo placeholder)
+        Font compNameFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 22, new java.awt.Color(11, 25, 44));
+        String companyName = (settings != null && settings.getCompanyName() != null) ? settings.getCompanyName() : "ACROVIX INNOVATIONS PRIVATE LIMITED";
+        Paragraph logoPara = new Paragraph(companyName, compNameFont);
+        logoPara.setAlignment(Element.ALIGN_LEFT);
+        document.add(logoPara);
+        
+        // Horizontal line
+        LineSeparator ls = new LineSeparator();
+        ls.setLineColor(new java.awt.Color(11, 25, 44));
+        ls.setLineWidth(2f);
+        document.add(new Chunk(ls));
+        document.add(new Paragraph("\n"));
+
+        // Contact Row
+        PdfPTable contactTable = new PdfPTable(3);
+        contactTable.setWidthPercentage(100);
+        
+        PdfPCell cEmail = new PdfPCell(new Paragraph(supportEmail, contactFont));
+        cEmail.setBorder(Rectangle.NO_BORDER);
+        cEmail.setHorizontalAlignment(Element.ALIGN_LEFT);
+        
+        PdfPCell cPhone = new PdfPCell(new Paragraph(companyPhone, contactFont));
+        cPhone.setBorder(Rectangle.NO_BORDER);
+        cPhone.setHorizontalAlignment(Element.ALIGN_CENTER);
+        
+        PdfPCell cCity = new PdfPCell(new Paragraph(city, contactFont));
+        cCity.setBorder(Rectangle.NO_BORDER);
+        cCity.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        
+        contactTable.addCell(cEmail);
+        contactTable.addCell(cPhone);
+        contactTable.addCell(cCity);
+        document.add(contactTable);
+        document.add(new Paragraph("\n"));
+
+        // PURCHASE ORDER Title
+        Paragraph title = new Paragraph("PURCHASE ORDER", titleFont);
+        title.setAlignment(Element.ALIGN_CENTER);
+        document.add(title);
+        document.add(new Paragraph("\n"));
+    }
+
+    private void addPoMetadata(Document document, com.acrovix.admin.entity.PurchaseOrder po) throws DocumentException {
+        Font labelFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9);
+        Font valueFont = FontFactory.getFont(FontFactory.HELVETICA, 9);
+
+        PdfPTable table = new PdfPTable(4);
+        table.setWidthPercentage(100);
+        table.setWidths(new float[]{20f, 30f, 20f, 30f});
+
+        String poDate = po.getPoDate() != null ? po.getPoDate().format(DateTimeFormatter.ofPattern("dd-MMM-yyyy")) : "";
+        String currency = po.getCurrency() != null ? po.getCurrency().name() : "INR";
+        if (po.getQuotation() != null && po.getQuotation().getItems() != null) {
+            boolean hasInr = false, hasUsd = false;
+            for (QuotationItem item : po.getQuotation().getItems()) {
+                 if (item.getCustomValues() != null && item.getCustomValues().containsKey("currency")) {
+                     String c = item.getCustomValues().get("currency");
+                     if ("USD".equalsIgnoreCase(c)) hasUsd = true;
+                     if ("INR".equalsIgnoreCase(c)) hasInr = true;
+                 }
+            }
+            if (hasInr && hasUsd) currency = "INR / USD (Year-wise)";
+        }
+        
+        String pTerms = "As per Terms & Conditions";
+
+        addPoMetaCell(table, "PO Number", labelFont);
+        addPoMetaCell(table, po.getPoNumber(), valueFont);
+        addPoMetaCell(table, "PO Date", labelFont);
+        addPoMetaCell(table, poDate, valueFont);
+
+        addPoMetaCell(table, "Payment Terms", labelFont);
+        addPoMetaCell(table, pTerms, valueFont);
+        addPoMetaCell(table, "Currency", labelFont);
+        addPoMetaCell(table, currency, valueFont);
+
+        document.add(table);
+        document.add(new Paragraph("\n"));
+    }
+
+    private void addPoMetaCell(PdfPTable table, String text, Font font) {
+        PdfPCell cell = new PdfPCell(new Phrase(text != null ? text : "", font));
+        cell.setPadding(6f);
+        cell.setBorderColor(new java.awt.Color(0, 0, 0));
+        cell.setBorderWidth(1f);
+        table.addCell(cell);
+    }
+
+    private void addBillToShipTo(Document document, com.acrovix.admin.entity.PurchaseOrder po, CompanySettingsResponse settings) throws DocumentException {
+        Font headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11, new java.awt.Color(11, 25, 44));
+        Paragraph sectionHeader = new Paragraph("Bill To / Ship To", headerFont);
+        sectionHeader.setSpacingAfter(5f);
+        document.add(sectionHeader);
+
+        PdfPTable table = new PdfPTable(2);
+        table.setWidthPercentage(100);
+        table.setWidths(new float[]{50f, 50f});
+
+        Font boldFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, new java.awt.Color(11, 25, 44));
+        Font regularFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, new java.awt.Color(37, 99, 235));
+
+        PdfPCell leftCell = new PdfPCell();
+        leftCell.setBorderColor(new java.awt.Color(0, 0, 0));
+        leftCell.setBorderWidth(1f);
+        leftCell.setPadding(8f);
+
+        String companyName = (settings != null && settings.getCompanyName() != null) ? settings.getCompanyName() : "Acrovix Innovations Private Limited";
+        leftCell.addElement(new Paragraph(companyName, boldFont));
+        
+        String address = (settings != null && settings.getBillingAddress() != null) ? settings.getBillingAddress() : "";
+        if (!address.isEmpty()) leftCell.addElement(new Paragraph(address, boldFont));
+        
+        if (settings != null && settings.getGstin() != null && !settings.getGstin().isEmpty()) {
+            leftCell.addElement(new Paragraph("GSTIN: " + settings.getGstin(), boldFont));
+        }
+        if (settings != null && settings.getPan() != null && !settings.getPan().isEmpty()) {
+            leftCell.addElement(new Paragraph("PAN: " + settings.getPan(), boldFont));
+        }
+        if (settings != null && settings.getEmail() != null && !settings.getEmail().isEmpty()) {
+            leftCell.addElement(new Paragraph("Email: " + settings.getEmail(), boldFont));
+        }
+        if (settings != null && settings.getPhone() != null && !settings.getPhone().isEmpty()) {
+            leftCell.addElement(new Paragraph("P.no: " + settings.getPhone(), boldFont));
+        }
+
+        PdfPCell rightCell = new PdfPCell();
+        rightCell.setBorderColor(new java.awt.Color(0, 0, 0));
+        rightCell.setBorderWidth(1f);
+        rightCell.setPadding(8f);
+
+        if (po.getQuotation() != null) {
+            String clientComp = po.getQuotation().getClientCompany() != null && !po.getQuotation().getClientCompany().isBlank() ? po.getQuotation().getClientCompany() : po.getQuotation().getClientName();
+            rightCell.addElement(new Paragraph(clientComp, boldFont));
+            
+            com.acrovix.admin.entity.Customer cust = po.getQuotation().getCustomer();
+            if (cust != null && cust.getShippingAddress() != null && !cust.getShippingAddress().isBlank()) {
+                rightCell.addElement(new Paragraph(cust.getShippingAddress(), boldFont));
+            } else if (cust != null && cust.getBillingAddress() != null && !cust.getBillingAddress().isBlank()) {
+                rightCell.addElement(new Paragraph(cust.getBillingAddress(), boldFont));
+            }
+
+            rightCell.addElement(new Paragraph("Kind Attn.: " + po.getQuotation().getClientName(), regularFont));
+            rightCell.addElement(new Paragraph("Email: " + po.getQuotation().getClientEmail(), regularFont));
+            if (po.getQuotation().getClientPhone() != null && !po.getQuotation().getClientPhone().isEmpty()) {
+                rightCell.addElement(new Paragraph("P.no: " + po.getQuotation().getClientPhone(), boldFont));
+            }
+            rightCell.addElement(new Paragraph("End Customer", boldFont));
+            rightCell.addElement(new Paragraph(clientComp, boldFont));
+        }
+
+        table.addCell(leftCell);
+        table.addCell(rightCell);
+        document.add(table);
+        document.add(new Paragraph("\n"));
+    }
+
+    private void addPoOrderDetails(Document document, com.acrovix.admin.entity.PurchaseOrder po, CompanySettingsResponse settings) throws DocumentException {
+        Font headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11, new java.awt.Color(11, 25, 44));
+        Paragraph sectionHeader = new Paragraph("Order Details", headerFont);
+        sectionHeader.setSpacingAfter(5f);
+        document.add(sectionHeader);
+
+        if (po.getQuotation() == null) return;
+
+        java.util.List<com.acrovix.admin.entity.QuotationColumnConfig> configs = po.getQuotation().getColumnConfigs();
+        if (configs == null || configs.isEmpty()) return;
+
+        java.util.List<com.acrovix.admin.entity.QuotationColumnConfig> visibleConfigs = configs.stream().filter(c -> c.getVisible()).collect(java.util.stream.Collectors.toList());
+        int colCount = visibleConfigs.size();
+        if (colCount == 0) return;
+
+        PdfPTable table = new PdfPTable(colCount);
+        table.setWidthPercentage(100);
+
+        Font tableHeaderFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, new java.awt.Color(255, 255, 255));
+        Font regularFont = FontFactory.getFont(FontFactory.HELVETICA, 8);
+
+        for (com.acrovix.admin.entity.QuotationColumnConfig c : visibleConfigs) {
+            PdfPCell headerCell = new PdfPCell(new Phrase(c.getDisplayName(), tableHeaderFont));
+            headerCell.setBackgroundColor(new java.awt.Color(11, 25, 44));
+            headerCell.setPaddingTop(6f);
+            headerCell.setPaddingBottom(6f);
+            headerCell.setPaddingLeft(4f);
+            headerCell.setPaddingRight(4f);
+            headerCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            headerCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            table.addCell(headerCell);
+        }
+        table.setHeaderRows(1);
+
+        if (po.getQuotation().getItems() != null) {
+            int index = 1;
+            for (QuotationItem item : po.getQuotation().getItems()) {
+                BigDecimal qty = item.getQuantity() != null ? item.getQuantity() : BigDecimal.ZERO;
+                BigDecimal unitPrice = item.getUnitPrice() != null ? item.getUnitPrice() : BigDecimal.ZERO;
+                BigDecimal taxPct = item.getTaxPercent() != null ? item.getTaxPercent() : BigDecimal.ZERO;
+                BigDecimal netLine = qty.multiply(unitPrice);
+                BigDecimal taxAmt = netLine.multiply(taxPct).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+
+                for (com.acrovix.admin.entity.QuotationColumnConfig c : visibleConfigs) {
+                    String val = "";
+                    boolean isRightAlign = false;
+                    boolean isCenterAlign = false;
+
+                    if (c.getIsCustom() != null && c.getIsCustom()) {
+                        if (item.getCustomValues() != null && item.getCustomValues().containsKey(c.getColumnKey())) {
+                            val = item.getCustomValues().get(c.getColumnKey());
+                        }
+                        isCenterAlign = true;
+                    } else {
+                        switch (c.getColumnKey()) {
+                            case "rowNumber": val = String.valueOf(index); isCenterAlign = true; break;
+                            case "sku": val = item.getSku() != null ? item.getSku() : ""; break;
+                            case "description": val = item.getDescription() != null ? item.getDescription() : ""; break;
+                            case "hsnSac": val = item.getHsnSac() != null ? item.getHsnSac() : ""; isCenterAlign = true; break;
+                            case "quantity": val = qty.toString(); isCenterAlign = true; break;
+                            case "listPrice": val = (item.getListPrice() != null ? item.getListPrice() : unitPrice).toString(); isRightAlign = true; break;
+                            case "discountPercent": val = item.getDiscountPercent() != null ? item.getDiscountPercent().toString() : "0"; isRightAlign = true; break;
+                            case "unitPrice": val = unitPrice.toString(); isRightAlign = true; break;
+                            case "taxPercent": val = taxPct.toString(); isCenterAlign = true; break;
+                            case "taxAmount": 
+                            case "taxableValue": 
+                                if ("taxableValue".equals(c.getColumnKey())) val = netLine.toString();
+                                else val = taxAmt.toString();
+                                isRightAlign = true; break;
+                            case "total": val = item.getLineTotal() != null ? item.getLineTotal().toString() : "0.00"; isRightAlign = true; break;
+                            default: val = "";
+                        }
+                    }
+                    
+                    if ("unitPrice".equals(c.getColumnKey()) || "listPrice".equals(c.getColumnKey()) || "total".equals(c.getColumnKey()) || "taxAmount".equals(c.getColumnKey()) || "taxableValue".equals(c.getColumnKey())) {
+                        String curSym = po.getCurrency() != null && po.getCurrency().name().equals("USD") ? "USD " : "INR ";
+                        if (item.getCustomValues() != null && item.getCustomValues().containsKey("currency")) {
+                            curSym = "USD".equalsIgnoreCase(item.getCustomValues().get("currency")) ? "USD " : "INR ";
+                        }
+                        if (!val.isBlank()) val = curSym + val;
+                    }
+
+                    PdfPCell cell = new PdfPCell(new Phrase(val, regularFont));
+                    cell.setBorderColor(new java.awt.Color(180, 180, 180));
+                    cell.setBorderWidth(0.5f);
+                    cell.setPadding(6f);
+                    
+                    if (isRightAlign) cell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+                    else if (isCenterAlign) cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                    else cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+                    
+                    cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                    table.addCell(cell);
+                }
+                index++;
+            }
+        }
+        document.add(table);
+        document.add(new Paragraph("\n"));
+    }
+
+    private void addPoTermsAndConditions(Document document, com.acrovix.admin.entity.PurchaseOrder po, CompanySettingsResponse settings) throws DocumentException {
+        Font headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11, new java.awt.Color(11, 25, 44));
+        Font regularFont = FontFactory.getFont(FontFactory.HELVETICA, 9);
+
+        boolean hasQuotationTerms = po.getQuotation() != null && po.getQuotation().getTermsAndConditions() != null && !po.getQuotation().getTermsAndConditions().isBlank();
+        boolean hasPoRemarks = po.getRemarks() != null && !po.getRemarks().isBlank();
+        boolean hasDefaultTerms = settings != null && settings.getDefaultTermsAndConditions() != null && !settings.getDefaultTermsAndConditions().isBlank();
+
+        if (hasQuotationTerms || hasPoRemarks || hasDefaultTerms) {
+            Paragraph termsHeader = new Paragraph("Terms & Conditions", headerFont);
+            termsHeader.setSpacingBefore(10f);
+            termsHeader.setSpacingAfter(8f);
+            document.add(termsHeader);
+            
+            String terms = hasQuotationTerms ? po.getQuotation().getTermsAndConditions() : (hasPoRemarks ? po.getRemarks() : settings.getDefaultTermsAndConditions());
+            
+            String[] lines = terms.split("\n");
+            for(String line : lines) {
+                if(!line.trim().isEmpty()) {
+                    Paragraph p = new Paragraph(line.trim(), regularFont);
+                    p.setSpacingAfter(4f);
+                    document.add(p);
+                }
+            }
+        }
+        document.add(new Paragraph("\n\n"));
+    }
+
+    private void addPoAuthorization(Document document, com.acrovix.admin.entity.PurchaseOrder po, CompanySettingsResponse settings) throws DocumentException {
+        Font boldFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9);
+        Font regularFont = FontFactory.getFont(FontFactory.HELVETICA, 9);
+
+        PdfPTable table = new PdfPTable(2);
+        table.setWidthPercentage(100);
+
+        PdfPCell leftCell = new PdfPCell();
+        leftCell.setBorder(Rectangle.NO_BORDER);
+        String companyName = (settings != null && settings.getCompanyName() != null) ? settings.getCompanyName() : "Acrovix Innovations Private Limited";
+        leftCell.addElement(new Paragraph("For " + companyName, boldFont));
+        leftCell.addElement(new Paragraph("\n\n\n\n"));
+        
+        LineSeparator ls1 = new LineSeparator();
+        ls1.setLineColor(new java.awt.Color(200, 200, 200));
+        ls1.setLineWidth(1f);
+        ls1.setAlignment(Element.ALIGN_LEFT);
+        ls1.setPercentage(80);
+        leftCell.addElement(new Chunk(ls1));
+        
+        leftCell.addElement(new Paragraph("Authorized Signatory", regularFont));
+
+        PdfPCell rightCell = new PdfPCell();
+        rightCell.setBorder(Rectangle.NO_BORDER);
+        
+        String vendorName = "Vendor";
+        if (po.getQuotation() != null && po.getQuotation().getClientCompany() != null && !po.getQuotation().getClientCompany().isBlank()) {
+            vendorName = po.getQuotation().getClientCompany();
+        } else if (po.getQuotation() != null) {
+            vendorName = po.getQuotation().getClientName();
+        }
+        rightCell.addElement(new Paragraph("For " + vendorName, boldFont));
+        rightCell.addElement(new Paragraph("\n\n\n\n"));
+        
+        LineSeparator ls2 = new LineSeparator();
+        ls2.setLineColor(new java.awt.Color(200, 200, 200));
+        ls2.setLineWidth(1f);
+        ls2.setAlignment(Element.ALIGN_LEFT);
+        ls2.setPercentage(80);
+        rightCell.addElement(new Chunk(ls2));
+
+        rightCell.addElement(new Paragraph("Authorized Signatory", regularFont));
+
+        table.addCell(leftCell);
+        table.addCell(rightCell);
+        document.add(table);
+    }
+
 
     public byte[] generateInvoicePdf(com.acrovix.admin.entity.Invoice invoice) {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {

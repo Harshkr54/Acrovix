@@ -34,6 +34,11 @@ public class EmailService {
     private final EmailLogRepository emailLogRepository;
     private final JavaMailSender mailSender;
 
+    @org.springframework.context.annotation.Lazy
+    @Autowired
+    private EmailService self;
+
+
     @Value("${acrovix.email.from:${acrovix.mail.from-email:sales@acrovix.com}}")
     private String fromEmail;
 
@@ -535,7 +540,6 @@ public class EmailService {
         sendEmailAsync(request);
     }
 
-    @Async("emailTaskExecutor")
     public void sendPoNotificationAsync(PurchaseOrder po, String eventType) {
         String recipient = resolveInternalRecipient(po.getCreatedBy() != null ? po.getCreatedBy().getEmail() : null);
         if (recipient == null) return;
@@ -543,7 +547,7 @@ public class EmailService {
         String subject = "Purchase Order Update [" + eventType + "] - " + poNo;
         String htmlBody = templateBuilder.buildPoNotificationHtml(po, eventType);
         EmailRequest request = EmailRequest.builder().to(recipient).subject(subject).htmlBody(htmlBody).isHtml(true).emailType(EmailType.PO_NOTIFICATION).relatedEntityType("PURCHASE_ORDER").relatedEntityId(po.getId()).build();
-        sendEmailAsync(request);
+        self.sendEmailAsync(request);
     }
 
     @Async("emailTaskExecutor")

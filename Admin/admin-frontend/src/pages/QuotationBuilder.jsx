@@ -559,6 +559,8 @@ export default function QuotationBuilder() {
                 currency: currency,
                 quotationSource: quotationSource,
                 sourceNotes: sourceNotes,
+                validUntil: validUntil || null,
+                termsAndConditions: termsAndConditions,
                 columnConfigs: columnConfigs,
                 items: items.map((item, index) => ({
                     productServiceId: item.productServiceId,
@@ -1082,6 +1084,23 @@ export default function QuotationBuilder() {
                     <button onClick={() => setItems([])} className="btn btn-danger btn-sm flex items-center gap-1.5">
                         <Trash2 className="w-4 h-4" /> Clear All
                     </button>
+                </div>
+            </div>
+
+            {/* Terms & Conditions Box */}
+            <div className="acx-card mb-6 overflow-hidden">
+                <div className="px-5 py-4 border-b border-border-subtle bg-bg-card flex justify-between items-center">
+                    <h3 className="text-[13px] font-bold text-text-primary uppercase tracking-wider flex items-center">
+                        Terms & Conditions
+                    </h3>
+                </div>
+                <div className="p-5 bg-bg-main">
+                    <textarea 
+                        value={termsAndConditions} 
+                        onChange={(e) => setTermsAndConditions(e.target.value)} 
+                        className="acx-input w-full min-h-[140px] resize-y leading-relaxed text-[13px]" 
+                        placeholder="Enter quotation terms and conditions..."
+                    ></textarea>
                 </div>
             </div>
 
