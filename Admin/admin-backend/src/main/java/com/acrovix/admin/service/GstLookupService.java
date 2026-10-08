@@ -19,21 +19,7 @@ public class GstLookupService {
             throw new IllegalArgumentException("Invalid GSTIN or provider error");
         }
         
-        // Mock provider implementation
-        // In a real scenario, this would call an external API using RestTemplate/WebClient
-        log.info("Mocking GST lookup for {}", cleanGstin);
-        
-        String stateName = cleanGstin.startsWith("29") ? "Karnataka" : "Maharashtra";
-        String pos = cleanGstin.substring(0, 2) + "-" + stateName;
-        
-        return GstLookupResponse.builder()
-            .gstin(cleanGstin)
-            .legalName("ACME CORP PVT LTD")
-            .tradeName("ACME CORPORATION")
-            .address("123 Tech Park, Innovation Way")
-            .state(stateName)
-            .pincode("560001")
-            .placeOfSupply(pos)
-            .build();
+        log.warn("Mocking GST lookup attempted for {}, but no real provider is configured.", cleanGstin);
+        throw new IllegalStateException("GST verification service is not configured. Please enter customer details manually.");
     }
 }

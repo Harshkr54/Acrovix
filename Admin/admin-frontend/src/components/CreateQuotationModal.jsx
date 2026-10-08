@@ -106,7 +106,7 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
             }));
             showToast({ type: 'success', message: 'Business details fetched successfully' });
         } catch (err) {
-            showToast({ type: 'error', message: 'Invalid GSTIN or provider error' });
+            showToast({ type: 'error', message: err.message || 'Invalid GSTIN or provider error' });
         } finally {
             setIsFetchingGst(false);
         }

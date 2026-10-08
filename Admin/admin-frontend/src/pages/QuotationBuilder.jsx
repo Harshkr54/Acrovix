@@ -215,7 +215,7 @@ export default function QuotationBuilder() {
             setClientCompany(res.legalName || '');
             showToast({ type: 'success', message: 'Business details fetched successfully' });
         } catch (err) {
-            showToast({ type: 'error', message: 'Invalid GSTIN or provider error' });
+            showToast({ type: 'error', message: err.message || 'Invalid GSTIN or provider error' });
         } finally {
             setIsFetchingGst(false);
         }
