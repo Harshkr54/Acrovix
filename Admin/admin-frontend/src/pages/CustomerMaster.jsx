@@ -3,6 +3,7 @@ import { getCustomers, createCustomer, updateCustomer, deleteCustomer, activateC
 import { useAuth } from '../context/AuthContext';
 import { UsersRound, Plus, ShieldAlert, AlertCircle, RefreshCw, X, Building, Mail, Phone, MapPin, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import GstinAutoLookup from '../components/GstinAutoLookup';
 
 export default function CustomerMaster() {
     const navigate = useNavigate();
@@ -178,7 +179,20 @@ export default function CustomerMaster() {
                             </div>
                             <div>
                                 <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">GSTIN</label>
-                                <input type="text" value={formData.gstin} onChange={e => setFormData({...formData, gstin: e.target.value})} className="acx-input rounded-xl text-[13px] bg-bg-main h-11" placeholder="22AAAAA0000A1Z5" />
+                                <GstinAutoLookup 
+                                    value={formData.gstin}
+                                    onChange={(val) => setFormData(prev => ({ ...prev, gstin: val }))}
+                                    onVerified={(data) => {
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            companyName: data.legalName || prev.companyName,
+                                            billingAddress: data.billingAddress || prev.billingAddress,
+                                            state: data.state || prev.state,
+                                            pincode: data.pincode || prev.pincode,
+                                            // Optional: tradeName
+                                        }));
+                                    }}
+                                />
                             </div>
                             <div>
                                 <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">Default Billing Currency</label>

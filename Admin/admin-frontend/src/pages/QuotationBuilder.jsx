@@ -7,6 +7,7 @@ import SendQuotationModal from '../components/SendQuotationModal';
 import QuotationColumnConfigModal from '../components/QuotationColumnConfigModal';
 import QuotationPreviewModal from '../components/QuotationPreviewModal';
 import { useToast } from '../context/ToastContext';
+import GstinAutoLookup from '../components/GstinAutoLookup';
 
 const defaultConfigs = [
     { columnKey: "rowNumber", displayName: "#", columnType: "TEXT", visible: true, sortOrder: 0, isCustom: false },
@@ -42,7 +43,6 @@ export default function QuotationBuilder() {
     const [validUntil, setValidUntil] = useState('');
     const [termsAndConditions, setTermsAndConditions] = useState('');
     const [gstin, setGstin] = useState('');
-    const [isFetchingGst, setIsFetchingGst] = useState(false);
 
     const [roughText, setRoughText] = useState('');
     const [isParsing, setIsParsing] = useState(false);
@@ -203,23 +203,6 @@ export default function QuotationBuilder() {
         setIsCustomerDropdownOpen(false);
     };
 
-    const handleGstLookup = async () => {
-        if (!gstin.trim()) {
-            showToast({ type: 'error', message: 'Please enter a GSTIN' });
-            return;
-        }
-        setIsFetchingGst(true);
-        try {
-            const res = await fetchApi(`/gst-lookup/${gstin.trim()}`);
-            setClientName(res.tradeName || res.legalName || '');
-            setClientCompany(res.legalName || '');
-            showToast({ type: 'success', message: 'Business details fetched successfully' });
-        } catch (err) {
-            showToast({ type: 'error', message: err.message || 'Invalid GSTIN or provider error' });
-        } finally {
-            setIsFetchingGst(false);
-        }
-    };
 
     const addCatalogItem = (c) => {
         setItems([...items, { 
@@ -767,23 +750,18 @@ export default function QuotationBuilder() {
                             </div>
                         </div>
                         <div>
-                            <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Or Auto-Fetch via GSTIN</p>
-                            <div className="flex gap-2">
-                                <input 
-                                    type="text"
-                                    placeholder="Enter GSTIN"
-                                    value={gstin}
-                                    onChange={(e) => setGstin(e.target.value.toUpperCase())}
-                                    className="flex-1 bg-bg-main border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
-                                />
-                                <button 
-                                    onClick={handleGstLookup}
-                                    disabled={isFetchingGst || !gstin.trim()}
-                                    className="btn btn-secondary px-4 whitespace-nowrap"
-                                >
-                                    {isFetchingGst ? 'Fetching...' : 'Fetch'}
-                                </button>
-                            </div>
+                            <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Or Verify via GSTIN</p>
+                            <GstinAutoLookup 
+                                value={gstin}
+                                onChange={setGstin}
+                                onVerified={(data) => {
+                                    setCustomerId(null);
+                                    setClientName(data.tradeName || data.legalName || clientName);
+                                    setClientCompany(data.legalName || clientCompany);
+                                    // If we had billingAddress/state/pincode fields exposed directly in the builder summary, we'd update them here.
+                                    // But they are mostly managed in the Modal. We only have clientName/Company in the builder.
+                                }}
+                            />
                         </div>
                     </div>
                 </details>

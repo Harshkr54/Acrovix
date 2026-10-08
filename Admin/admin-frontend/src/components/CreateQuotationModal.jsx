@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { fetchApi, getCustomers } from '../services/api';
 import { Globe, UserPlus, X, ArrowLeft, Plus, Phone, MessageSquare, Mail, UserCheck, Store, HelpCircle } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import GstinAutoLookup from './GstinAutoLookup';
 
 export default function CreateQuotationModal({ isOpen, onClose }) {
     const navigate = useNavigate();
@@ -33,7 +34,6 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
     const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
     const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
 
-    const [isFetchingGst, setIsFetchingGst] = useState(false);
 
     useEffect(() => {
         if (isCustomerDropdownOpen) {
@@ -87,30 +87,7 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
         setIsCustomerDropdownOpen(false);
     };
 
-    const handleGstLookup = async () => {
-        if (!formData.gstin.trim()) {
-            showToast({ type: 'error', message: 'Please enter a GSTIN' });
-            return;
-        }
-        setIsFetchingGst(true);
-        try {
-            const res = await fetchApi(`/gst-lookup/${formData.gstin.trim()}`);
-            setFormData(prev => ({
-                ...prev,
-                customerId: null, // Clear existing customer linkage if any
-                clientName: res.tradeName || res.legalName || '',
-                clientCompany: res.legalName || '',
-                billingAddress: res.address || '',
-                state: res.state || '',
-                pincode: res.pincode || ''
-            }));
-            showToast({ type: 'success', message: 'Business details fetched successfully' });
-        } catch (err) {
-            showToast({ type: 'error', message: err.message || 'Invalid GSTIN or provider error' });
-        } finally {
-            setIsFetchingGst(false);
-        }
-    };
+    // handleGstLookup removed in favor of GstinAutoLookup component
 
     const handleSelectEnquiry = () => {
         handleClose();
@@ -312,26 +289,23 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                                 </div>
                                 <div>
                                     <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-1.5">
-                                        Or Auto-Fetch via GSTIN
+                                        Or Verify GSTIN
                                     </label>
-                                    <div className="flex gap-2">
-                                        <input 
-                                            type="text"
-                                            name="gstin"
-                                            placeholder="Enter GSTIN"
-                                            value={formData.gstin}
-                                            onChange={handleInputChange}
-                                            className="flex-1 bg-bg-main border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
-                                        />
-                                        <button 
-                                            type="button"
-                                            onClick={handleGstLookup}
-                                            disabled={isFetchingGst || !formData.gstin?.trim()}
-                                            className="btn btn-secondary px-4 whitespace-nowrap"
-                                        >
-                                            {isFetchingGst ? 'Fetching...' : 'Fetch'}
-                                        </button>
-                                    </div>
+                                    <GstinAutoLookup 
+                                        value={formData.gstin}
+                                        onChange={(val) => handleInputChange({ target: { name: 'gstin', value: val } })}
+                                        onVerified={(data) => {
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                customerId: null, // Clear existing customer linkage if any
+                                                clientName: data.tradeName || data.legalName || prev.clientName,
+                                                clientCompany: data.legalName || prev.clientCompany,
+                                                billingAddress: data.billingAddress || prev.billingAddress,
+                                                state: data.state || prev.state,
+                                                pincode: data.pincode || prev.pincode
+                                            }));
+                                        }}
+                                    />
                                 </div>
                             </div>
 
