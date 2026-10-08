@@ -87,9 +87,9 @@ export default function GstinAutoLookup({
                 </p>
             )}
             {!isVerifying && verificationSuccess && localValue === verifiedGstin && (
-                <p className="text-[11px] text-[#059669] mt-1.5 flex items-center font-medium">
-                    ✓ GSTIN Verified
-                </p>
+                <div className="mt-2 inline-flex items-center space-x-1.5 px-2 py-1 rounded-[6px] bg-[#ECFDF5] border border-[#A7F3D0] text-[#047857] text-[11px] font-semibold tracking-wide">
+                    <span>✓ GSTIN Verified</span>
+                </div>
             )}
             {!isVerifying && verificationError && localValue.length >= 15 && (
                 <p className="text-[11px] text-brand-danger mt-1.5 flex items-center font-medium leading-tight">
