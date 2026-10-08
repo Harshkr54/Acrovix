@@ -11,6 +11,7 @@ import java.util.Optional;
 
 public interface CustomerRepository extends JpaRepository<Customer, Long> {
     Optional<Customer> findByCustomerCode(String customerCode);
+    Optional<Customer> findByGstin(String gstin);
 
     @Query("SELECT c FROM Customer c WHERE " +
            "(LOWER(c.name) LIKE LOWER(CONCAT('%', coalesce(:search, ''), '%')) OR " +

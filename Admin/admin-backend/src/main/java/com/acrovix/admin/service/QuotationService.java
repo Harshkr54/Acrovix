@@ -157,6 +157,29 @@ public class QuotationService {
                 .validUntil(LocalDate.now().plusDays(30))
                 .build();
 
+        if (request.getCustomerId() != null) {
+            quotation.setCustomer(customerRepository.findById(request.getCustomerId()).orElse(null));
+        } else if (request.getGstin() != null && !request.getGstin().isEmpty()) {
+            Customer cust = customerRepository.findByGstin(request.getGstin()).orElseGet(() -> {
+                Customer newCust = Customer.builder()
+                        .customerCode("CUST-" + System.currentTimeMillis())
+                        .name(request.getClientName())
+                        .companyName(request.getClientCompany())
+                        .email(request.getClientEmail())
+                        .phone(request.getClientPhone())
+                        .gstin(request.getGstin())
+                        .billingAddress(request.getBillingAddress())
+                        .shippingAddress(request.getShippingAddress())
+                        .state(request.getState())
+                        .currency(request.getCurrency() != null ? request.getCurrency() : Currency.INR)
+                        .active(true)
+                        .createdBy(admin.getId())
+                        .build();
+                return customerRepository.save(newCust);
+            });
+            quotation.setCustomer(cust);
+        }
+
         Quotation saved = quotationRepository.save(quotation);
         saved.setColumnConfigs(createDefaultColumnConfigs(saved));
         saved.setBaseQuotationId(saved.getId());

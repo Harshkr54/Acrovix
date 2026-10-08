@@ -1,23 +1,49 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchApi } from '../services/api';
+import { fetchApi, getCustomers } from '../services/api';
 import { Globe, UserPlus, X, ArrowLeft, Plus, Phone, MessageSquare, Mail, UserCheck, Store, HelpCircle } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
 
 export default function CreateQuotationModal({ isOpen, onClose }) {
     const navigate = useNavigate();
+    const { showToast } = useToast();
     const [step, setStep] = useState(1); // 1: Choose type, 2: Direct quotation client details
     const [isCreating, setIsCreating] = useState(false);
     const [error, setError] = useState(null);
 
     const [formData, setFormData] = useState({
+        customerId: null,
         clientName: '',
         clientCompany: '',
         clientEmail: '',
         clientPhone: '',
+        gstin: '',
+        billingAddress: '',
+        shippingAddress: '',
+        state: '',
+        pincode: '',
         currency: 'INR',
         quotationSource: 'PHONE',
         sourceNotes: ''
     });
+
+    // Customer Selector State
+    const [customerSearch, setCustomerSearch] = useState('');
+    const [customers, setCustomers] = useState([]);
+    const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
+    const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
+
+    const [isFetchingGst, setIsFetchingGst] = useState(false);
+
+    useEffect(() => {
+        if (isCustomerDropdownOpen) {
+            setIsLoadingCustomers(true);
+            getCustomers({ search: customerSearch, active: true, size: 50 })
+                .then(data => setCustomers(data.content || []))
+                .catch(err => console.error(err))
+                .finally(() => setIsLoadingCustomers(false));
+        }
+    }, [customerSearch, isCustomerDropdownOpen]);
 
     if (!isOpen) return null;
 
@@ -25,15 +51,65 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
         setStep(1);
         setError(null);
         setFormData({
+            customerId: null,
             clientName: '',
             clientCompany: '',
             clientEmail: '',
             clientPhone: '',
+            gstin: '',
+            billingAddress: '',
+            shippingAddress: '',
+            state: '',
+            pincode: '',
             currency: 'INR',
             quotationSource: 'PHONE',
             sourceNotes: ''
         });
+        setCustomerSearch('');
         onClose();
+    };
+
+    const selectCustomer = (c) => {
+        setFormData(prev => ({
+            ...prev,
+            customerId: c.id,
+            clientName: c.name || '',
+            clientCompany: c.companyName || '',
+            clientEmail: c.email || '',
+            clientPhone: c.phone || '',
+            gstin: c.gstin || '',
+            billingAddress: c.billingAddress || '',
+            shippingAddress: c.shippingAddress || '',
+            state: c.state || '',
+            pincode: c.pincode || ''
+        }));
+        setCustomerSearch('');
+        setIsCustomerDropdownOpen(false);
+    };
+
+    const handleGstLookup = async () => {
+        if (!formData.gstin.trim()) {
+            showToast({ type: 'error', message: 'Please enter a GSTIN' });
+            return;
+        }
+        setIsFetchingGst(true);
+        try {
+            const res = await fetchApi(`/gst-lookup/${formData.gstin.trim()}`);
+            setFormData(prev => ({
+                ...prev,
+                customerId: null, // Clear existing customer linkage if any
+                clientName: res.tradeName || res.legalName || '',
+                clientCompany: res.legalName || '',
+                billingAddress: res.address || '',
+                state: res.state || '',
+                pincode: res.pincode || ''
+            }));
+            showToast({ type: 'success', message: 'Business details fetched successfully' });
+        } catch (err) {
+            showToast({ type: 'error', message: 'Invalid GSTIN or provider error' });
+        } finally {
+            setIsFetchingGst(false);
+        }
     };
 
     const handleSelectEnquiry = () => {
@@ -67,10 +143,16 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
             const data = await fetchApi('/quotations/direct', {
                 method: 'POST',
                 body: JSON.stringify({
+                    customerId: formData.customerId,
                     clientName: formData.clientName.trim(),
                     clientCompany: formData.clientCompany.trim() || null,
                     clientEmail: formData.clientEmail.trim(),
                     clientPhone: formData.clientPhone.trim() || null,
+                    gstin: formData.gstin.trim() || null,
+                    billingAddress: formData.billingAddress.trim() || null,
+                    shippingAddress: formData.shippingAddress.trim() || null,
+                    state: formData.state.trim() || null,
+                    pincode: formData.pincode.trim() || null,
                     currency: formData.currency,
                     quotationSource: formData.quotationSource,
                     sourceNotes: formData.sourceNotes.trim() || null
@@ -101,8 +183,8 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
     ];
 
     return (
-        <div className="fixed inset-0 bg-text-primary/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-bg-card p-6 md:p-8 max-w-[560px] w-[calc(100vw-32px)] rounded-[20px] border border-border-subtle shadow-2xl relative animate-modal-entrance">
+        <div className="fixed inset-0 bg-text-primary/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-bg-card p-6 md:p-8 w-full max-w-4xl rounded-[20px] border border-border-subtle shadow-2xl relative animate-modal-entrance my-8">
                 {/* Close Button */}
                 <button
                     onClick={handleClose}
@@ -188,6 +270,71 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                         )}
 
                         <form onSubmit={handleCreateDirectQuotation} className="space-y-4">
+                            
+                            {/* Customer Loading / GSTIN Fetch */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-4 border border-border-subtle rounded-xl bg-bg-muted/30">
+                                <div className="relative">
+                                    <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-1.5">
+                                        Load from Customer Master
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="Search existing customer..."
+                                        value={customerSearch}
+                                        onChange={(e) => {
+                                            setCustomerSearch(e.target.value);
+                                            setIsCustomerDropdownOpen(true);
+                                        }}
+                                        onFocus={() => setIsCustomerDropdownOpen(true)}
+                                        onBlur={() => setTimeout(() => setIsCustomerDropdownOpen(false), 200)}
+                                        className="w-full bg-bg-main border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
+                                    />
+                                    {isCustomerDropdownOpen && (
+                                        <div className="absolute z-50 w-full mt-1 bg-bg-card border border-border-subtle rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                                            {isLoadingCustomers ? (
+                                                <div className="p-3 text-[12px] text-text-muted text-center">Loading...</div>
+                                            ) : customers.length === 0 ? (
+                                                <div className="p-3 text-[12px] text-text-muted text-center">No customers found</div>
+                                            ) : (
+                                                customers.map(c => (
+                                                    <div 
+                                                        key={c.id}
+                                                        onClick={() => selectCustomer(c)}
+                                                        className="px-4 py-2 hover:bg-bg-hover cursor-pointer border-b border-border-subtle/40 last:border-0"
+                                                    >
+                                                        <div className="text-[13px] font-bold text-text-primary">{c.name} {c.companyName ? `(${c.companyName})` : ''}</div>
+                                                        <div className="text-[11px] text-text-muted">{c.email} | {c.phone}</div>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                                <div>
+                                    <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-1.5">
+                                        Or Auto-Fetch via GSTIN
+                                    </label>
+                                    <div className="flex gap-2">
+                                        <input 
+                                            type="text"
+                                            name="gstin"
+                                            placeholder="Enter GSTIN"
+                                            value={formData.gstin}
+                                            onChange={handleInputChange}
+                                            className="flex-1 bg-bg-main border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
+                                        />
+                                        <button 
+                                            type="button"
+                                            onClick={handleGstLookup}
+                                            disabled={isFetchingGst || !formData.gstin?.trim()}
+                                            className="btn btn-secondary px-4 whitespace-nowrap"
+                                        >
+                                            {isFetchingGst ? 'Fetching...' : 'Fetch'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-1.5">
@@ -245,6 +392,48 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                                         value={formData.clientPhone}
                                         onChange={handleInputChange}
                                         placeholder="+91 9876543210"
+                                        className="w-full bg-bg-main border border-border-subtle focus:border-brand-teal rounded-xl px-3.5 py-2.5 text-[13px] font-medium text-text-primary outline-none transition-colors"
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div className="col-span-2">
+                                    <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-1.5">
+                                        Billing Address
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="billingAddress"
+                                        value={formData.billingAddress}
+                                        onChange={handleInputChange}
+                                        placeholder="123 Business St."
+                                        className="w-full bg-bg-main border border-border-subtle focus:border-brand-teal rounded-xl px-3.5 py-2.5 text-[13px] font-medium text-text-primary outline-none transition-colors"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-1.5">
+                                        State
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="state"
+                                        value={formData.state}
+                                        onChange={handleInputChange}
+                                        placeholder="State"
+                                        className="w-full bg-bg-main border border-border-subtle focus:border-brand-teal rounded-xl px-3.5 py-2.5 text-[13px] font-medium text-text-primary outline-none transition-colors"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-1.5">
+                                        Pincode
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="pincode"
+                                        value={formData.pincode}
+                                        onChange={handleInputChange}
+                                        placeholder="Zip Code"
                                         className="w-full bg-bg-main border border-border-subtle focus:border-brand-teal rounded-xl px-3.5 py-2.5 text-[13px] font-medium text-text-primary outline-none transition-colors"
                                     />
                                 </div>

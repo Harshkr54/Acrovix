@@ -22,6 +22,12 @@ public class CreateDirectQuotationRequest {
 
     private String clientCompany;
 
+    private Long customerId;
+    private String gstin;
+    private String billingAddress;
+    private String shippingAddress;
+    private String state;
+
     @NotBlank(message = "Client email is required")
     @Email(message = "Invalid email format")
     private String clientEmail;

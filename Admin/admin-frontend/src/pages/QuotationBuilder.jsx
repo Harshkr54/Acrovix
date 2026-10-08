@@ -724,64 +724,69 @@ export default function QuotationBuilder() {
                         </span>
                     )}
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <div>
-                        <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Load from Customer Master</p>
-                        <div className="relative">
-                            <input
-                                type="text"
-                                placeholder="Search existing customer..."
-                                value={customerSearch}
-                                onChange={(e) => {
-                                    setCustomerSearch(e.target.value);
-                                    setIsCustomerDropdownOpen(true);
-                                }}
-                                onFocus={() => setIsCustomerDropdownOpen(true)}
-                                onBlur={() => setTimeout(() => setIsCustomerDropdownOpen(false), 200)}
-                                className="w-full bg-bg-main border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
-                            />
-                            {isCustomerDropdownOpen && (
-                                <div className="absolute z-50 w-full mt-1 bg-bg-card border border-border-subtle rounded-xl shadow-lg max-h-48 overflow-y-auto">
-                                    {isLoadingCustomers ? (
-                                        <div className="p-3 text-[12px] text-text-muted text-center">Loading...</div>
-                                    ) : customers.length === 0 ? (
-                                        <div className="p-3 text-[12px] text-text-muted text-center">No customers found</div>
-                                    ) : (
-                                        customers.map(c => (
-                                            <div 
-                                                key={c.id}
-                                                onClick={() => selectCustomer(c)}
-                                                className="px-4 py-2 hover:bg-bg-hover cursor-pointer border-b border-border-subtle/40 last:border-0"
-                                            >
-                                                <div className="text-[13px] font-bold text-text-primary">{c.name} {c.companyName ? `(${c.companyName})` : ''}</div>
-                                                <div className="text-[11px] text-text-muted">{c.email} | {c.phone}</div>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                            )}
+                <details className="mb-6 group">
+                    <summary className="text-[11px] font-bold text-text-secondary uppercase tracking-wider cursor-pointer flex items-center select-none outline-none">
+                        <span className="border-b border-dashed border-text-muted hover:text-text-primary pb-0.5">Edit / Change Customer Source (Optional)</span>
+                    </summary>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 p-4 border border-border-subtle rounded-xl bg-bg-muted/30">
+                        <div>
+                            <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Load from Customer Master</p>
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    placeholder="Search existing customer..."
+                                    value={customerSearch}
+                                    onChange={(e) => {
+                                        setCustomerSearch(e.target.value);
+                                        setIsCustomerDropdownOpen(true);
+                                    }}
+                                    onFocus={() => setIsCustomerDropdownOpen(true)}
+                                    onBlur={() => setTimeout(() => setIsCustomerDropdownOpen(false), 200)}
+                                    className="w-full bg-bg-main border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
+                                />
+                                {isCustomerDropdownOpen && (
+                                    <div className="absolute z-50 w-full mt-1 bg-bg-card border border-border-subtle rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                                        {isLoadingCustomers ? (
+                                            <div className="p-3 text-[12px] text-text-muted text-center">Loading...</div>
+                                        ) : customers.length === 0 ? (
+                                            <div className="p-3 text-[12px] text-text-muted text-center">No customers found</div>
+                                        ) : (
+                                            customers.map(c => (
+                                                <div 
+                                                    key={c.id}
+                                                    onClick={() => selectCustomer(c)}
+                                                    className="px-4 py-2 hover:bg-bg-hover cursor-pointer border-b border-border-subtle/40 last:border-0"
+                                                >
+                                                    <div className="text-[13px] font-bold text-text-primary">{c.name} {c.companyName ? `(${c.companyName})` : ''}</div>
+                                                    <div className="text-[11px] text-text-muted">{c.email} | {c.phone}</div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        <div>
+                            <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Or Auto-Fetch via GSTIN</p>
+                            <div className="flex gap-2">
+                                <input 
+                                    type="text"
+                                    placeholder="Enter GSTIN"
+                                    value={gstin}
+                                    onChange={(e) => setGstin(e.target.value.toUpperCase())}
+                                    className="flex-1 bg-bg-main border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
+                                />
+                                <button 
+                                    onClick={handleGstLookup}
+                                    disabled={isFetchingGst || !gstin.trim()}
+                                    className="btn btn-secondary px-4 whitespace-nowrap"
+                                >
+                                    {isFetchingGst ? 'Fetching...' : 'Fetch'}
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    <div>
-                        <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Or Auto-Fetch via GSTIN</p>
-                        <div className="flex gap-2">
-                            <input 
-                                type="text"
-                                placeholder="Enter GSTIN"
-                                value={gstin}
-                                onChange={(e) => setGstin(e.target.value.toUpperCase())}
-                                className="flex-1 bg-bg-main border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
-                            />
-                            <button 
-                                onClick={handleGstLookup}
-                                disabled={isFetchingGst || !gstin.trim()}
-                                className="btn btn-secondary px-4 whitespace-nowrap"
-                            >
-                                {isFetchingGst ? 'Fetching...' : 'Fetch'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                </details>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
                     <div>
                         <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Currency</p>
