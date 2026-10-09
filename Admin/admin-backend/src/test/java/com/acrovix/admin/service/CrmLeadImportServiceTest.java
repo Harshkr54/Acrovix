@@ -23,6 +23,8 @@ import org.springframework.mock.web.MockMultipartFile;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -368,6 +370,49 @@ class CrmLeadImportServiceTest {
         assertEquals("businessEmail", preview.getSuggestedMapping().get("Work Email"));
         assertEquals("phoneNumber", preview.getSuggestedMapping().get("Mobile Number"));
         assertEquals("companyName", preview.getSuggestedMapping().get("Organization"));
+    }
+
+    @Test
+    @DisplayName("24. Batch Lead Requests Import Success and Duplicate Skipping")
+    void test24_ImportLeadRequestsBatchSuccess() throws Exception {
+        CrmLeadRequest req1 = CrmLeadRequest.builder()
+                .fullName("Rahul Sharma")
+                .businessEmail("rahul@example.com")
+                .companyName("Acme Corp")
+                .build();
+
+        CrmLeadRequest req2 = CrmLeadRequest.builder()
+                .fullName("Rahul Duplicate")
+                .businessEmail("rahul@example.com")
+                .companyName("Acme Corp")
+                .build();
+
+        when(crmLeadRepository.existsByBusinessEmailIgnoreCase("rahul@example.com")).thenReturn(false);
+        when(crmService.createLead(any(CrmLeadRequest.class), eq(testAdmin)))
+                .thenReturn(CrmLeadResponse.builder().id(500L).build());
+
+        CrmLeadImportResultResponse result = crmLeadImportService.importLeadRequests(List.of(req1, req2), testAdmin);
+
+        assertEquals(2, result.getTotalProcessed());
+        assertEquals(1, result.getSuccessCount());
+        assertEquals(1, result.getDuplicateCount());
+        assertEquals(0, result.getErrorCount());
+    }
+
+    @Test
+    @DisplayName("25. Batch Lead Requests Exceeds Maximum Limit Rejection")
+    void test25_ImportLeadRequestsBatchLimitExceeded() {
+        List<CrmLeadRequest> oversizedList = new ArrayList<>();
+        for (int i = 0; i < 1001; i++) {
+            oversizedList.add(CrmLeadRequest.builder().fullName("User " + i).businessEmail("user" + i + "@example.com").build());
+        }
+
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> crmLeadImportService.importLeadRequests(oversizedList, testAdmin)
+        );
+
+        assertTrue(ex.getMessage().contains("Batch size exceeds maximum allowed limit"));
     }
 
     // Helper method to create in-memory XLSX byte array

@@ -202,6 +202,14 @@ public class CrmController {
         return ResponseEntity.ok(crmLeadImportService.importLeads(file, columnMapping, admin));
     }
 
+    @PostMapping(value = "/leads/import/records", consumes = org.springframework.http.MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    public ResponseEntity<com.acrovix.admin.dto.crm.CrmLeadImportResultResponse> importLeadRecords(
+            @RequestBody List<CrmLeadRequest> requests,
+            @AuthenticationPrincipal AdminUser admin) {
+        return ResponseEntity.ok(crmLeadImportService.importLeadRequests(requests, admin));
+    }
+
     @GetMapping("/leads/import/template")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
     public ResponseEntity<byte[]> downloadImportTemplate() {

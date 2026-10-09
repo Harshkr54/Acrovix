@@ -520,6 +520,13 @@ export const importCrmLeads = async (file, columnMapping) => {
     return await response.json();
 };
 
+export const importCrmLeadRecords = async (records) => {
+    return fetchApi('/crm/leads/import/records', {
+        method: 'POST',
+        body: JSON.stringify(records)
+    });
+};
+
 export const downloadCrmLeadTemplate = async () => {
     const token = localStorage.getItem('adminToken');
     const response = await fetch(`${API_BASE_URL}/crm/leads/import/template`, {

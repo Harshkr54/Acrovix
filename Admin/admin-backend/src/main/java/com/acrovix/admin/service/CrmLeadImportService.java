@@ -284,6 +284,114 @@ public class CrmLeadImportService {
     }
 
     /**
+     * Directly import pre-validated or user-edited CrmLeadRequest records.
+     */
+    public CrmLeadImportResultResponse importLeadRequests(
+            List<CrmLeadRequest> requests,
+            AdminUser currentUser
+    ) {
+        if (requests == null || requests.isEmpty()) {
+            throw new IllegalArgumentException("No lead records provided for import.");
+        }
+        if (requests.size() > 1000) {
+            throw new IllegalArgumentException("Batch size exceeds maximum allowed limit of 1000 records.");
+        }
+
+        Set<String> seenEmailsInBatch = new HashSet<>();
+        List<CrmLeadImportRowError> importErrors = new ArrayList<>();
+        List<CrmLeadRequest> validRequests = new ArrayList<>();
+
+        int duplicateCount = 0;
+        int errorCount = 0;
+
+        for (int i = 0; i < requests.size(); i++) {
+            CrmLeadRequest req = requests.get(i);
+            int rowIndex = i + 1;
+
+            List<String> rowErrors = new ArrayList<>();
+            String fullName = req.getFullName() != null ? req.getFullName().trim() : "";
+            String businessEmail = req.getBusinessEmail() != null ? req.getBusinessEmail().trim() : "";
+
+            if (fullName.isBlank()) {
+                rowErrors.add("Full Name is required");
+            }
+            if (businessEmail.isBlank()) {
+                rowErrors.add("Business Email is required");
+            } else if (!EMAIL_PATTERN.matcher(businessEmail).matches()) {
+                rowErrors.add("Invalid business email format");
+            }
+
+            if (req.getProbability() != null && (req.getProbability() < 0 || req.getProbability() > 100)) {
+                rowErrors.add("Probability must be between 0 and 100");
+            }
+            if (req.getEstimatedValue() != null && req.getEstimatedValue().compareTo(BigDecimal.ZERO) < 0) {
+                rowErrors.add("Estimated value cannot be negative");
+            }
+
+            boolean isDuplicate = false;
+            if (!businessEmail.isBlank() && EMAIL_PATTERN.matcher(businessEmail).matches()) {
+                String normalizedEmail = businessEmail.toLowerCase();
+                if (seenEmailsInBatch.contains(normalizedEmail)) {
+                    isDuplicate = true;
+                    rowErrors.add("Duplicate lead within batch");
+                } else {
+                    seenEmailsInBatch.add(normalizedEmail);
+                    if (crmLeadRepository.existsByBusinessEmailIgnoreCase(businessEmail)) {
+                        isDuplicate = true;
+                        rowErrors.add("Duplicate lead: email already exists in CRM");
+                    }
+                }
+            }
+
+            if (isDuplicate) {
+                duplicateCount++;
+                importErrors.add(CrmLeadImportRowError.builder()
+                        .rowIndex(rowIndex)
+                        .fullName(fullName)
+                        .businessEmail(businessEmail)
+                        .errorMessage("Duplicate lead skipped: " + String.join("; ", rowErrors))
+                        .build());
+            } else if (!rowErrors.isEmpty()) {
+                errorCount++;
+                importErrors.add(CrmLeadImportRowError.builder()
+                        .rowIndex(rowIndex)
+                        .fullName(fullName)
+                        .businessEmail(businessEmail)
+                        .errorMessage(String.join("; ", rowErrors))
+                        .build());
+            } else {
+                validRequests.add(req);
+            }
+        }
+
+        int successCount = 0;
+        for (int i = 0; i < validRequests.size(); i++) {
+            CrmLeadRequest req = validRequests.get(i);
+            try {
+                crmService.createLead(req, currentUser);
+                successCount++;
+            } catch (Exception e) {
+                logger.error("Failed to import lead request: {}", e.getMessage());
+                errorCount++;
+                importErrors.add(CrmLeadImportRowError.builder()
+                        .rowIndex(i + 1)
+                        .fullName(req.getFullName())
+                        .businessEmail(req.getBusinessEmail())
+                        .errorMessage("Import error: " + e.getMessage())
+                        .build());
+            }
+        }
+
+        return CrmLeadImportResultResponse.builder()
+                .totalProcessed(requests.size())
+                .successCount(successCount)
+                .duplicateCount(duplicateCount)
+                .errorCount(errorCount)
+                .errors(importErrors)
+                .build();
+    }
+
+    /**
      * Generate CSV Template Content for Download
      */
     public byte[] generateTemplateCsv() {
