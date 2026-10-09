@@ -417,8 +417,8 @@ public class CrmLeadImportService {
         }
 
         String lower = filename.toLowerCase();
-        if (!lower.endsWith(".csv") && !lower.endsWith(".xlsx") && !lower.endsWith(".xls") && !lower.endsWith(".pdf")) {
-            throw new IllegalArgumentException("Unsupported file extension. Only CSV, XLSX, XLS, and PDF files are supported.");
+        if (!lower.endsWith(".csv") && !lower.endsWith(".xlsx") && !lower.endsWith(".xls")) {
+            throw new IllegalArgumentException("Unsupported file extension. Only CSV, XLSX, and XLS files are supported.");
         }
     }
 
@@ -426,8 +426,6 @@ public class CrmLeadImportService {
         String filename = file.getOriginalFilename().toLowerCase();
         if (filename.endsWith(".csv")) {
             return parseCsv(file);
-        } else if (filename.endsWith(".pdf")) {
-            return parsePdf(file);
         } else {
             return parseExcel(file);
         }
@@ -689,7 +687,7 @@ public class CrmLeadImportService {
                 isNewRow = false;
             } else if (chunk.getPageNum() != currentLinePage) {
                 isNewRow = true;
-            } else if (colIdx == 0 && (chunk.getY() - currentY > 5.0f)) {
+            } else if (chunk.getY() - currentY > 5.0f && colIdx <= 3) {
                 isNewRow = true;
             } else if (chunk.getY() - currentY > 16.0f) {
                 isNewRow = true;

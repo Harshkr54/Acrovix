@@ -263,4 +263,46 @@ public class CrmServiceTest {
         assertTrue(dashboard.getTotalOpenLeads() >= 2);
         assertTrue(dashboard.getOpenPipelineValue().compareTo(new BigDecimal("300000")) >= 0);
     }
+
+    @Test
+    void testNewToContactedAndTransitionsValidation() {
+        CrmLeadRequest req = CrmLeadRequest.builder()
+                .fullName("Status Test Lead")
+                .businessEmail("statustest@acme.com")
+                .companyName("Acme Status Inc")
+                .build();
+
+        CrmLeadResponse lead = crmService.createLead(req, superAdmin);
+        assertEquals(LeadStatus.NEW, lead.getStatus());
+
+        // 1. Valid transition: NEW -> CONTACTED
+        CrmLeadResponse contactedResp = crmService.updateLeadStatus(
+                lead.getId(),
+                new CrmLeadStatusUpdateRequest(LeadStatus.CONTACTED, null),
+                superAdmin
+        );
+        assertEquals(LeadStatus.CONTACTED, contactedResp.getStatus());
+
+        // Verify state persistence
+        CrmLeadResponse fetched = crmService.getLeadById(lead.getId(), superAdmin);
+        assertEquals(LeadStatus.CONTACTED, fetched.getStatus());
+
+        // 2. Invalid transition: CONTACTED -> WON (Must skip required pipeline steps)
+        assertThrows(IllegalArgumentException.class, () ->
+                crmService.updateLeadStatus(
+                        lead.getId(),
+                        new CrmLeadStatusUpdateRequest(LeadStatus.WON, null),
+                        superAdmin
+                )
+        );
+
+        // 3. Valid transition: CONTACTED -> LOST (With lost reason)
+        CrmLeadResponse lostResp = crmService.updateLeadStatus(
+                lead.getId(),
+                new CrmLeadStatusUpdateRequest(LeadStatus.LOST, "Budget cancelled"),
+                superAdmin
+        );
+        assertEquals(LeadStatus.LOST, lostResp.getStatus());
+        assertEquals("Budget cancelled", lostResp.getLostReason());
+    }
 }

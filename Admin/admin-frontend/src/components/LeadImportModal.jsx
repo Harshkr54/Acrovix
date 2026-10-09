@@ -101,8 +101,8 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
 
         const name = selectedFile.name.toLowerCase();
         const ext = name.includes('.') ? name.split('.').pop() : '';
-        if (!['csv', 'xls', 'xlsx', 'pdf'].includes(ext)) {
-            return { valid: false, error: 'Unsupported file type. Please upload a CSV, XLS, XLSX, or PDF file.' };
+        if (!['csv', 'xls', 'xlsx'].includes(ext)) {
+            return { valid: false, error: 'Unsupported file type. Please upload a CSV, XLS, or XLSX file.' };
         }
 
         return { valid: true, error: null };
@@ -145,17 +145,17 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
     };
 
     const validateRowRecord = (row, currentAllRows = []) => {
-        const errors = [];
+        const errors = [...(row.serverErrors || [])];
         const fullName = (row.fullName || '').trim();
         const businessEmail = (row.businessEmail || '').trim();
 
-        if (!fullName) {
+        if (!fullName && !errors.includes('Full Name is required')) {
             errors.push('Full Name is required');
         }
         if (!businessEmail) {
-            errors.push('Please enter a valid email address');
+            if (!errors.includes('Please enter a valid email address')) errors.push('Please enter a valid email address');
         } else if (!EMAIL_REGEX.test(businessEmail)) {
-            errors.push('Please enter a valid email address');
+            if (!errors.includes('Please enter a valid email address')) errors.push('Please enter a valid email address');
         }
 
         // Check in-grid duplicate email
@@ -167,10 +167,13 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
         );
 
         let status = 'VALID';
-        if (row.isServerDuplicate || isDuplicateInGrid) {
+        const hasServerDuplicateError = row.serverErrors && row.serverErrors.some(e => e.toLowerCase().includes('duplicate') || e.toLowerCase().includes('already exists'));
+        const isActuallyServerDuplicate = row.isServerDuplicate && hasServerDuplicateError;
+
+        if (isActuallyServerDuplicate || isDuplicateInGrid) {
             status = 'DUPLICATE';
-            if (!errors.includes('Duplicate email address')) {
-                errors.push(row.isServerDuplicate ? 'Email already exists in CRM' : 'Duplicate email address');
+            if (!errors.includes('Duplicate email address') && !errors.includes('Email already exists in CRM') && !errors.includes('Duplicate email within uploaded file')) {
+                errors.push(isActuallyServerDuplicate ? 'Email already exists in CRM' : 'Duplicate email address');
             }
         } else if (errors.length > 0) {
             status = 'INVALID';
@@ -195,7 +198,7 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
 
             const rawRows = data.previewRows || [];
             if (rawRows.length === 0) {
-                setError('Unable to extract records from this file. If you are uploading a PDF, ensure it contains text rather than scanned images, or download our CSV template.');
+                setError('Unable to extract records from this file. Please ensure it is a valid CSV or Excel file, or download our template.');
                 setFileReady(false);
                 return;
             }
@@ -223,6 +226,7 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
                     assignedToId: rowData.assignedToId || rowData['Assigned Sales Rep ID'] || '',
                     isServerDuplicate: r.status === 'DUPLICATE',
                     status: r.status,
+                    serverErrors: r.errors || [],
                     errors: r.errors || []
                 };
                 return initialRow;
@@ -234,7 +238,7 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
             setStep(2);
         } catch (err) {
             console.error("Preview failed", err);
-            setError(err.message || 'Unable to read this file. Ensure it is a valid CSV, Excel, or PDF document.');
+            setError(err.message || 'Unable to read this file. Ensure it is a valid CSV or Excel document.');
             setFileReady(false);
         } finally {
             setLoadingPreview(false);
@@ -443,7 +447,7 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
                                 </span>
                             </h3>
                             <p className="text-xs text-slate-500 dark:text-slate-400">
-                                Upload a spreadsheet or PDF. Review and edit extracted lead records before importing.
+                                Upload a spreadsheet. Review and edit extracted lead records before importing.
                             </p>
                         </div>
                     </div>
@@ -525,7 +529,7 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
                             <div>
                                 <h4 className="text-sm font-bold text-slate-900 dark:text-white">Upload Lead File</h4>
                                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                    Upload a CSV, Excel, or PDF document. We automatically extract and organize lead data into an editable table.
+                                    Upload a CSV or Excel document. We automatically extract and organize lead data into an editable table.
                                 </p>
                             </div>
 
@@ -573,7 +577,7 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
                                     </div>
                                     <h5 className="text-sm font-bold text-slate-900 dark:text-white">Drag & drop your file here</h5>
                                     <p className="text-xs text-[#2563EB] font-semibold mt-1">or click to browse files</p>
-                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2">Supports CSV, Excel (.xls, .xlsx), or text PDF up to 10 MB</p>
+                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2">Supports CSV or Excel (.xls, .xlsx) up to 10 MB</p>
                                     
                                     <div className="mt-5 pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-center gap-2">
                                         <button

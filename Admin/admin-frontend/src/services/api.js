@@ -429,10 +429,21 @@ export const updateCrmLead = (id, data) => fetchApi(`/crm/leads/${id}`, {
     body: JSON.stringify(data)
 });
 
-export const updateCrmLeadStatus = (id, data) => fetchApi(`/crm/leads/${id}/status`, {
-    method: 'PATCH',
-    body: JSON.stringify(data)
-});
+export const updateCrmLeadStatus = (id, data, lostReason) => {
+    let payload;
+    if (typeof data === 'string') {
+        payload = {
+            status: data,
+            lostReason: data === 'LOST' ? (lostReason || null) : null
+        };
+    } else {
+        payload = data;
+    }
+    return fetchApi(`/crm/leads/${id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload)
+    });
+};
 
 export const assignCrmLead = (id, assigneeId) => fetchApi(`/crm/leads/${id}/assign`, {
     method: 'PATCH',

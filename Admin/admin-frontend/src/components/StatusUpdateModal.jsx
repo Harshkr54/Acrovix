@@ -49,8 +49,10 @@ export default function StatusUpdateModal({ isOpen, onClose, lead, onSuccess }) 
         try {
             const updated = await updateCrmLeadStatus(
                 lead.id, 
-                targetStatus, 
-                targetStatus === 'LOST' ? lostReason.trim() : null
+                {
+                    status: targetStatus,
+                    lostReason: targetStatus === 'LOST' ? (lostReason ? lostReason.trim() : null) : null
+                }
             );
             setIsLoading(false);
             if (onSuccess) onSuccess(updated);

@@ -133,27 +133,27 @@ export default function CrmLeadDetails() {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-3 mt-4 sm:mt-0 w-full sm:w-auto justify-start sm:justify-end">
                     <button
                         onClick={() => setIsStatusModalOpen(true)}
-                        className="btn btn-primary btn-icon"
+                        className="btn btn-primary whitespace-nowrap min-w-[130px] justify-center px-4"
                     >
-                        <RefreshCw className="w-3.5 h-3.5 text-amber-500" />
-                        Status
+                        <RefreshCw className="w-4 h-4 mr-2 text-amber-500 shrink-0" />
+                        Update Status
                     </button>
                     <button
                         onClick={() => setIsAssignModalOpen(true)}
-                        className="btn btn-primary btn-icon"
+                        className="btn btn-primary whitespace-nowrap min-w-[130px] justify-center px-4"
                     >
-                        <UserCheck className="w-3.5 h-3.5 text-blue-500" />
-                        Assign
+                        <UserCheck className="w-4 h-4 mr-2 text-blue-500 shrink-0" />
+                        Assign Rep
                     </button>
                     <button
                         onClick={() => setFollowUpModalState({ isOpen: true, mode: 'CREATE', followUp: null })}
-                        className="btn btn-primary btn-icon"
+                        className="btn btn-primary whitespace-nowrap min-w-[170px] justify-center px-4"
                     >
-                        <Plus className="w-3.5 h-3.5" />
-                        Add Follow-up
+                        <Plus className="w-4 h-4 mr-2 shrink-0" />
+                        Schedule Follow-up
                     </button>
                 </div>
             </div>

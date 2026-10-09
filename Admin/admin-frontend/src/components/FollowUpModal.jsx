@@ -56,15 +56,17 @@ export default function FollowUpModal({ isOpen, onClose, mode = 'CREATE', leadId
                     return;
                 }
                 const payload = {
-                    followUpType: type,
-                    scheduledDate: new Date(scheduledDate).toISOString(),
+                    type: type,
+                    scheduledAt: new Date(scheduledDate).toISOString().replace("Z", ""),
+                    subject: notes ? notes.substring(0, 50) : "Follow-up",
                     notes: notes.trim() || null
                 };
                 res = await createCrmFollowUp(leadId, payload);
             } else if (mode === 'EDIT') {
                 const payload = {
-                    followUpType: type,
-                    scheduledDate: scheduledDate ? new Date(scheduledDate).toISOString() : null,
+                    type: type,
+                    scheduledAt: scheduledDate ? new Date(scheduledDate).toISOString().replace("Z", "") : null,
+                    subject: notes ? notes.substring(0, 50) : "Follow-up",
                     notes: notes.trim() || null
                 };
                 res = await updateCrmFollowUp(followUp.id, payload);

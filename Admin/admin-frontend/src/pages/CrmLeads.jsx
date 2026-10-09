@@ -326,20 +326,20 @@ export default function CrmLeads() {
                             <table className="w-full text-left border-collapse">
                                 <thead>
                                     <tr className="border-b border-border-subtle bg-bg-main/50 text-[11px] font-bold text-text-muted uppercase tracking-wider">
-                                        <th className="px-5 py-3">Lead #</th>
-                                        <th className="px-5 py-3">Client / Contact</th>
-                                        <th className="px-5 py-3">Source & Priority</th>
-                                        <th className="px-5 py-3">Status</th>
-                                        <th className="px-5 py-3">Expected Value</th>
-                                        <th className="px-5 py-3">Sales Owner</th>
-                                        <th className="px-5 py-3">Next Follow-Up</th>
-                                        <th className="px-5 py-3 text-right">Actions</th>
+                                        <th className="px-5 py-3 min-w-[140px]">Lead #</th>
+                                        <th className="px-5 py-3 min-w-[300px]">Client / Contact</th>
+                                        <th className="px-5 py-3 min-w-[150px]">Source & Priority</th>
+                                        <th className="px-5 py-3 min-w-[120px]">Status</th>
+                                        <th className="px-5 py-3 min-w-[140px]">Expected Value</th>
+                                        <th className="px-5 py-3 min-w-[140px]">Sales Owner</th>
+                                        <th className="px-5 py-3 min-w-[140px]">Next Follow-Up</th>
+                                        <th className="px-5 py-3 text-right min-w-[130px]">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border-subtle text-xs">
                                     {leads.map(lead => (
                                         <tr key={lead.id} className="hover:bg-bg-hover/50 transition-colors">
-                                            <td className="px-5 py-4 font-bold text-text-primary whitespace-nowrap">
+                                            <td className="px-5 py-4 font-bold text-text-primary whitespace-nowrap min-w-[140px]">
                                                 <button
                                                     onClick={() => navigate(`/crm/leads/${lead.id}`)}
                                                     className="btn btn-link btn-md"
@@ -348,42 +348,54 @@ export default function CrmLeads() {
                                                 </button>
                                             </td>
 
-                                            <td className="px-5 py-4">
-                                                <div className="font-semibold text-text-primary">{lead.fullName}</div>
+                                            <td className="px-5 py-4 min-w-[300px]">
+                                                <div className="font-semibold text-text-primary text-sm whitespace-normal">{lead.fullName}</div>
                                                 {lead.companyName && (
-                                                    <div className="text-[11px] text-text-muted flex items-center gap-1 mt-0.5">
+                                                    <div className="text-[11px] text-text-muted flex items-center gap-1.5 mt-0.5">
                                                         <Building2 className="w-3 h-3 text-text-muted shrink-0" />
-                                                        <span className="truncate max-w-[180px]">{lead.companyName}</span>
+                                                        <span className="truncate max-w-[260px]" title={lead.companyName}>{lead.companyName}</span>
                                                     </div>
                                                 )}
-                                                <div className="text-[11px] text-text-muted flex items-center gap-2 mt-0.5">
-                                                    {lead.businessEmail && <span>{lead.businessEmail}</span>}
-                                                    {lead.phoneNumber && <span>• {lead.phoneNumber}</span>}
-                                                </div>
+                                                {(lead.businessEmail || lead.phoneNumber) && (
+                                                    <div className="text-[11px] text-text-muted space-y-1 mt-1">
+                                                        {lead.businessEmail && (
+                                                            <div className="flex items-center gap-1.5 truncate max-w-[260px]" title={lead.businessEmail}>
+                                                                <Mail className="w-3 h-3 text-text-muted shrink-0" />
+                                                                <span className="truncate">{lead.businessEmail}</span>
+                                                            </div>
+                                                        )}
+                                                        {lead.phoneNumber && (
+                                                            <div className="flex items-center gap-1.5 whitespace-nowrap">
+                                                                <Phone className="w-3 h-3 text-text-muted shrink-0" />
+                                                                <span className="whitespace-nowrap font-mono text-[11px] text-text-secondary dark:text-text-muted tracking-wide">{lead.phoneNumber}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </td>
 
-                                            <td className="px-5 py-4 whitespace-nowrap">
+                                            <td className="px-5 py-4 whitespace-nowrap min-w-[150px]">
                                                 <div className="flex flex-col gap-1">
                                                     <span className="font-medium text-text-secondary">{lead.leadSource || 'OTHER'}</span>
                                                     <StatusBadge status={lead.priority} />
                                                 </div>
                                             </td>
 
-                                            <td className="px-5 py-4 whitespace-nowrap">
+                                            <td className="px-5 py-4 whitespace-nowrap min-w-[120px]">
                                                 <StatusBadge status={lead.status} />
                                             </td>
 
-                                            <td className="px-5 py-4 whitespace-nowrap font-semibold text-text-primary">
+                                            <td className="px-5 py-4 whitespace-nowrap font-semibold text-text-primary min-w-[140px]">
                                                 {formatCurrency(lead.estimatedValue, lead.currency)}
                                             </td>
 
-                                            <td className="px-5 py-4 whitespace-nowrap text-text-secondary">
+                                            <td className="px-5 py-4 whitespace-nowrap text-text-secondary min-w-[140px]">
                                                 {lead.assignedTo ? lead.assignedTo.name : (
                                                     <span className="text-text-muted italic">Unassigned</span>
                                                 )}
                                             </td>
 
-                                            <td className="px-5 py-4 whitespace-nowrap">
+                                            <td className="px-5 py-4 whitespace-nowrap min-w-[140px]">
                                                 {lead.nextFollowUpDate ? (
                                                     <span className="font-medium text-amber-600 dark:text-amber-400">
                                                         {formatDate(lead.nextFollowUpDate)}
@@ -393,7 +405,7 @@ export default function CrmLeads() {
                                                 )}
                                             </td>
 
-                                            <td className="px-5 py-4 whitespace-nowrap text-right">
+                                            <td className="px-5 py-4 whitespace-nowrap text-right min-w-[130px]">
                                                 <div className="flex items-center justify-end gap-1.5">
                                                     <button
                                                         onClick={() => navigate(`/crm/leads/${lead.id}`)}
