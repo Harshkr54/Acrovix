@@ -555,14 +555,14 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
                                         </div>
                                         <div>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-xs font-bold text-slate-900 dark:text-white">{file.name}</span>
+                                                <span className="text-xs font-bold text-slate-900 dark:text-white">{file?.name || 'Uploaded File'}</span>
                                                 <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
                                                     <CheckCircle2 className="w-3 h-3" />
                                                     Parsed successfully
                                                 </span>
                                             </div>
                                             <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                                                {file.name.split('.').pop().toUpperCase()} • {formatFileSize(file.size)}
+                                                {file?.name ? file.name.split('.').pop().toUpperCase() : 'FILE'} • {formatFileSize(file?.size)}
                                             </div>
                                         </div>
                                     </div>
@@ -716,11 +716,11 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
                                     <div className="font-bold text-slate-900 dark:text-white flex items-center justify-between">
                                         <span>Column Header Mapping Adjustments</span>
                                         <span className="text-[11px] font-normal text-slate-500">
-                                            {Object.values(columnMapping).filter(Boolean).length} of {previewData.fileHeaders.length} mapped
+                                            {Object.values(columnMapping || {}).filter(Boolean).length} of {(previewData?.fileHeaders || []).length} mapped
                                         </span>
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                        {previewData.fileHeaders.map(header => (
+                                        {(previewData?.fileHeaders || []).map(header => (
                                             <div key={header} className="flex flex-col gap-1">
                                                 <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 truncate" title={header}>
                                                     {header}:
@@ -731,7 +731,7 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
                                                     className="px-2 py-1 text-xs bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md text-slate-900 dark:text-slate-100"
                                                 >
                                                     <option value="">Do Not Import</option>
-                                                    {previewData.supportedFields.map(f => (
+                                                    {(previewData?.supportedFields || []).map(f => (
                                                         <option key={f.key} value={f.key}>
                                                             {f.label} {f.required ? '*' : ''}
                                                         </option>
@@ -971,13 +971,13 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
                                                                     </span>
                                                                 )}
                                                                 {row.status === 'DUPLICATE' && (
-                                                                    <span title={row.errors.join('; ')} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                                                                    <span title={(row.errors || []).join('; ')} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
                                                                         <AlertTriangle className="w-3 h-3 text-amber-600" />
                                                                         Duplicate
                                                                     </span>
                                                                 )}
                                                                 {row.status === 'INVALID' && (
-                                                                    <span title={row.errors.join('; ')} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
+                                                                    <span title={(row.errors || []).join('; ')} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
                                                                         <XCircle className="w-3 h-3 text-rose-600" />
                                                                         Error
                                                                     </span>
