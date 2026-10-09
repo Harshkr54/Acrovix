@@ -120,25 +120,8 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
             setError(null);
             setFile(selectedFile);
             setFileReady(true);
-        }
-    };
-
-    const handleDrag = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (e.type === 'dragenter' || e.type === 'dragover') {
-            setDragActive(true);
-        } else if (e.type === 'dragleave') {
-            setDragActive(false);
-        }
-    };
-
-    const handleDrop = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setDragActive(false);
-        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            handleFileSelect(e.dataTransfer.files[0]);
+            // Auto-trigger parsing directly for immediate table view
+            processFile(selectedFile);
         }
     };
 
@@ -151,9 +134,9 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
             errors.push('Full Name is required');
         }
         if (!businessEmail) {
-            errors.push('Business Email is required');
+            errors.push('Please enter a valid email address');
         } else if (!EMAIL_REGEX.test(businessEmail)) {
-            errors.push('Invalid business email format');
+            errors.push('Please enter a valid email address');
         }
 
         // Check in-grid duplicate email
@@ -167,8 +150,8 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
         let status = 'VALID';
         if (row.isServerDuplicate || isDuplicateInGrid) {
             status = 'DUPLICATE';
-            if (!errors.includes('Duplicate email')) {
-                errors.push(row.isServerDuplicate ? 'Duplicate lead: email exists in CRM' : 'Duplicate email within grid');
+            if (!errors.includes('Duplicate email address')) {
+                errors.push(row.isServerDuplicate ? 'Email already exists in CRM' : 'Duplicate email address');
             }
         } else if (errors.length > 0) {
             status = 'INVALID';
@@ -183,17 +166,23 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
         };
     };
 
-    const handleProceedToPreview = async () => {
-        if (!file || !fileReady) return;
+    const processFile = async (fileToProcess) => {
         try {
             setLoadingPreview(true);
             setError(null);
-            const data = await previewCrmLeadImport(file);
+            const data = await previewCrmLeadImport(fileToProcess);
             setPreviewData(data);
             setColumnMapping(data.suggestedMapping || {});
 
+            const rawRows = data.previewRows || [];
+            if (rawRows.length === 0) {
+                setError('Unable to extract records from this file. If you are uploading a PDF, ensure it contains text rather than scanned images, or download our CSV template.');
+                setFileReady(false);
+                return;
+            }
+
             // Initialize Grid Rows from backend preview
-            const parsedRows = (data.previewRows || []).map((r, idx) => {
+            const parsedRows = rawRows.map((r, idx) => {
                 const rowData = r.rowData || {};
                 const initialRow = {
                     id: idx + 1,
@@ -226,9 +215,16 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
             setStep(2);
         } catch (err) {
             console.error("Preview failed", err);
-            setError(err.message || 'Unable to parse this file. Please verify file format.');
+            setError(err.message || 'Unable to read this file. Ensure it is a valid CSV, Excel, or PDF document.');
+            setFileReady(false);
         } finally {
             setLoadingPreview(false);
+        }
+    };
+
+    const handleProceedToPreview = () => {
+        if (file && fileReady) {
+            processFile(file);
         }
     };
 
@@ -488,13 +484,23 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
                     {step === 1 && (
                         <div className="space-y-5">
                             <div>
-                                <h4 className="text-sm font-bold text-slate-900 dark:text-white">Upload Lead Document or Spreadsheet</h4>
+                                <h4 className="text-sm font-bold text-slate-900 dark:text-white">Upload Lead File</h4>
                                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                                    Select a CSV, XLS, XLSX, or text-based PDF. We automatically extract and normalize headers for you.
+                                    Upload a CSV, Excel, or PDF document. We automatically extract and organize lead data into an editable table.
                                 </p>
                             </div>
 
-                            {!fileReady ? (
+                            {loadingPreview ? (
+                                <div className="border-2 border-dashed border-blue-300 dark:border-blue-800 bg-blue-50/40 dark:bg-blue-950/20 rounded-2xl p-12 text-center flex flex-col items-center justify-center gap-3 animate-in fade-in">
+                                    <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                                        <Loader2 className="w-6 h-6 animate-spin" />
+                                    </div>
+                                    <div>
+                                        <h5 className="text-sm font-bold text-slate-900 dark:text-white">Reading your file...</h5>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Extracting contact details and checking formatting</p>
+                                    </div>
+                                </div>
+                            ) : !fileReady ? (
                                 <div 
                                     onDragEnter={handleDrag}
                                     onDragLeave={handleDrag}
@@ -527,15 +533,20 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
                                         <Upload className="w-7 h-7" />
                                     </div>
                                     <h5 className="text-sm font-bold text-slate-900 dark:text-white">Drag & drop your file here</h5>
-                                    <p className="text-xs text-[#2563EB] font-semibold mt-1">or Browse Files</p>
-                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2">Instant client-side validation & auto-parsing</p>
-                                    <div className="inline-flex items-center gap-2 mt-4 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-[11px] text-slate-600 dark:text-slate-300 font-medium">
-                                        <span>CSV • XLS • XLSX • PDF</span>
-                                        <span>•</span>
-                                        <span>Max 10 MB</span>
+                                    <p className="text-xs text-[#2563EB] font-semibold mt-1">or click to browse files</p>
+                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2">Supports CSV, Excel (.xls, .xlsx), or text PDF up to 10 MB</p>
+                                    
+                                    <div className="mt-5 pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={(e) => { e.stopPropagation(); handleDownloadTemplate(); }}
+                                            className="inline-flex items-center gap-1.5 text-xs text-teal-600 dark:text-teal-400 font-semibold hover:underline"
+                                        >
+                                            <Download className="w-3.5 h-3.5" />
+                                            Need a starting structure? Download CSV Template
+                                        </button>
                                     </div>
                                 </div>
-
                             ) : (
                                 <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/40 dark:border-emerald-900/60 dark:bg-emerald-950/20 flex items-center justify-between shadow-xs">
                                     <div className="flex items-center gap-3">
@@ -547,7 +558,7 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
                                                 <span className="text-xs font-bold text-slate-900 dark:text-white">{file.name}</span>
                                                 <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
                                                     <CheckCircle2 className="w-3 h-3" />
-                                                    File validated
+                                                    Parsed successfully
                                                 </span>
                                             </div>
                                             <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
@@ -562,7 +573,7 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
                                         title="Remove File"
                                     >
                                         <Trash2 className="w-3.5 h-3.5" />
-                                        Remove
+                                        Choose Another File
                                     </button>
                                 </div>
                             )}
@@ -573,6 +584,26 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
                     {step === 2 && previewData && (
                         <div className="space-y-4">
                             
+                            {/* Client Summary Banner */}
+                            <div className="flex items-center justify-between pb-1">
+                                <div className="flex items-center gap-3">
+                                    <span className="text-sm font-extrabold text-slate-900 dark:text-white">
+                                        {rows.length} records found
+                                    </span>
+                                    {invalidCount > 0 ? (
+                                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-700 bg-rose-50 dark:bg-rose-950/40 px-2.5 py-0.5 rounded-full border border-rose-200 dark:border-rose-800">
+                                            <AlertTriangle className="w-3.5 h-3.5 text-rose-500" />
+                                            {invalidCount} {invalidCount === 1 ? 'record needs attention' : 'records need attention'}
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                                            All records ready to import
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+
                             {/* Top Summary Cards */}
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                 <button
@@ -984,9 +1015,11 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
                             </div>
 
                             <div>
-                                <h4 className="text-lg font-extrabold text-slate-900 dark:text-white">Import Completed Successfully</h4>
+                                <h4 className="text-lg font-extrabold text-slate-900 dark:text-white">
+                                    {importResult.successCount} leads imported successfully
+                                </h4>
                                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                                    The bulk CRM lead import operation has finished processing.
+                                    Your CRM lead database has been updated with the new records.
                                 </p>
                             </div>
 
