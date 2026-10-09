@@ -24,9 +24,65 @@ import {
     Calendar,
     Phone,
     Mail,
-    FileSpreadsheet
+    FileSpreadsheet,
+    AlertTriangle
 } from 'lucide-react';
 import LeadImportModal from '../components/LeadImportModal';
+
+class LeadImportErrorBoundary extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false, error: null };
+    }
+
+    static getDerivedStateFromError(error) {
+        return { hasError: true, error };
+    }
+
+    componentDidCatch(error, errorInfo) {
+        console.error("LeadImportModal Error Caught:", error, errorInfo);
+    }
+
+    componentDidUpdate(prevProps) {
+        if (!prevProps.isOpen && this.props.isOpen && this.state.hasError) {
+            this.setState({ hasError: false, error: null });
+        }
+    }
+
+    render() {
+        if (this.state.hasError) {
+            if (!this.props.isOpen) return null;
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+                    <div className="bg-white dark:bg-[#0B192C] border border-[#D9E2EC] dark:border-slate-800 rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-4 text-center">
+                        <div className="w-12 h-12 mx-auto rounded-full bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+                            <AlertTriangle className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h3 className="text-base font-bold text-slate-900 dark:text-white">Unable to open Lead Importer</h3>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                An unexpected error occurred while opening the import tool. Your CRM leads dashboard remains operational.
+                            </p>
+                        </div>
+                        <div className="flex justify-center gap-2 pt-2">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    this.setState({ hasError: false, error: null });
+                                    this.props.onClose();
+                                }}
+                                className="btn btn-secondary btn-md"
+                            >
+                                Close Importer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}
 
 const STATUS_OPTIONS = [
     { value: '', label: 'All Statuses' },
@@ -417,11 +473,16 @@ export default function CrmLeads() {
                 onSuccess={() => fetchLeads()}
             />
 
-            <LeadImportModal
+            <LeadImportErrorBoundary
                 isOpen={isImportModalOpen}
                 onClose={() => setIsImportModalOpen(false)}
-                onSuccess={() => fetchLeads()}
-            />
+            >
+                <LeadImportModal
+                    isOpen={isImportModalOpen}
+                    onClose={() => setIsImportModalOpen(false)}
+                    onSuccess={() => fetchLeads()}
+                />
+            </LeadImportErrorBoundary>
         </div>
     );
 }

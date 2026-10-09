@@ -363,14 +363,15 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
     };
 
     // Filtered Rows for Grid Rendering
-    const filteredRows = rows.filter(r => {
+    const filteredRows = (rows || []).filter(r => {
+        if (!r) return false;
         // Status Filter
         if (filterStatus === 'VALID' && r.status !== 'VALID') return false;
         if (filterStatus === 'INVALID' && r.status !== 'INVALID') return false;
         if (filterStatus === 'DUPLICATE' && r.status !== 'DUPLICATE') return false;
 
         // Search Filter
-        if (searchQuery.trim()) {
+        if (searchQuery && searchQuery.trim()) {
             const q = searchQuery.toLowerCase();
             const nameMatch = (r.fullName || '').toLowerCase().includes(q);
             const emailMatch = (r.businessEmail || '').toLowerCase().includes(q);
@@ -381,9 +382,9 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
         return true;
     });
 
-    const validCount = rows.filter(r => r.status === 'VALID').length;
-    const invalidCount = rows.filter(r => r.status === 'INVALID').length;
-    const duplicateCount = rows.filter(r => r.status === 'DUPLICATE').length;
+    const validCount = (rows || []).filter(r => r && r.status === 'VALID').length;
+    const invalidCount = (rows || []).filter(r => r && r.status === 'INVALID').length;
+    const duplicateCount = (rows || []).filter(r => r && r.status === 'DUPLICATE').length;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
