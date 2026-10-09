@@ -201,6 +201,12 @@ public class InvoiceService {
                 throw new IllegalStateException("Invoice can only be created from ACCEPTED or CONVERTED quotation");
             }
             invoice.setQuotation(quotation);
+            
+            // Fallback client details if customer is null or missing fields
+            if (invoice.getClientName() == null) invoice.setClientName(quotation.getClientName());
+            if (invoice.getClientCompany() == null) invoice.setClientCompany(quotation.getClientCompany());
+            if (invoice.getClientEmail() == null) invoice.setClientEmail(quotation.getClientEmail());
+            if (invoice.getClientPhone() == null) invoice.setClientPhone(quotation.getClientPhone());
         }
 
         if (request.getPurchaseOrderId() != null) {
