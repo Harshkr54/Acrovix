@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.encryption.InvalidPasswordException;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.apache.pdfbox.text.TextPosition;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -441,6 +442,21 @@ public class CrmLeadImportService {
                 throw new IllegalArgumentException("Password-protected PDF files cannot be read. Please unlock the file first.");
             }
 
+            // 1. Try positional table extraction first
+            try {
+                PositionAwarePdfStripper positionStripper = new PositionAwarePdfStripper();
+                positionStripper.getText(document);
+                List<PdfTextChunk> chunks = positionStripper.getChunks();
+
+                ParsedSheet positionalSheet = extractTableFromPdfChunks(chunks);
+                if (positionalSheet != null && positionalSheet.getRows() != null && !positionalSheet.getRows().isEmpty()) {
+                    return positionalSheet;
+                }
+            } catch (Exception e) {
+                logger.warn("Positional PDF table extraction failed, falling back to text stripper: {}", e.getMessage());
+            }
+
+            // 2. Fallback to standard PDFTextStripper text extraction
             PDFTextStripper stripper = new PDFTextStripper();
             stripper.setSortByPosition(true);
             pdfText = stripper.getText(document);
@@ -459,6 +475,419 @@ public class CrmLeadImportService {
         }
 
         return extractLeadRecordsFromPdfText(pdfText);
+    }
+
+    // --- POSITIONAL PDF EXTRACTION IMPLEMENTATION ---
+
+    private static class PdfTextChunk {
+        private final String text;
+        private final float x;
+        private final float y;
+        private final float width;
+        private final float height;
+        private final int pageNum;
+
+        public PdfTextChunk(String text, float x, float y, float width, float height, int pageNum) {
+            this.text = text;
+            this.x = x;
+            this.y = y;
+            this.width = width;
+            this.height = height;
+            this.pageNum = pageNum;
+        }
+
+        public String getText() { return text; }
+        public float getX() { return x; }
+        public float getY() { return y; }
+        public float getWidth() { return width; }
+        public float getHeight() { return height; }
+        public int getPageNum() { return pageNum; }
+    }
+
+    private static class PositionAwarePdfStripper extends PDFTextStripper {
+        private final List<PdfTextChunk> chunks = new ArrayList<>();
+        private final StringBuilder currentWord = new StringBuilder();
+        private float wordStartX = -1;
+        private float wordY = -1;
+        private float wordMaxX = -1;
+        private float wordHeight = 0;
+
+        public PositionAwarePdfStripper() throws java.io.IOException {
+            super();
+            setSortByPosition(true);
+        }
+
+        @Override
+        protected void processTextPosition(TextPosition text) {
+            if (text != null && text.getUnicode() != null) {
+                String unicode = text.getUnicode();
+                float x = text.getXDirAdj();
+                float y = text.getYDirAdj();
+                float width = text.getWidthDirAdj();
+                float height = text.getHeightDir();
+
+                boolean isSpace = unicode.isBlank() || unicode.equals("\u00a0");
+
+                if (isSpace) {
+                    flushWord();
+                } else {
+                    if (wordStartX >= 0) {
+                        if (Math.abs(y - wordY) > 3.0f || (x - wordMaxX) > 4.0f || x < wordStartX - 2.0f) {
+                            flushWord();
+                        }
+                    }
+
+                    if (wordStartX < 0) {
+                        wordStartX = x;
+                        wordY = y;
+                        wordMaxX = x + width;
+                        wordHeight = height;
+                    } else {
+                        wordMaxX = Math.max(wordMaxX, x + width);
+                    }
+                    currentWord.append(unicode);
+                }
+            }
+            super.processTextPosition(text);
+        }
+
+        @Override
+        protected void writeString(String text, List<TextPosition> textPositions) throws java.io.IOException {
+            flushWord();
+            super.writeString(text, textPositions);
+        }
+
+        private void flushWord() {
+            if (currentWord.length() > 0 && wordStartX >= 0) {
+                String word = currentWord.toString().trim();
+                if (!word.isEmpty()) {
+                    chunks.add(new PdfTextChunk(word, wordStartX, wordY, wordMaxX - wordStartX, wordHeight, getCurrentPageNo()));
+                }
+                currentWord.setLength(0);
+                wordStartX = -1;
+                wordY = -1;
+                wordMaxX = -1;
+            }
+        }
+
+        public List<PdfTextChunk> getChunks() {
+            flushWord();
+            return chunks;
+        }
+    }
+
+    private static class HeaderColumnDef {
+        private final String name;
+        private float minX;
+        private float maxX;
+        private float startX;
+        private float endX;
+
+        public HeaderColumnDef(String name, float minX, float maxX) {
+            this.name = name;
+            this.minX = minX;
+            this.maxX = maxX;
+            this.startX = minX;
+            this.endX = maxX;
+        }
+
+        public String getName() { return name; }
+        public float getMinX() { return minX; }
+        public float getMaxX() { return maxX; }
+        public float getStartX() { return startX; }
+        public float getEndX() { return endX; }
+
+        public void setMinX(float minX) { this.minX = minX; }
+        public void setMaxX(float maxX) { this.maxX = maxX; }
+        public void setStartX(float startX) { this.startX = startX; }
+        public void setEndX(float endX) { this.endX = endX; }
+    }
+
+    private ParsedSheet extractTableFromPdfChunks(List<PdfTextChunk> chunks) {
+        if (chunks == null || chunks.isEmpty()) return null;
+
+        Map<Integer, List<PdfTextChunk>> chunksByPage = new TreeMap<>();
+        for (PdfTextChunk c : chunks) {
+            chunksByPage.computeIfAbsent(c.getPageNum(), k -> new ArrayList<>()).add(c);
+        }
+
+        List<HeaderColumnDef> columnDefs = null;
+        int headerPage = -1;
+        float headerY = -1.0f;
+
+        for (Map.Entry<Integer, List<PdfTextChunk>> entry : chunksByPage.entrySet()) {
+            int pageNum = entry.getKey();
+            List<PdfTextChunk> pageChunks = entry.getValue();
+
+            List<List<PdfTextChunk>> pageLines = groupChunksIntoLines(pageChunks, 3.5f);
+            for (List<PdfTextChunk> line : pageLines) {
+                List<HeaderColumnDef> detected = detectHeaderRow(line);
+                if (detected != null && detected.size() >= 2) {
+                    columnDefs = detected;
+                    headerPage = pageNum;
+                    float maxY = 0f;
+                    for (PdfTextChunk c : line) {
+                        if (c.getY() > maxY) maxY = c.getY();
+                    }
+                    headerY = maxY;
+                    break;
+                }
+            }
+            if (columnDefs != null) break;
+        }
+
+        if (columnDefs == null || columnDefs.isEmpty()) return null;
+
+        calculateColumnBoundaries(columnDefs);
+        List<String> headers = columnDefs.stream().map(HeaderColumnDef::getName).collect(Collectors.toList());
+
+        List<PdfTextChunk> dataChunks = new ArrayList<>();
+        for (Map.Entry<Integer, List<PdfTextChunk>> entry : chunksByPage.entrySet()) {
+            int pageNum = entry.getKey();
+            for (PdfTextChunk c : entry.getValue()) {
+                if (pageNum < headerPage) continue;
+                if (pageNum == headerPage && c.getY() <= headerY + 2.0f) continue;
+                if (isFooterOrHeaderNoise(c.getText())) continue;
+                dataChunks.add(c);
+            }
+        }
+
+        if (dataChunks.isEmpty()) return null;
+
+        dataChunks.sort((a, b) -> {
+            if (a.getPageNum() != b.getPageNum()) return Integer.compare(a.getPageNum(), b.getPageNum());
+            if (Math.abs(a.getY() - b.getY()) > 3.0f) return Float.compare(a.getY(), b.getY());
+            return Float.compare(a.getX(), b.getX());
+        });
+
+        List<Map<String, String>> rows = new ArrayList<>();
+        int emailColIdx = -1;
+        for (int i = 0; i < columnDefs.size(); i++) {
+            String normName = columnDefs.get(i).getName().toLowerCase().replaceAll("[^a-z]", "");
+            if (normName.contains("email") || normName.contains("mail")) {
+                emailColIdx = i;
+                break;
+            }
+        }
+
+        Map<String, List<PdfTextChunk>> currentCellChunks = new LinkedHashMap<>();
+        for (HeaderColumnDef col : columnDefs) {
+            currentCellChunks.put(col.getName(), new ArrayList<>());
+        }
+
+        float currentY = -1.0f;
+        int currentLinePage = -1;
+
+        for (PdfTextChunk chunk : dataChunks) {
+            int colIdx = getMatchingColumnIndex(chunk.getX(), columnDefs);
+            if (colIdx == -1) continue;
+
+            HeaderColumnDef colDef = columnDefs.get(colIdx);
+            boolean isNewRow = false;
+
+            if (currentY < 0) {
+                isNewRow = false;
+            } else if (chunk.getPageNum() != currentLinePage) {
+                isNewRow = true;
+            } else if (colIdx == 0 && (chunk.getY() - currentY > 5.0f)) {
+                isNewRow = true;
+            } else if (chunk.getY() - currentY > 16.0f) {
+                isNewRow = true;
+            }
+
+            if (isNewRow) {
+                Map<String, String> rowMap = flushRow(columnDefs, currentCellChunks);
+                if (hasMeaningfulContent(rowMap)) {
+                    rows.add(rowMap);
+                }
+                for (HeaderColumnDef c : columnDefs) {
+                    currentCellChunks.get(c.getName()).clear();
+                }
+            }
+
+            currentCellChunks.get(colDef.getName()).add(chunk);
+            currentY = chunk.getY();
+            currentLinePage = chunk.getPageNum();
+        }
+
+        Map<String, String> lastRowMap = flushRow(columnDefs, currentCellChunks);
+        if (hasMeaningfulContent(lastRowMap)) {
+            rows.add(lastRowMap);
+        }
+
+        if (rows.isEmpty()) return null;
+        return new ParsedSheet(headers, rows);
+    }
+
+    private List<List<PdfTextChunk>> groupChunksIntoLines(List<PdfTextChunk> pageChunks, float yTolerance) {
+        List<List<PdfTextChunk>> lines = new ArrayList<>();
+        List<PdfTextChunk> sorted = new ArrayList<>(pageChunks);
+        sorted.sort(Comparator.comparingDouble(PdfTextChunk::getY));
+
+        for (PdfTextChunk chunk : sorted) {
+            boolean added = false;
+            for (List<PdfTextChunk> line : lines) {
+                if (!line.isEmpty() && Math.abs(line.get(0).getY() - chunk.getY()) <= yTolerance) {
+                    line.add(chunk);
+                    added = true;
+                    break;
+                }
+            }
+            if (!added) {
+                List<PdfTextChunk> newLine = new ArrayList<>();
+                newLine.add(chunk);
+                lines.add(newLine);
+            }
+        }
+
+        for (List<PdfTextChunk> line : lines) {
+            line.sort(Comparator.comparingDouble(PdfTextChunk::getX));
+        }
+
+        return lines;
+    }
+
+    private List<HeaderColumnDef> detectHeaderRow(List<PdfTextChunk> line) {
+        if (line == null || line.isEmpty()) return null;
+
+        List<HeaderColumnDef> candidates = new ArrayList<>();
+        StringBuilder nameBuf = new StringBuilder();
+        float minX = -1;
+        float lastMaxX = -1;
+
+        for (PdfTextChunk chunk : line) {
+            String txt = chunk.getText().trim();
+            if (txt.isEmpty()) continue;
+
+            if (minX < 0) {
+                minX = chunk.getX();
+                lastMaxX = chunk.getX() + chunk.getWidth();
+                nameBuf.append(txt);
+            } else {
+                float gap = chunk.getX() - lastMaxX;
+                String currentName = nameBuf.toString().trim();
+
+                boolean shouldMerge = false;
+                if (gap < 10.0f) {
+                    shouldMerge = true;
+                } else if (gap < 20.0f && !isRecognizedHeader(currentName)) {
+                    shouldMerge = true;
+                }
+
+                if (shouldMerge) {
+                    nameBuf.append(" ").append(txt);
+                    lastMaxX = Math.max(lastMaxX, chunk.getX() + chunk.getWidth());
+                } else {
+                    candidates.add(new HeaderColumnDef(currentName, minX, lastMaxX));
+                    minX = chunk.getX();
+                    lastMaxX = chunk.getX() + chunk.getWidth();
+                    nameBuf.setLength(0);
+                    nameBuf.append(txt);
+                }
+            }
+        }
+        if (minX >= 0) {
+            candidates.add(new HeaderColumnDef(nameBuf.toString().trim(), minX, lastMaxX));
+        }
+
+        int matchCount = 0;
+        for (HeaderColumnDef candidate : candidates) {
+            if (isRecognizedHeader(candidate.getName())) {
+                matchCount++;
+            }
+        }
+
+        if (matchCount >= 2) {
+            return candidates;
+        }
+
+        return null;
+    }
+
+    private boolean isRecognizedHeader(String rawHeaderName) {
+        if (rawHeaderName == null) return false;
+        String norm = rawHeaderName.toLowerCase().replaceAll("[^a-z0-9]", "");
+        return norm.equals("fullname") || norm.equals("name") || norm.equals("leadname") || norm.equals("clientname") || norm.contains("contact")
+                || norm.equals("businessemail") || norm.equals("email") || norm.equals("mail") || norm.contains("email")
+                || norm.equals("company") || norm.equals("companyname") || norm.equals("organization") || norm.equals("firm")
+                || norm.equals("phone") || norm.equals("phonenumber") || norm.equals("mobile") || norm.equals("tel")
+                || norm.equals("industry") || norm.equals("industrysector") || norm.equals("sector")
+                || norm.equals("service") || norm.equals("servicerequired") || norm.equals("requirement")
+                || norm.equals("status") || norm.equals("priority") || norm.equals("source") || norm.equals("leadsource")
+                || norm.equals("city") || norm.equals("location") || norm.equals("notes");
+    }
+
+    private void calculateColumnBoundaries(List<HeaderColumnDef> columnDefs) {
+        int n = columnDefs.size();
+        for (int i = 0; i < n; i++) {
+            HeaderColumnDef col = columnDefs.get(i);
+            float startX = (i == 0) ? 0.0f : (columnDefs.get(i - 1).getMaxX() + col.getMinX()) / 2.0f;
+            float endX = (i == n - 1) ? Float.MAX_VALUE : (col.getMaxX() + columnDefs.get(i + 1).getMinX()) / 2.0f;
+            col.setStartX(startX);
+            col.setEndX(endX);
+        }
+    }
+
+    private int getMatchingColumnIndex(float x, List<HeaderColumnDef> columnDefs) {
+        for (int i = 0; i < columnDefs.size(); i++) {
+            HeaderColumnDef col = columnDefs.get(i);
+            if (x >= col.getStartX() && x < col.getEndX()) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static String joinCellChunks(List<PdfTextChunk> chunks) {
+        if (chunks == null || chunks.isEmpty()) return "";
+        StringBuilder sb = new StringBuilder();
+        for (PdfTextChunk chunk : chunks) {
+            String text = chunk.getText().trim();
+            if (text.isEmpty()) continue;
+            if (sb.length() == 0) {
+                sb.append(text);
+            } else {
+                String prev = sb.toString();
+                if ((prev.contains("@") || text.contains("@")) && EMAIL_PATTERN.matcher(prev + text).matches()) {
+                    sb.append(text);
+                } else if (prev.endsWith("-") || prev.endsWith(".")) {
+                    sb.append(text);
+                } else {
+                    sb.append(" ").append(text);
+                }
+            }
+        }
+        return sb.toString().trim();
+    }
+
+    private Map<String, String> flushRow(List<HeaderColumnDef> columnDefs, Map<String, List<PdfTextChunk>> cellChunks) {
+        Map<String, String> row = new LinkedHashMap<>();
+        for (HeaderColumnDef col : columnDefs) {
+            List<PdfTextChunk> chunks = cellChunks.get(col.getName());
+            String val = joinCellChunks(chunks);
+            row.put(col.getName(), val);
+        }
+        return row;
+    }
+
+    private boolean hasMeaningfulContent(Map<String, String> rowMap) {
+        if (rowMap == null || rowMap.isEmpty()) return false;
+        boolean hasValue = false;
+        for (String val : rowMap.values()) {
+            if (val != null && !val.isBlank() && !isFooterOrHeaderNoise(val)) {
+                hasValue = true;
+                break;
+            }
+        }
+        return hasValue;
+    }
+
+    private boolean isFooterOrHeaderNoise(String text) {
+        if (text == null || text.isBlank()) return true;
+        String t = text.trim();
+        return t.matches("(?i)^page\\s+\\d+(\\s+of\\s+\\d+)?$")
+                || t.matches("(?i)^confidential$")
+                || t.matches("(?i)^acrovix\\s+crm.*$");
     }
 
     private ParsedSheet extractLeadRecordsFromPdfText(String pdfText) {

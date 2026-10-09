@@ -214,7 +214,7 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
                     serviceRequired: rowData.serviceRequired || rowData.Requirement || rowData['Service Required'] || '',
                     leadSource: rowData.leadSource || rowData.Source || rowData['Lead Source'] || 'WEBSITE',
                     priority: rowData.priority || rowData.Priority || 'MEDIUM',
-                    status: rowData.status || rowData.Status || 'NEW',
+                    leadStatus: rowData.status || rowData.Status || 'NEW',
                     currency: rowData.currency || rowData.Currency || 'INR',
                     estimatedValue: rowData.estimatedValue || rowData['Estimated Value'] || '',
                     expectedClosingDate: rowData.expectedClosingDate || rowData['Expected Closing Date'] || '',
@@ -314,24 +314,43 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
             setImporting(true);
             setError(null);
 
+            const ALLOWED_STATUSES = ['NEW', 'CONTACTED', 'QUALIFIED', 'PROPOSAL', 'NEGOTIATION', 'WON', 'LOST'];
+            const ALLOWED_PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'];
+            const ALLOWED_SOURCES = ['WEBSITE', 'REFERRAL', 'EMAIL', 'PHONE', 'WHATSAPP', 'LINKEDIN', 'ADVERTISEMENT', 'PARTNER', 'OTHER'];
+            const ALLOWED_CURRENCIES = ['INR', 'USD', 'EUR', 'GBP', 'AED'];
+
             // Format DTO requests for backend
-            const payload = validRows.map(r => ({
-                fullName: r.fullName,
-                businessEmail: r.businessEmail,
-                companyName: r.companyName || null,
-                phoneNumber: r.phoneNumber || null,
-                industrySector: r.industrySector || null,
-                serviceRequired: r.serviceRequired || null,
-                leadSource: r.leadSource || 'WEBSITE',
-                priority: r.priority || 'MEDIUM',
-                status: r.status || 'NEW',
-                currency: r.currency || 'INR',
-                estimatedValue: r.estimatedValue ? parseFloat(r.estimatedValue) : null,
-                expectedClosingDate: r.expectedClosingDate || null,
-                probability: r.probability ? parseInt(r.probability) : null,
-                notes: r.notes || null,
-                assignedToId: r.assignedToId ? parseInt(r.assignedToId) : null
-            }));
+            const payload = validRows.map(r => {
+                const s = (r.leadStatus || r.statusEnum || '').toString().toUpperCase();
+                const leadStatusVal = ALLOWED_STATUSES.includes(s) ? s : 'NEW';
+
+                const p = (r.priority || '').toString().toUpperCase();
+                const priorityVal = ALLOWED_PRIORITIES.includes(p) ? p : 'MEDIUM';
+
+                const src = (r.leadSource || '').toString().toUpperCase();
+                const sourceVal = ALLOWED_SOURCES.includes(src) ? src : 'WEBSITE';
+
+                const cur = (r.currency || '').toString().toUpperCase();
+                const currencyVal = ALLOWED_CURRENCIES.includes(cur) ? cur : 'INR';
+
+                return {
+                    fullName: r.fullName,
+                    businessEmail: r.businessEmail,
+                    companyName: r.companyName || null,
+                    phoneNumber: r.phoneNumber || null,
+                    industrySector: r.industrySector || null,
+                    serviceRequired: r.serviceRequired || null,
+                    leadSource: sourceVal,
+                    priority: priorityVal,
+                    status: leadStatusVal,
+                    currency: currencyVal,
+                    estimatedValue: (r.estimatedValue && !isNaN(parseFloat(r.estimatedValue))) ? parseFloat(r.estimatedValue) : null,
+                    expectedClosingDate: r.expectedClosingDate || null,
+                    probability: (r.probability && !isNaN(parseInt(r.probability))) ? parseInt(r.probability) : null,
+                    notes: r.notes || null,
+                    assignedToId: (r.assignedToId && !isNaN(parseInt(r.assignedToId))) ? parseInt(r.assignedToId) : null
+                };
+            });
 
             const res = await importCrmLeadRecords(payload);
             setImportResult(res);
