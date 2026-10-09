@@ -208,6 +208,16 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
         return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
     };
 
+    const getSampleValue = (header) => {
+        if (!previewData || !previewData.previewRows) return '—';
+        for (const row of previewData.previewRows) {
+            if (row.rowData && row.rowData[header] !== undefined && row.rowData[header] !== null && String(row.rowData[header]).trim() !== '') {
+                return String(row.rowData[header]).trim();
+            }
+        }
+        return '—';
+    };
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
             <div className="bg-white dark:bg-[#0B192C] border border-[#D9E2EC] dark:border-slate-800 rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -406,65 +416,119 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
 
                     {/* STEP 2: COLUMN MAPPING */}
                     {step === 2 && previewData && (
-                        <div className="space-y-5">
-                            <div>
-                                <h4 className="text-sm font-bold text-text-primary">Map Spreadsheet Columns to CRM Lead Fields</h4>
-                                <p className="text-xs text-text-muted mt-1">
-                                    Match your file headers to CRM fields. Required fields are marked with an asterisk (*).
-                                </p>
+                        <div className="space-y-4">
+                            {/* Header & Counter Bar */}
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl bg-blue-50/60 dark:bg-slate-800/50 border border-blue-100 dark:border-slate-700">
+                                <div>
+                                    <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                        <FileSpreadsheet className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                        Map Spreadsheet Columns to CRM Lead Fields
+                                    </h4>
+                                    <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
+                                        Match each uploaded column to its corresponding CRM field. Mandatory fields are marked with an asterisk (<span className="text-rose-500 font-bold">*</span>).
+                                    </p>
+                                </div>
+                                <div className="shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 shadow-2xs">
+                                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                                    <span>
+                                        {Object.values(columnMapping).filter(Boolean).length} of {previewData.fileHeaders.length} columns mapped
+                                    </span>
+                                </div>
                             </div>
 
-                            <div className="border border-[#D9E2EC] dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
-                                <table className="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr className="bg-slate-50 dark:bg-slate-900/60 border-b border-[#D9E2EC] dark:border-slate-800 text-[11px] font-bold text-text-muted uppercase">
-                                            <th className="px-4 py-3">Spreadsheet Column Header</th>
-                                            <th className="px-4 py-3 text-center w-14">Match</th>
-                                            <th className="px-4 py-3">CRM Target Field</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-[#D9E2EC] dark:divide-slate-800 text-xs">
-                                        {previewData.fileHeaders.map((header) => {
-                                            const currentMappedKey = columnMapping[header] || '';
-                                            const isAutoSuggested = previewData.suggestedMapping && previewData.suggestedMapping[header] === currentMappedKey && currentMappedKey !== '';
+                            {/* Required Fields Warning Banner */}
+                            {(!Object.values(columnMapping).includes('fullName') || !Object.values(columnMapping).includes('businessEmail')) && (
+                                <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs flex items-center gap-2.5">
+                                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                                    <div className="font-medium">
+                                        <span className="font-bold">Action Required: </span>
+                                        {!Object.values(columnMapping).includes('fullName') && !Object.values(columnMapping).includes('businessEmail') ? (
+                                            <span>Please map columns for <strong className="font-bold text-amber-900 dark:text-amber-200">Full Name *</strong> and <strong className="font-bold text-amber-900 dark:text-amber-200">Business Email *</strong>.</span>
+                                        ) : !Object.values(columnMapping).includes('fullName') ? (
+                                            <span>Please map a column for <strong className="font-bold text-amber-900 dark:text-amber-200">Full Name *</strong>.</span>
+                                        ) : (
+                                            <span>Please map a column for <strong className="font-bold text-amber-900 dark:text-amber-200">Business Email *</strong>.</span>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
 
-                                            return (
-                                                <tr key={header} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/40 transition-colors">
-                                                    <td className="px-4 py-3 font-semibold text-text-primary">
-                                                        {header}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-center">
-                                                        {isAutoSuggested ? (
-                                                            <span title="Auto-suggested match" className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
-                                                                <Check className="w-3 h-3" />
-                                                            </span>
-                                                        ) : currentMappedKey ? (
-                                                            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400">
-                                                                <Check className="w-3 h-3" />
-                                                            </span>
-                                                        ) : (
-                                                            <span className="text-text-muted text-[10px]">—</span>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        <select
-                                                            value={currentMappedKey}
-                                                            onChange={(e) => handleMappingChange(header, e.target.value)}
-                                                            className="w-full max-w-md px-3 py-1.5 text-xs bg-white dark:bg-[#0B192C] border border-[#D9E2EC] dark:border-slate-800 rounded-xl text-text-primary focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
-                                                        >
-                                                            <option value="">Do Not Import This Column</option>
-                                                            {previewData.supportedFields.map(f => (
-                                                                <option key={f.key} value={f.key}>
-                                                                    {f.label} {f.required ? '*' : ''}
+                            {/* Redesigned Mapping Table */}
+                            <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-2xs bg-white dark:bg-slate-900">
+                                <div className="overflow-x-auto max-h-[360px]">
+                                    <table className="w-full text-left border-collapse min-w-[600px]">
+                                        <thead className="sticky top-0 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider z-10">
+                                            <tr>
+                                                <th className="px-4 py-3">Uploaded Column</th>
+                                                <th className="px-4 py-3">Sample Value</th>
+                                                <th className="px-4 py-3 min-w-[220px]">Map To CRM Field</th>
+                                                <th className="px-4 py-3 text-right">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-xs">
+                                            {previewData.fileHeaders.map((header) => {
+                                                const currentMappedKey = columnMapping[header] || '';
+                                                const sampleValue = getSampleValue(header);
+                                                const targetFieldMeta = previewData.supportedFields.find(f => f.key === currentMappedKey);
+
+                                                return (
+                                                    <tr key={header} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                                                        <td className="px-4 py-3 font-bold text-slate-900 dark:text-white">
+                                                            {header}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-slate-500 dark:text-slate-400 font-mono text-[11px] max-w-[180px] truncate" title={sampleValue}>
+                                                            {sampleValue !== '—' ? `"${sampleValue}"` : <span className="text-slate-400 dark:text-slate-600 font-sans italic">No sample</span>}
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <select
+                                                                value={currentMappedKey}
+                                                                onChange={(e) => handleMappingChange(header, e.target.value)}
+                                                                className="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-slate-100 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs cursor-pointer"
+                                                            >
+                                                                <option value="" className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                                                                    — Do Not Import —
                                                                 </option>
-                                                            ))}
-                                                        </select>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
+                                                                <optgroup label="Required Fields *" className="bg-white dark:bg-slate-800 text-slate-500 font-bold">
+                                                                    {previewData.supportedFields.filter(f => f.required).map(f => (
+                                                                        <option key={f.key} value={f.key} className="bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-400 font-bold">
+                                                                            {f.label} *
+                                                                        </option>
+                                                                    ))}
+                                                                </optgroup>
+                                                                <optgroup label="Optional Fields" className="bg-white dark:bg-slate-800 text-slate-500 font-bold">
+                                                                    {previewData.supportedFields.filter(f => !f.required).map(f => (
+                                                                        <option key={f.key} value={f.key} className="bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100">
+                                                                            {f.label}
+                                                                        </option>
+                                                                    ))}
+                                                                </optgroup>
+                                                            </select>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-right">
+                                                            {targetFieldMeta ? (
+                                                                targetFieldMeta.required ? (
+                                                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                                                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                                                        Matched (Required)
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                                                                        <Check className="w-3.5 h-3.5 text-blue-600" />
+                                                                        Matched
+                                                                    </span>
+                                                                )
+                                                            ) : (
+                                                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                                                                    Ignored
+                                                                </span>
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     )}
