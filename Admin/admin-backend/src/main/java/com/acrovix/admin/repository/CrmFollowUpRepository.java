@@ -12,6 +12,8 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import java.util.Optional;
+
 @Repository
 public interface CrmFollowUpRepository extends JpaRepository<CrmFollowUp, Long> {
 
@@ -19,7 +21,7 @@ public interface CrmFollowUpRepository extends JpaRepository<CrmFollowUp, Long> 
 
     Page<CrmFollowUp> findByLeadIdInOrderByScheduledAtDesc(List<Long> leadIds, Pageable pageable);
 
-    List<CrmFollowUp> findFirstByLeadIdAndStatusOrderByScheduledAtAsc(Long leadId, FollowUpStatus status);
+    Optional<CrmFollowUp> findFirstByLeadIdAndStatusOrderByScheduledAtAsc(Long leadId, FollowUpStatus status);
 
     @Query("SELECT f FROM CrmFollowUp f WHERE f.status = 'PENDING' AND f.scheduledAt BETWEEN :start AND :end AND (:assignedId IS NULL OR f.assignedTo.id = :assignedId) ORDER BY f.scheduledAt ASC")
     List<CrmFollowUp> findDueBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end, @Param("assignedId") Long assignedId);

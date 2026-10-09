@@ -14,7 +14,7 @@ export default function LeadAssignmentModal({ isOpen, onClose, lead, onSuccess }
                 .then(users => setAdminUsers(Array.isArray(users) ? users : []))
                 .catch(err => console.error("Failed to load users", err));
 
-            setAssignedToId(lead.assignedTo ? lead.assignedTo.id : '');
+            setAssignedToId(lead.assignedToId || '');
             setError(null);
         }
     }, [isOpen, lead]);

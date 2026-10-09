@@ -133,26 +133,26 @@ export default function CrmLeadDetails() {
                     </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3 mt-4 sm:mt-0 w-full sm:w-auto justify-start sm:justify-end">
+                <div className="flex flex-wrap items-center gap-2 mt-4 sm:mt-0 w-full sm:w-auto justify-start sm:justify-end">
                     <button
                         onClick={() => setIsStatusModalOpen(true)}
-                        className="btn btn-primary whitespace-nowrap min-w-[130px] justify-center px-4"
+                        className="btn btn-secondary btn-md flex items-center justify-center font-semibold"
                     >
-                        <RefreshCw className="w-4 h-4 mr-2 text-amber-500 shrink-0" />
+                        <RefreshCw className="w-4 h-4 mr-1.5 text-amber-600 dark:text-amber-500 shrink-0" />
                         Update Status
                     </button>
                     <button
                         onClick={() => setIsAssignModalOpen(true)}
-                        className="btn btn-primary whitespace-nowrap min-w-[130px] justify-center px-4"
+                        className="btn btn-secondary btn-md flex items-center justify-center font-semibold"
                     >
-                        <UserCheck className="w-4 h-4 mr-2 text-blue-500 shrink-0" />
+                        <UserCheck className="w-4 h-4 mr-1.5 text-blue-600 dark:text-blue-500 shrink-0" />
                         Assign Rep
                     </button>
                     <button
                         onClick={() => setFollowUpModalState({ isOpen: true, mode: 'CREATE', followUp: null })}
-                        className="btn btn-primary whitespace-nowrap min-w-[170px] justify-center px-4"
+                        className="btn btn-primary btn-md flex items-center justify-center font-semibold shadow-sm"
                     >
-                        <Plus className="w-4 h-4 mr-2 shrink-0" />
+                        <Plus className="w-4 h-4 mr-1.5 shrink-0" />
                         Schedule Follow-up
                     </button>
                 </div>
@@ -369,7 +369,7 @@ export default function CrmLeadDetails() {
                             <div>
                                 <span className="text-text-muted block font-medium">Assigned Sales Owner</span>
                                 <span className="text-text-primary font-semibold">
-                                    {lead.assignedTo ? lead.assignedTo.name : 'Unassigned'}
+                                    {lead.assignedToName || 'Unassigned'}
                                 </span>
                             </div>
 

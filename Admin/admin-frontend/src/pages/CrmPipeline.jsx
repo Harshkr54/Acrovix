@@ -220,7 +220,7 @@ export default function CrmPipeline() {
 
                                                     <div className="flex items-center justify-between text-[11px] text-text-muted pt-1">
                                                         <span className="truncate">
-                                                            {lead.assignedTo ? lead.assignedTo.name : 'Unassigned'}
+                                                            {lead.assignedToName || 'Unassigned'}
                                                         </span>
                                                         {lead.nextFollowUpDate && (
                                                             <span className="text-amber-600 dark:text-amber-400 font-semibold shrink-0">

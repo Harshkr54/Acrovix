@@ -136,14 +136,19 @@ export default function FollowUpModal({ isOpen, onClose, mode = 'CREATE', leadId
                                                 type="button"
                                                 key={t.value}
                                                 onClick={() => setType(t.value)}
-                                                className={`flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all ${
+                                                className={`flex items-center justify-center gap-2 p-2.5 rounded-xl border text-[13px] font-semibold transition-all relative overflow-hidden ${
                                                     isSelected 
-                                                        ? 'bg-brand-teal/10 border-[#0D9488] text-brand-teal' 
-                                                        : 'bg-bg-main border-border-subtle text-text-secondary hover:border-text-muted'
+                                                        ? 'bg-brand-teal/10 border-[#0D9488] text-[#0D9488]' 
+                                                        : 'bg-bg-main border-border-subtle text-text-secondary hover:border-text-muted hover:bg-bg-hover'
                                                 }`}
                                             >
-                                                <IconComp className="btn btn-secondary btn-md" />
+                                                <IconComp className="w-4 h-4" />
                                                 {t.label}
+                                                {isSelected && (
+                                                    <div className="absolute top-1 right-1">
+                                                        <div className="w-2 h-2 rounded-full bg-[#0D9488]"></div>
+                                                    </div>
+                                                )}
                                             </button>
                                         );
                                     })}
@@ -210,7 +215,7 @@ export default function FollowUpModal({ isOpen, onClose, mode = 'CREATE', leadId
                                     : 'bg-brand-teal hover:bg-[#0B7A70]'
                             }`}
                         >
-                            {isLoading && <Loader2 className="btn btn-secondary btn-md" />}
+                            {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
                             {mode === 'CREATE' && 'Schedule Follow-up'}
                             {mode === 'EDIT' && 'Save Changes'}
                             {mode === 'COMPLETE' && 'Complete Follow-up'}

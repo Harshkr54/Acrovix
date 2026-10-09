@@ -750,6 +750,7 @@ export default function QuotationBuilder() {
                                             customers.map(c => (
                                                 <div 
                                                     key={c.id}
+                                                    onMouseDown={(e) => e.preventDefault()}
                                                     onClick={() => selectCustomer(c)}
                                                     className="px-4 py-2 hover:bg-bg-hover cursor-pointer border-b border-border-subtle/40 last:border-0"
                                                 >
@@ -928,6 +929,7 @@ export default function QuotationBuilder() {
                                     catalogItems.map(item => (
                                         <div 
                                             key={item.id}
+                                            onMouseDown={(e) => e.preventDefault()}
                                             onClick={() => addCatalogItem(item)}
                                             className="px-4 py-2 hover:bg-bg-hover cursor-pointer border-b border-border-subtle/40 last:border-0 flex justify-between items-center"
                                         >

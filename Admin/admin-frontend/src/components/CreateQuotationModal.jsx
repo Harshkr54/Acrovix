@@ -289,6 +289,7 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                                                         customers.map(c => (
                                                             <div 
                                                                 key={c.id}
+                                                                onMouseDown={(e) => e.preventDefault()}
                                                                 onClick={() => selectCustomer(c)}
                                                                 className="px-4 py-2.5 hover:bg-bg-hover cursor-pointer border-b border-border-subtle/40 last:border-0 transition-colors"
                                                             >

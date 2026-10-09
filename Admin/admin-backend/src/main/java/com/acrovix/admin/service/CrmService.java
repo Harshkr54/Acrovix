@@ -598,11 +598,11 @@ public class CrmService {
     }
 
     private void syncLeadNextFollowUpDate(CrmLead lead) {
-        List<CrmFollowUp> pendingFollowUps = crmFollowUpRepository
+        Optional<CrmFollowUp> pendingFollowUp = crmFollowUpRepository
                 .findFirstByLeadIdAndStatusOrderByScheduledAtAsc(lead.getId(), FollowUpStatus.PENDING);
 
-        if (!pendingFollowUps.isEmpty()) {
-            lead.setNextFollowUpDate(pendingFollowUps.get(0).getScheduledAt());
+        if (pendingFollowUp.isPresent()) {
+            lead.setNextFollowUpDate(pendingFollowUp.get().getScheduledAt());
         } else {
             lead.setNextFollowUpDate(null);
         }

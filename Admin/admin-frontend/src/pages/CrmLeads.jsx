@@ -390,7 +390,7 @@ export default function CrmLeads() {
                                             </td>
 
                                             <td className="px-5 py-4 whitespace-nowrap text-text-secondary min-w-[140px]">
-                                                {lead.assignedTo ? lead.assignedTo.name : (
+                                                {lead.assignedToName ? lead.assignedToName : (
                                                     <span className="text-text-muted italic">Unassigned</span>
                                                 )}
                                             </td>
