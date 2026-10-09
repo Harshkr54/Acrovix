@@ -31,6 +31,7 @@ import java.util.Map;
 public class CrmController {
 
     private final CrmService crmService;
+    private final com.acrovix.admin.service.CrmLeadImportService crmLeadImportService;
 
     // --- LEADS ---
 
@@ -182,4 +183,33 @@ public class CrmController {
             @AuthenticationPrincipal AdminUser admin) {
         return ResponseEntity.ok(crmService.getDashboardSummary(admin));
     }
+
+    // --- BULK IMPORT ---
+
+    @PostMapping(value = "/leads/import/preview", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    public ResponseEntity<com.acrovix.admin.dto.crm.CrmLeadImportPreviewResponse> previewImportLeads(
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+        return ResponseEntity.ok(crmLeadImportService.previewImport(file));
+    }
+
+    @PostMapping(value = "/leads/import", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    public ResponseEntity<com.acrovix.admin.dto.crm.CrmLeadImportResultResponse> importLeads(
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            @RequestParam(value = "columnMapping", required = false) String columnMapping,
+            @AuthenticationPrincipal AdminUser admin) {
+        return ResponseEntity.ok(crmLeadImportService.importLeads(file, columnMapping, admin));
+    }
+
+    @GetMapping("/leads/import/template")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    public ResponseEntity<byte[]> downloadImportTemplate() {
+        byte[] csvBytes = crmLeadImportService.generateTemplateCsv();
+        return ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"crm_leads_import_template.csv\"")
+                .contentType(org.springframework.http.MediaType.parseMediaType("text/csv"))
+                .body(csvBytes);
+    }
+
 }

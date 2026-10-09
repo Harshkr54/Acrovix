@@ -23,8 +23,10 @@ import {
     Building2,
     Calendar,
     Phone,
-    Mail
+    Mail,
+    FileSpreadsheet
 } from 'lucide-react';
+import LeadImportModal from '../components/LeadImportModal';
 
 const STATUS_OPTIONS = [
     { value: '', label: 'All Statuses' },
@@ -79,6 +81,7 @@ export default function CrmLeads() {
 
     // Modal triggers
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [statusModalLead, setStatusModalLead] = useState(null);
     const [assignModalLead, setAssignModalLead] = useState(null);
 
@@ -141,13 +144,22 @@ export default function CrmLeads() {
     };
 
     const pageHeaderAction = (
-        <button
-            onClick={() => setIsCreateModalOpen(true)}
-            className="btn btn-primary btn-sm"
-        >
-            <Plus className="w-4 h-4" />
-            New Lead
-        </button>
+        <div className="flex items-center gap-2">
+            <button
+                onClick={() => setIsImportModalOpen(true)}
+                className="btn btn-secondary btn-sm flex items-center gap-1.5"
+            >
+                <FileSpreadsheet className="w-4 h-4 text-[#0D9488]" />
+                Import Leads
+            </button>
+            <button
+                onClick={() => setIsCreateModalOpen(true)}
+                className="btn btn-primary btn-sm flex items-center gap-1.5"
+            >
+                <Plus className="w-4 h-4" />
+                New Lead
+            </button>
+        </div>
     );
 
     return (
@@ -402,6 +414,12 @@ export default function CrmLeads() {
                 isOpen={Boolean(assignModalLead)}
                 lead={assignModalLead}
                 onClose={() => setAssignModalLead(null)}
+                onSuccess={() => fetchLeads()}
+            />
+
+            <LeadImportModal
+                isOpen={isImportModalOpen}
+                onClose={() => setIsImportModalOpen(false)}
                 onSuccess={() => fetchLeads()}
             />
         </div>

@@ -115,6 +115,20 @@
 			<version>1.4.6</version>
 		</dependency>
 
+		<!-- Apache POI for Excel Parsing (.xlsx / .xls) -->
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi-ooxml</artifactId>
+			<version>5.2.5</version>
+		</dependency>
+
+		<!-- Apache Commons CSV for CSV Parsing -->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-csv</artifactId>
+			<version>1.10.0</version>
+		</dependency>
+
 
 
 		<!-- H2 Database for unit/integration testing -->

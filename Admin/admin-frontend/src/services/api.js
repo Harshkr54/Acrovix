@@ -473,6 +473,75 @@ export const getCrmDashboardSummary = () => fetchApi('/crm/dashboard');
 
 export const getAdminUsers = () => fetchApi('/users');
 
+export const previewCrmLeadImport = async (file) => {
+    const token = localStorage.getItem('adminToken');
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await fetch(`${API_BASE_URL}/crm/leads/import/preview`, {
+        method: 'POST',
+        headers: {
+            'Authorization': token ? `Bearer ${token}` : ''
+        },
+        body: formData
+    });
+    if (!response.ok) {
+        let errStr = 'Failed to parse file for preview';
+        try {
+            const errData = await response.json();
+            if (errData.message) errStr = errData.message;
+        } catch (e) {}
+        throw new Error(errStr);
+    }
+    return await response.json();
+};
+
+export const importCrmLeads = async (file, columnMapping) => {
+    const token = localStorage.getItem('adminToken');
+    const formData = new FormData();
+    formData.append('file', file);
+    if (columnMapping) {
+        formData.append('columnMapping', typeof columnMapping === 'string' ? columnMapping : JSON.stringify(columnMapping));
+    }
+    const response = await fetch(`${API_BASE_URL}/crm/leads/import`, {
+        method: 'POST',
+        headers: {
+            'Authorization': token ? `Bearer ${token}` : ''
+        },
+        body: formData
+    });
+    if (!response.ok) {
+        let errStr = 'Failed to import leads';
+        try {
+            const errData = await response.json();
+            if (errData.message) errStr = errData.message;
+        } catch (e) {}
+        throw new Error(errStr);
+    }
+    return await response.json();
+};
+
+export const downloadCrmLeadTemplate = async () => {
+    const token = localStorage.getItem('adminToken');
+    const response = await fetch(`${API_BASE_URL}/crm/leads/import/template`, {
+        headers: {
+            'Authorization': token ? `Bearer ${token}` : ''
+        }
+    });
+    if (!response.ok) {
+        throw new Error('Failed to download template');
+    }
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'crm_leads_import_template.csv';
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+};
+
+
 
 
 

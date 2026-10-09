@@ -44,4 +44,9 @@ public interface CrmLeadRepository extends JpaRepository<CrmLead, Long>, JpaSpec
     List<CrmLead> findByStatusOrderByCreatedAtDesc(LeadStatus status);
 
     boolean existsByCustomerIdAndAssignedToId(Long customerId, Long assignedToId);
+
+    boolean existsByBusinessEmailIgnoreCase(String businessEmail);
+
+    Optional<CrmLead> findByBusinessEmailIgnoreCase(String businessEmail);
+
 }
