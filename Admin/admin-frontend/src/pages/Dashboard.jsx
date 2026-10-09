@@ -544,8 +544,8 @@ export default function Dashboard() {
                                 </div>
 
                                 {/* Dynamic Chart Area */}
-                                <div className="flex-1 flex flex-col md:flex-row min-h-[300px] w-full mt-4">
-                                    <div className="flex-1 relative w-full overflow-x-auto hide-scrollbar pb-8 md:pb-0">
+                                <div className="flex-1 flex flex-col min-h-[300px] w-full mt-4">
+                                    <div className="flex-1 relative w-full overflow-x-auto hide-scrollbar pb-2">
                                         <div className="min-w-[400px] lg:min-w-full h-full flex flex-col relative">
                                             
                                             {isLoading ? (
@@ -698,7 +698,7 @@ export default function Dashboard() {
                                     </div>
 
                                     {/* Legend */}
-                                    <div className="flex md:flex-col items-center md:items-start justify-center gap-6 md:gap-4 md:pl-6 md:ml-2 md:border-l border-t md:border-t-0 border-[#E5E7EB] pt-4 md:pt-0 shrink-0">
+                                    <div className="flex flex-row flex-wrap items-center justify-center gap-6 md:gap-8 pt-4 shrink-0">
                                         <div className="flex items-center gap-2">
                                             <div className="w-2.5 h-2.5 rounded-full bg-[#2563EB]"></div>
                                             <span className="text-[13px] font-medium text-[#64748B] whitespace-nowrap">Total Enquiries</span>

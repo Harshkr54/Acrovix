@@ -159,6 +159,7 @@ export default function QuotationList() {
         );
     };
 
+    
     const getQuotationActionItems = (q) => {
         const status = normalizeStatus(q.status);
         const viewDetailsItem = {
@@ -181,6 +182,54 @@ export default function QuotationList() {
             icon: RefreshCw,
             variant: 'accent',
             onClick: () => setRevisionDialogId(q.id)
+        };
+
+        const hasPO = q.purchaseOrderId != null;
+        const hasProforma = q.proformaId != null;
+        const hasTaxInvoice = q.taxInvoiceId != null;
+
+        const convertToPoItem = {
+            label: 'Convert to PO',
+            icon: ShoppingCart,
+            variant: 'brand',
+            onClick: () => setPoModalQuotation(q)
+        };
+
+        const viewPoItem = {
+            label: 'View Purchase Order',
+            icon: ShoppingCart,
+            variant: 'brand',
+            onClick: () => navigate(`/purchase-orders/${q.purchaseOrderId}`)
+        };
+
+        const createProformaItem = {
+            label: 'Create Proforma',
+            icon: FileText,
+            variant: 'accent',
+            disabled: isConverting,
+            onClick: () => setProformaDialogId({ id: q.id, type: 'PROFORMA' })
+        };
+
+        const viewProformaItem = {
+            label: 'View Proforma',
+            icon: FileText,
+            variant: 'accent',
+            onClick: () => navigate(`/invoices/${q.proformaId}`)
+        };
+
+        const createTaxInvoiceItem = {
+            label: 'Create Tax Invoice',
+            icon: FileText,
+            variant: 'success',
+            disabled: isConverting,
+            onClick: () => setProformaDialogId({ id: q.id, type: 'TAX_INVOICE' })
+        };
+
+        const viewTaxInvoiceItem = {
+            label: 'View Tax Invoice',
+            icon: FileText,
+            variant: 'success',
+            onClick: () => navigate(`/invoices/${q.taxInvoiceId}`)
         };
 
         switch (status) {
@@ -234,26 +283,9 @@ export default function QuotationList() {
                     viewPdfItem,
                     historyItem,
                     { type: 'divider' },
-                    {
-                        label: 'Convert to PO',
-                        icon: ShoppingCart,
-                        variant: 'brand',
-                        onClick: () => setPoModalQuotation(q)
-                    },
-                    {
-                        label: 'Create Tax Invoice',
-                        icon: FileText,
-                        variant: 'success',
-                        disabled: isConverting,
-                        onClick: () => setProformaDialogId({ id: q.id, type: 'TAX_INVOICE' })
-                    },
-                    {
-                        label: 'Create Proforma',
-                        icon: FileText,
-                        variant: 'accent',
-                        disabled: isConverting,
-                        onClick: () => setProformaDialogId({ id: q.id, type: 'PROFORMA' })
-                    }
+                    ...(hasPO ? [viewPoItem] : [convertToPoItem]),
+                    hasProforma ? viewProformaItem : createProformaItem,
+                    hasTaxInvoice ? viewTaxInvoiceItem : createTaxInvoiceItem
                 ];
 
             case 'REJECTED':
@@ -264,8 +296,18 @@ export default function QuotationList() {
                     historyItem
                 ];
 
-            case 'REVISED':
             case 'CONVERTED':
+                return [
+                    viewDetailsItem,
+                    viewPdfItem,
+                    historyItem,
+                    { type: 'divider' },
+                    ...(hasPO ? [viewPoItem] : []),
+                    hasProforma ? viewProformaItem : createProformaItem,
+                    hasTaxInvoice ? viewTaxInvoiceItem : createTaxInvoiceItem
+                ];
+
+            case 'REVISED':
             default:
                 return [
                     viewDetailsItem,
@@ -274,7 +316,6 @@ export default function QuotationList() {
                 ];
         }
     };
-
     if (isLoading && quotations.length === 0) {
         return (
             <div className="flex h-[60vh] items-center justify-center">
@@ -496,7 +537,7 @@ export default function QuotationList() {
                 onConfirm={handleCreateInvoice}
                 onCancel={() => setProformaDialogId(null)}
                 isLoading={isConverting}
-                confirmText="Create Invoice"
+                confirmText={`Create ${proformaDialogId?.type === 'TAX_INVOICE' ? 'Tax Invoice' : 'Proforma'}`}
             />
             
             <ConfirmDialog 

@@ -18,6 +18,10 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
 
     boolean existsByQuotationIdAndDeletedAtIsNull(Long quotationId);
 
+    @Query("SELECT p.id FROM PurchaseOrder p WHERE p.quotation.id = :quotationId AND p.deletedAt IS NULL ORDER BY p.createdAt DESC")
+    java.util.List<Long> findPurchaseOrderIdsByQuotationId(@Param("quotationId") Long quotationId);
+
+
     @Query("SELECT p FROM PurchaseOrder p WHERE p.deletedAt IS NULL AND (" +
            "LOWER(p.poNumber) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
            "LOWER(p.clientPoNumber) LIKE LOWER(CONCAT('%', :search, '%')) OR " +

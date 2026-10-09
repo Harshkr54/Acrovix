@@ -34,6 +34,8 @@ public class QuotationController {
     private final EmailService emailService;
     private final com.acrovix.admin.repository.QuotationRepository quotationRepository;
     private final AuthorizationService authorizationService;
+    private final com.acrovix.admin.repository.PurchaseOrderRepository purchaseOrderRepository;
+    private final com.acrovix.admin.repository.InvoiceRepository invoiceRepository;
 
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
@@ -271,7 +273,19 @@ public class QuotationController {
         map.put("responseSource", q.getResponseSource() != null ? q.getResponseSource().name() : null);
         map.put("responseNotes", q.getResponseNotes());
         map.put("clientToken", q.getClientToken());
+        appendDocumentIds(map, q.getId());
         return map;
+    }
+
+    private void appendDocumentIds(java.util.Map<String, Object> map, Long quotationId) {
+        java.util.List<Long> poIds = purchaseOrderRepository.findPurchaseOrderIdsByQuotationId(quotationId);
+        map.put("purchaseOrderId", poIds.isEmpty() ? null : poIds.get(0));
+
+        java.util.List<Long> proformaIds = invoiceRepository.findActiveInvoiceIdsByQuotationIdAndType(quotationId, com.acrovix.admin.entity.InvoiceType.PROFORMA);
+        map.put("proformaId", proformaIds.isEmpty() ? null : proformaIds.get(0));
+
+        java.util.List<Long> taxInvoiceIds = invoiceRepository.findActiveInvoiceIdsByQuotationIdAndType(quotationId, com.acrovix.admin.entity.InvoiceType.TAX_INVOICE);
+        map.put("taxInvoiceId", taxInvoiceIds.isEmpty() ? null : taxInvoiceIds.get(0));
     }
 
     private java.util.Map<String, Object> mapToDetailDto(Quotation q) {
@@ -368,6 +382,7 @@ public class QuotationController {
         }
         map.put("columnConfigs", configDtos);
 
+        appendDocumentIds(map, q.getId());
         return map;
     }
 }
