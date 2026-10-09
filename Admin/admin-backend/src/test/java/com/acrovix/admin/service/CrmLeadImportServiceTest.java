@@ -4,6 +4,12 @@ import com.acrovix.admin.dto.crm.*;
 import com.acrovix.admin.entity.*;
 import com.acrovix.admin.entity.Currency;
 import com.acrovix.admin.repository.CrmLeadRepository;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.encryption.AccessPermission;
+import org.apache.pdfbox.pdmodel.encryption.StandardProtectionPolicy;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.BeforeEach;
@@ -140,13 +146,13 @@ class CrmLeadImportServiceTest {
     @Test
     @DisplayName("6. Unsupported File Extension Rejection")
     void test06_UnsupportedFileRejection() {
-        MockMultipartFile pdfFile = new MockMultipartFile(
-                "file", "document.pdf", "application/pdf", "dummy pdf content".getBytes(StandardCharsets.UTF_8)
+        MockMultipartFile docFile = new MockMultipartFile(
+                "file", "document.docx", "application/docx", "dummy docx content".getBytes(StandardCharsets.UTF_8)
         );
 
         IllegalArgumentException ex = assertThrows(
                 IllegalArgumentException.class,
-                () -> crmLeadImportService.previewImport(pdfFile)
+                () -> crmLeadImportService.previewImport(docFile)
         );
         assertTrue(ex.getMessage().contains("Unsupported file extension"));
     }
@@ -296,6 +302,74 @@ class CrmLeadImportServiceTest {
         assertTrue(templateStr.contains("john.doe@example.com"));
     }
 
+    // --- PDF IMPORT UNIT TESTS ---
+
+    @Test
+    @DisplayName("20. Valid Text-Based PDF Import Success")
+    void test20_ValidPdfImportSuccess() throws Exception {
+        byte[] pdfBytes = createMockPdf("Name | Email | Phone | Company\nRahul Sharma | rahul@pdf.com | +919876543210 | PDF Corp\nPriya Verma | priya@pdf.com | +919876543211 | Tech Solutions");
+
+        MockMultipartFile file = new MockMultipartFile("file", "leads.pdf", "application/pdf", pdfBytes);
+
+        when(crmLeadRepository.existsByBusinessEmailIgnoreCase(anyString())).thenReturn(false);
+        when(crmService.createLead(any(CrmLeadRequest.class), eq(testAdmin)))
+                .thenReturn(CrmLeadResponse.builder().id(400L).build());
+
+        CrmLeadImportResultResponse result = crmLeadImportService.importLeads(file, null, testAdmin);
+
+        assertEquals(2, result.getTotalProcessed());
+        assertEquals(2, result.getSuccessCount());
+        assertEquals(0, result.getErrorCount());
+    }
+
+    @Test
+    @DisplayName("21. Password-Protected PDF Rejection")
+    void test21_PasswordProtectedPdfRejection() throws Exception {
+        byte[] encryptedPdfBytes = createEncryptedMockPdf("Name | Email\nJohn | john@locked.com");
+
+        MockMultipartFile file = new MockMultipartFile("file", "protected.pdf", "application/pdf", encryptedPdfBytes);
+
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> crmLeadImportService.previewImport(file)
+        );
+
+        assertTrue(ex.getMessage().contains("Password-protected PDF files cannot be read"));
+    }
+
+    @Test
+    @DisplayName("22. Scanned / Image-Only PDF Rejection")
+    void test22_ScannedPdfRejection() throws Exception {
+        // PDF with empty page / no readable text
+        byte[] emptyPdfBytes = createMockPdf("");
+
+        MockMultipartFile file = new MockMultipartFile("file", "scanned.pdf", "application/pdf", emptyPdfBytes);
+
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> crmLeadImportService.previewImport(file)
+        );
+
+        assertTrue(ex.getMessage().contains("This PDF appears to be scanned"));
+    }
+
+    @Test
+    @DisplayName("23. PDF With Alias Column Headers Matching")
+    void test23_PdfColumnAliasesMatching() throws Exception {
+        byte[] pdfBytes = createMockPdf("Contact | Work Email | Mobile Number | Organization\nAnkit Patel | ankit@org.com | 9876543210 | Global Org");
+
+        MockMultipartFile file = new MockMultipartFile("file", "alias.pdf", "application/pdf", pdfBytes);
+
+        CrmLeadImportPreviewResponse preview = crmLeadImportService.previewImport(file);
+
+        assertEquals(1, preview.getTotalRows());
+        assertEquals(1, preview.getValidCount());
+        assertEquals("fullName", preview.getSuggestedMapping().get("Contact"));
+        assertEquals("businessEmail", preview.getSuggestedMapping().get("Work Email"));
+        assertEquals("phoneNumber", preview.getSuggestedMapping().get("Mobile Number"));
+        assertEquals("companyName", preview.getSuggestedMapping().get("Organization"));
+    }
+
     // Helper method to create in-memory XLSX byte array
     private byte[] createMockXlsxWorkbook(String[][] grid) throws Exception {
         try (Workbook workbook = new XSSFWorkbook();
@@ -311,6 +385,54 @@ class CrmLeadImportServiceTest {
             }
 
             workbook.write(out);
+            return out.toByteArray();
+        }
+    }
+
+    // Helper method to create in-memory text PDF byte array
+    private byte[] createMockPdf(String text) throws Exception {
+        try (PDDocument document = new PDDocument();
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            PDPage page = new PDPage();
+            document.addPage(page);
+            if (text != null && !text.isBlank()) {
+                try (PDPageContentStream contentStream = new PDPageContentStream(document, page)) {
+                    contentStream.setFont(PDType1Font.HELVETICA, 12);
+                    contentStream.beginText();
+                    contentStream.newLineAtOffset(50, 700);
+                    for (String line : text.split("\\r?\\n")) {
+                        contentStream.showText(line.trim());
+                        contentStream.newLineAtOffset(0, -15);
+                    }
+                    contentStream.endText();
+                }
+            }
+            document.save(out);
+            return out.toByteArray();
+        }
+    }
+
+    // Helper method to create encrypted PDF
+    private byte[] createEncryptedMockPdf(String text) throws Exception {
+        try (PDDocument document = new PDDocument();
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            PDPage page = new PDPage();
+            document.addPage(page);
+            try (PDPageContentStream contentStream = new PDPageContentStream(document, page)) {
+                contentStream.setFont(PDType1Font.HELVETICA, 12);
+                contentStream.beginText();
+                contentStream.newLineAtOffset(50, 700);
+                for (String line : text.split("\\r?\\n")) {
+                    contentStream.showText(line.trim());
+                    contentStream.newLineAtOffset(0, -15);
+                }
+                contentStream.endText();
+            }
+            AccessPermission ap = new AccessPermission();
+            StandardProtectionPolicy spp = new StandardProtectionPolicy("secret123", "secret123", ap);
+            spp.setEncryptionKeyLength(128);
+            document.protect(spp);
+            document.save(out);
             return out.toByteArray();
         }
     }

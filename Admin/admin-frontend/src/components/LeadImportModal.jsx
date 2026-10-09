@@ -75,8 +75,8 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
 
         const name = selectedFile.name.toLowerCase();
         const ext = name.includes('.') ? name.split('.').pop() : '';
-        if (!['csv', 'xls', 'xlsx'].includes(ext)) {
-            return { valid: false, error: 'Unsupported file type. Please upload a CSV, XLS, or XLSX file.' };
+        if (!['csv', 'xls', 'xlsx', 'pdf'].includes(ext)) {
+            return { valid: false, error: 'Unsupported file type. Please upload a CSV, XLS, XLSX, or PDF file.' };
         }
 
         return { valid: true, error: null };
@@ -322,7 +322,7 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
                             <div>
                                 <h4 className="text-sm font-bold text-text-primary">Upload Lead File</h4>
                                 <p className="text-xs text-text-muted mt-0.5">
-                                    Select a CSV or Excel file containing your leads to get started.
+                                    Select a CSV, Excel, or PDF file containing your leads to get started.
                                 </p>
                             </div>
 
@@ -364,11 +364,12 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
                                     <p className="text-xs text-[#2563EB] font-semibold mt-1">or Browse Files</p>
                                     <p className="text-[11px] text-text-muted mt-2">Select any file and we'll validate it before importing</p>
                                     <div className="inline-flex items-center gap-2 mt-3 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-[11px] text-text-muted font-medium">
-                                        <span>CSV • XLS • XLSX</span>
+                                        <span>CSV • XLS • XLSX • PDF</span>
                                         <span>•</span>
                                         <span>Max 10 MB</span>
                                     </div>
                                 </div>
+
                             ) : (
                                 /* Compact Selected File Card */
                                 <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/40 dark:border-emerald-900/60 dark:bg-emerald-950/20 flex items-center justify-between shadow-xs">

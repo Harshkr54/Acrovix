@@ -14,9 +14,13 @@ import org.apache.poi.ss.usermodel.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.encryption.InvalidPasswordException;
+import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+
+
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -304,8 +308,8 @@ public class CrmLeadImportService {
         }
 
         String lower = filename.toLowerCase();
-        if (!lower.endsWith(".csv") && !lower.endsWith(".xlsx") && !lower.endsWith(".xls")) {
-            throw new IllegalArgumentException("Unsupported file extension. Only CSV, XLSX, and XLS files are supported.");
+        if (!lower.endsWith(".csv") && !lower.endsWith(".xlsx") && !lower.endsWith(".xls") && !lower.endsWith(".pdf")) {
+            throw new IllegalArgumentException("Unsupported file extension. Only CSV, XLSX, XLS, and PDF files are supported.");
         }
     }
 
@@ -313,10 +317,192 @@ public class CrmLeadImportService {
         String filename = file.getOriginalFilename().toLowerCase();
         if (filename.endsWith(".csv")) {
             return parseCsv(file);
+        } else if (filename.endsWith(".pdf")) {
+            return parsePdf(file);
         } else {
             return parseExcel(file);
         }
     }
+
+    private ParsedSheet parsePdf(MultipartFile file) {
+        String pdfText = "";
+        try (InputStream is = file.getInputStream();
+             PDDocument document = PDDocument.load(is)) {
+
+            if (document.isEncrypted()) {
+                throw new IllegalArgumentException("Password-protected PDF files cannot be read. Please unlock the file first.");
+            }
+
+            PDFTextStripper stripper = new PDFTextStripper();
+            stripper.setSortByPosition(true);
+            pdfText = stripper.getText(document);
+
+        } catch (IllegalArgumentException ie) {
+            throw ie;
+        } catch (InvalidPasswordException e) {
+            throw new IllegalArgumentException("Password-protected PDF files cannot be read. Please unlock the file first.");
+        } catch (Exception e) {
+            logger.error("PDF parse failure", e);
+            throw new IllegalArgumentException("Failed to read PDF file. Ensure file is not corrupted: " + e.getMessage());
+        }
+
+        if (pdfText == null || pdfText.trim().isEmpty() || pdfText.replaceAll("\\s+", "").length() < 10) {
+            throw new IllegalArgumentException("This PDF appears to be scanned. Please upload a text-based PDF or use an OCR-enabled version.");
+        }
+
+        return extractLeadRecordsFromPdfText(pdfText);
+    }
+
+    private ParsedSheet extractLeadRecordsFromPdfText(String pdfText) {
+        String[] rawLines = pdfText.split("\\r?\\n");
+        List<String> lines = new ArrayList<>();
+        for (String line : rawLines) {
+            if (line != null && !line.trim().isEmpty()) {
+                lines.add(line.trim());
+            }
+        }
+
+        if (lines.isEmpty()) {
+            throw new IllegalArgumentException("No readable text lines found in PDF.");
+        }
+
+        List<String> headers = new ArrayList<>();
+        List<Map<String, String>> rows = new ArrayList<>();
+
+        // 1. Check for Key-Value Record Structure (e.g. "Name: ... \n Email: ...")
+        if (isKeyValuePdfText(lines)) {
+            return parseKeyValuePdfRecords(lines);
+        }
+
+        // 2. Check for Table Header line
+        int headerLineIndex = -1;
+        for (int i = 0; i < Math.min(lines.size(), 10); i++) {
+            String l = lines.get(i).toLowerCase();
+            if ((l.contains("name") || l.contains("lead") || l.contains("contact")) && (l.contains("email") || l.contains("mail") || l.contains("phone") || l.contains("mobile") || l.contains("company") || l.contains("organization"))) {
+                headerLineIndex = i;
+                break;
+            }
+        }
+
+        if (headerLineIndex != -1) {
+            String headerLine = lines.get(headerLineIndex);
+            String delimiter = detectDelimiter(headerLine);
+            String[] rawHeaders = headerLine.split(delimiter);
+
+            for (String h : rawHeaders) {
+                String trimmed = h.trim();
+                if (!trimmed.isEmpty()) {
+                    headers.add(trimmed);
+                }
+            }
+
+            for (int i = headerLineIndex + 1; i < lines.size(); i++) {
+                String line = lines.get(i);
+                String[] parts = line.split(delimiter);
+
+                Map<String, String> rowMap = new LinkedHashMap<>();
+                boolean hasContent = false;
+                for (int c = 0; c < headers.size(); c++) {
+                    String val = (c < parts.length && parts[c] != null) ? parts[c].trim() : "";
+                    if (!val.isEmpty()) hasContent = true;
+                    rowMap.put(headers.get(c), val);
+                }
+
+                if (hasContent) {
+                    rows.add(rowMap);
+                }
+            }
+        }
+
+        // 3. Fallback: Line-by-Line Regex Email Matching
+        if (rows.isEmpty()) {
+            headers = List.of("Full Name", "Business Email", "Phone", "Company", "Notes");
+            for (String line : lines) {
+                java.util.regex.Matcher emailMatcher = EMAIL_PATTERN.matcher(line);
+                if (emailMatcher.find()) {
+                    String email = emailMatcher.group();
+                    String remaining = line.replace(email, "").trim();
+
+                    // Find phone if present
+                    String phone = "";
+                    java.util.regex.Matcher phoneMatcher = Pattern.compile("\\+?[0-9]{10,12}").matcher(remaining);
+                    if (phoneMatcher.find()) {
+                        phone = phoneMatcher.group();
+                        remaining = remaining.replace(phone, "").trim();
+                    }
+
+                    String[] parts = remaining.split("[,|\\t]|\\s{2,}");
+                    String name = parts.length > 0 ? parts[0].trim() : "Lead Record";
+                    String company = parts.length > 1 ? parts[1].trim() : "";
+
+                    Map<String, String> rowMap = new LinkedHashMap<>();
+                    rowMap.put("Full Name", name.isBlank() ? "Lead Record" : name);
+                    rowMap.put("Business Email", email);
+                    rowMap.put("Phone", phone);
+                    rowMap.put("Company", company);
+                    rowMap.put("Notes", remaining);
+                    rows.add(rowMap);
+                }
+            }
+        }
+
+        if (rows.isEmpty()) {
+            throw new IllegalArgumentException("No recognizable lead records found in this PDF.");
+        }
+
+        return new ParsedSheet(headers, rows);
+    }
+
+    private boolean isKeyValuePdfText(List<String> lines) {
+        int colonCount = 0;
+        for (int i = 0; i < Math.min(lines.size(), 15); i++) {
+            String l = lines.get(i);
+            if (l.contains(":") && (l.toLowerCase().startsWith("name:") || l.toLowerCase().startsWith("email:") || l.toLowerCase().startsWith("phone:") || l.toLowerCase().startsWith("company:"))) {
+                colonCount++;
+            }
+        }
+        return colonCount >= 2;
+    }
+
+    private ParsedSheet parseKeyValuePdfRecords(List<String> lines) {
+        Set<String> headerSet = new LinkedHashSet<>();
+        List<Map<String, String>> rows = new ArrayList<>();
+        Map<String, String> currentRecord = new LinkedHashMap<>();
+
+        for (String line : lines) {
+            if (line.contains(":")) {
+                int idx = line.indexOf(":");
+                String key = line.substring(0, idx).trim();
+                String val = line.substring(idx + 1).trim();
+
+                String normKey = key.toLowerCase().replaceAll("[^a-z]", "");
+                if ((normKey.equals("name") || normKey.equals("fullname")) && currentRecord.containsKey(key)) {
+                    if (!currentRecord.isEmpty()) {
+                        rows.add(new LinkedHashMap<>(currentRecord));
+                        currentRecord.clear();
+                    }
+                }
+
+                headerSet.add(key);
+                currentRecord.put(key, val);
+            }
+        }
+
+        if (!currentRecord.isEmpty()) {
+            rows.add(currentRecord);
+        }
+
+        List<String> headers = new ArrayList<>(headerSet);
+        return new ParsedSheet(headers, rows);
+    }
+
+    private String detectDelimiter(String line) {
+        if (line.contains("|")) return "\\|";
+        if (line.contains("\t")) return "\t";
+        if (line.contains(",")) return ",";
+        return "\\s{2,}";
+    }
+
 
     private ParsedSheet parseCsv(MultipartFile file) {
         List<String> headers = new ArrayList<>();
@@ -418,17 +604,17 @@ public class CrmLeadImportService {
         for (String header : headers) {
             String norm = header.toLowerCase().replaceAll("[^a-z0-9]", "");
 
-            if (norm.equals("fullname") || norm.equals("name") || norm.equals("leadname") || norm.equals("clientname") || norm.contains("contactname")) {
+            if (norm.equals("fullname") || norm.equals("name") || norm.equals("leadname") || norm.equals("clientname") || norm.contains("contactname") || norm.equals("contact")) {
                 mapping.put(header, "fullName");
-            } else if (norm.equals("businessemail") || norm.equals("email") || norm.equals("emailaddress") || norm.equals("mail") || norm.contains("email")) {
+            } else if (norm.equals("businessemail") || norm.equals("email") || norm.equals("emailaddress") || norm.equals("workemail") || norm.equals("mail") || norm.contains("email")) {
                 mapping.put(header, "businessEmail");
             } else if (norm.equals("company") || norm.equals("companyname") || norm.equals("organization") || norm.equals("firm") || norm.contains("company")) {
                 mapping.put(header, "companyName");
-            } else if (norm.equals("phone") || norm.equals("phonenumber") || norm.equals("mobile") || norm.equals("mobilenumber") || norm.contains("phone") || norm.contains("mobile")) {
+            } else if (norm.equals("phone") || norm.equals("phonenumber") || norm.equals("mobile") || norm.equals("mobilenumber") || norm.contains("phone") || norm.contains("mobile") || norm.equals("contactnumber") || norm.equals("tel")) {
                 mapping.put(header, "phoneNumber");
             } else if (norm.equals("industry") || norm.equals("industrysector") || norm.equals("sector")) {
                 mapping.put(header, "industrySector");
-            } else if (norm.equals("service") || norm.equals("servicerequired") || norm.equals("services")) {
+            } else if (norm.equals("service") || norm.equals("servicerequired") || norm.equals("services") || norm.equals("requirement")) {
                 mapping.put(header, "serviceRequired");
             } else if (norm.equals("status") || norm.equals("leadstatus")) {
                 mapping.put(header, "status");
@@ -444,11 +630,12 @@ public class CrmLeadImportService {
                 mapping.put(header, "expectedClosingDate");
             } else if (norm.equals("probability") || norm.equals("winprobability")) {
                 mapping.put(header, "probability");
-            } else if (norm.equals("notes") || norm.equals("comment") || norm.equals("remarks")) {
+            } else if (norm.equals("notes") || norm.equals("comment") || norm.equals("remarks") || norm.equals("city") || norm.equals("location") || norm.equals("address")) {
                 mapping.put(header, "notes");
             } else if (norm.equals("assignedto") || norm.equals("assignedtoid") || norm.equals("salesrep") || norm.equals("salesrepid")) {
                 mapping.put(header, "assignedToId");
             }
+
         }
 
         return mapping;
