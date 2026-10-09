@@ -51,16 +51,14 @@ public class InvoiceController {
 
     @GetMapping("/{id}")
     public ResponseEntity<InvoiceResponse> getInvoice(@PathVariable Long id, @AuthenticationPrincipal AdminUser admin) {
-        InvoiceResponse invoice = invoiceService.getInvoiceResponseById(id, admin);
-        return ResponseEntity.ok(invoice);
+        return ResponseEntity.ok(invoiceService.getInvoiceResponseById(id, admin));
     }
 
     @PostMapping
     public ResponseEntity<InvoiceResponse> createDraftInvoice(
             @Valid @RequestBody InvoiceRequest request,
             @AuthenticationPrincipal AdminUser admin) {
-        Invoice invoice = invoiceService.createDraftInvoice(request, admin);
-        return ResponseEntity.ok(invoiceService.mapToResponse(invoice));
+        return ResponseEntity.ok(invoiceService.createDraftInvoice(request, admin));
     }
 
     @PostMapping("/from-quotation/{quotationId}")
@@ -68,8 +66,7 @@ public class InvoiceController {
             @PathVariable Long quotationId,
             @RequestParam InvoiceType type,
             @AuthenticationPrincipal AdminUser admin) {
-        Invoice invoice = invoiceService.createInvoiceFromQuotation(quotationId, type, admin);
-        return ResponseEntity.ok(invoiceService.mapToResponse(invoice));
+        return ResponseEntity.ok(invoiceService.createInvoiceFromQuotation(quotationId, type, admin));
     }
 
     @PostMapping("/from-po/{poId}")
@@ -77,8 +74,7 @@ public class InvoiceController {
             @PathVariable Long poId,
             @RequestParam InvoiceType type,
             @AuthenticationPrincipal AdminUser admin) {
-        Invoice invoice = invoiceService.createInvoiceFromPurchaseOrder(poId, type, admin);
-        return ResponseEntity.ok(invoiceService.mapToResponse(invoice));
+        return ResponseEntity.ok(invoiceService.createInvoiceFromPurchaseOrder(poId, type, admin));
     }
 
     @PatchMapping("/{id}")
@@ -86,32 +82,28 @@ public class InvoiceController {
             @PathVariable Long id,
             @Valid @RequestBody InvoiceRequest request,
             @AuthenticationPrincipal AdminUser admin) {
-        Invoice invoice = invoiceService.updateDraftInvoice(id, request, admin);
-        return ResponseEntity.ok(invoiceService.mapToResponse(invoice));
+        return ResponseEntity.ok(invoiceService.updateDraftInvoice(id, request, admin));
     }
 
     @PostMapping("/{id}/issue")
     public ResponseEntity<InvoiceResponse> issueInvoice(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser admin) {
-        Invoice invoice = invoiceService.issueInvoice(id, admin);
-        return ResponseEntity.ok(invoiceService.mapToResponse(invoice));
+        return ResponseEntity.ok(invoiceService.issueInvoice(id, admin));
     }
 
     @PostMapping("/{id}/cancel")
     public ResponseEntity<InvoiceResponse> cancelInvoice(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser admin) {
-        Invoice invoice = invoiceService.cancelInvoice(id, admin);
-        return ResponseEntity.ok(invoiceService.mapToResponse(invoice));
+        return ResponseEntity.ok(invoiceService.cancelInvoice(id, admin));
     }
 
     @PostMapping("/proforma/{id}/convert-to-tax-invoice")
     public ResponseEntity<InvoiceResponse> convertProformaToTaxInvoice(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser admin) {
-        Invoice invoice = invoiceService.convertProformaToTaxInvoice(id, admin);
-        return ResponseEntity.ok(invoiceService.mapToResponse(invoice));
+        return ResponseEntity.ok(invoiceService.convertProformaToTaxInvoice(id, admin));
     }
 
     @RateLimit(category = RateLimitCategory.PDF)
@@ -143,9 +135,8 @@ public class InvoiceController {
     public ResponseEntity<InvoiceResponse> generatePaymentLink(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser admin) {
-        // Just verify access via InvoiceService
         invoiceService.getInvoiceById(id, admin); 
-        Invoice invoice = paymentGatewayService.generatePaymentLink(id);
-        return ResponseEntity.ok(invoiceService.mapToResponse(invoice));
+        paymentGatewayService.generatePaymentLink(id);
+        return ResponseEntity.ok(invoiceService.getInvoiceResponseById(id, admin));
     }
 }

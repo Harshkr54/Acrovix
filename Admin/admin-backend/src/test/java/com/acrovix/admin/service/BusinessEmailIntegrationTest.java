@@ -188,7 +188,7 @@ class BusinessEmailIntegrationTest {
 
     @Test
     void test6_SendInvoiceEmailSuccess() {
-        when(invoiceRepository.findById(300L)).thenReturn(Optional.of(testInvoice));
+        when(invoiceRepository.findByIdWithDetails(300L)).thenReturn(Optional.of(testInvoice));
 
         invoiceService.sendInvoiceEmail(300L, null, testAdmin);
 
@@ -199,14 +199,14 @@ class BusinessEmailIntegrationTest {
     void test7_SendInvoiceMissingRecipientThrowsException() {
         testInvoice.setCustomer(null);
         testInvoice.setClientEmail(null);
-        when(invoiceRepository.findById(300L)).thenReturn(Optional.of(testInvoice));
+        when(invoiceRepository.findByIdWithDetails(300L)).thenReturn(Optional.of(testInvoice));
 
         assertThrows(IllegalArgumentException.class, () -> invoiceService.sendInvoiceEmail(300L, null, testAdmin));
     }
 
     @Test
     void test8_SendInvoiceEmailFailureHandled() {
-        when(invoiceRepository.findById(300L)).thenReturn(Optional.of(testInvoice));
+        when(invoiceRepository.findByIdWithDetails(300L)).thenReturn(Optional.of(testInvoice));
         doThrow(new IllegalStateException("SMTP timeout"))
                 .when(emailService).sendInvoiceEmail(any(Invoice.class), anyString());
 

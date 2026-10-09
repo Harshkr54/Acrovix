@@ -15,6 +15,17 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long>, JpaSpec
 
     Page<Invoice> findByCustomerIdOrderByCreatedAtDesc(Long customerId, Pageable pageable);
 
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {
+        "customer",
+        "quotation",
+        "purchaseOrder",
+        "createdBy",
+        "items",
+        "items.productService"
+    })
+    @Query("SELECT i FROM Invoice i WHERE i.id = :id")
+    java.util.Optional<Invoice> findByIdWithDetails(@Param("id") Long id);
+
     @Query("SELECT i.id FROM Invoice i WHERE i.quotation.id = :quotationId AND i.invoiceType = :type AND i.status != 'CANCELLED' ORDER BY i.createdAt DESC")
     java.util.List<Long> findActiveInvoiceIdsByQuotationIdAndType(@Param("quotationId") Long quotationId, @Param("type") InvoiceType type);
 

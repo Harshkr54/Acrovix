@@ -73,7 +73,7 @@ public class Phase4QaTest {
                     .orElseThrow(() -> new IllegalStateException("No ACCEPTED quotation found"));
 
             System.out.println("A. ACCEPTED QUOTATION -> PROFORMA");
-            Invoice proforma = invoiceService.createInvoiceFromQuotation(acceptedQuotation.getId(), InvoiceType.PROFORMA, admin);
+            InvoiceResponse proforma = invoiceService.createInvoiceFromQuotation(acceptedQuotation.getId(), InvoiceType.PROFORMA, admin);
             testInvoiceIds.add(proforma.getId());
             assertNotNull(proforma);
             assertEquals(InvoiceType.PROFORMA, proforma.getInvoiceType());
@@ -97,7 +97,7 @@ public class Phase4QaTest {
                     .findFirst()
                     .orElseThrow(() -> new IllegalStateException("No VERIFIED PO found"));
 
-            Invoice taxInvoice = invoiceService.createInvoiceFromPurchaseOrder(po.getId(), InvoiceType.TAX_INVOICE, admin);
+            InvoiceResponse taxInvoice = invoiceService.createInvoiceFromPurchaseOrder(po.getId(), InvoiceType.TAX_INVOICE, admin);
             testInvoiceIds.add(taxInvoice.getId());
             assertNotNull(taxInvoice);
             assertEquals(InvoiceType.TAX_INVOICE, taxInvoice.getInvoiceType());
@@ -112,7 +112,7 @@ public class Phase4QaTest {
             // This copies items. The PO is already fully invoiced above!
             // Wait, if it was fully invoiced, attempting to create overInvoice should fail!
             try {
-                Invoice overInvoice = invoiceService.createInvoiceFromPurchaseOrder(po.getId(), InvoiceType.TAX_INVOICE, admin);
+                InvoiceResponse overInvoice = invoiceService.createInvoiceFromPurchaseOrder(po.getId(), InvoiceType.TAX_INVOICE, admin);
                 testInvoiceIds.add(overInvoice.getId());
                 invoiceService.issueInvoice(overInvoice.getId(), admin);
                 throw new IllegalStateException("Over-invoicing should have failed");
@@ -132,7 +132,7 @@ public class Phase4QaTest {
             }
 
             System.out.println("F. CANCELLATION");
-            Invoice cancelled = invoiceService.cancelInvoice(taxInvoice.getId(), admin);
+            InvoiceResponse cancelled = invoiceService.cancelInvoice(taxInvoice.getId(), admin);
             assertEquals(InvoiceStatus.CANCELLED, cancelled.getStatus());
             assertNotNull(cancelled.getCancelledAt());
             System.out.println("Cancellation successful.");

@@ -2,6 +2,7 @@ package com.acrovix.admin.service;
 
 import com.acrovix.admin.dto.InvoiceItemRequest;
 import com.acrovix.admin.dto.InvoiceRequest;
+import com.acrovix.admin.dto.InvoiceResponse;
 import com.acrovix.admin.entity.*;
 import com.acrovix.admin.repository.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -92,9 +93,26 @@ public class InvoiceServiceTest {
 
         when(customerRepository.findById(100L)).thenReturn(Optional.of(customer));
         when(companySettingsRepository.findAll()).thenReturn(List.of(companySettings));
-        when(invoiceRepository.save(any(Invoice.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(invoiceRepository.save(any(Invoice.class))).thenAnswer(inv -> {
+            Invoice i = inv.getArgument(0);
+            i.setId(1L);
+            return i;
+        });
+        when(invoiceRepository.findByIdWithDetails(1L)).thenAnswer(inv -> {
+            Invoice i = new Invoice();
+            i.setId(1L);
+            i.setStatus(InvoiceStatus.DRAFT);
+            i.setInvoiceType(InvoiceType.TAX_INVOICE);
+            i.setTaxableAmount(new BigDecimal("1000.00"));
+            i.setTaxAmount(new BigDecimal("180.00"));
+            i.setCgstAmount(new BigDecimal("90.00"));
+            i.setSgstAmount(new BigDecimal("90.00"));
+            i.setIgstAmount(BigDecimal.ZERO);
+            i.setGrandTotal(new BigDecimal("1180.00"));
+            return Optional.of(i);
+        });
 
-        Invoice draft = invoiceService.createDraftInvoice(request, adminUser);
+        InvoiceResponse draft = invoiceService.createDraftInvoice(request, adminUser);
 
         assertNotNull(draft);
         assertEquals(InvoiceStatus.DRAFT, draft.getStatus());
@@ -127,10 +145,25 @@ public class InvoiceServiceTest {
         pItem.setDescription("PItem");
         proforma.setItems(new ArrayList<>(List.of(pItem)));
 
-        when(invoiceRepository.findById(50L)).thenReturn(Optional.of(proforma));
-        when(invoiceRepository.save(any(Invoice.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(invoiceRepository.findByIdWithDetails(50L)).thenReturn(Optional.of(proforma));
+        when(invoiceRepository.save(any(Invoice.class))).thenAnswer(inv -> {
+            Invoice i = inv.getArgument(0);
+            i.setId(51L);
+            return i;
+        });
+        when(invoiceRepository.findByIdWithDetails(51L)).thenAnswer(inv -> {
+            Invoice i = new Invoice();
+            i.setId(51L);
+            i.setInvoiceType(InvoiceType.TAX_INVOICE);
+            i.setStatus(InvoiceStatus.DRAFT);
+            i.setGrandTotal(new BigDecimal("1000.00"));
+            InvoiceItem item = new InvoiceItem();
+            item.setDescription("PItem");
+            i.setItems(List.of(item));
+            return Optional.of(i);
+        });
 
-        Invoice taxInvoice = invoiceService.convertProformaToTaxInvoice(50L, adminUser);
+        InvoiceResponse taxInvoice = invoiceService.convertProformaToTaxInvoice(50L, adminUser);
 
         assertNotNull(taxInvoice);
         assertEquals(InvoiceType.TAX_INVOICE, taxInvoice.getInvoiceType());
@@ -191,7 +224,7 @@ public class InvoiceServiceTest {
         invoice.setClientGstin("27AAAAA0000A1Z5");
         invoice.setPlaceOfSupply("Maharashtra");
 
-        when(invoiceRepository.findById(10L)).thenReturn(Optional.of(invoice));
+        when(invoiceRepository.findByIdWithDetails(10L)).thenAnswer(inv -> Optional.of(invoice));
         when(invoiceRepository.save(any(Invoice.class))).thenAnswer(inv -> inv.getArgument(0));
 
         InvoiceRequest request = new InvoiceRequest();
@@ -205,7 +238,7 @@ public class InvoiceServiceTest {
         request.setPaymentTerms("Net 30");
         request.setDueDate(LocalDate.now().plusDays(30));
 
-        Invoice updated = invoiceService.updateDraftInvoice(10L, request, adminUser);
+        InvoiceResponse updated = invoiceService.updateDraftInvoice(10L, request, adminUser);
 
         assertNotNull(updated);
         assertEquals("New Name Corp", updated.getClientName());
@@ -229,7 +262,7 @@ public class InvoiceServiceTest {
         issuedInvoice.setStatus(InvoiceStatus.ISSUED);
         issuedInvoice.setLocked(true);
 
-        when(invoiceRepository.findById(10L)).thenReturn(Optional.of(issuedInvoice));
+        when(invoiceRepository.findByIdWithDetails(10L)).thenReturn(Optional.of(issuedInvoice));
 
         InvoiceRequest request = new InvoiceRequest();
         request.setClientName("Should Not Update");
@@ -253,10 +286,24 @@ public class InvoiceServiceTest {
         proforma.setPaymentTerms("50% Advance");
         proforma.setGrandTotal(new BigDecimal("5000.00"));
 
-        when(invoiceRepository.findById(50L)).thenReturn(Optional.of(proforma));
-        when(invoiceRepository.save(any(Invoice.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(invoiceRepository.findByIdWithDetails(50L)).thenReturn(Optional.of(proforma));
+        when(invoiceRepository.save(any(Invoice.class))).thenAnswer(inv -> {
+            Invoice i = inv.getArgument(0);
+            i.setId(52L);
+            return i;
+        });
+        when(invoiceRepository.findByIdWithDetails(52L)).thenAnswer(inv -> {
+            Invoice i = new Invoice();
+            i.setId(52L);
+            i.setInvoiceType(InvoiceType.TAX_INVOICE);
+            i.setClientName("Manual Client Name");
+            i.setClientGstin("27MANUALGSTIN");
+            i.setPlaceOfSupply("Karnataka");
+            i.setPaymentTerms("50% Advance");
+            return Optional.of(i);
+        });
 
-        Invoice taxInvoice = invoiceService.convertProformaToTaxInvoice(50L, adminUser);
+        InvoiceResponse taxInvoice = invoiceService.convertProformaToTaxInvoice(50L, adminUser);
 
         assertNotNull(taxInvoice);
         assertEquals(InvoiceType.TAX_INVOICE, taxInvoice.getInvoiceType());
@@ -338,5 +385,42 @@ public class InvoiceServiceTest {
         assertNotNull(resp);
         assertEquals(0, BigDecimal.ZERO.compareTo(resp.getAmountPaid()));
         assertEquals(0, new BigDecimal("10000.00").compareTo(resp.getBalanceDue()));
+    }
+
+    @Test
+    void testUpdateDraftInvoice_LazyLoadingProductService_Success() {
+        Invoice invoice = new Invoice();
+        invoice.setId(99L);
+        invoice.setStatus(InvoiceStatus.DRAFT);
+        invoice.setInvoiceType(InvoiceType.PROFORMA);
+        invoice.setLocked(false);
+        invoice.setClientName("Harsh Raj");
+        invoice.setClientAddress("Old Address");
+
+        ProductService ps = new ProductService();
+        ps.setId(555L);
+        ps.setName("Test Cloud Instance");
+
+        InvoiceItem item = new InvoiceItem();
+        item.setId(101L);
+        item.setDescription("Virtual Server");
+        item.setQuantity(new BigDecimal("1"));
+        item.setUnitPrice(new BigDecimal("1000"));
+        item.setProductService(ps);
+
+        invoice.setItems(new ArrayList<>(List.of(item)));
+
+        when(invoiceRepository.findByIdWithDetails(99L)).thenReturn(Optional.of(invoice));
+        when(invoiceRepository.save(any(Invoice.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        InvoiceRequest request = new InvoiceRequest();
+        request.setClientAddress("Updated Address 123");
+
+        InvoiceResponse response = invoiceService.updateDraftInvoice(99L, request, adminUser);
+
+        assertNotNull(response);
+        assertEquals("Updated Address 123", response.getClientAddress());
+        assertEquals(1, response.getItems().size());
+        assertEquals(555L, response.getItems().get(0).getProductServiceId());
     }
 }

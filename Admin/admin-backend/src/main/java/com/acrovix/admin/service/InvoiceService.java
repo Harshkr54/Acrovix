@@ -115,20 +115,22 @@ public class InvoiceService {
 
     @Transactional(readOnly = true)
     public InvoiceResponse getInvoiceResponseById(Long id, AdminUser admin) {
-        Invoice invoice = getInvoiceById(id, admin);
+        Invoice invoice = invoiceRepository.findByIdWithDetails(id)
+                .orElseThrow(() -> new IllegalArgumentException("Invoice not found"));
+        authorizationService.checkInvoiceAccess(admin, invoice);
         return mapToResponse(invoice);
     }
 
     @Transactional(readOnly = true)
     public Invoice getInvoiceById(Long id, AdminUser admin) {
-        Invoice invoice = invoiceRepository.findById(id)
+        Invoice invoice = invoiceRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new IllegalArgumentException("Invoice not found"));
         authorizationService.checkInvoiceAccess(admin, invoice);
         return invoice;
     }
 
     @Transactional
-    public Invoice createDraftInvoice(InvoiceRequest request, AdminUser admin) {
+    public InvoiceResponse createDraftInvoice(InvoiceRequest request, AdminUser admin) {
         Invoice invoice = new Invoice();
         invoice.setInvoiceType(request.getInvoiceType());
         invoice.setInvoiceDate(request.getInvoiceDate());
@@ -235,11 +237,11 @@ public class InvoiceService {
             // Ignore email error
         }
 
-        return saved;
+        return getInvoiceResponseById(saved.getId(), admin);
     }
 
     @Transactional
-    public Invoice updateDraftInvoice(Long id, InvoiceRequest request, AdminUser admin) {
+    public InvoiceResponse updateDraftInvoice(Long id, InvoiceRequest request, AdminUser admin) {
         Invoice invoice = getInvoiceById(id, admin);
         if (invoice.isLocked() || invoice.getStatus() != InvoiceStatus.DRAFT) {
             throw new IllegalStateException("Cannot update an issued or locked invoice");
@@ -271,11 +273,11 @@ public class InvoiceService {
 
         Invoice saved = invoiceRepository.save(invoice);
         logActivity(admin.getId(), "Updated Draft Invoice details", "Invoice", saved.getId());
-        return saved;
+        return getInvoiceResponseById(saved.getId(), admin);
     }
 
     @Transactional
-    public Invoice issueInvoice(Long id, AdminUser admin) {
+    public InvoiceResponse issueInvoice(Long id, AdminUser admin) {
         Invoice invoice = getInvoiceById(id, admin);
         if (invoice.isLocked() || invoice.getStatus() != InvoiceStatus.DRAFT) {
             throw new IllegalStateException("Invoice is already issued or not in DRAFT state");
@@ -310,11 +312,11 @@ public class InvoiceService {
             // Ignore email error
         }
 
-        return saved;
+        return getInvoiceResponseById(saved.getId(), admin);
     }
 
     @Transactional
-    public Invoice cancelInvoice(Long id, AdminUser admin) {
+    public InvoiceResponse cancelInvoice(Long id, AdminUser admin) {
         Invoice invoice = getInvoiceById(id, admin);
         if (invoice.getStatus() == InvoiceStatus.CANCELLED) {
             throw new IllegalStateException("Invoice is already cancelled");
@@ -326,7 +328,7 @@ public class InvoiceService {
         
         Invoice saved = invoiceRepository.save(invoice);
         logActivity(admin.getId(), "Cancelled Invoice: " + (saved.getInvoiceNumber() != null ? saved.getInvoiceNumber() : "Draft"), "Invoice", saved.getId());
-        return saved;
+        return getInvoiceResponseById(saved.getId(), admin);
     }
 
     private void calculateAndSetTotals(Invoice invoice, List<InvoiceItemRequest> itemRequests) {
@@ -462,7 +464,7 @@ public class InvoiceService {
     }
 
     @Transactional
-    public Invoice convertProformaToTaxInvoice(Long proformaId, AdminUser admin) {
+    public InvoiceResponse convertProformaToTaxInvoice(Long proformaId, AdminUser admin) {
         Invoice proforma = getInvoiceById(proformaId, admin);
         if (proforma.getInvoiceType() != InvoiceType.PROFORMA) {
             throw new IllegalStateException("Can only convert a PROFORMA invoice");
@@ -546,11 +548,11 @@ public class InvoiceService {
         
         notificationService.createInvoiceCreatedNotification(admin, saved.getInvoiceNumber() != null ? saved.getInvoiceNumber() : "Draft", saved.getId());
         
-        return saved;
+        return getInvoiceResponseById(saved.getId(), admin);
     }
 
     @Transactional
-    public Invoice createInvoiceFromQuotation(Long quotationId, InvoiceType type, AdminUser admin) {
+    public InvoiceResponse createInvoiceFromQuotation(Long quotationId, InvoiceType type, AdminUser admin) {
         Quotation quotation = quotationRepository.findById(quotationId)
                 .orElseThrow(() -> new IllegalArgumentException("Quotation not found"));
                 
@@ -592,7 +594,7 @@ public class InvoiceService {
     }
     
     @Transactional
-    public Invoice createInvoiceFromPurchaseOrder(Long poId, InvoiceType type, AdminUser admin) {
+    public InvoiceResponse createInvoiceFromPurchaseOrder(Long poId, InvoiceType type, AdminUser admin) {
         PurchaseOrder po = purchaseOrderRepository.findById(poId)
                 .orElseThrow(() -> new IllegalArgumentException("Purchase Order not found"));
                 
