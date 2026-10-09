@@ -52,6 +52,12 @@ public class CustomerService {
         if (customerRepository.findByCustomerCode(request.getCustomerCode()).isPresent()) {
             throw new ResourceConflictException("Customer code already exists: " + request.getCustomerCode());
         }
+        
+        if (request.getGstin() != null && !request.getGstin().isBlank()) {
+            if (customerRepository.findByGstin(request.getGstin()).isPresent()) {
+                throw new ResourceConflictException("Customer with GSTIN already exists: " + request.getGstin());
+            }
+        }
 
         Customer customer = Customer.builder()
                 .customerCode(request.getCustomerCode())
@@ -63,6 +69,7 @@ public class CustomerService {
                 .alternatePhone(request.getAlternatePhone())
                 .gstin(request.getGstin())
                 .pan(request.getPan())
+                .state(request.getState())
                 .billingAddress(request.getBillingAddress())
                 .shippingAddress(request.getShippingAddress())
                 .paymentTerms(request.getPaymentTerms())
@@ -90,6 +97,13 @@ public class CustomerService {
                 customerRepository.findByCustomerCode(request.getCustomerCode()).isPresent()) {
             throw new ResourceConflictException("Customer code already exists: " + request.getCustomerCode());
         }
+        
+        if (request.getGstin() != null && !request.getGstin().isBlank() && 
+            !request.getGstin().equals(customer.getGstin())) {
+            if (customerRepository.findByGstin(request.getGstin()).isPresent()) {
+                throw new ResourceConflictException("Customer with GSTIN already exists: " + request.getGstin());
+            }
+        }
 
         customer.setCustomerCode(request.getCustomerCode());
         customer.setName(request.getName());
@@ -102,6 +116,7 @@ public class CustomerService {
         customer.setAlternatePhone(request.getAlternatePhone());
         customer.setGstin(request.getGstin());
         customer.setPan(request.getPan());
+        customer.setState(request.getState());
         customer.setBillingAddress(request.getBillingAddress());
         customer.setShippingAddress(request.getShippingAddress());
         customer.setPaymentTerms(request.getPaymentTerms());

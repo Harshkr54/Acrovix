@@ -38,6 +38,9 @@ public class CustomerRequest {
 
     private String billingAddress;
     private String shippingAddress;
+    
+    @Size(max = 100, message = "State cannot exceed 100 characters")
+    private String state;
 
     @Size(max = 100, message = "Payment terms cannot exceed 100 characters")
     private String paymentTerms;
