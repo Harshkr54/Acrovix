@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
     Upload, 
     FileText, 
@@ -12,7 +12,6 @@ import {
     ArrowRight, 
     ArrowLeft, 
     X,
-    Building2,
     Check
 } from 'lucide-react';
 import { previewCrmLeadImport, importCrmLeads, downloadCrmLeadTemplate } from '../services/api';
@@ -20,6 +19,7 @@ import { previewCrmLeadImport, importCrmLeads, downloadCrmLeadTemplate } from '.
 export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
     const [step, setStep] = useState(1); // 1: Upload, 2: Mapping, 3: Preview, 4: Summary
     const [file, setFile] = useState(null);
+    const [fileReady, setFileReady] = useState(false);
     const [dragActive, setDragActive] = useState(false);
     
     const [loadingPreview, setLoadingPreview] = useState(false);
@@ -32,11 +32,23 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
     const [error, setError] = useState(null);
     const fileInputRef = useRef(null);
 
+    // Escape key listener for modal close
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape' && isOpen) {
+                handleClose();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen]);
+
     if (!isOpen) return null;
 
     const handleReset = () => {
         setStep(1);
         setFile(null);
+        setFileReady(false);
         setPreviewData(null);
         setColumnMapping({});
         setImportResult(null);
@@ -50,22 +62,39 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
         onClose();
     };
 
-    const handleFileSelect = (selectedFile) => {
-        if (!selectedFile) return;
-        
-        const name = selectedFile.name.toLowerCase();
-        if (!name.endsWith('.csv') && !name.endsWith('.xlsx') && !name.endsWith('.xls')) {
-            setError('Invalid file format. Please upload a CSV, XLSX, or XLS file.');
-            return;
+    const validateSelectedFile = (selectedFile) => {
+        if (!selectedFile) return { valid: false, error: null };
+
+        if (selectedFile.size === 0) {
+            return { valid: false, error: 'The selected file is empty.' };
         }
 
         if (selectedFile.size > 10 * 1024 * 1024) {
-            setError('File size exceeds the 10MB limit.');
-            return;
+            return { valid: false, error: 'File is too large. Maximum allowed size is 10 MB.' };
         }
 
-        setError(null);
-        setFile(selectedFile);
+        const name = selectedFile.name.toLowerCase();
+        const ext = name.includes('.') ? name.split('.').pop() : '';
+        if (!['csv', 'xls', 'xlsx'].includes(ext)) {
+            return { valid: false, error: 'Unsupported file type. Please upload a CSV, XLS, or XLSX file.' };
+        }
+
+        return { valid: true, error: null };
+    };
+
+    const handleFileSelect = (selectedFile) => {
+        if (!selectedFile) return;
+
+        const validation = validateSelectedFile(selectedFile);
+        if (!validation.valid) {
+            setError(validation.error);
+            setFile(null);
+            setFileReady(false);
+        } else {
+            setError(null);
+            setFile(selectedFile);
+            setFileReady(true);
+        }
     };
 
     const handleDrag = (e) => {
@@ -88,7 +117,7 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
     };
 
     const handleProceedToMapping = async () => {
-        if (!file) return;
+        if (!file || !fileReady) return;
         try {
             setLoadingPreview(true);
             setError(null);
@@ -98,7 +127,7 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
             setStep(2);
         } catch (err) {
             console.error("Preview failed", err);
-            setError(err.message || 'Failed to process file preview.');
+            setError(err.message || 'Unable to read this file. Please upload a valid CSV or Excel file.');
         } finally {
             setLoadingPreview(false);
         }
@@ -112,7 +141,6 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
     };
 
     const handleProceedToPreview = () => {
-        // Validate required field mappings
         const mappedTargets = Object.values(columnMapping);
         if (!mappedTargets.includes('fullName')) {
             setError('Please map a column to Full Name (Required field)');
@@ -128,7 +156,7 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
     };
 
     const handlePerformImport = async () => {
-        if (!file) return;
+        if (!file || !fileReady) return;
         try {
             setImporting(true);
             setError(null);
@@ -182,191 +210,225 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-            <div className="bg-white dark:bg-[#0B192C] border border-border-subtle rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="bg-white dark:bg-[#0B192C] border border-[#D9E2EC] dark:border-slate-800 rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]">
                 
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-bg-main/40">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-[#D9E2EC] dark:border-slate-800 bg-white dark:bg-[#0B192C]">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-[#2563EB]/10 flex items-center justify-center text-[#2563EB]">
+                        <div className="w-10 h-10 rounded-xl bg-[#2563EB]/10 flex items-center justify-center text-[#2563EB] shrink-0">
                             <FileSpreadsheet className="w-5 h-5" />
                         </div>
                         <div>
                             <h3 className="text-base font-bold text-text-primary">Import CRM Leads</h3>
                             <p className="text-xs text-text-muted">
-                                {step === 1 && "Step 1 of 4: Select and upload file"}
-                                {step === 2 && "Step 2 of 4: Map spreadsheet columns to CRM fields"}
-                                {step === 3 && "Step 3 of 4: Data preview & row validation"}
-                                {step === 4 && "Step 4 of 4: Import Summary & Execution Result"}
+                                Upload a spreadsheet and create multiple CRM leads.
                             </p>
                         </div>
                     </div>
 
                     <button 
                         onClick={handleClose} 
-                        className="p-1.5 text-text-muted hover:text-text-primary rounded-lg transition-colors"
+                        aria-label="Close modal"
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                     >
-                        <X className="w-5 h-5" />
+                        <X className="w-4 h-4" />
                     </button>
                 </div>
 
                 {/* Step Indicator */}
-                <div className="px-6 py-2.5 bg-[#F0FAFA] dark:bg-slate-900/50 border-b border-border-subtle flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2">
-                        <span className={`w-6 h-6 rounded-full flex items-center justify-center font-bold ${step >= 1 ? 'bg-[#2563EB] text-white' : 'bg-slate-200 text-slate-500'}`}>1</span>
-                        <span className={step >= 1 ? 'font-semibold text-text-primary' : 'text-text-muted'}>Upload</span>
-                    </div>
-                    <div className="w-8 h-[2px] bg-slate-300 dark:bg-slate-700" />
+                <div className="px-6 py-3 bg-[#F0FAFA] dark:bg-slate-900/50 border-b border-[#D9E2EC] dark:border-slate-800">
+                    <div className="flex items-center justify-between max-w-xl mx-auto text-xs">
+                        {/* Step 1 */}
+                        <div className="flex items-center gap-2">
+                            <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                                step > 1 
+                                    ? 'bg-[#0D9488] text-white' 
+                                    : step === 1 
+                                        ? 'bg-[#2563EB] text-white shadow-xs' 
+                                        : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500 font-semibold'
+                            }`}>
+                                {step > 1 ? <Check className="w-4 h-4" /> : '1'}
+                            </span>
+                            <span className={`font-semibold ${step === 1 ? 'text-text-primary font-bold' : step > 1 ? 'text-[#0D9488]' : 'text-text-muted'}`}>
+                                Upload
+                            </span>
+                        </div>
+                        <div className={`flex-1 h-[2px] mx-3 transition-colors ${step > 1 ? 'bg-[#0D9488]' : 'bg-slate-200 dark:bg-slate-700'}`} />
 
-                    <div className="flex items-center gap-2">
-                        <span className={`w-6 h-6 rounded-full flex items-center justify-center font-bold ${step >= 2 ? 'bg-[#2563EB] text-white' : 'bg-slate-200 text-slate-500'}`}>2</span>
-                        <span className={step >= 2 ? 'font-semibold text-text-primary' : 'text-text-muted'}>Mapping</span>
-                    </div>
-                    <div className="w-8 h-[2px] bg-slate-300 dark:bg-slate-700" />
+                        {/* Step 2 */}
+                        <div className="flex items-center gap-2">
+                            <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                                step > 2 
+                                    ? 'bg-[#0D9488] text-white' 
+                                    : step === 2 
+                                        ? 'bg-[#2563EB] text-white shadow-xs' 
+                                        : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500 font-semibold'
+                            }`}>
+                                {step > 2 ? <Check className="w-4 h-4" /> : '2'}
+                            </span>
+                            <span className={`font-semibold ${step === 2 ? 'text-text-primary font-bold' : step > 2 ? 'text-[#0D9488]' : 'text-text-muted'}`}>
+                                Mapping
+                            </span>
+                        </div>
+                        <div className={`flex-1 h-[2px] mx-3 transition-colors ${step > 2 ? 'bg-[#0D9488]' : 'bg-slate-200 dark:bg-slate-700'}`} />
 
-                    <div className="flex items-center gap-2">
-                        <span className={`w-6 h-6 rounded-full flex items-center justify-center font-bold ${step >= 3 ? 'bg-[#2563EB] text-white' : 'bg-slate-200 text-slate-500'}`}>3</span>
-                        <span className={step >= 3 ? 'font-semibold text-text-primary' : 'text-text-muted'}>Preview</span>
-                    </div>
-                    <div className="w-8 h-[2px] bg-slate-300 dark:bg-slate-700" />
+                        {/* Step 3 */}
+                        <div className="flex items-center gap-2">
+                            <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                                step > 3 
+                                    ? 'bg-[#0D9488] text-white' 
+                                    : step === 3 
+                                        ? 'bg-[#2563EB] text-white shadow-xs' 
+                                        : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500 font-semibold'
+                            }`}>
+                                {step > 3 ? <Check className="w-4 h-4" /> : '3'}
+                            </span>
+                            <span className={`font-semibold ${step === 3 ? 'text-text-primary font-bold' : step > 3 ? 'text-[#0D9488]' : 'text-text-muted'}`}>
+                                Preview
+                            </span>
+                        </div>
+                        <div className={`flex-1 h-[2px] mx-3 transition-colors ${step > 3 ? 'bg-[#0D9488]' : 'bg-slate-200 dark:bg-slate-700'}`} />
 
-                    <div className="flex items-center gap-2">
-                        <span className={`w-6 h-6 rounded-full flex items-center justify-center font-bold ${step >= 4 ? 'bg-[#0D9488] text-white' : 'bg-slate-200 text-slate-500'}`}>4</span>
-                        <span className={step >= 4 ? 'font-semibold text-text-primary' : 'text-text-muted'}>Result</span>
+                        {/* Step 4 */}
+                        <div className="flex items-center gap-2">
+                            <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                                step === 4 
+                                    ? 'bg-[#0D9488] text-white shadow-xs' 
+                                    : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500 font-semibold'
+                            }`}>
+                                {step === 4 ? <Check className="w-4 h-4" /> : '4'}
+                            </span>
+                            <span className={`font-semibold ${step === 4 ? 'text-[#0D9488] font-bold' : 'text-text-muted'}`}>
+                                Result
+                            </span>
+                        </div>
                     </div>
                 </div>
 
-                {/* Error Banner */}
+                {/* Inline Error Banner */}
                 {error && (
-                    <div className="mx-6 mt-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 dark:bg-rose-950/40 dark:border-rose-800 dark:text-rose-300 text-xs flex items-center gap-2">
+                    <div className="mx-6 mt-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 dark:bg-rose-950/40 dark:border-rose-800 dark:text-rose-300 text-xs flex items-center gap-2 animate-in fade-in">
                         <AlertTriangle className="w-4 h-4 shrink-0 text-rose-500" />
                         <span className="flex-1 font-medium">{error}</span>
                     </div>
                 )}
 
                 {/* Modal Body */}
-                <div className="p-6 overflow-y-auto flex-1">
+                <div className="p-6 overflow-y-auto flex-1 bg-white dark:bg-[#0B192C]">
 
                     {/* STEP 1: UPLOAD */}
                     {step === 1 && (
-                        <div className="space-y-6">
+                        <div className="space-y-5">
                             <div>
-                                <h4 className="text-sm font-bold text-text-primary">Upload CSV or Excel Spreadsheet</h4>
-                                <p className="text-xs text-text-muted mt-1">
-                                    Upload a CSV, XLS, or XLSX file containing multiple CRM leads to import. Max file size: 10MB.
+                                <h4 className="text-sm font-bold text-text-primary">Upload Lead File</h4>
+                                <p className="text-xs text-text-muted mt-0.5">
+                                    Select a CSV or Excel file containing your leads to get started.
                                 </p>
                             </div>
 
-                            {/* Drag Drop Area */}
-                            <div 
-                                onDragEnter={handleDrag}
-                                onDragLeave={handleDrag}
-                                onDragOver={handleDrag}
-                                onDrop={handleDrop}
-                                onClick={() => fileInputRef.current?.click()}
-                                className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all ${
-                                    dragActive 
-                                        ? 'border-[#2563EB] bg-[#2563EB]/5' 
-                                        : 'border-border-subtle hover:border-[#0D9488] bg-bg-main/20'
-                                }`}
-                            >
-                                <input 
-                                    ref={fileInputRef}
-                                    type="file" 
-                                    accept=".csv, .xlsx, .xls"
-                                    onChange={(e) => e.target.files && handleFileSelect(e.target.files[0])}
-                                    className="hidden"
-                                />
+                            {!fileReady ? (
+                                /* Drop Zone */
+                                <div 
+                                    onDragEnter={handleDrag}
+                                    onDragLeave={handleDrag}
+                                    onDragOver={handleDrag}
+                                    onDrop={handleDrop}
+                                    onClick={() => fileInputRef.current?.click()}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            fileInputRef.current?.click();
+                                        }
+                                    }}
+                                    tabIndex={0}
+                                    role="button"
+                                    aria-label="Upload Lead File. Click or drag and drop a file here"
+                                    className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[#2563EB] ${
+                                        dragActive 
+                                            ? 'border-[#14B8A6] bg-[#ECFEFF] dark:bg-teal-950/40 dark:border-teal-400' 
+                                            : 'border-[#D9E2EC] hover:border-[#14B8A6] bg-slate-50/50 dark:bg-slate-900/30'
+                                    }`}
+                                >
+                                    {/* Unrestricted File Input */}
+                                    <input 
+                                        ref={fileInputRef}
+                                        type="file" 
+                                        onChange={(e) => e.target.files && handleFileSelect(e.target.files[0])}
+                                        className="hidden"
+                                    />
 
-                                <div className="w-14 h-14 mx-auto rounded-full bg-[#0D9488]/10 flex items-center justify-center text-[#0D9488] mb-3">
-                                    <Upload className="w-6 h-6" />
+                                    <div className="w-12 h-12 mx-auto rounded-full bg-[#2563EB]/10 flex items-center justify-center text-[#2563EB] mb-3">
+                                        <Upload className="w-6 h-6" />
+                                    </div>
+                                    <h5 className="text-sm font-bold text-text-primary">Drag & drop your file here</h5>
+                                    <p className="text-xs text-[#2563EB] font-semibold mt-1">or Browse Files</p>
+                                    <p className="text-[11px] text-text-muted mt-2">Select any file and we'll validate it before importing</p>
+                                    <div className="inline-flex items-center gap-2 mt-3 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-[11px] text-text-muted font-medium">
+                                        <span>CSV • XLS • XLSX</span>
+                                        <span>•</span>
+                                        <span>Max 10 MB</span>
+                                    </div>
                                 </div>
-                                <h5 className="text-sm font-bold text-text-primary">Drop your file here, or browse files</h5>
-                                <p className="text-xs text-text-muted mt-1">Supports CSV, XLS, XLSX formats (up to 10MB)</p>
-                            </div>
-
-                            {/* Selected File Card */}
-                            {file && (
-                                <div className="p-4 rounded-xl border border-border-subtle bg-bg-card flex items-center justify-between shadow-xs">
+                            ) : (
+                                /* Compact Selected File Card */
+                                <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/40 dark:border-emerald-900/60 dark:bg-emerald-950/20 flex items-center justify-between shadow-xs">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-9 h-9 rounded-lg bg-[#2563EB]/10 flex items-center justify-center text-[#2563EB]">
-                                            <FileText className="w-5 h-5" />
+                                        <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 flex items-center justify-center font-bold shrink-0">
+                                            <FileSpreadsheet className="w-5 h-5" />
                                         </div>
                                         <div>
-                                            <div className="text-xs font-bold text-text-primary">{file.name}</div>
-                                            <div className="text-[11px] text-text-muted">
-                                                {formatFileSize(file.size)} • {file.name.split('.').pop().toUpperCase()}
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs font-bold text-text-primary">{file.name}</span>
+                                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                                                    <CheckCircle2 className="w-3 h-3" />
+                                                    File ready
+                                                </span>
+                                            </div>
+                                            <div className="text-[11px] text-text-muted mt-0.5">
+                                                {file.name.split('.').pop().toUpperCase()} • {formatFileSize(file.size)}
                                             </div>
                                         </div>
                                     </div>
                                     <button 
-                                        onClick={(e) => { e.stopPropagation(); setFile(null); }}
-                                        className="btn btn-secondary btn-icon"
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); setFile(null); setFileReady(false); setError(null); }}
+                                        className="btn btn-secondary btn-sm text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-rose-200 dark:hover:bg-rose-950/50 flex items-center gap-1"
                                         title="Remove File"
                                     >
-                                        <Trash2 className="w-4 h-4 text-rose-500" />
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                        Remove
                                     </button>
                                 </div>
                             )}
-
-                            {/* Action Row */}
-                            <div className="pt-4 border-t border-border-subtle flex items-center justify-between">
-                                <button
-                                    type="button"
-                                    onClick={handleDownloadTemplate}
-                                    className="btn btn-secondary btn-sm flex items-center gap-1.5"
-                                >
-                                    <Download className="w-4 h-4 text-[#0D9488]" />
-                                    Download CSV Template
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={handleProceedToMapping}
-                                    disabled={!file || loadingPreview}
-                                    className="btn btn-primary btn-md flex items-center gap-2"
-                                >
-                                    {loadingPreview ? (
-                                        <>
-                                            <Loader2 className="w-4 h-4 animate-spin" />
-                                            Parsing Sheet...
-                                        </>
-                                    ) : (
-                                        <>
-                                            Continue to Mapping
-                                            <ArrowRight className="w-4 h-4" />
-                                        </>
-                                    )}
-                                </button>
-                            </div>
                         </div>
                     )}
 
                     {/* STEP 2: COLUMN MAPPING */}
                     {step === 2 && previewData && (
-                        <div className="space-y-6">
+                        <div className="space-y-5">
                             <div>
                                 <h4 className="text-sm font-bold text-text-primary">Map Spreadsheet Columns to CRM Lead Fields</h4>
                                 <p className="text-xs text-text-muted mt-1">
-                                    Verify or adjust column mappings. Required CRM fields are marked with an asterisk (*).
+                                    Match your file headers to CRM fields. Required fields are marked with an asterisk (*).
                                 </p>
                             </div>
 
-                            <div className="border border-border-subtle rounded-xl overflow-hidden">
+                            <div className="border border-[#D9E2EC] dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
                                 <table className="w-full text-left border-collapse">
                                     <thead>
-                                        <tr className="bg-bg-main/60 border-b border-border-subtle text-[11px] font-bold text-text-muted uppercase">
+                                        <tr className="bg-slate-50 dark:bg-slate-900/60 border-b border-[#D9E2EC] dark:border-slate-800 text-[11px] font-bold text-text-muted uppercase">
                                             <th className="px-4 py-3">Spreadsheet Column Header</th>
-                                            <th className="px-4 py-3 text-center w-12">Match</th>
-                                            <th className="px-4 py-3">CRM Lead Target Field</th>
+                                            <th className="px-4 py-3 text-center w-14">Match</th>
+                                            <th className="px-4 py-3">CRM Target Field</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-border-subtle text-xs">
+                                    <tbody className="divide-y divide-[#D9E2EC] dark:divide-slate-800 text-xs">
                                         {previewData.fileHeaders.map((header) => {
                                             const currentMappedKey = columnMapping[header] || '';
                                             const isAutoSuggested = previewData.suggestedMapping && previewData.suggestedMapping[header] === currentMappedKey && currentMappedKey !== '';
 
                                             return (
-                                                <tr key={header} className="hover:bg-bg-hover/30">
+                                                <tr key={header} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/40 transition-colors">
                                                     <td className="px-4 py-3 font-semibold text-text-primary">
                                                         {header}
                                                     </td>
@@ -387,7 +449,7 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
                                                         <select
                                                             value={currentMappedKey}
                                                             onChange={(e) => handleMappingChange(header, e.target.value)}
-                                                            className="w-full max-w-md px-3 py-1.5 text-xs bg-bg-main border border-border-subtle rounded-xl text-text-primary focus:outline-none focus:ring-2 focus:ring-[#0D9488]"
+                                                            className="w-full max-w-md px-3 py-1.5 text-xs bg-white dark:bg-[#0B192C] border border-[#D9E2EC] dark:border-slate-800 rounded-xl text-text-primary focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
                                                         >
                                                             <option value="">Do Not Import This Column</option>
                                                             {previewData.supportedFields.map(f => (
@@ -403,27 +465,6 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
                                     </tbody>
                                 </table>
                             </div>
-
-                            {/* Action Bar */}
-                            <div className="pt-4 border-t border-border-subtle flex items-center justify-between">
-                                <button
-                                    type="button"
-                                    onClick={() => setStep(1)}
-                                    className="btn btn-secondary btn-sm flex items-center gap-1.5"
-                                >
-                                    <ArrowLeft className="w-4 h-4" />
-                                    Back to Upload
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={handleProceedToPreview}
-                                    className="btn btn-primary btn-md flex items-center gap-2"
-                                >
-                                    Preview Data & Validation
-                                    <ArrowRight className="w-4 h-4" />
-                                </button>
-                            </div>
                         </div>
                     )}
 
@@ -433,13 +474,13 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
                             <div>
                                 <h4 className="text-sm font-bold text-text-primary">Review Data Preview & Validation Results</h4>
                                 <p className="text-xs text-text-muted mt-1">
-                                    No records are inserted into database during preview. Duplicates and invalid records will be skipped during import.
+                                    Previewing lead validation. Duplicates and invalid rows will be safely skipped during import.
                                 </p>
                             </div>
 
                             {/* Summary KPI Cards */}
                             <div className="grid grid-cols-4 gap-3">
-                                <div className="p-3 rounded-xl border border-border-subtle bg-bg-card text-center">
+                                <div className="p-3 rounded-xl border border-[#D9E2EC] dark:border-slate-800 bg-white dark:bg-slate-900/40 text-center">
                                     <div className="text-[11px] font-semibold text-text-muted">Total Rows</div>
                                     <div className="text-lg font-extrabold text-text-primary mt-0.5">{previewData.totalRows}</div>
                                 </div>
@@ -458,10 +499,10 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
                             </div>
 
                             {/* Row Preview Table */}
-                            <div className="border border-border-subtle rounded-xl overflow-hidden">
-                                <div className="acx-table-container max-h-[320px]">
+                            <div className="border border-[#D9E2EC] dark:border-slate-800 rounded-xl overflow-hidden shadow-xs">
+                                <div className="acx-table-container max-h-[300px]">
                                     <table className="w-full text-left border-collapse">
-                                        <thead className="sticky top-0 bg-bg-main border-b border-border-subtle text-[11px] font-bold text-text-muted uppercase z-10">
+                                        <thead className="sticky top-0 bg-slate-50 dark:bg-slate-900 border-b border-[#D9E2EC] dark:border-slate-800 text-[11px] font-bold text-text-muted uppercase z-10">
                                             <tr>
                                                 <th className="px-4 py-2.5 w-14">Row</th>
                                                 <th className="px-4 py-2.5">Full Name</th>
@@ -470,9 +511,9 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
                                                 <th className="px-4 py-2.5 text-right">Validation Result</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-border-subtle text-xs">
+                                        <tbody className="divide-y divide-[#D9E2EC] dark:divide-slate-800 text-xs">
                                             {previewData.previewRows.map((row) => (
-                                                <tr key={row.rowIndex} className="hover:bg-bg-hover/30">
+                                                <tr key={row.rowIndex} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/40">
                                                     <td className="px-4 py-2.5 font-bold text-text-muted">{row.rowIndex}</td>
                                                     <td className="px-4 py-2.5 font-semibold text-text-primary">
                                                         {row.fullName || <span className="text-rose-500 italic">Missing</span>}
@@ -509,37 +550,6 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
                                     </table>
                                 </div>
                             </div>
-
-                            {/* Action Bar */}
-                            <div className="pt-4 border-t border-border-subtle flex items-center justify-between">
-                                <button
-                                    type="button"
-                                    onClick={() => setStep(2)}
-                                    className="btn btn-secondary btn-sm flex items-center gap-1.5"
-                                >
-                                    <ArrowLeft className="w-4 h-4" />
-                                    Back to Mapping
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={handlePerformImport}
-                                    disabled={importing || previewData.validCount === 0}
-                                    className="btn btn-primary btn-md flex items-center gap-2"
-                                >
-                                    {importing ? (
-                                        <>
-                                            <Loader2 className="w-4 h-4 animate-spin" />
-                                            Importing Leads...
-                                        </>
-                                    ) : (
-                                        <>
-                                            Import {previewData.validCount} Valid Leads
-                                            <ArrowRight className="w-4 h-4" />
-                                        </>
-                                    )}
-                                </button>
-                            </div>
                         </div>
                     )}
 
@@ -558,8 +568,8 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
                             </div>
 
                             {/* Result Summary Box */}
-                            <div className="p-6 rounded-2xl border border-border-subtle bg-bg-card max-w-lg mx-auto space-y-3 text-left">
-                                <div className="flex items-center justify-between py-1.5 border-b border-border-subtle text-xs">
+                            <div className="p-6 rounded-2xl border border-[#D9E2EC] dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 max-w-lg mx-auto space-y-3 text-left">
+                                <div className="flex items-center justify-between py-1.5 border-b border-[#D9E2EC] dark:border-slate-800 text-xs">
                                     <span className="font-medium text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
                                         <CheckCircle2 className="w-4 h-4" />
                                         Successfully Imported:
@@ -569,7 +579,7 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
                                     </span>
                                 </div>
 
-                                <div className="flex items-center justify-between py-1.5 border-b border-border-subtle text-xs">
+                                <div className="flex items-center justify-between py-1.5 border-b border-[#D9E2EC] dark:border-slate-800 text-xs">
                                     <span className="font-medium text-amber-700 dark:text-amber-400 flex items-center gap-2">
                                         <AlertTriangle className="w-4 h-4" />
                                         Duplicates Skipped:
@@ -589,10 +599,103 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
                                     </span>
                                 </div>
                             </div>
+                        </div>
+                    )}
+                </div>
 
-                            {/* Action Bar */}
-                            <div className="pt-4 flex items-center justify-center gap-3">
-                                {importResult.errors && importResult.errors.length > 0 && (
+                {/* Footer Controls */}
+                <div className="px-6 py-4 border-t border-[#D9E2EC] dark:border-slate-800 bg-white dark:bg-[#0B192C] flex items-center justify-between">
+                    <div>
+                        {step === 1 && (
+                            <button
+                                type="button"
+                                onClick={handleDownloadTemplate}
+                                className="btn btn-secondary btn-sm flex items-center gap-1.5"
+                            >
+                                <Download className="w-4 h-4 text-[#0D9488]" />
+                                Download CSV Template
+                            </button>
+                        )}
+
+                        {(step === 2 || step === 3) && (
+                            <button
+                                type="button"
+                                onClick={() => setStep(prev => prev - 1)}
+                                className="btn btn-secondary btn-sm flex items-center gap-1.5"
+                            >
+                                <ArrowLeft className="w-4 h-4" />
+                                Back
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        {step !== 4 && (
+                            <button
+                                type="button"
+                                onClick={handleClose}
+                                className="btn btn-secondary btn-md"
+                            >
+                                Cancel
+                            </button>
+                        )}
+
+                        {step === 1 && (
+                            <button
+                                type="button"
+                                onClick={handleProceedToMapping}
+                                disabled={!fileReady || loadingPreview}
+                                className="btn btn-primary btn-md flex items-center gap-2 bg-[#2563EB] hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {loadingPreview ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Reading File...
+                                    </>
+                                ) : (
+                                    <>
+                                        Continue to Mapping
+                                        <ArrowRight className="w-4 h-4" />
+                                    </>
+                                )}
+                            </button>
+                        )}
+
+                        {step === 2 && (
+                            <button
+                                type="button"
+                                onClick={handleProceedToPreview}
+                                className="btn btn-primary btn-md flex items-center gap-2 bg-[#2563EB] hover:bg-blue-700 text-white"
+                            >
+                                Preview Data & Validation
+                                <ArrowRight className="w-4 h-4" />
+                            </button>
+                        )}
+
+                        {step === 3 && (
+                            <button
+                                type="button"
+                                onClick={handlePerformImport}
+                                disabled={importing || previewData.validCount === 0}
+                                className="btn btn-primary btn-md flex items-center gap-2 bg-[#2563EB] hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {importing ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Importing Leads...
+                                    </>
+                                ) : (
+                                    <>
+                                        Import {previewData.validCount} Valid Leads
+                                        <ArrowRight className="w-4 h-4" />
+                                    </>
+                                )}
+                            </button>
+                        )}
+
+                        {step === 4 && (
+                            <div className="flex items-center gap-3">
+                                {importResult && importResult.errors && importResult.errors.length > 0 && (
                                     <button
                                         type="button"
                                         onClick={handleDownloadErrorReport}
@@ -609,13 +712,13 @@ export default function LeadImportModal({ isOpen, onClose, onSuccess }) {
                                         onSuccess();
                                         handleClose();
                                     }}
-                                    className="btn btn-primary btn-md px-8"
+                                    className="btn btn-primary btn-md px-8 bg-[#2563EB] hover:bg-blue-700 text-white"
                                 >
                                     View Leads
                                 </button>
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
