@@ -7,14 +7,22 @@ COPY pom.xml .
 COPY src ./src
 
 # Build the application with a bounded retry strategy for transient network/429 errors
-RUN i=1; \
+# We use bash and set -o pipefail to correctly capture maven's exit code through the pipe
+RUN /bin/bash -c 'set -o pipefail; \
+    i=1; \
     max_retries=3; \
     delay=5; \
     while [ $i -le $max_retries ]; do \
       echo "Attempt $i/$max_retries: Running Maven build..."; \
       if mvn clean package -DskipTests | tee build.log; then \
-        echo "Build succeeded."; \
-        exit 0; \
+        echo "Maven build succeeded."; \
+        if [ -f "target/admin-backend-0.0.1-SNAPSHOT.jar" ]; then \
+          echo "Expected JAR artifact found. Build succeeded."; \
+          exit 0; \
+        else \
+          echo "ERROR: Maven build succeeded but expected JAR (target/admin-backend-0.0.1-SNAPSHOT.jar) is missing!"; \
+          exit 1; \
+        fi; \
       fi; \
       if grep -qiE "429 Too Many Requests|Transfer failed|Connection reset|Read timed out|Could not transfer artifact|Connection timed out" build.log; then \
         if [ $i -lt $max_retries ]; then \
@@ -31,7 +39,7 @@ RUN i=1; \
       fi; \
       i=$((i + 1)); \
     done; \
-    exit 1
+    exit 1'
 
 # Runtime stage
 # Using Jammy instead of Alpine to ensure font libraries for PDF generation (OpenPDF) work smoothly
