@@ -108,7 +108,8 @@ public class EmailTemplateBuilder {
         body.append("</table>\n");
 
         if (quotation.getTermsAndConditions() != null && !quotation.getTermsAndConditions().trim().isEmpty()) {
-            body.append("<p><strong>Terms & Conditions:</strong><br/>").append(escapeHtml(quotation.getTermsAndConditions())).append("</p>\n");
+            body.append("<p style=\"margin-bottom: 4px;\"><strong>Terms & Conditions:</strong></p>\n");
+            body.append(formatTermsAsHtmlList(quotation.getTermsAndConditions()));
         }
 
         body.append("<p>Thank you for choosing ACROVIX INNOVATIONS PRIVATE LIMITED. For queries, contact <a href=\"mailto:sales@acrovix.com\" style=\"color:#0D9488;\">sales@acrovix.com</a>.</p>");
@@ -392,5 +393,43 @@ public class EmailTemplateBuilder {
                 .replace(">", "&gt;")
                 .replace("\"", "&quot;")
                 .replace("'", "&#39;");
+    }
+
+    private String formatTermsAsHtmlList(String terms) {
+        if (terms == null || terms.trim().isEmpty()) {
+            return "";
+        }
+        
+        String trimmedTerms = terms.trim();
+        String lowerTerms = trimmedTerms.toLowerCase();
+        
+        if (lowerTerms.contains("<ol") || lowerTerms.contains("<ul") || lowerTerms.contains("<li") || lowerTerms.contains("<p") || lowerTerms.contains("<br")) {
+            return trimmedTerms.replaceAll("(?i)<script.*?>.*?</script>", "").replaceAll("(?i)</?script>", "");
+        }
+
+        StringBuilder html = new StringBuilder("<ol style=\"margin-top: 5px; margin-bottom: 15px; padding-left: 20px;\">\n");
+        String[] lines = trimmedTerms.split("\\r?\\n");
+        boolean hasItems = false;
+        
+        for (String line : lines) {
+            String trimmedLine = line.trim();
+            if (trimmedLine.isEmpty()) {
+                continue;
+            }
+            
+            trimmedLine = trimmedLine.replaceFirst("^\\d+[\\.\\)]\\s*", "");
+            trimmedLine = trimmedLine.replaceFirst("^[-*]\\s*", "");
+            
+            html.append("  <li style=\"margin-bottom: 4px;\">").append(escapeHtml(trimmedLine)).append("</li>\n");
+            hasItems = true;
+        }
+        
+        html.append("</ol>\n");
+        
+        if (!hasItems) {
+            return "<p>" + escapeHtml(trimmedTerms) + "</p>\n";
+        }
+        
+        return html.toString();
     }
 }

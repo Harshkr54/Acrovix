@@ -46,8 +46,9 @@ public class PdfService {
             addQuotationMeta(document, quotation);
             addCustomerDetails(document, quotation);
             addLineItemsTable(document, quotation, settings);
-            addBankDetailsAndSignatory(document, settings);
+            addFinancialSummary(document, quotation, settings);
             addNotesAndTerms(document, quotation, settings);
+            addBankDetailsAndSignatory(document, settings);
 
             document.close();
             return out.toByteArray();
@@ -65,10 +66,9 @@ public class PdfService {
 
         String companyName = (settings != null && settings.getCompanyName() != null) ? settings.getCompanyName() : "";
         String gstin = (settings != null && settings.getGstin() != null) ? settings.getGstin() : "";
-        String compAddress = (settings != null && settings.getBillingAddress() != null) ? settings.getBillingAddress() : "";
-        if ((compAddress == null || compAddress.isEmpty()) && settings != null && settings.getRegisteredAddress() != null) {
-            compAddress = settings.getRegisteredAddress();
-        }
+        String compAddress = (settings != null && settings.getRegisteredAddress() != null && !settings.getRegisteredAddress().trim().isEmpty()) 
+            ? settings.getRegisteredAddress() 
+            : ((settings != null && settings.getBillingAddress() != null) ? settings.getBillingAddress() : "");
 
         PdfPTable topTable = new PdfPTable(2);
         topTable.setWidthPercentage(100);
@@ -147,6 +147,7 @@ public class PdfService {
         topTable.addCell(leftHeader);
         topTable.addCell(rightHeader);
         document.add(topTable);
+        document.add(new Chunk(new LineSeparator(0.5f, 100, new java.awt.Color(200, 200, 200), Element.ALIGN_CENTER, -5f)));
         document.add(new Paragraph(" "));
     }
 
@@ -451,24 +452,49 @@ public class PdfService {
             }
         }
 
-        int emptyCols = colCount - 2;
-        if (emptyCols < 1) emptyCols = 1;
+        document.add(table);
+        document.add(new Paragraph(" "));
+    }
 
-        PdfPCell taxLabel = new PdfPCell(new Phrase("Taxable Amount", headerBoldFont));
-        taxLabel.setColspan(emptyCols);
+    private void addFinancialSummary(Document document, Quotation quotation, CompanySettingsResponse settings) throws DocumentException {
+        Font regularFont = FontFactory.getFont(FontFactory.HELVETICA, 9);
+        Font boldFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9);
+        Font grandTotalLabelFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11);
+        Font grandTotalValFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 13);
+        Font blueBoldFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, new java.awt.Color(10, 88, 202));
+
+        PdfPTable summaryTable = new PdfPTable(2);
+        summaryTable.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        summaryTable.setWidthPercentage(45);
+        summaryTable.setWidths(new float[]{60f, 40f});
+        summaryTable.setSpacingBefore(5f);
+        summaryTable.setSpacingAfter(15f);
+
+        String curSym = quotation.getCurrency() != null && quotation.getCurrency().name().equals("USD") ? "$" : "₹ ";
+
+        // Taxable Amount
+        PdfPCell taxLabel = new PdfPCell(new Phrase("Taxable Amount", regularFont));
         taxLabel.setBorderWidth(0);
-        taxLabel.setHorizontalAlignment(Element.ALIGN_RIGHT);
-        taxLabel.setPaddingTop(10f);
-        table.addCell(taxLabel);
+        taxLabel.setHorizontalAlignment(Element.ALIGN_LEFT);
+        taxLabel.setPaddingTop(4f);
+        taxLabel.setPaddingBottom(4f);
+        summaryTable.addCell(taxLabel);
 
-        String curSym = quotation.getCurrency() != null && quotation.getCurrency().name().equals("USD") ? "$" : "₹";
-
-        PdfPCell taxVal = new PdfPCell(new Phrase(curSym + (quotation.getSubtotal() != null ? quotation.getSubtotal().toString() : "0.00"), headerBoldFont));
-        taxVal.setColspan(2);
+        PdfPCell taxVal = new PdfPCell(new Phrase(curSym + (quotation.getSubtotal() != null ? quotation.getSubtotal().toString() : "0.00"), regularFont));
         taxVal.setBorderWidth(0);
         taxVal.setHorizontalAlignment(Element.ALIGN_RIGHT);
-        taxVal.setPaddingTop(10f);
-        table.addCell(taxVal);
+        taxVal.setPaddingTop(4f);
+        taxVal.setPaddingBottom(4f);
+        summaryTable.addCell(taxVal);
+
+        // Calculate tax rates again
+        java.util.Set<BigDecimal> taxRates = new java.util.HashSet<>();
+        if (quotation.getItems() != null) {
+            for (QuotationItem item : quotation.getItems()) {
+                BigDecimal taxPct = item.getTaxPercent() != null ? item.getTaxPercent() : BigDecimal.ZERO;
+                if (taxPct.compareTo(BigDecimal.ZERO) > 0) taxRates.add(taxPct);
+            }
+        }
 
         String totalTaxLabel = "Tax";
         if (quotation.getCustomer() != null && quotation.getCustomer().getState() != null && settings != null && settings.getRegisteredAddress() != null) {
@@ -482,71 +508,58 @@ public class PdfService {
         }
         
         if (taxRates.size() == 1) {
-            totalTaxLabel += " " + taxRates.iterator().next().toString() + "%";
+            totalTaxLabel += " (" + taxRates.iterator().next().toString() + "%)";
         } else if (taxRates.size() > 1) {
-            totalTaxLabel += " — Multiple Rates";
+            totalTaxLabel = "Applicable Tax";
         } else {
             totalTaxLabel = "Total Tax";
         }
 
-        PdfPCell igstLabel = new PdfPCell(new Phrase(totalTaxLabel, headerBoldFont)); 
-        igstLabel.setColspan(emptyCols);
+        PdfPCell igstLabel = new PdfPCell(new Phrase(totalTaxLabel, regularFont)); 
         igstLabel.setBorderWidth(0);
-        igstLabel.setHorizontalAlignment(Element.ALIGN_RIGHT);
-        table.addCell(igstLabel);
+        igstLabel.setHorizontalAlignment(Element.ALIGN_LEFT);
+        igstLabel.setPaddingTop(4f);
+        igstLabel.setPaddingBottom(4f);
+        summaryTable.addCell(igstLabel);
 
-        PdfPCell igstVal = new PdfPCell(new Phrase(curSym + (quotation.getTaxAmount() != null ? quotation.getTaxAmount().toString() : "0.00"), headerBoldFont));
-        igstVal.setColspan(2);
+        PdfPCell igstVal = new PdfPCell(new Phrase(curSym + (quotation.getTaxAmount() != null ? quotation.getTaxAmount().toString() : "0.00"), regularFont));
         igstVal.setBorderWidth(0);
         igstVal.setHorizontalAlignment(Element.ALIGN_RIGHT);
-        table.addCell(igstVal);
+        igstVal.setPaddingTop(4f);
+        igstVal.setPaddingBottom(4f);
+        summaryTable.addCell(igstVal);
 
-        PdfPCell gTotalLabel = new PdfPCell(new Phrase("Grand Total", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12)));
-        gTotalLabel.setColspan(emptyCols);
+        PdfPCell gTotalLabel = new PdfPCell(new Phrase("Grand Total", grandTotalLabelFont));
         gTotalLabel.setBorderWidth(0);
         gTotalLabel.setBackgroundColor(new java.awt.Color(219, 250, 233)); // Pale green highlight
-        gTotalLabel.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        gTotalLabel.setHorizontalAlignment(Element.ALIGN_LEFT);
         gTotalLabel.setPaddingTop(8f);
         gTotalLabel.setPaddingBottom(8f);
-        table.addCell(gTotalLabel);
+        gTotalLabel.setPaddingLeft(6f);
+        summaryTable.addCell(gTotalLabel);
 
-        PdfPCell gTotalVal = new PdfPCell(new Phrase(curSym + (quotation.getGrandTotal() != null ? quotation.getGrandTotal().toString() : "0.00"), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14)));
-        gTotalVal.setColspan(2);
+        PdfPCell gTotalVal = new PdfPCell(new Phrase(curSym + (quotation.getGrandTotal() != null ? quotation.getGrandTotal().toString() : "0.00"), grandTotalValFont));
         gTotalVal.setBorderWidth(0);
         gTotalVal.setBackgroundColor(new java.awt.Color(219, 250, 233)); // Pale green highlight
         gTotalVal.setHorizontalAlignment(Element.ALIGN_RIGHT);
         gTotalVal.setPaddingTop(8f);
         gTotalVal.setPaddingBottom(8f);
+        gTotalVal.setPaddingRight(6f);
         gTotalVal.setNoWrap(true);
-        table.addCell(gTotalVal);
+        summaryTable.addCell(gTotalVal);
 
-        int leftColspan = Math.min(4, colCount - 1);
-        int rightColspan = colCount - leftColspan;
-        
-        PdfPCell summaryCellLeft = new PdfPCell(new Phrase("Total Items: " + totalItems + "\nTotal Quantity: " + totalQty, tinyFont));
-        summaryCellLeft.setColspan(leftColspan);
-        summaryCellLeft.setBorderWidth(0);
-        summaryCellLeft.setBorderWidthBottom(1.5f);
-        summaryCellLeft.setBorderColorBottom(new java.awt.Color(37, 99, 235));
-        summaryCellLeft.setPaddingTop(5f);
-        summaryCellLeft.setPaddingBottom(5f);
-        table.addCell(summaryCellLeft);
+        document.add(summaryTable);
 
+        // Amount in words below the summary block, left aligned
         String currencyCode = quotation.getCurrency() != null ? quotation.getCurrency().name() : "INR";
         String currencyName = "USD".equalsIgnoreCase(currencyCode) ? "USD " : "INR ";
         String words = currencyName + (quotation.getGrandTotal() != null ? convertAmountToWords(quotation.getGrandTotal().toString(), currencyCode) : ("Zero" + ("USD".equalsIgnoreCase(currencyCode) ? " Dollars Only" : " Rupees Only")));
-        PdfPCell summaryCellRight = new PdfPCell(new Phrase("Total amount (in words): " + words, tinyFont));
-        summaryCellRight.setColspan(rightColspan);
-        summaryCellRight.setBorderWidth(0);
-        summaryCellRight.setBorderWidthBottom(1.5f);
-        summaryCellRight.setBorderColorBottom(new java.awt.Color(37, 99, 235));
-        summaryCellRight.setHorizontalAlignment(Element.ALIGN_RIGHT);
-        summaryCellRight.setPaddingTop(5f);
-        summaryCellRight.setPaddingBottom(5f);
-        table.addCell(summaryCellRight);
-
-        document.add(table);
-        document.add(new Paragraph(" "));
+        
+        Paragraph amountWordsPara = new Paragraph();
+        amountWordsPara.add(new Chunk("Total amount (in words): ", regularFont));
+        amountWordsPara.add(new Chunk(words, blueBoldFont));
+        amountWordsPara.setSpacingAfter(15f);
+        document.add(amountWordsPara);
     }
 
     private void addBankDetailsAndSignatory(Document document, CompanySettingsResponse settings) throws DocumentException {
