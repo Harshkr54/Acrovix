@@ -1180,29 +1180,31 @@ public class PdfService {
             float docWidth = document.getPageSize().getWidth();
             float docHeight = document.getPageSize().getHeight();
             try {
-                java.net.URL poHeaderUrl = getClass().getResource("/static/PO_header.png");
-                if (poHeaderUrl != null) {
-                    Image poHeaderImg = Image.getInstance(poHeaderUrl);
-                    poHeaderImg.scaleToFit(docWidth, 120f);
-                    poHeaderImg.setAbsolutePosition(0, docHeight - poHeaderImg.getScaledHeight());
-                    cb.addImage(poHeaderImg);
+                if (writer.getPageNumber() == 1) {
+                    java.net.URL poHeaderUrl = getClass().getResource("/static/PO_header.png");
+                    if (poHeaderUrl != null) {
+                        Image poHeaderImg = Image.getInstance(poHeaderUrl);
+                        poHeaderImg.scaleToFit(docWidth - 72f, 120f);
+                        poHeaderImg.setAbsolutePosition(36f, docHeight - poHeaderImg.getScaledHeight());
+                        cb.addImage(poHeaderImg);
+                    }
+                    cb.setColorStroke(new java.awt.Color(11, 25, 44));
+                    cb.setLineWidth(2f);
+                    cb.moveTo(36f, docHeight - 120f);
+                    cb.lineTo(docWidth - 36f, docHeight - 120f);
+                    cb.stroke();
+                    
+                    String supportEmail = (settings != null && settings.getEmail() != null) ? settings.getEmail() : "sales@acrovix.com";
+                    String companyPhone = (settings != null && settings.getPhone() != null) ? settings.getPhone() : "+91-8092848065";
+                    String city = "Bengaluru, Karnataka, India";
+                    if (settings != null && settings.getRegisteredAddress() != null && settings.getRegisteredAddress().contains("Mumbai")) {
+                        city = "Mumbai, Maharashtra, India";
+                    }
+                    Font contactFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9);
+                    ColumnText.showTextAligned(cb, Element.ALIGN_LEFT, new Phrase("Email: " + supportEmail, contactFont), 36, docHeight - 138f, 0);
+                    ColumnText.showTextAligned(cb, Element.ALIGN_CENTER, new Phrase("Phone: " + companyPhone, contactFont), docWidth / 2, docHeight - 138f, 0);
+                    ColumnText.showTextAligned(cb, Element.ALIGN_RIGHT, new Phrase(city, contactFont), docWidth - 36f, docHeight - 138f, 0);
                 }
-                cb.setColorStroke(new java.awt.Color(11, 25, 44));
-                cb.setLineWidth(2f);
-                cb.moveTo(0, docHeight - 120f);
-                cb.lineTo(docWidth, docHeight - 120f);
-                cb.stroke();
-                
-                String supportEmail = (settings != null && settings.getEmail() != null) ? settings.getEmail() : "sales@acrovix.com";
-                String companyPhone = (settings != null && settings.getPhone() != null) ? settings.getPhone() : "+91-8092848065";
-                String city = "Bengaluru, Karnataka, India";
-                if (settings != null && settings.getRegisteredAddress() != null && settings.getRegisteredAddress().contains("Mumbai")) {
-                    city = "Mumbai, Maharashtra, India";
-                }
-                Font contactFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9);
-                ColumnText.showTextAligned(cb, Element.ALIGN_LEFT, new Phrase("Email: " + supportEmail, contactFont), 36, docHeight - 138f, 0);
-                ColumnText.showTextAligned(cb, Element.ALIGN_CENTER, new Phrase("Phone: " + companyPhone, contactFont), docWidth / 2, docHeight - 138f, 0);
-                ColumnText.showTextAligned(cb, Element.ALIGN_RIGHT, new Phrase(city, contactFont), docWidth - 36, docHeight - 138f, 0);
                 
                 if (writer.getPageNumber() > 1 && invoiceNumber != null && !invoiceNumber.isEmpty()) {
                     PdfPTable badge = new PdfPTable(1);
@@ -1213,7 +1215,7 @@ public class PdfService {
                     badgeCell.setPadding(4f);
                     badgeCell.setHorizontalAlignment(Element.ALIGN_CENTER);
                     badge.addCell(badgeCell);
-                    badge.writeSelectedRows(0, -1, docWidth - 160f - 36f, docHeight - 150f, cb);
+                    badge.writeSelectedRows(0, -1, docWidth - 160f - 36f, docHeight - 36f, cb);
                 }
                 
                 Phrase footer = new Phrase("Page " + writer.getPageNumber(), FontFactory.getFont(FontFactory.HELVETICA, 8));
