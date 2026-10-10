@@ -1,34 +1,34 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { ToastProvider, useToast } from './context/ToastContext';
 import Layout from './components/Layout';
-import Login from './pages/Login';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
-import Dashboard from './pages/Dashboard';
-import EnquiryList from './pages/EnquiryList';
-import QuotationBuilder from './pages/QuotationBuilder';
-import QuotationList from './pages/QuotationList';
-import UserList from './pages/UserList';
-import Settings from './pages/Settings';
-import TrashList from './pages/TrashList';
-import Activity from './pages/Activity';
-import CustomerMaster from './pages/CustomerMaster';
-import Customer360 from './pages/Customer360';
-import CatalogMaster from './pages/CatalogMaster';
-import PurchaseOrderList from './pages/PurchaseOrderList';
-import PurchaseOrderDetail from './pages/PurchaseOrderDetail';
-import InvoiceList from './pages/InvoiceList';
-import InvoiceDetail from './pages/InvoiceDetail';
-import Payments from './pages/Payments';
-import Receivables from './pages/Receivables';
-import Reports from './pages/Reports';
-import CrmDashboard from './pages/CrmDashboard';
-import CrmLeads from './pages/CrmLeads';
-import CrmLeadDetails from './pages/CrmLeadDetails';
-import CrmPipeline from './pages/CrmPipeline';
-import CrmFollowUps from './pages/CrmFollowUps';
+const Login = lazy(() => import('./pages/Login'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const EnquiryList = lazy(() => import('./pages/EnquiryList'));
+const QuotationBuilder = lazy(() => import('./pages/QuotationBuilder'));
+const QuotationList = lazy(() => import('./pages/QuotationList'));
+const UserList = lazy(() => import('./pages/UserList'));
+const Settings = lazy(() => import('./pages/Settings'));
+const TrashList = lazy(() => import('./pages/TrashList'));
+const Activity = lazy(() => import('./pages/Activity'));
+const CustomerMaster = lazy(() => import('./pages/CustomerMaster'));
+const Customer360 = lazy(() => import('./pages/Customer360'));
+const CatalogMaster = lazy(() => import('./pages/CatalogMaster'));
+const PurchaseOrderList = lazy(() => import('./pages/PurchaseOrderList'));
+const PurchaseOrderDetail = lazy(() => import('./pages/PurchaseOrderDetail'));
+const InvoiceList = lazy(() => import('./pages/InvoiceList'));
+const InvoiceDetail = lazy(() => import('./pages/InvoiceDetail'));
+const Payments = lazy(() => import('./pages/Payments'));
+const Receivables = lazy(() => import('./pages/Receivables'));
+const Reports = lazy(() => import('./pages/Reports'));
+const CrmDashboard = lazy(() => import('./pages/CrmDashboard'));
+const CrmLeads = lazy(() => import('./pages/CrmLeads'));
+const CrmLeadDetails = lazy(() => import('./pages/CrmLeadDetails'));
+const CrmPipeline = lazy(() => import('./pages/CrmPipeline'));
+const CrmFollowUps = lazy(() => import('./pages/CrmFollowUps'));
 import SessionManager from './components/SessionManager';
 
 const ProtectedRoute = ({ children }) => {
@@ -74,38 +74,40 @@ function App() {
     return (
         <ToastProvider>
             <NetworkStatus />
-            <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            
-            <Route path="/" element={<ProtectedRoute><SessionManager><Layout /></SessionManager></ProtectedRoute>}>
-                <Route index element={<Dashboard />} />
-                <Route path="crm" element={<CrmDashboard />} />
-                <Route path="crm/leads" element={<CrmLeads />} />
-                <Route path="crm/leads/:id" element={<CrmLeadDetails />} />
-                <Route path="crm/pipeline" element={<CrmPipeline />} />
-                <Route path="crm/follow-ups" element={<CrmFollowUps />} />
-                <Route path="enquiries" element={<EnquiryList />} />
-                <Route path="quotations" element={<QuotationList />} />
-                <Route path="quotations/new/:enquiryId" element={<QuotationBuilder />} />
-                <Route path="quotations/edit/:quotationId" element={<QuotationBuilder />} />
-                <Route path="customers" element={<CustomerMaster />} />
-                <Route path="customers/:id/360" element={<Customer360 />} />
-                <Route path="catalog" element={<CatalogMaster />} />
-                <Route path="purchase-orders" element={<PurchaseOrderList />} />
-                <Route path="purchase-orders/:id" element={<PurchaseOrderDetail />} />
-                <Route path="invoices" element={<InvoiceList />} />
-                <Route path="invoices/:id" element={<InvoiceDetail />} />
-                <Route path="payments" element={<Payments />} />
-                <Route path="receivables" element={<Receivables />} />
-                <Route path="reports" element={<Reports />} />
-                <Route path="users" element={<UserList />} />
-                <Route path="trash" element={<TrashList />} />
-                <Route path="activity" element={<Activity />} />
-                <Route path="settings" element={<Settings />} />
-            </Route>
-        </Routes>
+            <Suspense fallback={<div className="flex h-screen items-center justify-center"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div></div>}>
+                <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                
+                <Route path="/" element={<ProtectedRoute><SessionManager><Layout /></SessionManager></ProtectedRoute>}>
+                    <Route index element={<Dashboard />} />
+                    <Route path="crm" element={<CrmDashboard />} />
+                    <Route path="crm/leads" element={<CrmLeads />} />
+                    <Route path="crm/leads/:id" element={<CrmLeadDetails />} />
+                    <Route path="crm/pipeline" element={<CrmPipeline />} />
+                    <Route path="crm/follow-ups" element={<CrmFollowUps />} />
+                    <Route path="enquiries" element={<EnquiryList />} />
+                    <Route path="quotations" element={<QuotationList />} />
+                    <Route path="quotations/new/:enquiryId" element={<QuotationBuilder />} />
+                    <Route path="quotations/edit/:quotationId" element={<QuotationBuilder />} />
+                    <Route path="customers" element={<CustomerMaster />} />
+                    <Route path="customers/:id/360" element={<Customer360 />} />
+                    <Route path="catalog" element={<CatalogMaster />} />
+                    <Route path="purchase-orders" element={<PurchaseOrderList />} />
+                    <Route path="purchase-orders/:id" element={<PurchaseOrderDetail />} />
+                    <Route path="invoices" element={<InvoiceList />} />
+                    <Route path="invoices/:id" element={<InvoiceDetail />} />
+                    <Route path="payments" element={<Payments />} />
+                    <Route path="receivables" element={<Receivables />} />
+                    <Route path="reports" element={<Reports />} />
+                    <Route path="users" element={<UserList />} />
+                    <Route path="trash" element={<TrashList />} />
+                    <Route path="activity" element={<Activity />} />
+                    <Route path="settings" element={<Settings />} />
+                </Route>
+            </Routes>
+            </Suspense>
         </ToastProvider>
     );
 }

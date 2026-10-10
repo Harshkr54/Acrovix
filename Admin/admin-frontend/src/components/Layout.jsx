@@ -190,6 +190,8 @@ export default function Layout() {
                         <img
                             src={theme === 'dark' ? logoDarkExpanded : logoLightExpanded}
                             alt="ACROVIX"
+                            width="200"
+                            height="60"
                             className="h-[80%] w-auto object-contain transition-all"
                         />
                     )}
@@ -198,11 +200,13 @@ export default function Layout() {
                             <img
                                 src={theme === 'dark' ? logoDarkCollapsed : logoLightCollapsed}
                                 alt="ACX"
+                                width="40"
+                                height="24"
                                 className="h-[24px] w-auto object-contain transition-all"
                             />
                         </div>
                     )}
-                    <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden absolute right-4 text-text-muted hover:text-text-primary transition-colors p-1 rounded-lg">
+                    <button onClick={() => setIsSidebarOpen(false)} aria-label="Close sidebar" className="lg:hidden absolute right-4 text-text-muted hover:text-text-primary transition-colors p-1 rounded-lg">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -382,6 +386,7 @@ export default function Layout() {
                     <div className="flex items-center flex-1 gap-4 lg:gap-6 min-w-0">
                         <button
                             onClick={() => setIsSidebarOpen(true)}
+                            aria-label="Open sidebar"
                             className="lg:hidden text-text-muted hover:text-text-primary transition-colors focus:outline-none shrink-0"
                         >
                             <Menu className="w-6 h-6" />
@@ -417,6 +422,7 @@ export default function Layout() {
                             {searchQuery && (
                                 <button
                                     onClick={handleClearSearch}
+                                    aria-label="Clear search"
                                     className="absolute inset-y-0 right-0 pr-4 flex items-center text-text-muted hover:text-text-primary focus:outline-none z-10"
                                 >
                                     <X className="h-[18px] w-[18px]" />

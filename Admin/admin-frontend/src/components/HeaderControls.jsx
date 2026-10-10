@@ -285,6 +285,7 @@ export default function HeaderControls({ onLogout }) {
             <div className="relative">
                 <button 
                     onClick={() => toggleDropdown('notifications')}
+                    aria-label="Notifications"
                     className={`relative ${activeDropdown === 'notifications' ? 'header-icon-button bg-bg-hover text-text-primary border-border-subtle shadow-sm' : 'header-icon-button'}`}
                 >
                     <Bell className="w-[20px] h-[20px]" />
@@ -384,6 +385,7 @@ export default function HeaderControls({ onLogout }) {
                     setActiveDropdown(null);
                     navigate('/settings');
                 }}
+                aria-label="Settings"
                 className="hidden sm:flex header-icon-button"
             >
                 <SettingsIcon className="w-[20px] h-[20px]" />
