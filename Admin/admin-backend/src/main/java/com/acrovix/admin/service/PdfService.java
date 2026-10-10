@@ -63,9 +63,9 @@ public class PdfService {
         Font headerBoldFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9);
         Font regularFont = FontFactory.getFont(FontFactory.HELVETICA, 9);
 
-        String companyName = (settings != null && settings.getCompanyName() != null) ? settings.getCompanyName() : "ACROVIX INNOVATIONS PRIVATE LIMITED";
-        String gstin = (settings != null && settings.getGstin() != null) ? settings.getGstin() : "29ABFCA9588C1Z8";
-        String compAddress = (settings != null && settings.getBillingAddress() != null) ? settings.getBillingAddress() : "3RD FLOOR, 956, VIGNESHWARA\n6TH CLASS 1ST MAIN, Bengaluru\nBengaluru Urban, KARNATAKA, 560060";
+        String companyName = (settings != null && settings.getCompanyName() != null) ? settings.getCompanyName() : "";
+        String gstin = (settings != null && settings.getGstin() != null) ? settings.getGstin() : "";
+        String compAddress = (settings != null && settings.getBillingAddress() != null) ? settings.getBillingAddress() : "";
         if ((compAddress == null || compAddress.isEmpty()) && settings != null && settings.getRegisteredAddress() != null) {
             compAddress = settings.getRegisteredAddress();
         }
@@ -79,12 +79,17 @@ public class PdfService {
         Paragraph quotLabel = new Paragraph("QUOTATION", blueTitleFont);
         quotLabel.setSpacingAfter(8f);
         leftHeader.addElement(quotLabel);
-        leftHeader.addElement(new Paragraph(companyName, compNameFont));
+        
+        if (!companyName.trim().isEmpty()) {
+            leftHeader.addElement(new Paragraph(companyName, compNameFont));
+        }
 
-        Paragraph gstinPara = new Paragraph();
-        gstinPara.add(new Chunk("GSTIN ", regularFont));
-        gstinPara.add(new Chunk(gstin, headerBoldFont));
-        leftHeader.addElement(gstinPara);
+        if (!gstin.trim().isEmpty()) {
+            Paragraph gstinPara = new Paragraph();
+            gstinPara.add(new Chunk("GSTIN ", regularFont));
+            gstinPara.add(new Chunk(gstin, headerBoldFont));
+            leftHeader.addElement(gstinPara);
+        }
 
         if (settings != null && settings.getPhone() != null && !settings.getPhone().isEmpty()) {
             Paragraph phPara = new Paragraph();
@@ -100,7 +105,9 @@ public class PdfService {
             leftHeader.addElement(emPara);
         }
 
-        leftHeader.addElement(new Paragraph(compAddress, regularFont));
+        if (!compAddress.trim().isEmpty()) {
+            leftHeader.addElement(new Paragraph(compAddress, regularFont));
+        }
 
         PdfPCell rightHeader = new PdfPCell();
         rightHeader.setBorder(Rectangle.NO_BORDER);
@@ -181,9 +188,9 @@ public class PdfService {
         Font headerBoldFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9);
         Font regularFont = FontFactory.getFont(FontFactory.HELVETICA, 9);
 
-        PdfPTable custTable = new PdfPTable(2);
+        PdfPTable custTable = new PdfPTable(3);
         custTable.setWidthPercentage(100);
-        custTable.setWidths(new float[]{50f, 50f});
+        custTable.setWidths(new float[]{48f, 4f, 48f}); // Middle column is a spacer
 
         String custCompany = quotation.getClientCompany() != null && !quotation.getClientCompany().isEmpty() ? quotation.getClientCompany() : quotation.getClientName();
         String custPhone = quotation.getClientPhone() != null ? quotation.getClientPhone() : "";
@@ -200,51 +207,98 @@ public class PdfService {
             custGstin = quotation.getCustomer().getGstin() != null ? quotation.getCustomer().getGstin() : "";
         }
 
-        PdfPCell custCell1 = new PdfPCell(); custCell1.setBorder(Rectangle.NO_BORDER);
-        custCell1.addElement(new Paragraph("Customer Details:", regularFont));
-        custCell1.addElement(new Paragraph(custCompany, headerBoldFont));
-        if (!custGstin.isEmpty()) {
-            Paragraph gPara = new Paragraph();
-            gPara.add(new Chunk("GSTIN: ", regularFont));
-            gPara.add(new Chunk(custGstin, headerBoldFont));
-            custCell1.addElement(gPara);
+        Font panelHeaderFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, new java.awt.Color(10, 88, 202));
+        java.awt.Color paleBlueBg = new java.awt.Color(234, 243, 255);
+        java.awt.Color panelBorderColor = new java.awt.Color(200, 220, 245);
+
+        // Panel 1: Customer Details
+        PdfPTable panel1 = new PdfPTable(2);
+        panel1.setWidthPercentage(100);
+        panel1.setWidths(new float[]{30f, 70f});
+        
+        PdfPCell p1Header = new PdfPCell(new Phrase("Customer Details", panelHeaderFont));
+        p1Header.setColspan(2);
+        p1Header.setBackgroundColor(paleBlueBg);
+        p1Header.setBorderColor(panelBorderColor);
+        p1Header.setPadding(6f);
+        panel1.addCell(p1Header);
+
+        addPanelRow(panel1, "Name", quotation.getClientName(), regularFont, panelBorderColor);
+        if (custCompany != null && !custCompany.trim().isEmpty() && !custCompany.equals(quotation.getClientName())) {
+            addPanelRow(panel1, "Company", custCompany, regularFont, panelBorderColor);
         }
-        if (!custPhone.isEmpty()) {
-            custCell1.addElement(new Paragraph("Ph: " + custPhone, regularFont));
+        if (custEmail != null && !custEmail.trim().isEmpty()) {
+            addPanelRow(panel1, "Email", custEmail, regularFont, panelBorderColor);
         }
-        if (!custEmail.isEmpty()) {
-            custCell1.addElement(new Paragraph("Email: " + custEmail, regularFont));
+        if (custPhone != null && !custPhone.trim().isEmpty()) {
+            addPanelRow(panel1, "Phone", custPhone, regularFont, panelBorderColor);
         }
-        custCell1.addElement(new Paragraph(" "));
-        custCell1.addElement(new Paragraph("Place of Supply:", regularFont));
-        if (!state.isEmpty()) {
-            custCell1.addElement(new Paragraph(state, headerBoldFont));
+        if (custGstin != null && !custGstin.trim().isEmpty()) {
+            addPanelRow(panel1, "GSTIN", custGstin, regularFont, panelBorderColor);
+        }
+        if (state != null && !state.trim().isEmpty()) {
+            addPanelRow(panel1, "Place of Supply", state, regularFont, panelBorderColor);
         }
 
-        PdfPCell custCell2 = new PdfPCell(); custCell2.setBorder(Rectangle.NO_BORDER);
-        if (!billAddress.isEmpty()) {
-            custCell2.addElement(new Paragraph("Billing Address:", regularFont));
-            custCell2.addElement(new Paragraph(billAddress, regularFont));
-        }
-        if (!shipAddress.isEmpty()) {
-            if (!billAddress.isEmpty()) custCell2.addElement(new Paragraph(" "));
-            custCell2.addElement(new Paragraph("Shipping Address:", regularFont));
-            custCell2.addElement(new Paragraph(shipAddress, regularFont));
-        }
+        PdfPCell custCell1 = new PdfPCell(panel1);
+        custCell1.setBorder(Rectangle.NO_BORDER);
+
+        PdfPCell spacer = new PdfPCell();
+        spacer.setBorder(Rectangle.NO_BORDER);
+
+        // Panel 2: Billing Address
+        PdfPTable panel2 = new PdfPTable(2);
+        panel2.setWidthPercentage(100);
+        panel2.setWidths(new float[]{30f, 70f});
         
-        String ref = (quotation.getEnquiry() != null && quotation.getEnquiry().getReferenceId() != null ? quotation.getEnquiry().getReferenceId() : "");
-        if (!ref.isEmpty()) {
-            if (!billAddress.isEmpty() || !shipAddress.isEmpty()) custCell2.addElement(new Paragraph(" "));
-            Paragraph refPara = new Paragraph();
-            refPara.add(new Chunk("Reference: ", regularFont));
-            refPara.add(new Chunk(ref, regularFont));
-            custCell2.addElement(refPara);
+        PdfPCell p2Header = new PdfPCell(new Phrase("Billing Address", panelHeaderFont));
+        p2Header.setColspan(2);
+        p2Header.setBackgroundColor(paleBlueBg);
+        p2Header.setBorderColor(panelBorderColor);
+        p2Header.setPadding(6f);
+        panel2.addCell(p2Header);
+
+        if (!billAddress.trim().isEmpty() || !state.trim().isEmpty() || !shipAddress.trim().isEmpty()) {
+            if (!billAddress.trim().isEmpty()) {
+                addPanelRow(panel2, "Address", billAddress, regularFont, panelBorderColor);
+            }
+            if (!state.trim().isEmpty()) {
+                addPanelRow(panel2, "State", state, regularFont, panelBorderColor);
+            }
+            if (!shipAddress.trim().isEmpty() && !shipAddress.equals(billAddress)) {
+                addPanelRow(panel2, "Ship To", shipAddress, regularFont, panelBorderColor);
+            }
+        } else {
+            PdfPCell emptyCell = new PdfPCell(new Phrase(" ", regularFont));
+            emptyCell.setColspan(2);
+            emptyCell.setBorderColor(panelBorderColor);
+            emptyCell.setPadding(6f);
+            panel2.addCell(emptyCell);
         }
+
+        PdfPCell custCell2 = new PdfPCell(panel2);
+        custCell2.setBorder(Rectangle.NO_BORDER);
 
         custTable.addCell(custCell1);
+        custTable.addCell(spacer);
         custTable.addCell(custCell2);
         document.add(custTable);
         document.add(new Paragraph(" "));
+    }
+
+    private void addPanelRow(PdfPTable table, String label, String value, Font font, java.awt.Color borderColor) {
+        PdfPCell c1 = new PdfPCell(new Phrase(label, font));
+        c1.setBorderColor(borderColor);
+        c1.setBorderWidth(0.5f);
+        c1.setPadding(4f);
+        
+        PdfPCell c2 = new PdfPCell(new Phrase(value != null && !value.isEmpty() ? ":   " + value : ":   -", font));
+        c2.setBorderColor(borderColor);
+        c2.setBorderWidth(0.5f);
+        c2.setPadding(4f);
+        
+        table.addCell(c1);
+        table.addCell(c2);
     }
 
     private void addLineItemsTable(Document document, Quotation quotation, CompanySettingsResponse settings) throws DocumentException {
@@ -294,16 +348,18 @@ public class PdfService {
         table.setWidths(widths);
         table.setHeaderRows(1);
 
+        Font tableHeaderFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8, java.awt.Color.WHITE);
+        java.awt.Color tableHeaderBg = new java.awt.Color(10, 88, 202); // Strong blue
+
         for (com.acrovix.admin.entity.QuotationColumnConfig c : configs) {
             String dispName = c.getDisplayName();
             if (dispName != null && dispName.toUpperCase().contains("TAX AMOUNT")) {
                 dispName = "TAX AMT.";
             }
-            PdfPCell headerCell = new PdfPCell(new Phrase(dispName, headerBoldFont));
-            headerCell.setBorderWidth(0);
-            headerCell.setBorderWidthTop(1.5f);
-            headerCell.setBorderWidthBottom(1.5f);
-            headerCell.setBorderColor(new java.awt.Color(37, 99, 235)); 
+            PdfPCell headerCell = new PdfPCell(new Phrase(dispName, tableHeaderFont));
+            headerCell.setBackgroundColor(tableHeaderBg);
+            headerCell.setBorderWidth(0.5f);
+            headerCell.setBorderColor(new java.awt.Color(200, 200, 200)); 
             headerCell.setPaddingTop(6f);
             headerCell.setPaddingBottom(6f);
             headerCell.setPaddingLeft(4f);
@@ -371,9 +427,8 @@ public class PdfService {
                     }
 
                     PdfPCell cell = new PdfPCell();
-                    cell.setBorderWidth(0);
-                    cell.setBorderWidthBottom(0.5f);
-                    cell.setBorderColorBottom(new java.awt.Color(220, 220, 220));
+                    cell.setBorderWidth(0.5f);
+                    cell.setBorderColor(new java.awt.Color(220, 220, 220));
                     cell.setPaddingTop(8f);
                     cell.setPaddingBottom(8f);
                     cell.setPaddingLeft(4f);
@@ -387,7 +442,7 @@ public class PdfService {
                     }
                     cell.setHorizontalAlignment(align);
 
-                    Paragraph p = new Paragraph(val, regularFont);
+                    Paragraph p = new Paragraph(val, tinyFont);
                     p.setAlignment(align);
                     cell.addElement(p);
                     table.addCell(cell);
@@ -446,20 +501,22 @@ public class PdfService {
         igstVal.setHorizontalAlignment(Element.ALIGN_RIGHT);
         table.addCell(igstVal);
 
-        PdfPCell gTotalLabel = new PdfPCell(new Phrase("Total", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12)));
+        PdfPCell gTotalLabel = new PdfPCell(new Phrase("Grand Total", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12)));
         gTotalLabel.setColspan(emptyCols);
         gTotalLabel.setBorderWidth(0);
-        gTotalLabel.setBorderWidthBottom(1f);
+        gTotalLabel.setBackgroundColor(new java.awt.Color(219, 250, 233)); // Pale green highlight
         gTotalLabel.setHorizontalAlignment(Element.ALIGN_RIGHT);
-        gTotalLabel.setPaddingBottom(5f);
+        gTotalLabel.setPaddingTop(8f);
+        gTotalLabel.setPaddingBottom(8f);
         table.addCell(gTotalLabel);
 
-        PdfPCell gTotalVal = new PdfPCell(new Phrase(curSym + (quotation.getGrandTotal() != null ? quotation.getGrandTotal().toString() : "0.00"), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12)));
+        PdfPCell gTotalVal = new PdfPCell(new Phrase(curSym + (quotation.getGrandTotal() != null ? quotation.getGrandTotal().toString() : "0.00"), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14)));
         gTotalVal.setColspan(2);
         gTotalVal.setBorderWidth(0);
-        gTotalVal.setBorderWidthBottom(1f);
+        gTotalVal.setBackgroundColor(new java.awt.Color(219, 250, 233)); // Pale green highlight
         gTotalVal.setHorizontalAlignment(Element.ALIGN_RIGHT);
-        gTotalVal.setPaddingBottom(5f);
+        gTotalVal.setPaddingTop(8f);
+        gTotalVal.setPaddingBottom(8f);
         gTotalVal.setNoWrap(true);
         table.addCell(gTotalVal);
 
@@ -503,7 +560,7 @@ public class PdfService {
         PdfPCell bankCell = new PdfPCell();
         bankCell.setBorder(Rectangle.NO_BORDER);
 
-        String companyName = (settings != null && settings.getCompanyName() != null) ? settings.getCompanyName() : "ACROVIX INNOVATIONS PRIVATE LIMITED";
+        String companyName = (settings != null && settings.getCompanyName() != null) ? settings.getCompanyName() : "";
         String bBank = settings != null && settings.getBankName() != null ? settings.getBankName() : "";
         String bHolder = companyName;
         String bAcc = settings != null && settings.getBankAccountNumber() != null ? settings.getBankAccountNumber() : "";
@@ -512,36 +569,74 @@ public class PdfService {
 
         boolean hasBankInfo = !bBank.trim().isEmpty() || !bAcc.trim().isEmpty() || !bIfsc.trim().isEmpty();
 
+        Font panelHeaderFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, new java.awt.Color(10, 88, 202));
+        java.awt.Color paleBlueBg = new java.awt.Color(234, 243, 255);
+        java.awt.Color panelBorderColor = new java.awt.Color(200, 220, 245);
+
         if (hasBankInfo) {
-            bankCell.addElement(new Paragraph("Bank Details:", headerBoldFont));
-            bankCell.addElement(new Paragraph(" "));
+            PdfPTable bankPanel = new PdfPTable(1);
+            bankPanel.setWidthPercentage(100);
+            
+            PdfPCell p1Header = new PdfPCell(new Phrase("Bank Details", panelHeaderFont));
+            p1Header.setBackgroundColor(paleBlueBg);
+            p1Header.setBorderColor(panelBorderColor);
+            p1Header.setPadding(6f);
+            bankPanel.addCell(p1Header);
 
             PdfPTable bankInfo = new PdfPTable(2);
             bankInfo.setWidthPercentage(100);
             bankInfo.setWidths(new float[]{30f, 70f});
 
-            if (!bBank.trim().isEmpty()) addBankRow(bankInfo, "Bank:", bBank, regularFont, headerBoldFont);
-            addBankRow(bankInfo, "Account Holder:", bHolder, regularFont, headerBoldFont);
-            if (!bAcc.trim().isEmpty()) addBankRow(bankInfo, "Account #:", bAcc, regularFont, headerBoldFont);
-            if (!bIfsc.trim().isEmpty()) addBankRow(bankInfo, "IFSC Code:", bIfsc, regularFont, headerBoldFont);
-            if (!bBranch.trim().isEmpty()) addBankRow(bankInfo, "Branch:", bBranch, regularFont, headerBoldFont);
+            if (!bBank.trim().isEmpty()) addBankRow(bankInfo, "Bank:", bBank, regularFont, regularFont);
+            addBankRow(bankInfo, "Account Holder:", bHolder, regularFont, regularFont);
+            if (!bAcc.trim().isEmpty()) addBankRow(bankInfo, "Account #:", bAcc, regularFont, regularFont);
+            if (!bIfsc.trim().isEmpty()) addBankRow(bankInfo, "IFSC Code:", bIfsc, regularFont, regularFont);
+            if (!bBranch.trim().isEmpty()) addBankRow(bankInfo, "Branch:", bBranch, regularFont, regularFont);
 
-            bankCell.addElement(bankInfo);
+            PdfPCell infoCell = new PdfPCell(bankInfo);
+            infoCell.setBorderColor(panelBorderColor);
+            infoCell.setPadding(4f);
+            bankPanel.addCell(infoCell);
+            
+            bankCell.addElement(bankPanel);
         }
 
         PdfPCell sigCell = new PdfPCell();
         sigCell.setBorder(Rectangle.NO_BORDER);
         sigCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        sigCell.setVerticalAlignment(Element.ALIGN_BOTTOM);
 
-        Paragraph sigCompany = new Paragraph("For " + companyName, regularFont);
-        sigCompany.setAlignment(Element.ALIGN_RIGHT);
-        sigCell.addElement(sigCompany);
-
-        sigCell.addElement(new Paragraph("\n\n\n")); 
-
-        Paragraph authSig = new Paragraph("Authorized Signatory", regularFont);
-        authSig.setAlignment(Element.ALIGN_RIGHT);
-        sigCell.addElement(authSig);
+        PdfPTable sigTable = new PdfPTable(1);
+        sigTable.setWidthPercentage(80);
+        sigTable.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        
+        if (!companyName.trim().isEmpty()) {
+            PdfPCell companyCell = new PdfPCell(new Phrase("For " + companyName, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, new java.awt.Color(10, 88, 202))));
+            companyCell.setBorder(Rectangle.NO_BORDER);
+            companyCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            companyCell.setPaddingBottom(30f);
+            sigTable.addCell(companyCell);
+        } else {
+            PdfPCell blankCell = new PdfPCell(new Phrase(" "));
+            blankCell.setBorder(Rectangle.NO_BORDER);
+            blankCell.setPaddingBottom(30f);
+            sigTable.addCell(blankCell);
+        }
+        
+        PdfPCell lineCell = new PdfPCell(new Phrase(""));
+        lineCell.setBorder(Rectangle.NO_BORDER);
+        lineCell.setBorderWidthBottom(0.5f);
+        lineCell.setBorderColorBottom(new java.awt.Color(150, 150, 150));
+        lineCell.setPaddingBottom(5f);
+        sigTable.addCell(lineCell);
+        
+        PdfPCell authSig = new PdfPCell(new Phrase("Authorized Signatory", regularFont));
+        authSig.setBorder(Rectangle.NO_BORDER);
+        authSig.setHorizontalAlignment(Element.ALIGN_CENTER);
+        authSig.setPaddingTop(5f);
+        sigTable.addCell(authSig);
+        
+        sigCell.addElement(sigTable);
 
         bottomTable.addCell(bankCell);
         bottomTable.addCell(sigCell);
@@ -551,24 +646,44 @@ public class PdfService {
 
     private void addNotesAndTerms(Document document, Quotation quotation, CompanySettingsResponse settings) throws DocumentException {
         Font regularFont = FontFactory.getFont(FontFactory.HELVETICA, 9);
-        Font termsHeaderFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, new java.awt.Color(37, 99, 235));
+        Font panelHeaderFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, new java.awt.Color(10, 88, 202));
+        java.awt.Color paleBlueBg = new java.awt.Color(234, 243, 255);
+        java.awt.Color panelBorderColor = new java.awt.Color(200, 220, 245);
 
         boolean hasQuotationTerms = quotation.getTermsAndConditions() != null && !quotation.getTermsAndConditions().isBlank();
         boolean hasDefaultTerms = settings != null && settings.getDefaultTermsAndConditions() != null && !settings.getDefaultTermsAndConditions().isBlank();
 
         if (hasQuotationTerms || hasDefaultTerms) {
-            Paragraph termsHeader = new Paragraph("Terms & Conditions", termsHeaderFont);
-            termsHeader.setSpacingBefore(15f);
-            termsHeader.setSpacingAfter(5f);
-            document.add(termsHeader);
-            
+            PdfPTable termsPanel = new PdfPTable(1);
+            termsPanel.setWidthPercentage(100);
+            termsPanel.setSpacingBefore(15f);
+            termsPanel.setSpacingAfter(10f);
+
+            PdfPCell pHeader = new PdfPCell(new Phrase("Terms & Conditions", panelHeaderFont));
+            pHeader.setBackgroundColor(paleBlueBg);
+            pHeader.setBorderColor(panelBorderColor);
+            pHeader.setPadding(6f);
+            termsPanel.addCell(pHeader);
+
             String terms = hasQuotationTerms ? quotation.getTermsAndConditions() : settings.getDefaultTermsAndConditions();
             String[] lines = terms.split("\n");
+            
+            PdfPCell listCell = new PdfPCell();
             for(String line : lines) {
                 if(!line.trim().isEmpty()) {
-                    document.add(new Paragraph(line.trim(), regularFont));
+                    Paragraph p = new Paragraph(line.trim(), regularFont);
+                    p.setIndentationLeft(10f);
+                    p.setSpacingAfter(4f);
+                    listCell.addElement(p);
                 }
             }
+
+            listCell.setBorderColor(panelBorderColor);
+            listCell.setPadding(10f);
+            listCell.setPaddingBottom(15f);
+            termsPanel.addCell(listCell);
+
+            document.add(termsPanel);
         }
     }
 
