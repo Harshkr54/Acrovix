@@ -2,13 +2,33 @@
 FROM maven:3.9.6-eclipse-temurin-17 AS build
 WORKDIR /app
 
-# Copy pom.xml and source code
+# Copy pom.xml first to leverage Docker layer caching
 COPY pom.xml .
+
+# Pre-fetch dependencies with a retry loop using BuildKit cache mount
+# This ensures we don't re-download the world if src/ changes
+RUN --mount=type=cache,target=/root/.m2 /bin/bash -c 'set -o pipefail; \
+    i=1; max=3; \
+    while [ $i -le $max ]; do \
+      echo "Downloading dependencies (Attempt $i)..."; \
+      if mvn dependency:go-offline -B | tee dep.log; then \
+        echo "Dependencies resolved."; exit 0; \
+      fi; \
+      if grep -qiE "429 Too Many Requests|Transfer failed" dep.log; then \
+        echo "Transient error, retrying..."; sleep $((i*5)); \
+      else \
+        echo "Fatal error in dependency resolution."; exit 1; \
+      fi; \
+      i=$((i+1)); \
+    done; \
+    echo "Failed to resolve dependencies after $max attempts."; exit 1'
+
+# Copy source code
 COPY src ./src
 
-# Build the application with a bounded retry strategy for transient network/429 errors
+# Build the application using the cached dependencies
 # We use bash and set -o pipefail to correctly capture maven's exit code through the pipe
-RUN /bin/bash -c 'set -o pipefail; \
+RUN --mount=type=cache,target=/root/.m2 /bin/bash -c 'set -o pipefail; \
     i=1; \
     max_retries=3; \
     delay=5; \
