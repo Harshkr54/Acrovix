@@ -159,8 +159,17 @@ public class QuotationService {
 
         if (request.getCustomerId() != null) {
             quotation.setCustomer(customerRepository.findById(request.getCustomerId()).orElse(null));
-        } else if (request.getGstin() != null && !request.getGstin().isEmpty()) {
-            Customer cust = customerRepository.findByGstin(request.getGstin()).orElseGet(() -> {
+        } else if ((request.getGstin() != null && !request.getGstin().trim().isEmpty()) ||
+                   (request.getBillingAddress() != null && !request.getBillingAddress().trim().isEmpty()) ||
+                   (request.getShippingAddress() != null && !request.getShippingAddress().trim().isEmpty()) ||
+                   (request.getState() != null && !request.getState().trim().isEmpty())) {
+            
+            Customer cust = null;
+            if (request.getGstin() != null && !request.getGstin().trim().isEmpty()) {
+                cust = customerRepository.findByGstin(request.getGstin().trim()).orElse(null);
+            }
+            
+            if (cust == null) {
                 Customer newCust = Customer.builder()
                         .customerCode("CUST-" + System.currentTimeMillis())
                         .name(request.getClientName())
@@ -175,8 +184,8 @@ public class QuotationService {
                         .active(true)
                         .createdBy(admin.getId())
                         .build();
-                return customerRepository.save(newCust);
-            });
+                cust = customerRepository.save(newCust);
+            }
             quotation.setCustomer(cust);
         }
 

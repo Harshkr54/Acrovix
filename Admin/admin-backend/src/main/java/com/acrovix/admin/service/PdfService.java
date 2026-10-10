@@ -29,7 +29,13 @@ public class PdfService {
 
     public byte[] generateQuotationPdf(Quotation quotation) {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            Document document = new Document(PageSize.A4, 36, 36, 36, 48);
+            int colCount = 0;
+            if (quotation.getColumnConfigs() != null) {
+                colCount = (int) quotation.getColumnConfigs().stream().filter(com.acrovix.admin.entity.QuotationColumnConfig::getVisible).count();
+            }
+            if (colCount == 0) colCount = 7;
+            
+            Document document = new Document(colCount > 8 ? PageSize.A4.rotate() : PageSize.A4, 36, 36, 36, 48);
             PdfWriter writer = PdfWriter.getInstance(document, out);
             writer.setPageEvent(new QuotationFooterEvent());
             document.open();
@@ -216,18 +222,19 @@ public class PdfService {
         }
 
         PdfPCell custCell2 = new PdfPCell(); custCell2.setBorder(Rectangle.NO_BORDER);
-        custCell2.addElement(new Paragraph("Billing Address:", regularFont));
         if (!billAddress.isEmpty()) {
+            custCell2.addElement(new Paragraph("Billing Address:", regularFont));
             custCell2.addElement(new Paragraph(billAddress, regularFont));
         }
         if (!shipAddress.isEmpty()) {
-            custCell2.addElement(new Paragraph(" "));
+            if (!billAddress.isEmpty()) custCell2.addElement(new Paragraph(" "));
             custCell2.addElement(new Paragraph("Shipping Address:", regularFont));
             custCell2.addElement(new Paragraph(shipAddress, regularFont));
         }
-        custCell2.addElement(new Paragraph(" "));
+        
         String ref = (quotation.getEnquiry() != null && quotation.getEnquiry().getReferenceId() != null ? quotation.getEnquiry().getReferenceId() : "");
         if (!ref.isEmpty()) {
+            if (!billAddress.isEmpty() || !shipAddress.isEmpty()) custCell2.addElement(new Paragraph(" "));
             Paragraph refPara = new Paragraph();
             refPara.add(new Chunk("Reference: ", regularFont));
             refPara.add(new Chunk(ref, regularFont));
@@ -272,19 +279,20 @@ public class PdfService {
         for (int i = 0; i < colCount; i++) {
             String key = configs.get(i).getColumnKey();
             if ("rowNumber".equals(key)) widths[i] = 4f;
-            else if ("sku".equals(key)) widths[i] = 10f;
+            else if ("sku".equals(key)) widths[i] = 12f;
             else if ("description".equals(key)) widths[i] = 30f;
-            else if ("hsnSac".equals(key)) widths[i] = 8f;
-            else if ("quantity".equals(key)) widths[i] = 6f;
-            else if ("listPrice".equals(key)) widths[i] = 10f;
-            else if ("discountPercent".equals(key)) widths[i] = 6f;
-            else if ("unitPrice".equals(key)) widths[i] = 10f;
-            else if ("taxPercent".equals(key)) widths[i] = 6f;
-            else if ("taxAmount".equals(key)) widths[i] = 10f;
-            else if ("total".equals(key)) widths[i] = 10f;
+            else if ("hsnSac".equals(key)) widths[i] = 10f;
+            else if ("quantity".equals(key)) widths[i] = 7f;
+            else if ("listPrice".equals(key)) widths[i] = 12f;
+            else if ("discountPercent".equals(key)) widths[i] = 7f;
+            else if ("unitPrice".equals(key)) widths[i] = 12f;
+            else if ("taxPercent".equals(key)) widths[i] = 7f;
+            else if ("taxAmount".equals(key)) widths[i] = 12f;
+            else if ("total".equals(key)) widths[i] = 14f;
             else widths[i] = 10f;
         }
         table.setWidths(widths);
+        table.setHeaderRows(1);
 
         for (com.acrovix.admin.entity.QuotationColumnConfig c : configs) {
             String dispName = c.getDisplayName();
@@ -326,7 +334,7 @@ public class PdfService {
                 BigDecimal taxPct = item.getTaxPercent() != null ? item.getTaxPercent() : BigDecimal.ZERO;
                 if (taxPct.compareTo(BigDecimal.ZERO) > 0) taxRates.add(taxPct);
 
-                BigDecimal netLine = qty.multiply(unitPrice);
+                BigDecimal netLine = qty.multiply(unitPrice).setScale(2, java.math.RoundingMode.HALF_UP);
                 BigDecimal taxAmt = netLine.multiply(taxPct).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
 
                 for (com.acrovix.admin.entity.QuotationColumnConfig c : configs) {
@@ -389,9 +397,10 @@ public class PdfService {
         }
 
         int emptyCols = colCount - 2;
+        if (emptyCols < 1) emptyCols = 1;
 
         PdfPCell taxLabel = new PdfPCell(new Phrase("Taxable Amount", headerBoldFont));
-        taxLabel.setColspan(emptyCols + 1);
+        taxLabel.setColspan(emptyCols);
         taxLabel.setBorderWidth(0);
         taxLabel.setHorizontalAlignment(Element.ALIGN_RIGHT);
         taxLabel.setPaddingTop(10f);
@@ -400,6 +409,7 @@ public class PdfService {
         String curSym = quotation.getCurrency() != null && quotation.getCurrency().name().equals("USD") ? "$" : "₹";
 
         PdfPCell taxVal = new PdfPCell(new Phrase(curSym + (quotation.getSubtotal() != null ? quotation.getSubtotal().toString() : "0.00"), headerBoldFont));
+        taxVal.setColspan(2);
         taxVal.setBorderWidth(0);
         taxVal.setHorizontalAlignment(Element.ALIGN_RIGHT);
         taxVal.setPaddingTop(10f);
@@ -425,33 +435,39 @@ public class PdfService {
         }
 
         PdfPCell igstLabel = new PdfPCell(new Phrase(totalTaxLabel, headerBoldFont)); 
-        igstLabel.setColspan(emptyCols + 1);
+        igstLabel.setColspan(emptyCols);
         igstLabel.setBorderWidth(0);
         igstLabel.setHorizontalAlignment(Element.ALIGN_RIGHT);
         table.addCell(igstLabel);
 
         PdfPCell igstVal = new PdfPCell(new Phrase(curSym + (quotation.getTaxAmount() != null ? quotation.getTaxAmount().toString() : "0.00"), headerBoldFont));
+        igstVal.setColspan(2);
         igstVal.setBorderWidth(0);
         igstVal.setHorizontalAlignment(Element.ALIGN_RIGHT);
         table.addCell(igstVal);
 
-        PdfPCell gTotalLabel = new PdfPCell(new Phrase("Total", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14)));
-        gTotalLabel.setColspan(emptyCols + 1);
+        PdfPCell gTotalLabel = new PdfPCell(new Phrase("Total", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12)));
+        gTotalLabel.setColspan(emptyCols);
         gTotalLabel.setBorderWidth(0);
         gTotalLabel.setBorderWidthBottom(1f);
         gTotalLabel.setHorizontalAlignment(Element.ALIGN_RIGHT);
         gTotalLabel.setPaddingBottom(5f);
         table.addCell(gTotalLabel);
 
-        PdfPCell gTotalVal = new PdfPCell(new Phrase(curSym + (quotation.getGrandTotal() != null ? quotation.getGrandTotal().toString() : "0.00"), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14)));
+        PdfPCell gTotalVal = new PdfPCell(new Phrase(curSym + (quotation.getGrandTotal() != null ? quotation.getGrandTotal().toString() : "0.00"), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12)));
+        gTotalVal.setColspan(2);
         gTotalVal.setBorderWidth(0);
         gTotalVal.setBorderWidthBottom(1f);
         gTotalVal.setHorizontalAlignment(Element.ALIGN_RIGHT);
         gTotalVal.setPaddingBottom(5f);
+        gTotalVal.setNoWrap(true);
         table.addCell(gTotalVal);
 
-        PdfPCell summaryCellLeft = new PdfPCell(new Phrase("Total Items / Qty : " + totalItems + " / " + totalQty, tinyFont));
-        summaryCellLeft.setColspan(2);
+        int leftColspan = Math.min(4, colCount - 1);
+        int rightColspan = colCount - leftColspan;
+        
+        PdfPCell summaryCellLeft = new PdfPCell(new Phrase("Total Items: " + totalItems + "\nTotal Quantity: " + totalQty, tinyFont));
+        summaryCellLeft.setColspan(leftColspan);
         summaryCellLeft.setBorderWidth(0);
         summaryCellLeft.setBorderWidthBottom(1.5f);
         summaryCellLeft.setBorderColorBottom(new java.awt.Color(37, 99, 235));
@@ -463,7 +479,7 @@ public class PdfService {
         String currencyName = "USD".equalsIgnoreCase(currencyCode) ? "USD " : "INR ";
         String words = currencyName + (quotation.getGrandTotal() != null ? convertAmountToWords(quotation.getGrandTotal().toString(), currencyCode) : ("Zero" + ("USD".equalsIgnoreCase(currencyCode) ? " Dollars Only" : " Rupees Only")));
         PdfPCell summaryCellRight = new PdfPCell(new Phrase("Total amount (in words): " + words, tinyFont));
-        summaryCellRight.setColspan(colCount - 2);
+        summaryCellRight.setColspan(rightColspan);
         summaryCellRight.setBorderWidth(0);
         summaryCellRight.setBorderWidthBottom(1.5f);
         summaryCellRight.setBorderColorBottom(new java.awt.Color(37, 99, 235));
@@ -486,8 +502,6 @@ public class PdfService {
 
         PdfPCell bankCell = new PdfPCell();
         bankCell.setBorder(Rectangle.NO_BORDER);
-        bankCell.addElement(new Paragraph("Bank Details:", headerBoldFont));
-        bankCell.addElement(new Paragraph(" "));
 
         String companyName = (settings != null && settings.getCompanyName() != null) ? settings.getCompanyName() : "ACROVIX INNOVATIONS PRIVATE LIMITED";
         String bBank = settings != null && settings.getBankName() != null ? settings.getBankName() : "";
@@ -496,17 +510,24 @@ public class PdfService {
         String bIfsc = settings != null && settings.getBankIfsc() != null ? settings.getBankIfsc() : "";
         String bBranch = settings != null && settings.getBankBranch() != null ? settings.getBankBranch() : "";
 
-        PdfPTable bankInfo = new PdfPTable(2);
-        bankInfo.setWidthPercentage(100);
-        bankInfo.setWidths(new float[]{30f, 70f});
+        boolean hasBankInfo = !bBank.trim().isEmpty() || !bAcc.trim().isEmpty() || !bIfsc.trim().isEmpty();
 
-        addBankRow(bankInfo, "Bank:", bBank, regularFont, headerBoldFont);
-        addBankRow(bankInfo, "Account Holder:", bHolder, regularFont, headerBoldFont);
-        addBankRow(bankInfo, "Account #:", bAcc, regularFont, headerBoldFont);
-        addBankRow(bankInfo, "IFSC Code:", bIfsc, regularFont, headerBoldFont);
-        addBankRow(bankInfo, "Branch:", bBranch, regularFont, headerBoldFont);
+        if (hasBankInfo) {
+            bankCell.addElement(new Paragraph("Bank Details:", headerBoldFont));
+            bankCell.addElement(new Paragraph(" "));
 
-        bankCell.addElement(bankInfo);
+            PdfPTable bankInfo = new PdfPTable(2);
+            bankInfo.setWidthPercentage(100);
+            bankInfo.setWidths(new float[]{30f, 70f});
+
+            if (!bBank.trim().isEmpty()) addBankRow(bankInfo, "Bank:", bBank, regularFont, headerBoldFont);
+            addBankRow(bankInfo, "Account Holder:", bHolder, regularFont, headerBoldFont);
+            if (!bAcc.trim().isEmpty()) addBankRow(bankInfo, "Account #:", bAcc, regularFont, headerBoldFont);
+            if (!bIfsc.trim().isEmpty()) addBankRow(bankInfo, "IFSC Code:", bIfsc, regularFont, headerBoldFont);
+            if (!bBranch.trim().isEmpty()) addBankRow(bankInfo, "Branch:", bBranch, regularFont, headerBoldFont);
+
+            bankCell.addElement(bankInfo);
+        }
 
         PdfPCell sigCell = new PdfPCell();
         sigCell.setBorder(Rectangle.NO_BORDER);
