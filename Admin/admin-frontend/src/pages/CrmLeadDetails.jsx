@@ -86,7 +86,7 @@ export default function CrmLeadDetails() {
             <div className="space-y-6">
                 <button
                     onClick={() => navigate('/crm/leads')}
-                    className="btn btn-primary btn-icon"
+                    className="btn btn-secondary btn-icon"
                 >
                     <ArrowLeft className="w-4 h-4" /> Back to Leads
                 </button>
@@ -100,7 +100,7 @@ export default function CrmLeadDetails() {
             <div className="space-y-6">
                 <button
                     onClick={() => navigate('/crm/leads')}
-                    className="btn btn-primary btn-icon"
+                    className="btn btn-secondary btn-icon"
                 >
                     <ArrowLeft className="w-4 h-4" /> Back to Leads
                 </button>
@@ -119,7 +119,7 @@ export default function CrmLeadDetails() {
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => navigate('/crm/leads')}
-                        className="btn btn-primary btn-icon"
+                        className="btn btn-secondary btn-icon"
                     >
                         <ArrowLeft className="w-4 h-4" />
                     </button>

@@ -92,7 +92,7 @@ export default function AcceptRejectQuotationModal({ isOpen, onClose, quotation,
                     <button 
                         onClick={onClose} 
                         disabled={isSubmitting}
-                        className="btn btn-primary btn-md"
+                        className="btn btn-secondary btn-md"
                     >
                         Cancel
                     </button>

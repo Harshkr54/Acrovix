@@ -136,7 +136,7 @@ export default function QuotationColumnConfigModal({ isOpen, onClose, activeConf
                     </div>
                     <button
                         onClick={onClose}
-                        className="btn btn-primary btn-icon ml-4"
+                        className="btn btn-secondary btn-icon ml-4"
                         aria-label="Close modal"
                     >
                         <X className="w-5 h-5" />

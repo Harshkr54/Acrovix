@@ -40,7 +40,8 @@ export default function HeaderControls({ onLogout }) {
                 fetchQuotations();
             }
             if (dropdownName === 'notifications') {
-                if (!notifications) fetchNotifications();
+                // Always refetch notifications on open to pick up latest
+                fetchNotifications();
             }
         }
     };
@@ -295,23 +296,32 @@ export default function HeaderControls({ onLogout }) {
                 </button>
 
                 {activeDropdown === 'notifications' && (
-                    <div className="absolute right-0 mt-2 w-80 bg-bg-card rounded-2xl shadow-lg border border-border-subtle overflow-hidden z-50 animate-dropdown-entrance">
-                        <div className="px-4 py-3 border-b border-border-subtle bg-bg-muted/30 flex justify-between items-center">
-                            <h3 className="text-sm font-bold text-text-primary">Notifications</h3>
+                    <div className="absolute right-0 mt-2 w-[340px] max-w-[calc(100vw-24px)] bg-bg-card rounded-2xl shadow-xl border border-border-subtle overflow-hidden z-50 animate-dropdown-entrance flex flex-col" style={{ maxHeight: 'min(420px, calc(100vh - 100px))' }}>
+                        {/* Sticky Header */}
+                        <div className="px-4 py-3 border-b border-border-subtle bg-bg-card flex justify-between items-center shrink-0">
+                            <div className="flex items-center gap-2">
+                                <h3 className="text-sm font-bold text-text-primary">Notifications</h3>
+                                {unreadCount > 0 && (
+                                    <span className="min-w-[18px] h-[18px] px-1 bg-brand-danger rounded-full flex items-center justify-center text-[9px] font-bold text-white leading-none">
+                                        {unreadCount > 99 ? '99+' : unreadCount}
+                                    </span>
+                                )}
+                            </div>
                             {unreadCount > 0 && (
                                 <button 
                                     onClick={markAllAsRead}
-                                    className="text-[10px] font-bold text-brand-primary hover:text-brand-primary/80 px-2 py-0.5 rounded-full hover:bg-brand-primary/10 transition-colors"
+                                    className="text-[10px] font-bold text-brand-primary hover:text-brand-primary/80 px-2 py-1 rounded-full hover:bg-brand-primary/10 transition-colors"
                                 >
                                     Mark all read
                                 </button>
                             )}
                         </div>
                         
-                        <div className="max-h-[350px] overflow-y-auto p-2">
+                        {/* Scrollable List */}
+                        <div className="overflow-y-auto flex-1 p-2">
                             {isNotificationsLoading ? (
-                                <div className="flex justify-center items-center py-8">
-                                    <Loader2 className="w-5 h-5 animate-spin text-brand-teal" />
+                                <div className="flex justify-center items-center py-10">
+                                    <Loader2 className="w-5 h-5 animate-spin text-brand-primary" />
                                 </div>
                             ) : notifications && notifications.length > 0 ? (
                                 notifications.map(notification => (
@@ -322,16 +332,22 @@ export default function HeaderControls({ onLogout }) {
                                             if (!notification.read) markAsRead(notification.id, { preventDefault: () => {}, stopPropagation: () => {} });
                                             setActiveDropdown(null);
                                         }}
-                                        className={`flex gap-3 p-3 rounded-xl hover:bg-bg-hover transition-colors relative group ${!notification.read ? 'bg-bg-muted/30' : ''}`}
+                                        className={`flex gap-3 p-3 rounded-xl hover:bg-bg-hover transition-colors relative group ${
+                                            !notification.read ? 'bg-brand-primary/[0.04] dark:bg-brand-primary/10' : ''
+                                        }`}
                                     >
-                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${!notification.read ? 'bg-brand-primary/10' : 'bg-bg-card border border-border-subtle'}`}>
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
+                                            !notification.read ? 'bg-brand-primary/10' : 'bg-bg-muted border border-border-subtle'
+                                        }`}>
                                             <Bell className={`w-3.5 h-3.5 ${!notification.read ? 'text-brand-primary' : 'text-text-muted'}`} />
                                         </div>
-                                        <div className="min-w-0 flex-1">
-                                            <p className={`text-[13px] leading-tight ${!notification.read ? 'font-bold text-text-primary' : 'font-semibold text-text-secondary'}`}>
+                                        <div className="min-w-0 flex-1 pr-4">
+                                            <p className={`text-[13px] leading-tight truncate ${
+                                                !notification.read ? 'font-bold text-text-primary' : 'font-semibold text-text-secondary'
+                                            }`}>
                                                 {notification.title}
                                             </p>
-                                            <p className="text-[12px] text-text-muted mt-0.5 leading-snug">{notification.message}</p>
+                                            <p className="text-[12px] text-text-muted mt-0.5 leading-snug line-clamp-2">{notification.message}</p>
                                             <p className="text-[10px] text-text-muted mt-1 font-medium">
                                                 {new Date(notification.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                             </p>
@@ -341,23 +357,23 @@ export default function HeaderControls({ onLogout }) {
                                                 onClick={(e) => markAsRead(notification.id, e)}
                                                 className="absolute right-3 top-3 p-1 rounded-full text-text-muted hover:text-brand-primary hover:bg-brand-primary/10 opacity-0 group-hover:opacity-100 transition-all"
                                                 title="Mark as read"
+                                                aria-label="Mark as read"
                                             >
-                                                <Check className="w-3.5 h-3.5" />
+                                                <Check className="w-3 h-3" />
                                             </button>
                                         )}
                                     </Link>
                                 ))
                             ) : (
                                 <div className="px-4 py-10 flex flex-col items-center justify-center text-center">
-                                    <div className="w-10 h-10 rounded-full bg-bg-muted flex items-center justify-center mb-3">
-                                        <Clock className="w-4 h-4 text-text-muted opacity-50" />
+                                    <div className="w-12 h-12 rounded-full bg-bg-muted flex items-center justify-center mb-3">
+                                        <Bell className="w-5 h-5 text-text-muted opacity-40" />
                                     </div>
-                                    <p className="text-[13px] font-semibold text-text-primary">No notifications</p>
-                                    <p className="text-[11px] text-text-muted mt-1">You're all caught up!</p>
+                                    <p className="text-[13px] font-semibold text-text-primary">All caught up!</p>
+                                    <p className="text-[11px] text-text-muted mt-1">No new notifications</p>
                                 </div>
                             )}
                         </div>
-                        
                     </div>
                 )}
             </div>

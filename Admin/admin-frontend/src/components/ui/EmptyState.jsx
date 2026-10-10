@@ -45,7 +45,7 @@ export default function EmptyState({
                     <button
                         type="button"
                         onClick={onRetry}
-                        className="btn btn-primary btn-sm"
+                        className="btn btn-secondary btn-sm"
                     >
                         Retry
                     </button>

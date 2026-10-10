@@ -248,7 +248,7 @@ export default function CustomerMaster() {
                                             </div>
                                             <p className="text-[15px] font-bold text-text-primary">Failed to load customers</p>
                                             <p className="text-[13px] text-text-secondary leading-relaxed">{error}</p>
-                                            <button onClick={fetchCustomersList} className="btn btn-primary btn-md mt-2">
+                                            <button onClick={fetchCustomersList} className="btn btn-secondary btn-md mt-2">
                                                 <RefreshCw className="w-4 h-4 " />
                                                 Retry
                                             </button>

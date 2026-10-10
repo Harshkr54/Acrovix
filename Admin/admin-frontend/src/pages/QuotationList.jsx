@@ -488,7 +488,7 @@ export default function QuotationList() {
                             <button
                                 onClick={() => setTrashModalQuotation(null)}
                                 disabled={isDeleting}
-                                className="btn btn-primary btn-md"
+                                className="btn btn-secondary btn-md"
                             >
                                 Cancel
                             </button>

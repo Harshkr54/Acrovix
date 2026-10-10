@@ -132,7 +132,7 @@ export default function CreateLeadModal({ isOpen, onClose, onSuccess, initialEnq
                             {initialEnquiry ? `Convert Enquiry #${initialEnquiry.referenceId || initialEnquiry.id} to Lead` : 'Create New CRM Lead'}
                         </h2>
                     </div>
-                    <button onClick={onClose} className="btn btn-primary btn-icon">
+                    <button onClick={onClose} className="btn btn-ghost btn-icon">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -336,7 +336,7 @@ export default function CreateLeadModal({ isOpen, onClose, onSuccess, initialEnq
                         <button
                             type="button"
                             onClick={onClose}
-                            className="btn btn-primary btn-md"
+                            className="btn btn-secondary btn-md"
                         >
                             Cancel
                         </button>

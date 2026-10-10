@@ -121,7 +121,7 @@ export default function Login() {
                         <button onClick={handleStartFresh} className="flex-1 h-[46px] rounded-xl font-medium bg-bg-main border border-border-subtle hover:bg-bg-hover text-text-secondary transition-colors">
                             Start Fresh
                         </button>
-                        <button onClick={handleResume} className="flex-1 h-[46px] rounded-xl font-medium bg-[#2563EB] hover:bg-[#1d4ed8] text-white transition-colors">
+                        <button onClick={handleResume} className="btn btn-primary flex-1 h-[46px] rounded-xl font-medium transition-colors">
                             Resume
                         </button>
                     </div>
@@ -174,7 +174,7 @@ export default function Login() {
                             type="button"
                             onClick={() => setLoginMode('admin')}
                             className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[13px] font-semibold transition-all duration-200 ${loginMode === 'admin'
-                                    ? 'bg-[#2563EB] text-white shadow-sm'
+                                    ? 'btn-primary shadow-sm'
                                     : 'text-text-secondary hover:text-text-primary'
                                 }`}
                         >
@@ -185,7 +185,7 @@ export default function Login() {
                             type="button"
                             onClick={() => setLoginMode('user')}
                             className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[13px] font-semibold transition-all duration-200 ${loginMode === 'user'
-                                    ? 'bg-[#2563EB] text-white shadow-sm'
+                                    ? 'btn-primary shadow-sm'
                                     : 'text-text-secondary hover:text-text-primary'
                                 }`}
                         >
@@ -263,7 +263,7 @@ export default function Login() {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full h-[50px] mt-6 bg-[#2563EB] hover:bg-[#1d4ed8] disabled:opacity-70 text-white font-medium text-[15px] rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:ring-offset-2 dark:focus:ring-offset-bg-main"
+                            className="btn btn-primary w-full h-[50px] mt-6 text-[15px] rounded-xl"
                         >
                             {isLoading ? (
                                 <Loader2 className="w-[18px] h-[18px] animate-spin" />

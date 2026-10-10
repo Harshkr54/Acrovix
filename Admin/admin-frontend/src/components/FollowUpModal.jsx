@@ -110,7 +110,7 @@ export default function FollowUpModal({ isOpen, onClose, mode = 'CREATE', leadId
                         )}
                         <h2 className="text-lg font-bold text-text-primary">{getTitle()}</h2>
                     </div>
-                    <button onClick={onClose} className="btn btn-primary btn-icon">
+                    <button onClick={onClose} className="btn btn-ghost btn-icon">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -202,17 +202,16 @@ export default function FollowUpModal({ isOpen, onClose, mode = 'CREATE', leadId
                         <button
                             type="button"
                             onClick={onClose}
-                            className="btn btn-primary btn-md"
+                            className="btn btn-secondary btn-md"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className={`inline-flex items-center gap-2 px-5 py-2 text-sm font-semibold text-white rounded-xl transition-all shadow-sm disabled:opacity-50 ${
-                                mode === 'CANCEL' 
-                                    ? 'bg-rose-600 hover:bg-rose-700' 
-                                    : 'bg-brand-teal hover:bg-[#0B7A70]'
+                            className={`btn btn-md flex-1 sm:flex-none ${
+                                mode === 'CANCEL' ? 'btn-danger' : 
+                                mode === 'COMPLETE' ? 'btn-success' : 'btn-primary'
                             }`}
                         >
                             {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}

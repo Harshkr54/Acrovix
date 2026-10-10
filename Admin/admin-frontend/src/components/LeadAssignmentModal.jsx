@@ -49,7 +49,7 @@ export default function LeadAssignmentModal({ isOpen, onClose, lead, onSuccess }
                         <UserCheck className="w-5 h-5 text-brand-teal" />
                         <h2 className="text-lg font-bold text-text-primary">Assign Sales Representative</h2>
                     </div>
-                    <button onClick={onClose} className="btn btn-primary btn-icon">
+                    <button onClick={onClose} className="btn btn-ghost btn-icon">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -85,7 +85,7 @@ export default function LeadAssignmentModal({ isOpen, onClose, lead, onSuccess }
                         <button
                             type="button"
                             onClick={onClose}
-                            className="btn btn-primary btn-md"
+                            className="btn btn-secondary btn-md"
                         >
                             Cancel
                         </button>

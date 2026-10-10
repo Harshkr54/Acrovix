@@ -617,15 +617,15 @@ export default function QuotationBuilder() {
                     {isTrashError ? "This quotation is in Trash or no longer exists. Please restore it from the Trash section before editing." : error}
                 </p>
                 <div className="flex items-center space-x-3">
-                    <button onClick={() => navigate('/quotations')} className="btn btn-primary btn-md">
+                    <button onClick={() => navigate('/quotations')} className="btn btn-secondary btn-md">
                         Back to Quotations
                     </button>
                     {isTrashError ? (
-                        <button onClick={() => navigate('/trash')} className="btn btn-primary btn-md">
+                        <button onClick={() => navigate('/trash')} className="btn btn-secondary btn-md">
                             Go to Trash
                         </button>
                     ) : (
-                        <button onClick={initializeBuilder} className="btn btn-primary btn-md">
+                        <button onClick={initializeBuilder} className="btn btn-secondary btn-md">
                             <RefreshCw className="w-4 h-4 " />
                             Retry
                         </button>

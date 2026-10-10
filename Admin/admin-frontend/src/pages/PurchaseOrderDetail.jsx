@@ -157,7 +157,7 @@ export default function PurchaseOrderDetail() {
                     <AlertTriangle className="w-8 h-8 text-brand-danger" />
                 </div>
                 <h2 className="text-[20px] font-bold text-text-primary mb-2">Purchase Order Not Found</h2>
-                <button onClick={() => navigate('/purchase-orders')} className="btn btn-primary btn-md mt-4">
+                <button onClick={() => navigate('/purchase-orders')} className="btn btn-secondary btn-md mt-4">
                     Back to Purchase Orders
                 </button>
             </div>
@@ -285,14 +285,14 @@ export default function PurchaseOrderDetail() {
                     <button 
                         onClick={handlePreviewPdf}
                         disabled={isPreviewLoading}
-                        className="btn btn-secondary btn-md flex items-center bg-white border border-border-subtle hover:bg-bg-muted shadow-sm"
+                        className="btn btn-secondary btn-md flex items-center"
                     >
                         {isPreviewLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
                         Preview PDF
                     </button>
                     <button 
                         onClick={handleDownloadPdf}
-                        className="btn btn-secondary btn-md flex items-center bg-white border border-border-subtle hover:bg-bg-muted shadow-sm"
+                        className="btn btn-secondary btn-md flex items-center"
                     >
                         <Download className="w-4 h-4 mr-2" /> PDF
                     </button>
@@ -321,7 +321,7 @@ export default function PurchaseOrderDetail() {
                     {['VERIFIED', 'PARTIALLY_FULFILLED'].includes(order.status) && (
                         <button 
                             onClick={() => { setNewStatus(''); setStatusModalOpen(true); }}
-                            className="btn btn-secondary btn-md bg-white border border-border-subtle hover:bg-bg-muted shadow-sm"
+                            className="btn btn-secondary btn-md flex items-center"
                         >
                             Update Status
                         </button>
@@ -724,7 +724,7 @@ export default function PurchaseOrderDetail() {
                                     <p className="text-[12px] text-text-secondary mt-1">Review the generated PDF document</p>
                                 </div>
                             </div>
-                            <button onClick={closePreviewModal} className="btn btn-primary btn-icon">
+                            <button onClick={closePreviewModal} className="btn btn-ghost btn-icon">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>

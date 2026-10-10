@@ -90,7 +90,7 @@ export default function SendQuotationModal({ isOpen, onClose, initialEmail, onSe
                 <button
                     onClick={handleClose}
                     disabled={isSending}
-                    className="btn btn-primary btn-icon absolute top-5 right-5 inset-y-0 right-0 pr-3"
+                    className="btn btn-secondary btn-icon absolute top-5 right-5 inset-y-0 right-0 pr-3"
                     aria-label="Close modal"
                 >
                     <X className="w-5 h-5" />
@@ -178,7 +178,7 @@ export default function SendQuotationModal({ isOpen, onClose, initialEmail, onSe
                     <button
                         onClick={handleClose}
                         disabled={isSending}
-                        className="btn btn-primary btn-md"
+                        className="btn btn-secondary btn-md"
                     >
                         Cancel
                     </button>

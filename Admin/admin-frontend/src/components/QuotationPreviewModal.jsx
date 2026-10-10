@@ -44,7 +44,7 @@ export default function QuotationPreviewModal({
                         )}
                         <button 
                             onClick={onClose}
-                            className="btn btn-primary btn-icon"
+                            className="btn btn-ghost btn-icon"
                         >
                             <X className="w-5 h-5" />
                         </button>

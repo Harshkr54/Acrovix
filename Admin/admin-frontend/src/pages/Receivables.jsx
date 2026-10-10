@@ -223,7 +223,7 @@ export default function Receivables() {
                                         <td className="p-4 text-right">
                                             <button
                                                 onClick={() => navigate(`/invoices?search=${encodeURIComponent(r.customerName)}`)}
-                                                className="btn btn-primary btn-icon"
+                                                className="btn btn-secondary btn-icon"
                                             >
                                                 <span>View Invoices</span>
                                                 <ArrowUpRight className="w-3 h-3" />

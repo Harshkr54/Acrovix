@@ -111,7 +111,7 @@ export default function EnquiryDetailModal({ isOpen, onClose, enquiry, onStatusU
                         </span>
                         <button
                             onClick={onClose}
-                            className="btn btn-primary btn-icon"
+                            className="btn btn-ghost btn-icon"
                             aria-label="Close modal"
                         >
                             <X className="w-5 h-5" />

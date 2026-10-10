@@ -78,7 +78,7 @@ export default function QuotationHistoryModal({ isOpen, onClose, quotation, onVi
                         <div className="p-8 flex flex-col items-center text-center">
                             <AlertCircle className="w-10 h-10 text-red-500 mb-3" />
                             <p className="text-[14px] font-medium text-red-600 mb-4">{error}</p>
-                            <button onClick={loadHistory} className="btn btn-primary btn-md">Retry</button>
+                            <button onClick={loadHistory} className="btn btn-secondary btn-md">Retry</button>
                         </div>
                     ) : history.length === 0 ? (
                         <div className="py-16 flex flex-col items-center text-center">

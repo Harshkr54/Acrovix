@@ -82,7 +82,7 @@ export default function Activity() {
                         </div>
                         <h3 className="text-base font-bold text-text-primary mb-1">Failed to load activity logs</h3>
                         <p className="text-xs text-text-secondary mb-6 max-w-sm">{error}</p>
-                        <button onClick={fetchActivities} className="btn btn-primary btn-sm">
+                        <button onClick={fetchActivities} className="btn btn-secondary btn-sm">
                             <RefreshCw className="w-4 h-4 " />
                             Retry
                         </button>

@@ -299,7 +299,7 @@ export default function Dashboard() {
                                     <Filter className="w-4 h-4 text-[var(--color-brand-primary)]" />
                                     <h3 className="text-sm font-bold text-text-primary">Dashboard Filters</h3>
                                 </div>
-                                <button onClick={() => setIsFilterOpen(false)} className="btn btn-primary btn-icon btn-sm">
+                                <button onClick={() => setIsFilterOpen(false)} className="btn btn-ghost btn-icon btn-sm text-text-muted hover:text-text-primary">
                                     <X className="w-4 h-4" />
                                 </button>
                             </div>
@@ -416,7 +416,7 @@ export default function Dashboard() {
                     </div>
                     <h3 className="text-lg font-bold text-text-primary mb-2">Failed to Load Dashboard</h3>
                     <p className="text-sm text-text-secondary mb-6">{error}</p>
-                    <button onClick={() => fetchDashboardData(appliedFilters)} className="btn btn-primary btn-md">
+                    <button onClick={() => fetchDashboardData(appliedFilters)} className="btn btn-secondary btn-md">
                         <RefreshCw className="w-4 h-4" />
                         Retry
                     </button>
@@ -999,9 +999,9 @@ export default function Dashboard() {
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => { close(); handleOpenEnquiry(enq); }}
-                                                                    className="btn btn-primary btn-sm w-full"
+                                                                    className="flex items-center w-full px-3 py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover rounded-xl transition-colors"
                                                                 >
-                                                                    <Eye className="w-3.5 h-3.5 text-[var(--color-brand-primary)]" /> Open Enquiry
+                                                                    <Eye className="w-3.5 h-3.5 text-text-muted mr-2" /> Open Enquiry
                                                                 </button>
 
                                                                 <div className="my-1 border-t border-border-subtle"></div>
@@ -1015,7 +1015,7 @@ export default function Dashboard() {
                                                                             <FileText className="w-3.5 h-3.5 text-purple-600 mr-2" /> Open Quotation
                                                                         </Link>
                                                                     ) : (
-                                                                        <button type="button" onClick={() => { close(); handleOpenEnquiry(enq); }} className="btn btn-primary btn-sm w-full flex justify-between">
+                                                                        <button type="button" onClick={() => { close(); handleOpenEnquiry(enq); }} className="flex items-center w-full px-3 py-2 text-xs font-semibold text-text-primary hover:bg-bg-hover rounded-xl transition-colors justify-between">
                                                                             <span className="flex items-center"><FileText className="w-3.5 h-3.5 text-purple-600 mr-2" /> Open Quotation</span>
                                                                             <span className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full font-bold">{rowQuotationsMap[enq.id].length}</span>
                                                                         </button>

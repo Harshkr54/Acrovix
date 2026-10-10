@@ -220,7 +220,7 @@ export default function TrashList() {
                             <button
                                 onClick={() => setPermanentModalQuotation(null)}
                                 disabled={isDeletingPermanently}
-                                className="btn btn-primary btn-md"
+                                className="btn btn-secondary btn-md"
                             >
                                 Cancel
                             </button>

@@ -358,7 +358,7 @@ export default function InvoiceDetail() {
         <div className="p-8 text-center max-w-md mx-auto my-12 bg-bg-card border border-border-subtle rounded-2xl p-6">
             <h3 className="text-base font-bold text-text-primary mb-1">Failed to Load Invoice</h3>
             <p className="text-xs text-text-muted mb-4">{error}</p>
-            <button onClick={fetchInvoice} className="btn btn-primary btn-sm">
+            <button onClick={fetchInvoice} className="btn btn-secondary btn-sm">
                 Retry
             </button>
         </div>
@@ -384,7 +384,7 @@ export default function InvoiceDetail() {
             <div className="flex items-center gap-4 mb-6">
                 <button 
                     onClick={() => navigate('/invoices')}
-                    className="btn btn-primary btn-icon"
+                    className="btn btn-secondary btn-icon"
                 >
                     <ArrowLeft className="w-5 h-5" />
                 </button>
@@ -549,7 +549,7 @@ export default function InvoiceDetail() {
                             {invoice.status === 'DRAFT' && (
                                 <button 
                                     onClick={handleOpenEditModal}
-                                    className="btn btn-primary btn-icon"
+                                    className="btn btn-secondary btn-icon"
                                 >
                                     <Edit3 className="w-3.5 h-3.5" /> Edit
                                 </button>
@@ -665,7 +665,7 @@ export default function InvoiceDetail() {
                                                         <div className="flex items-center justify-end gap-2">
                                                             <button 
                                                                 onClick={() => handleDownloadReceipt(p.id, p.paymentNumber)}
-                                                                className="btn btn-primary btn-icon"
+                                                                className="btn btn-secondary btn-icon"
                                                                 title="Download Receipt PDF"
                                                             >
                                                                 <Download className="w-3.5 h-3.5" />
@@ -698,7 +698,7 @@ export default function InvoiceDetail() {
                             {invoice.status === 'DRAFT' && (
                                 <button 
                                     onClick={handleOpenEditModal}
-                                    className="btn btn-primary btn-icon"
+                                    className="btn btn-secondary btn-icon"
                                 >
                                     <Edit3 className="w-3.5 h-3.5" /> Edit
                                 </button>
@@ -759,7 +759,7 @@ export default function InvoiceDetail() {
                             </h2>
                             <button 
                                 onClick={() => setIsRecordPaymentModalOpen(false)}
-                                className="btn btn-primary btn-icon"
+                                className="btn btn-ghost btn-icon"
                             >
                                 <X className="w-5 h-5" />
                             </button>
@@ -881,7 +881,7 @@ export default function InvoiceDetail() {
                                 <button
                                     type="button"
                                     onClick={() => setIsRecordPaymentModalOpen(false)}
-                                    className="btn btn-primary btn-md"
+                                    className="btn btn-secondary btn-md"
                                 >
                                     Cancel
                                 </button>
@@ -908,7 +908,7 @@ export default function InvoiceDetail() {
                             </h2>
                             <button 
                                 onClick={() => setCancellingPaymentId(null)}
-                                className="btn btn-primary btn-icon"
+                                className="btn btn-ghost btn-icon"
                             >
                                 <X className="w-5 h-5" />
                             </button>
@@ -969,7 +969,7 @@ export default function InvoiceDetail() {
                             </h2>
                             <button 
                                 onClick={() => setIsEditModalOpen(false)}
-                                className="btn btn-primary btn-icon"
+                                className="btn btn-ghost btn-icon"
                             >
                                 <X className="w-5 h-5" />
                             </button>
@@ -1087,7 +1087,7 @@ export default function InvoiceDetail() {
                                 <button
                                     type="button"
                                     onClick={() => setIsEditModalOpen(false)}
-                                    className="btn btn-primary btn-md"
+                                    className="btn btn-secondary btn-md"
                                 >
                                     Cancel
                                 </button>

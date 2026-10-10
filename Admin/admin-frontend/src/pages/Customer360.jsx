@@ -100,7 +100,7 @@ export default function Customer360() {
                     </div>
                     <h2 className="text-[22px] font-bold text-text-primary mb-2">Customer Not Found</h2>
                     <p className="text-[14px] text-text-secondary mb-8">The customer you are looking for does not exist or has been removed.</p>
-                    <button onClick={() => navigate('/customers')} className="btn btn-primary btn-md">
+                    <button onClick={() => navigate('/customers')} className="btn btn-secondary btn-md">
                         Back to Customers
                     </button>
                 </div>
@@ -121,7 +121,7 @@ export default function Customer360() {
                         <button onClick={() => navigate('/customers')} className="btn btn-secondary btn-md">
                             Back
                         </button>
-                        <button onClick={() => window.location.reload()} className="btn btn-primary btn-md">
+                        <button onClick={() => window.location.reload()} className="btn btn-secondary btn-md">
                             Retry
                         </button>
                     </div>

@@ -135,7 +135,7 @@ export default function CreatePurchaseOrderModal({ isOpen, onClose, quotation, o
                         <button
                             type="button"
                             onClick={onClose}
-                            className="btn btn-primary btn-md"
+                            className="btn btn-secondary btn-md"
                         >
                             Cancel
                         </button>
