@@ -1,6 +1,5 @@
 package com.acrovix.admin.controller;
 
-
 import com.acrovix.admin.security.ratelimit.RateLimit;
 import com.acrovix.admin.security.ratelimit.RateLimitCategory;
 import com.acrovix.admin.util.PaginationUtil;
@@ -30,17 +29,18 @@ public class CustomerController {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) Boolean active,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            @AuthenticationPrincipal AdminUser admin) {
         search = com.acrovix.admin.util.PaginationUtil.getSafeSearch(search);
         
-        Page<CustomerResponse> customers = customerService.getCustomers(search, active, page, size);
+        Page<CustomerResponse> customers = customerService.getCustomers(search, active, page, size, admin);
         return ResponseEntity.ok(customers);
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
-    public ResponseEntity<CustomerResponse> getCustomerById(@PathVariable Long id) {
-        return ResponseEntity.ok(customerService.getCustomerById(id));
+    public ResponseEntity<CustomerResponse> getCustomerById(@PathVariable Long id, @AuthenticationPrincipal AdminUser admin) {
+        return ResponseEntity.ok(customerService.getCustomerById(id, admin));
     }
 
     @PostMapping
@@ -58,7 +58,7 @@ public class CustomerController {
             @PathVariable Long id,
             @Valid @RequestBody CustomerRequest request,
             @AuthenticationPrincipal AdminUser adminUser) {
-        CustomerResponse updated = customerService.updateCustomer(id, request, adminUser.getId());
+        CustomerResponse updated = customerService.updateCustomer(id, request, adminUser);
         return ResponseEntity.ok(updated);
     }
 
@@ -67,7 +67,7 @@ public class CustomerController {
     public ResponseEntity<Void> deleteCustomer(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser adminUser) {
-        customerService.deleteCustomer(id, adminUser.getId());
+        customerService.deleteCustomer(id, adminUser);
         return ResponseEntity.ok().build();
     }
     
@@ -76,7 +76,7 @@ public class CustomerController {
     public ResponseEntity<Void> activateCustomer(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser adminUser) {
-        customerService.activateCustomer(id, adminUser.getId());
+        customerService.activateCustomer(id, adminUser);
         return ResponseEntity.ok().build();
     }
 }

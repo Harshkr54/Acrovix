@@ -152,8 +152,10 @@ export default function Layout() {
         { path: '/purchase-orders', name: 'Purchase Orders', icon: ShoppingCart },
         { path: '/invoices', name: 'Invoices', icon: FileText },
         { path: '/payments', name: 'Payments', icon: CreditCard },
-        { path: '/receivables', name: 'Receivables', icon: DollarSign },
-        { path: '/reports', name: 'Reports', icon: BarChart3 }
+        ...(user?.role === 'SUPER_ADMIN' ? [
+            { path: '/receivables', name: 'Receivables', icon: DollarSign },
+            { path: '/reports', name: 'Reports', icon: BarChart3 }
+        ] : [])
     ];
 
     const crmItems = [

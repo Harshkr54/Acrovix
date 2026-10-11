@@ -483,29 +483,31 @@ public class CrmService {
 
     @Transactional(readOnly = true)
     public CrmDashboardSummaryResponse getDashboardSummary(AdminUser currentUser) {
-        long newLeads = crmLeadRepository.countByStatus(LeadStatus.NEW);
-        long qualifiedLeads = crmLeadRepository.countByStatus(LeadStatus.QUALIFIED);
-        long proposalCount = crmLeadRepository.countByStatus(LeadStatus.PROPOSAL);
-        long negotiationCount = crmLeadRepository.countByStatus(LeadStatus.NEGOTIATION);
-        long wonCount = crmLeadRepository.countByStatus(LeadStatus.WON);
-        long lostCount = crmLeadRepository.countByStatus(LeadStatus.LOST);
+        Long salesUserId = (currentUser != null && currentUser.getRole() == Role.SALES) ? currentUser.getId() : null;
 
-        long openLeads = newLeads + crmLeadRepository.countByStatus(LeadStatus.CONTACTED)
+        long newLeads = crmLeadRepository.countByStatusWithFilter(LeadStatus.NEW, salesUserId);
+        long qualifiedLeads = crmLeadRepository.countByStatusWithFilter(LeadStatus.QUALIFIED, salesUserId);
+        long proposalCount = crmLeadRepository.countByStatusWithFilter(LeadStatus.PROPOSAL, salesUserId);
+        long negotiationCount = crmLeadRepository.countByStatusWithFilter(LeadStatus.NEGOTIATION, salesUserId);
+        long wonCount = crmLeadRepository.countByStatusWithFilter(LeadStatus.WON, salesUserId);
+        long lostCount = crmLeadRepository.countByStatusWithFilter(LeadStatus.LOST, salesUserId);
+
+        long openLeads = newLeads + crmLeadRepository.countByStatusWithFilter(LeadStatus.CONTACTED, salesUserId)
                 + qualifiedLeads + proposalCount + negotiationCount;
 
-        BigDecimal openPipelineVal = crmLeadRepository.sumEstimatedValueByStatusIn(
-                List.of(LeadStatus.NEW, LeadStatus.CONTACTED, LeadStatus.QUALIFIED, LeadStatus.PROPOSAL, LeadStatus.NEGOTIATION)
+        BigDecimal openPipelineVal = crmLeadRepository.sumEstimatedValueByStatusInWithFilter(
+                List.of(LeadStatus.NEW, LeadStatus.CONTACTED, LeadStatus.QUALIFIED, LeadStatus.PROPOSAL, LeadStatus.NEGOTIATION), salesUserId
         );
 
-        BigDecimal wonVal = crmLeadRepository.sumEstimatedValueByStatus(LeadStatus.WON);
+        BigDecimal wonVal = crmLeadRepository.sumEstimatedValueByStatusWithFilter(LeadStatus.WON, salesUserId);
 
         Map<Currency, BigDecimal> openPipelineValueByCurrency = new EnumMap<>(Currency.class);
         Map<Currency, BigDecimal> wonValueByCurrency = new EnumMap<>(Currency.class);
         for (Currency c : Currency.values()) {
-            openPipelineValueByCurrency.put(c, crmLeadRepository.sumEstimatedValueByStatusInAndCurrency(
-                    List.of(LeadStatus.NEW, LeadStatus.CONTACTED, LeadStatus.QUALIFIED, LeadStatus.PROPOSAL, LeadStatus.NEGOTIATION), c
+            openPipelineValueByCurrency.put(c, crmLeadRepository.sumEstimatedValueByStatusInAndCurrencyWithFilter(
+                    List.of(LeadStatus.NEW, LeadStatus.CONTACTED, LeadStatus.QUALIFIED, LeadStatus.PROPOSAL, LeadStatus.NEGOTIATION), c, salesUserId
             ));
-            wonValueByCurrency.put(c, crmLeadRepository.sumEstimatedValueByStatusAndCurrency(LeadStatus.WON, c));
+            wonValueByCurrency.put(c, crmLeadRepository.sumEstimatedValueByStatusAndCurrencyWithFilter(LeadStatus.WON, c, salesUserId));
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -522,7 +524,7 @@ public class CrmService {
 
         Map<String, Long> statusBreakdown = new LinkedHashMap<>();
         for (LeadStatus st : LeadStatus.values()) {
-            statusBreakdown.put(st.name(), crmLeadRepository.countByStatus(st));
+            statusBreakdown.put(st.name(), crmLeadRepository.countByStatusWithFilter(st, salesUserId));
         }
 
         return CrmDashboardSummaryResponse.builder()
@@ -677,3 +679,4 @@ public class CrmService {
         activityRepository.save(activity);
     }
 }
+

@@ -31,6 +31,7 @@ public class PaymentController {
 
     private final PaymentService paymentService;
 
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @PostMapping("/payments")
     public ResponseEntity<PaymentResponse> recordPayment(
             @Valid @RequestBody PaymentRequest request,
@@ -39,6 +40,7 @@ public class PaymentController {
         return ResponseEntity.status(HttpStatus.CREATED).body(paymentService.getPaymentById(payment.getId(), admin));
     }
 
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @PostMapping("/payments/{id}/cancel")
     public ResponseEntity<PaymentResponse> cancelPayment(
             @PathVariable Long id,
@@ -66,9 +68,10 @@ public class PaymentController {
 
     @GetMapping("/payments/eligible-invoices")
     public ResponseEntity<List<EligibleInvoiceResponse>> getEligibleInvoices(
-            @RequestParam(required = false) String search) {
+            @RequestParam(required = false) String search,
+            @AuthenticationPrincipal AdminUser admin) {
         search = PaginationUtil.getSafeSearch(search);
-        return ResponseEntity.ok(paymentService.getEligibleInvoicesForPayment(search));
+        return ResponseEntity.ok(paymentService.getEligibleInvoicesForPayment(search, admin));
     }
 
 
@@ -79,7 +82,7 @@ public class PaymentController {
 
     @GetMapping("/invoices/{invoiceId}/payments")
     public ResponseEntity<List<PaymentResponse>> getPaymentsByInvoiceId(@PathVariable Long invoiceId, @AuthenticationPrincipal AdminUser admin) {
-        return ResponseEntity.ok(paymentService.getPaymentsByInvoiceId(invoiceId));
+        return ResponseEntity.ok(paymentService.getPaymentsByInvoiceId(invoiceId, admin));
     }
 
     @RateLimit(category = RateLimitCategory.PDF)
@@ -96,6 +99,7 @@ public class PaymentController {
         return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
     }
 
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @GetMapping("/receivables")
     public ResponseEntity<Page<ReceivableSummaryResponse>> getReceivablesSummary(
             @RequestParam(required = false) String search,
@@ -107,6 +111,7 @@ public class PaymentController {
         return ResponseEntity.ok(receivables);
     }
 
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @GetMapping("/dashboard/receivables")
     public ResponseEntity<DashboardReceivablesResponse> getDashboardReceivablesStats(@AuthenticationPrincipal AdminUser admin) {
         return ResponseEntity.ok(paymentService.getDashboardReceivablesStats());

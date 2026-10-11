@@ -148,17 +148,40 @@ public class AdminUserService {
     }
 
     @Transactional
-    public void updateUserStatus(Long userId, boolean enabled, Long adminId) {
+    public void updateUserStatus(Long userId, boolean enabled, Long reassignToUserId, Long adminId) {
         if (userId.equals(adminId)) {
             throw new IllegalArgumentException("Cannot disable yourself");
         }
         AdminUser user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        
+        if (!enabled && user.getRole() == Role.SUPER_ADMIN) {
+            long activeSuperAdmins = userRepository.countByRoleAndEnabledTrue(Role.SUPER_ADMIN);
+            if (activeSuperAdmins <= 1 && user.isEnabled()) {
+                throw new IllegalArgumentException("Cannot disable the last active Super Admin");
+            }
+        }
+        
+        if (!enabled && reassignToUserId != null) {
+            AdminUser newAssignee = userRepository.findById(reassignToUserId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Reassignment User not found"));
+            if (!newAssignee.isEnabled()) {
+                throw new IllegalArgumentException("Cannot reassign to a disabled user");
+            }
+            userRepository.reassignActiveEnquiries(user, newAssignee);
+            userRepository.reassignActiveLeads(user, newAssignee);
+            userRepository.reassignPendingFollowUps(user, newAssignee);
+        }
+
         user.setEnabled(enabled);
         userRepository.save(user);
 
+        String actionDesc = (enabled ? "Enabled" : "Disabled") + " Admin User: " + user.getEmail();
+        if (!enabled && reassignToUserId != null) {
+            actionDesc += " and reassigned work to User ID: " + reassignToUserId;
+        }
         AdminActivity activity = AdminActivity.builder()
                 .adminUserId(adminId)
-                .action((enabled ? "Enabled" : "Disabled") + " Admin User: " + user.getEmail())
+                .action(actionDesc)
                 .entityType("AdminUser")
                 .entityId(user.getId())
                 .build();
@@ -183,3 +206,6 @@ public class AdminUserService {
         activityRepository.save(activity);
     }
 }
+
+
+

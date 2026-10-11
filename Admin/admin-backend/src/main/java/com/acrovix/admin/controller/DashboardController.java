@@ -1,13 +1,14 @@
 package com.acrovix.admin.controller;
 
-
 import com.acrovix.admin.security.ratelimit.RateLimit;
 import com.acrovix.admin.security.ratelimit.RateLimitCategory;
 import com.acrovix.admin.util.PaginationUtil;
 import com.acrovix.admin.service.DashboardService;
+import com.acrovix.admin.entity.AdminUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -29,14 +30,16 @@ public class DashboardController {
             @RequestParam(required = false, defaultValue = "ALL") String enquiryStatus,
             @RequestParam(required = false, defaultValue = "ALL") String quotationStatus,
             @RequestParam(required = false) String fromDate,
-            @RequestParam(required = false) String toDate) {
+            @RequestParam(required = false) String toDate,
+            @AuthenticationPrincipal AdminUser admin) {
 
         Map<String, Object> stats = dashboardService.getDashboardStats(
                 dateRange,
                 enquiryStatus,
                 quotationStatus,
                 fromDate,
-                toDate
+                toDate,
+                admin
         );
         return ResponseEntity.ok(stats);
     }

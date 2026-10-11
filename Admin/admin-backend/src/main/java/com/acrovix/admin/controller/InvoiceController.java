@@ -54,6 +54,7 @@ public class InvoiceController {
         return ResponseEntity.ok(invoiceService.getInvoiceResponseById(id, admin));
     }
 
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @PostMapping
     public ResponseEntity<InvoiceResponse> createDraftInvoice(
             @Valid @RequestBody InvoiceRequest request,
@@ -61,6 +62,7 @@ public class InvoiceController {
         return ResponseEntity.ok(invoiceService.createDraftInvoice(request, admin));
     }
 
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @PostMapping("/from-quotation/{quotationId}")
     public ResponseEntity<InvoiceResponse> createInvoiceFromQuotation(
             @PathVariable Long quotationId,
@@ -69,6 +71,7 @@ public class InvoiceController {
         return ResponseEntity.ok(invoiceService.createInvoiceFromQuotation(quotationId, type, admin));
     }
 
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @PostMapping("/from-po/{poId}")
     public ResponseEntity<InvoiceResponse> createInvoiceFromPurchaseOrder(
             @PathVariable Long poId,
@@ -77,6 +80,7 @@ public class InvoiceController {
         return ResponseEntity.ok(invoiceService.createInvoiceFromPurchaseOrder(poId, type, admin));
     }
 
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @PatchMapping("/{id}")
     public ResponseEntity<InvoiceResponse> updateDraftInvoice(
             @PathVariable Long id,
@@ -85,6 +89,7 @@ public class InvoiceController {
         return ResponseEntity.ok(invoiceService.updateDraftInvoice(id, request, admin));
     }
 
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @PostMapping("/{id}/issue")
     public ResponseEntity<InvoiceResponse> issueInvoice(
             @PathVariable Long id,
@@ -92,6 +97,7 @@ public class InvoiceController {
         return ResponseEntity.ok(invoiceService.issueInvoice(id, admin));
     }
 
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @PostMapping("/{id}/cancel")
     public ResponseEntity<InvoiceResponse> cancelInvoice(
             @PathVariable Long id,
@@ -99,6 +105,7 @@ public class InvoiceController {
         return ResponseEntity.ok(invoiceService.cancelInvoice(id, admin));
     }
 
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @PostMapping("/proforma/{id}/convert-to-tax-invoice")
     public ResponseEntity<InvoiceResponse> convertProformaToTaxInvoice(
             @PathVariable Long id,
@@ -131,6 +138,7 @@ public class InvoiceController {
         return ResponseEntity.ok(java.util.Map.of("success", true, "message", "Invoice email sent successfully"));
     }
 
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @PostMapping("/{id}/payment-link")
     public ResponseEntity<InvoiceResponse> generatePaymentLink(
             @PathVariable Long id,

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { fetchApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import DisableUserModal from '../components/DisableUserModal';
 import { UserPlus, ShieldAlert, Mail, Lock, Shield, Users, AlertCircle, RefreshCw } from 'lucide-react';
 
 export default function UserList() {
@@ -14,6 +15,7 @@ export default function UserList() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [role, setRole] = useState('SALES');
+    const [userToDisable, setUserToDisable] = useState(null);
 
     const fetchUsers = React.useCallback(() => {
         setIsLoading(true);
@@ -245,7 +247,7 @@ export default function UserList() {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap align-top text-right">
                                             <button 
-                                                onClick={() => toggleStatus(u.id, u.enabled)}
+                                                onClick={() => handleToggleStatus(u)}
                                                 disabled={u.email === currentUser.email}
                                                 className={`btn btn-sm ${u.enabled ? 'btn-ghost text-brand-danger hover:bg-red-50 dark:hover:bg-red-900/20' : 'btn-ghost text-brand-success hover:bg-emerald-50 dark:hover:bg-emerald-900/20'} disabled:opacity-30 disabled:cursor-not-allowed`}
                                             >
@@ -262,3 +264,4 @@ export default function UserList() {
         </div>
     );
 }
+

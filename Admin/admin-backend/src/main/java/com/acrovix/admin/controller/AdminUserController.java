@@ -53,9 +53,14 @@ public class AdminUserController {
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<?> updateStatus(
             @PathVariable Long id,
-            @RequestBody Map<String, Boolean> body,
+            @RequestBody Map<String, Object> body,
             @AuthenticationPrincipal AdminUser admin) {
-        userService.updateUserStatus(id, body.get("enabled"), admin.getId());
+        boolean enabled = Boolean.TRUE.equals(body.get("enabled"));
+        Long reassignToUserId = null;
+        if (body.containsKey("reassignToUserId") && body.get("reassignToUserId") != null) {
+            reassignToUserId = Long.valueOf(body.get("reassignToUserId").toString());
+        }
+        userService.updateUserStatus(id, enabled, reassignToUserId, admin.getId());
         return ResponseEntity.ok().build();
     }
     
@@ -69,3 +74,5 @@ public class AdminUserController {
         return ResponseEntity.ok().build();
     }
 }
+
+

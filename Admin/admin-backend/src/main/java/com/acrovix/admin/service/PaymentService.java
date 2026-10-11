@@ -263,10 +263,20 @@ public class PaymentService {
     }
 
     @Transactional(readOnly = true)
-    public List<EligibleInvoiceResponse> getEligibleInvoicesForPayment(String search) {
+    public List<EligibleInvoiceResponse> getEligibleInvoicesForPayment(String search, AdminUser admin) {
         String cleanSearch = (search != null && !search.trim().isEmpty()) ? search.trim().toLowerCase() : null;
 
         return invoiceRepository.findAll().stream()
+                .filter(i -> {
+                    if (admin != null && admin.getRole() == com.acrovix.admin.entity.Role.SALES) {
+                        try {
+                            authorizationService.checkInvoiceAccess(admin, i);
+                        } catch (org.springframework.security.access.AccessDeniedException ex) {
+                            return false;
+                        }
+                    }
+                    return true;
+                })
                 .filter(i -> i.getInvoiceType() == InvoiceType.TAX_INVOICE &&
                         (i.getStatus() == InvoiceStatus.ISSUED || i.getStatus() == InvoiceStatus.PARTIALLY_PAID))
                 .filter(i -> {
@@ -304,11 +314,21 @@ public class PaymentService {
     }
 
     @Transactional(readOnly = true)
-    public List<PaymentResponse> getPaymentsByInvoiceId(Long invoiceId) {
+    public List<PaymentResponse> getPaymentsByInvoiceId(Long invoiceId, AdminUser admin) {
+        Invoice invoice = invoiceRepository.findById(invoiceId)
+                .orElseThrow(() -> new IllegalArgumentException("Invoice not found with id: " + invoiceId));
+        if (admin != null) {
+            authorizationService.checkInvoiceAccess(admin, invoice);
+        }
         return paymentRepository.findByInvoiceIdOrderByCreatedAtDesc(invoiceId)
                 .stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<PaymentResponse> getPaymentsByInvoiceId(Long invoiceId) {
+        return getPaymentsByInvoiceId(invoiceId, null);
     }
 
     @Transactional(readOnly = true)

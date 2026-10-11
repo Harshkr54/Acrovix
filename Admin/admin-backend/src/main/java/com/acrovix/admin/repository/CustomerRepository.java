@@ -19,4 +19,13 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
            " LOWER(c.companyName) LIKE LOWER(CONCAT('%', coalesce(:search, ''), '%'))) " +
            "AND (c.active = coalesce(:active, c.active))")
     Page<Customer> searchCustomers(@Param("search") String search, @Param("active") Boolean active, Pageable pageable);
+
+    @Query("SELECT c FROM Customer c WHERE " +
+           "(LOWER(c.name) LIKE LOWER(CONCAT('%', coalesce(:search, ''), '%')) OR " +
+           " LOWER(c.customerCode) LIKE LOWER(CONCAT('%', coalesce(:search, ''), '%')) OR " +
+           " LOWER(c.companyName) LIKE LOWER(CONCAT('%', coalesce(:search, ''), '%'))) " +
+           "AND (c.active = coalesce(:active, c.active)) " +
+           "AND (:salesUserId IS NULL OR EXISTS (SELECT 1 FROM CrmLead l WHERE l.customer = c AND l.assignedTo.id = :salesUserId) " +
+           "    OR EXISTS (SELECT 1 FROM Quotation q WHERE q.customer = c AND q.createdBy.id = :salesUserId))")
+    Page<Customer> searchCustomersWithSalesFilter(@Param("search") String search, @Param("active") Boolean active, @Param("salesUserId") Long salesUserId, Pageable pageable);
 }

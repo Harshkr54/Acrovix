@@ -39,6 +39,17 @@ const ProtectedRoute = ({ children }) => {
     return children;
 };
 
+const RoleRoute = ({ children, allowedRoles, redirectTo = "/" }) => {
+    const { user } = useAuth();
+    if (!user) {
+        return <Navigate to="/login" replace />;
+    }
+    if (!allowedRoles.includes(user.role)) {
+        return <Navigate to={redirectTo} replace />;
+    }
+    return children;
+};
+
 function NetworkStatus() {
     const { showToast } = useToast();
 
@@ -99,9 +110,9 @@ function App() {
                     <Route path="invoices" element={<InvoiceList />} />
                     <Route path="invoices/:id" element={<InvoiceDetail />} />
                     <Route path="payments" element={<Payments />} />
-                    <Route path="receivables" element={<Receivables />} />
-                    <Route path="reports" element={<Reports />} />
-                    <Route path="users" element={<UserList />} />
+                    <Route path="receivables" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><Receivables /></RoleRoute>} />
+                    <Route path="reports" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><Reports /></RoleRoute>} />
+                    <Route path="users" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><UserList /></RoleRoute>} />
                     <Route path="trash" element={<TrashList />} />
                     <Route path="activity" element={<Activity />} />
                     <Route path="settings" element={<Settings />} />

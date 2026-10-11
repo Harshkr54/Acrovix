@@ -57,11 +57,11 @@ public class QuotationService {
                 
                 // For enquiry access
                 jakarta.persistence.criteria.Join<Object, Object> enquiryJoin = root.join("enquiry", jakarta.persistence.criteria.JoinType.LEFT);
-                Predicate enquiryIsNull = cb.isNull(root.get("enquiry"));
+                Predicate hasEnquiry = cb.isNotNull(root.get("enquiry"));
                 Predicate enquiryAssignedToNull = cb.isNull(enquiryJoin.get("assignedTo"));
                 Predicate enquiryAssignedToMe = cb.equal(enquiryJoin.get("assignedTo").get("id"), currentUser.getId());
                 
-                Predicate validEnquiry = cb.or(enquiryIsNull, enquiryAssignedToNull, enquiryAssignedToMe);
+                Predicate validEnquiry = cb.and(hasEnquiry, cb.or(enquiryAssignedToNull, enquiryAssignedToMe));
                 
                 predicates.add(cb.or(createdByMe, validEnquiry));
             }
@@ -411,6 +411,25 @@ public class QuotationService {
 
     @Transactional(readOnly = true)
     public org.springframework.data.domain.Page<Quotation> getTrashQuotations(org.springframework.data.domain.Pageable pageable, AdminUser admin) {
+        if (admin != null && admin.getRole() == Role.SALES) {
+            Specification<Quotation> spec = (root, query, cb) -> {
+                List<Predicate> predicates = new ArrayList<>();
+                predicates.add(cb.isNotNull(root.get("deletedAt")));
+                predicates.add(cb.equal(root.get("status"), "DRAFT"));
+
+                Predicate createdByMe = cb.equal(root.get("createdBy").get("id"), admin.getId());
+                jakarta.persistence.criteria.Join<Object, Object> enquiryJoin = root.join("enquiry", jakarta.persistence.criteria.JoinType.LEFT);
+                Predicate hasEnquiry = cb.isNotNull(root.get("enquiry"));
+                Predicate enquiryAssignedToNull = cb.isNull(enquiryJoin.get("assignedTo"));
+                Predicate enquiryAssignedToMe = cb.equal(enquiryJoin.get("assignedTo").get("id"), admin.getId());
+
+                Predicate validEnquiry = cb.and(hasEnquiry, cb.or(enquiryAssignedToNull, enquiryAssignedToMe));
+                predicates.add(cb.or(createdByMe, validEnquiry));
+
+                return cb.and(predicates.toArray(new Predicate[0]));
+            };
+            return quotationRepository.findAll(spec, pageable);
+        }
         return quotationRepository.findByDeletedAtIsNotNullAndStatus("DRAFT", pageable);
     }
 

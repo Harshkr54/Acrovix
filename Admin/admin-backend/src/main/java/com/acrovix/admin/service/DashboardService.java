@@ -48,6 +48,17 @@ public class DashboardService {
             String quotationStatusOpt,
             String fromDateStr,
             String toDateStr) {
+        return getDashboardStats(dateRangeOpt, enquiryStatusOpt, quotationStatusOpt, fromDateStr, toDateStr, null);
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> getDashboardStats(
+            String dateRangeOpt,
+            String enquiryStatusOpt,
+            String quotationStatusOpt,
+            String fromDateStr,
+            String toDateStr,
+            com.acrovix.admin.entity.AdminUser admin) {
 
         String dateRange = (dateRangeOpt == null || dateRangeOpt.isBlank()) ? "ALL_TIME" : dateRangeOpt.toUpperCase().trim();
         String enquiryStatus = (enquiryStatusOpt == null || enquiryStatusOpt.isBlank()) ? "ALL" : enquiryStatusOpt.toUpperCase().trim();
@@ -60,30 +71,30 @@ public class DashboardService {
         LocalDateTime end = timeBounds[1];
 
         // Specification for Enquiries
-        Specification<AdminEnquiry> enquirySpec = getEnquirySpec(start, end, enquiryStatus);
+        Specification<AdminEnquiry> enquirySpec = getEnquirySpec(start, end, enquiryStatus, admin);
         long totalEnquiries = enquiryRepository.count(enquirySpec);
 
         // New enquiries count
         long newEnquiries = 0;
         if ("ALL".equals(enquiryStatus) || "NEW".equals(enquiryStatus)) {
-            Specification<AdminEnquiry> newEnquirySpec = getEnquirySpec(start, end, "NEW");
+            Specification<AdminEnquiry> newEnquirySpec = getEnquirySpec(start, end, "NEW", admin);
             newEnquiries = enquiryRepository.count(newEnquirySpec);
         }
 
         // Enquiries this month count
         LocalDateTime startOfMonth = YearMonth.now().atDay(1).atStartOfDay();
         LocalDateTime startOfNextMonth = YearMonth.now().plusMonths(1).atDay(1).atStartOfDay();
-        Specification<AdminEnquiry> monthEnquirySpec = getEnquirySpec(startOfMonth, startOfNextMonth, enquiryStatus);
+        Specification<AdminEnquiry> monthEnquirySpec = getEnquirySpec(startOfMonth, startOfNextMonth, enquiryStatus, admin);
         long enquiriesThisMonth = enquiryRepository.count(monthEnquirySpec);
 
         // Specification for Quotations (Strict Trash Exclusion: deletedAt IS NULL)
-        Specification<Quotation> quotationSpec = getQuotationSpec(start, end, quotationStatus);
+        Specification<Quotation> quotationSpec = getQuotationSpec(start, end, quotationStatus, admin);
         long totalQuotations = quotationRepository.count(quotationSpec);
 
         // Accepted quotations count (Strict Trash Exclusion)
         long acceptedQuotations = 0;
         if ("ALL".equals(quotationStatus) || "ACCEPTED".equals(quotationStatus)) {
-            Specification<Quotation> acceptedSpec = getQuotationSpec(start, end, "ACCEPTED");
+            Specification<Quotation> acceptedSpec = getQuotationSpec(start, end, "ACCEPTED", admin);
             acceptedQuotations = quotationRepository.count(acceptedSpec);
         }
 
@@ -93,7 +104,7 @@ public class DashboardService {
         }
 
         // Quotation Status Breakdown (Strict Trash Exclusion)
-        Map<String, Long> quotationsByStatus = getQuotationStatusBreakdown(start, end, quotationStatus);
+        Map<String, Long> quotationsByStatus = getQuotationStatusBreakdown(start, end, quotationStatus, admin);
 
         // Recent Activities (filtered by date range if specified)
         List<AdminActivity> recentActivities;
@@ -110,7 +121,7 @@ public class DashboardService {
         ).getContent();
 
         // Overview Chart Data synchronized with applied dateRange
-        List<Map<String, Object>> monthlyOverview = generateOverviewChartData(dateRange, start, end, enquiryStatus);
+        List<Map<String, Object>> monthlyOverview = generateOverviewChartData(dateRange, start, end, enquiryStatus, admin);
 
         Map<String, Object> stats = new HashMap<>();
         stats.put("totalEnquiries", totalEnquiries);
@@ -189,9 +200,15 @@ public class DashboardService {
         return new LocalDateTime[]{start, end};
     }
 
-    private Specification<AdminEnquiry> getEnquirySpec(LocalDateTime start, LocalDateTime end, String status) {
+    private Specification<AdminEnquiry> getEnquirySpec(LocalDateTime start, LocalDateTime end, String status, com.acrovix.admin.entity.AdminUser admin) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
+            if (admin != null && admin.getRole() == com.acrovix.admin.entity.Role.SALES) {
+                predicates.add(cb.or(
+                    cb.isNull(root.get("assignedTo")),
+                    cb.equal(root.get("assignedTo").get("id"), admin.getId())
+                ));
+            }
             if (start != null && end != null) {
                 predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), start));
                 predicates.add(cb.lessThan(root.get("createdAt"), end));
@@ -203,9 +220,18 @@ public class DashboardService {
         };
     }
 
-    private Specification<Quotation> getQuotationSpec(LocalDateTime start, LocalDateTime end, String status) {
+    private Specification<Quotation> getQuotationSpec(LocalDateTime start, LocalDateTime end, String status, com.acrovix.admin.entity.AdminUser admin) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
+            if (admin != null && admin.getRole() == com.acrovix.admin.entity.Role.SALES) {
+                Predicate createdByMe = cb.equal(root.get("createdBy").get("id"), admin.getId());
+                jakarta.persistence.criteria.Join<Object, Object> enquiryJoin = root.join("enquiry", jakarta.persistence.criteria.JoinType.LEFT);
+                Predicate enquiryIsNull = cb.isNull(root.get("enquiry"));
+                Predicate enquiryAssignedToNull = cb.isNull(enquiryJoin.get("assignedTo"));
+                Predicate enquiryAssignedToMe = cb.equal(enquiryJoin.get("assignedTo").get("id"), admin.getId());
+                Predicate validEnquiry = cb.or(enquiryIsNull, enquiryAssignedToNull, enquiryAssignedToMe);
+                predicates.add(cb.or(createdByMe, validEnquiry));
+            }
             // Mandatory Trash Exclusion rule
             predicates.add(cb.isNull(root.get("deletedAt")));
 
@@ -220,14 +246,14 @@ public class DashboardService {
         };
     }
 
-    private Map<String, Long> getQuotationStatusBreakdown(LocalDateTime start, LocalDateTime end, String filterStatus) {
+    private Map<String, Long> getQuotationStatusBreakdown(LocalDateTime start, LocalDateTime end, String filterStatus, com.acrovix.admin.entity.AdminUser admin) {
         Map<String, Long> map = new HashMap<>();
         List<String> statuses = "ALL".equals(filterStatus)
                 ? List.of("DRAFT", "SENT", "ACCEPTED", "REJECTED", "EXPIRED")
                 : List.of(filterStatus);
 
         for (String st : statuses) {
-            Specification<Quotation> spec = getQuotationSpec(start, end, st);
+            Specification<Quotation> spec = getQuotationSpec(start, end, st, admin);
             long count = quotationRepository.count(spec);
             map.put(st, count);
         }
@@ -238,7 +264,8 @@ public class DashboardService {
             String dateRange,
             LocalDateTime start,
             LocalDateTime end,
-            String enquiryStatus) {
+            String enquiryStatus,
+            com.acrovix.admin.entity.AdminUser admin) {
 
         List<Map<String, Object>> list = new ArrayList<>();
         LocalDate today = LocalDate.now();
@@ -250,8 +277,8 @@ public class DashboardService {
                     LocalDateTime hStart = today.atTime(hour, 0, 0);
                     LocalDateTime hEnd = hStart.plusHours(1);
 
-                    long total = countEnquiriesInRange(hStart, hEnd, enquiryStatus);
-                    long newCount = countEnquiriesInRange(hStart, hEnd, "ALL".equals(enquiryStatus) ? "NEW" : enquiryStatus);
+                    long total = countEnquiriesInRange(hStart, hEnd, enquiryStatus, admin);
+                    long newCount = countEnquiriesInRange(hStart, hEnd, "ALL".equals(enquiryStatus) ? "NEW" : enquiryStatus, admin);
 
                     Map<String, Object> bucketData = new HashMap<>();
                     bucketData.put("month", String.format("%02d:00", hour));
@@ -268,8 +295,8 @@ public class DashboardService {
                     LocalDateTime dStart = d.atStartOfDay();
                     LocalDateTime dEnd = d.plusDays(1).atStartOfDay();
 
-                    long total = countEnquiriesInRange(dStart, dEnd, enquiryStatus);
-                    long newCount = countEnquiriesInRange(dStart, dEnd, "ALL".equals(enquiryStatus) ? "NEW" : enquiryStatus);
+                    long total = countEnquiriesInRange(dStart, dEnd, enquiryStatus, admin);
+                    long newCount = countEnquiriesInRange(dStart, dEnd, "ALL".equals(enquiryStatus) ? "NEW" : enquiryStatus, admin);
 
                     Map<String, Object> bucketData = new HashMap<>();
                     bucketData.put("month", d.format(DateTimeFormatter.ofPattern("dd MMM")));
@@ -286,8 +313,8 @@ public class DashboardService {
                     LocalDateTime dStart = d.atStartOfDay();
                     LocalDateTime dEnd = d.plusDays(1).atStartOfDay();
 
-                    long total = countEnquiriesInRange(dStart, dEnd, enquiryStatus);
-                    long newCount = countEnquiriesInRange(dStart, dEnd, "ALL".equals(enquiryStatus) ? "NEW" : enquiryStatus);
+                    long total = countEnquiriesInRange(dStart, dEnd, enquiryStatus, admin);
+                    long newCount = countEnquiriesInRange(dStart, dEnd, "ALL".equals(enquiryStatus) ? "NEW" : enquiryStatus, admin);
 
                     Map<String, Object> bucketData = new HashMap<>();
                     bucketData.put("month", d.format(DateTimeFormatter.ofPattern("dd MMM")));
@@ -306,8 +333,8 @@ public class DashboardService {
                     LocalDateTime dStart = d.atStartOfDay();
                     LocalDateTime dEnd = d.plusDays(1).atStartOfDay();
 
-                    long total = countEnquiriesInRange(dStart, dEnd, enquiryStatus);
-                    long newCount = countEnquiriesInRange(dStart, dEnd, "ALL".equals(enquiryStatus) ? "NEW" : enquiryStatus);
+                    long total = countEnquiriesInRange(dStart, dEnd, enquiryStatus, admin);
+                    long newCount = countEnquiriesInRange(dStart, dEnd, "ALL".equals(enquiryStatus) ? "NEW" : enquiryStatus, admin);
 
                     Map<String, Object> bucketData = new HashMap<>();
                     bucketData.put("month", d.format(DateTimeFormatter.ofPattern("dd MMM")));
@@ -325,8 +352,8 @@ public class DashboardService {
                     LocalDateTime mStart = ym.atDay(1).atStartOfDay();
                     LocalDateTime mEnd = ym.plusMonths(1).atDay(1).atStartOfDay();
 
-                    long total = countEnquiriesInRange(mStart, mEnd, enquiryStatus);
-                    long newCount = countEnquiriesInRange(mStart, mEnd, "ALL".equals(enquiryStatus) ? "NEW" : enquiryStatus);
+                    long total = countEnquiriesInRange(mStart, mEnd, enquiryStatus, admin);
+                    long newCount = countEnquiriesInRange(mStart, mEnd, "ALL".equals(enquiryStatus) ? "NEW" : enquiryStatus, admin);
 
                     Map<String, Object> bucketData = new HashMap<>();
                     bucketData.put("month", ym.format(DateTimeFormatter.ofPattern("MMM")));
@@ -347,8 +374,8 @@ public class DashboardService {
                             LocalDateTime dStart = curr.atStartOfDay();
                             LocalDateTime dEnd = curr.plusDays(1).atStartOfDay();
 
-                            long total = countEnquiriesInRange(dStart, dEnd, enquiryStatus);
-                            long newCount = countEnquiriesInRange(dStart, dEnd, "ALL".equals(enquiryStatus) ? "NEW" : enquiryStatus);
+                            long total = countEnquiriesInRange(dStart, dEnd, enquiryStatus, admin);
+                            long newCount = countEnquiriesInRange(dStart, dEnd, "ALL".equals(enquiryStatus) ? "NEW" : enquiryStatus, admin);
 
                             Map<String, Object> bucketData = new HashMap<>();
                             bucketData.put("month", curr.format(DateTimeFormatter.ofPattern("dd MMM")));
@@ -367,8 +394,8 @@ public class DashboardService {
                             LocalDateTime mStart = curr.atDay(1).atStartOfDay();
                             LocalDateTime mEnd = curr.plusMonths(1).atDay(1).atStartOfDay();
 
-                            long total = countEnquiriesInRange(mStart, mEnd, enquiryStatus);
-                            long newCount = countEnquiriesInRange(mStart, mEnd, "ALL".equals(enquiryStatus) ? "NEW" : enquiryStatus);
+                            long total = countEnquiriesInRange(mStart, mEnd, enquiryStatus, admin);
+                            long newCount = countEnquiriesInRange(mStart, mEnd, "ALL".equals(enquiryStatus) ? "NEW" : enquiryStatus, admin);
 
                             Map<String, Object> bucketData = new HashMap<>();
                             bucketData.put("month", curr.format(DateTimeFormatter.ofPattern("MMM yy")));
@@ -402,8 +429,8 @@ public class DashboardService {
                     LocalDateTime mStart = curr.atDay(1).atStartOfDay();
                     LocalDateTime mEnd = curr.plusMonths(1).atDay(1).atStartOfDay();
 
-                    long total = countEnquiriesInRange(mStart, mEnd, enquiryStatus);
-                    long newCount = countEnquiriesInRange(mStart, mEnd, "ALL".equals(enquiryStatus) ? "NEW" : enquiryStatus);
+                    long total = countEnquiriesInRange(mStart, mEnd, enquiryStatus, admin);
+                    long newCount = countEnquiriesInRange(mStart, mEnd, "ALL".equals(enquiryStatus) ? "NEW" : enquiryStatus, admin);
 
                     Map<String, Object> bucketData = new HashMap<>();
                     bucketData.put("month", curr.format(fmt));
@@ -420,8 +447,11 @@ public class DashboardService {
         return list;
     }
 
-    private long countEnquiriesInRange(LocalDateTime start, LocalDateTime end, String status) {
-        Specification<AdminEnquiry> spec = getEnquirySpec(start, end, status);
+    private long countEnquiriesInRange(LocalDateTime start, LocalDateTime end, String status, com.acrovix.admin.entity.AdminUser admin) {
+        Specification<AdminEnquiry> spec = getEnquirySpec(start, end, status, admin);
         return enquiryRepository.count(spec);
     }
 }
+
+
+

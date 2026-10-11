@@ -4,6 +4,7 @@ import com.acrovix.admin.dto.CustomerRequest;
 import com.acrovix.admin.dto.CustomerResponse;
 import com.acrovix.admin.entity.AdminActivity;
 import com.acrovix.admin.entity.Customer;
+import com.acrovix.admin.entity.AdminUser;
 import com.acrovix.admin.entity.Currency;
 import com.acrovix.admin.exception.ResourceConflictException;
 import com.acrovix.admin.exception.ResourceNotFoundException;
@@ -28,11 +29,28 @@ public class CustomerService {
     private final AdminActivityRepository activityRepository;
     private final com.acrovix.admin.repository.AdminUserRepository adminUserRepository;
     private final NotificationService notificationService;
+    private final AuthorizationService authorizationService;
 
     @Transactional(readOnly = true)
     public Page<CustomerResponse> getCustomers(String search, Boolean active, int page, int size) {
+        return getCustomers(search, active, page, size, null);
+    }
+
+    @Transactional(readOnly = true)
+    public CustomerResponse getCustomerById(Long id) {
+        return getCustomerById(id, null);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<CustomerResponse> getCustomers(String search, Boolean active, int page, int size, AdminUser admin) {
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<Customer> customers = customerRepository.searchCustomers(search, active, pageRequest);
+        Long salesUserId = (admin != null && admin.getRole() == com.acrovix.admin.entity.Role.SALES) ? admin.getId() : null;
+        Page<Customer> customers;
+        if (salesUserId != null) {
+            customers = customerRepository.searchCustomersWithSalesFilter(search, active, salesUserId, pageRequest);
+        } else {
+            customers = customerRepository.searchCustomers(search, active, pageRequest);
+        }
 
         List<CustomerResponse> responseList = customers.getContent().stream()
                 .map(this::mapToResponse)
@@ -42,9 +60,13 @@ public class CustomerService {
     }
 
     @Transactional(readOnly = true)
-    public CustomerResponse getCustomerById(Long id) {
-        return mapToResponse(customerRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + id)));
+    public CustomerResponse getCustomerById(Long id, AdminUser admin) {
+        Customer c = customerRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + id));
+        if (admin != null && admin.getRole() == com.acrovix.admin.entity.Role.SALES) {
+            authorizationService.checkCustomer360Access(admin, c);
+        }
+        return mapToResponse(c);
     }
 
     @Transactional
@@ -89,9 +111,13 @@ public class CustomerService {
     }
 
     @Transactional
-    public CustomerResponse updateCustomer(Long id, CustomerRequest request, Long adminId) {
+    public CustomerResponse updateCustomer(Long id, CustomerRequest request, AdminUser adminUser) {
         Customer customer = customerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + id));
+
+        if (adminUser != null && adminUser.getRole() == com.acrovix.admin.entity.Role.SALES) {
+            authorizationService.checkCustomer360Access(adminUser, customer);
+        }
 
         if (!customer.getCustomerCode().equals(request.getCustomerCode()) &&
                 customerRepository.findByCustomerCode(request.getCustomerCode()).isPresent()) {
@@ -104,6 +130,8 @@ public class CustomerService {
                 throw new ResourceConflictException("Customer with GSTIN already exists: " + request.getGstin());
             }
         }
+
+        Long adminId = adminUser != null ? adminUser.getId() : null;
 
         customer.setCustomerCode(request.getCustomerCode());
         customer.setName(request.getName());
@@ -130,27 +158,55 @@ public class CustomerService {
     }
 
     @Transactional
-    public void deleteCustomer(Long id, Long adminId) {
+    public CustomerResponse updateCustomer(Long id, CustomerRequest request, Long adminId) {
+        AdminUser admin = adminId != null ? adminUserRepository.findById(adminId).orElse(null) : null;
+        return updateCustomer(id, request, admin);
+    }
+
+    @Transactional
+    public void deleteCustomer(Long id, AdminUser adminUser) {
         Customer customer = customerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + id));
 
+        if (adminUser != null && adminUser.getRole() == com.acrovix.admin.entity.Role.SALES) {
+            authorizationService.checkCustomer360Access(adminUser, customer);
+        }
+
+        Long adminId = adminUser != null ? adminUser.getId() : null;
         customer.setActive(false);
         customer.setUpdatedBy(adminId);
         customerRepository.save(customer);
 
         logActivity(adminId, "CUSTOMER_DEACTIVATED", customer.getId(), "Deactivated customer: " + customer.getName());
     }
+
+    @Transactional
+    public void deleteCustomer(Long id, Long adminId) {
+        AdminUser admin = adminId != null ? adminUserRepository.findById(adminId).orElse(null) : null;
+        deleteCustomer(id, admin);
+    }
     
     @Transactional
-    public void activateCustomer(Long id, Long adminId) {
+    public void activateCustomer(Long id, AdminUser adminUser) {
         Customer customer = customerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + id));
 
+        if (adminUser != null && adminUser.getRole() == com.acrovix.admin.entity.Role.SALES) {
+            authorizationService.checkCustomer360Access(adminUser, customer);
+        }
+
+        Long adminId = adminUser != null ? adminUser.getId() : null;
         customer.setActive(true);
         customer.setUpdatedBy(adminId);
         customerRepository.save(customer);
 
         logActivity(adminId, "CUSTOMER_ACTIVATED", customer.getId(), "Activated customer: " + customer.getName());
+    }
+
+    @Transactional
+    public void activateCustomer(Long id, Long adminId) {
+        AdminUser admin = adminId != null ? adminUserRepository.findById(adminId).orElse(null) : null;
+        activateCustomer(id, admin);
     }
 
     private CustomerResponse mapToResponse(Customer customer) {

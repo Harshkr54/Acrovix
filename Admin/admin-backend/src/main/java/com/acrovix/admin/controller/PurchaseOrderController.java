@@ -49,7 +49,7 @@ public class PurchaseOrderController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<PurchaseOrderResponse> createPurchaseOrder(
             @Valid @RequestBody PurchaseOrderRequest request,
             @AuthenticationPrincipal AdminUser admin) {
@@ -57,7 +57,7 @@ public class PurchaseOrderController {
     }
 
     @PostMapping("/{id}/verify")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<PurchaseOrderResponse> verifyPurchaseOrder(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser admin) {
@@ -65,7 +65,7 @@ public class PurchaseOrderController {
     }
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<PurchaseOrderResponse> updateStatus(
             @PathVariable Long id, 
             @Valid @RequestBody PurchaseOrderStatusRequest request,

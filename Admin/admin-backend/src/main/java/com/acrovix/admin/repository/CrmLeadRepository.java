@@ -27,17 +27,32 @@ public interface CrmLeadRepository extends JpaRepository<CrmLead, Long>, JpaSpec
 
     long countByStatus(LeadStatus status);
 
+    @Query("SELECT COUNT(l) FROM CrmLead l WHERE l.status = :status AND (:salesUserId IS NULL OR l.assignedTo IS NULL OR l.assignedTo.id = :salesUserId)")
+    long countByStatusWithFilter(@Param("status") LeadStatus status, @Param("salesUserId") Long salesUserId);
+
     @Query("SELECT COALESCE(SUM(l.estimatedValue), 0) FROM CrmLead l WHERE l.status IN (:statuses)")
     BigDecimal sumEstimatedValueByStatusIn(@Param("statuses") List<LeadStatus> statuses);
+
+    @Query("SELECT COALESCE(SUM(l.estimatedValue), 0) FROM CrmLead l WHERE l.status IN (:statuses) AND (:salesUserId IS NULL OR l.assignedTo IS NULL OR l.assignedTo.id = :salesUserId)")
+    BigDecimal sumEstimatedValueByStatusInWithFilter(@Param("statuses") List<LeadStatus> statuses, @Param("salesUserId") Long salesUserId);
 
     @Query("SELECT COALESCE(SUM(l.estimatedValue), 0) FROM CrmLead l WHERE l.status = :status")
     BigDecimal sumEstimatedValueByStatus(@Param("status") LeadStatus status);
 
+    @Query("SELECT COALESCE(SUM(l.estimatedValue), 0) FROM CrmLead l WHERE l.status = :status AND (:salesUserId IS NULL OR l.assignedTo IS NULL OR l.assignedTo.id = :salesUserId)")
+    BigDecimal sumEstimatedValueByStatusWithFilter(@Param("status") LeadStatus status, @Param("salesUserId") Long salesUserId);
+
     @Query("SELECT COALESCE(SUM(l.estimatedValue), 0) FROM CrmLead l WHERE l.status IN (:statuses) AND COALESCE(l.currency, com.acrovix.admin.entity.Currency.INR) = :currency")
     BigDecimal sumEstimatedValueByStatusInAndCurrency(@Param("statuses") List<LeadStatus> statuses, @Param("currency") Currency currency);
 
+    @Query("SELECT COALESCE(SUM(l.estimatedValue), 0) FROM CrmLead l WHERE l.status IN (:statuses) AND COALESCE(l.currency, com.acrovix.admin.entity.Currency.INR) = :currency AND (:salesUserId IS NULL OR l.assignedTo IS NULL OR l.assignedTo.id = :salesUserId)")
+    BigDecimal sumEstimatedValueByStatusInAndCurrencyWithFilter(@Param("statuses") List<LeadStatus> statuses, @Param("currency") Currency currency, @Param("salesUserId") Long salesUserId);
+
     @Query("SELECT COALESCE(SUM(l.estimatedValue), 0) FROM CrmLead l WHERE l.status = :status AND COALESCE(l.currency, com.acrovix.admin.entity.Currency.INR) = :currency")
     BigDecimal sumEstimatedValueByStatusAndCurrency(@Param("status") LeadStatus status, @Param("currency") Currency currency);
+
+    @Query("SELECT COALESCE(SUM(l.estimatedValue), 0) FROM CrmLead l WHERE l.status = :status AND COALESCE(l.currency, com.acrovix.admin.entity.Currency.INR) = :currency AND (:salesUserId IS NULL OR l.assignedTo IS NULL OR l.assignedTo.id = :salesUserId)")
+    BigDecimal sumEstimatedValueByStatusAndCurrencyWithFilter(@Param("status") LeadStatus status, @Param("currency") Currency currency, @Param("salesUserId") Long salesUserId);
 
     Page<CrmLead> findByCustomerIdOrderByCreatedAtDesc(Long customerId, Pageable pageable);
 
