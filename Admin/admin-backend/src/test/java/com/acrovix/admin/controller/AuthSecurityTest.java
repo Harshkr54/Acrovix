@@ -285,4 +285,41 @@ public class AuthSecurityTest {
                 .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void testResetLinkGenerationUsesConfiguredFrontendUrl() throws Exception {
+        // Mock emailService to capture the generated reset link
+        com.acrovix.admin.service.EmailService mockEmailService = org.mockito.Mockito.mock(com.acrovix.admin.service.EmailService.class);
+        
+        com.acrovix.admin.service.AuthService customAuthService = new com.acrovix.admin.service.AuthService(
+                adminUserRepository,
+                activityRepository,
+                null,
+                null,
+                mockEmailService,
+                rateLimiterService,
+                null,
+                passwordResetTokenRepository,
+                passwordEncoder
+        );
+
+        // Inject production frontend URL via reflection
+        java.lang.reflect.Field urlField = com.acrovix.admin.service.AuthService.class.getDeclaredField("frontendUrl");
+        urlField.setAccessible(true);
+        urlField.set(customAuthService, "https://admin.acrovix.com");
+
+        customAuthService.requestPasswordReset("test@example.com");
+
+        org.mockito.ArgumentCaptor<String> linkCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
+        org.mockito.Mockito.verify(mockEmailService).sendPasswordResetEmailAsync(
+                org.mockito.ArgumentMatchers.eq("test@example.com"),
+                linkCaptor.capture()
+        );
+
+        String generatedLink = linkCaptor.getValue();
+        assertTrue(generatedLink.startsWith("https://admin.acrovix.com/reset-password?token="),
+                "Production reset link must start with https://admin.acrovix.com/reset-password?token=");
+        assertFalse(generatedLink.contains("localhost"),
+                "Production reset link must never contain localhost");
+    }
 }

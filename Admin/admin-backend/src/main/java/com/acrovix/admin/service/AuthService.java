@@ -130,7 +130,12 @@ public class AuthService {
         
         passwordResetTokenRepository.save(resetToken);
 
-        String resetLink = frontendUrl + "/reset-password?token=" + rawToken;
+        String baseUrl = (frontendUrl != null && !frontendUrl.isBlank()) ? frontendUrl.trim() : "http://localhost:5173";
+        while (baseUrl.endsWith("/")) {
+            baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
+        }
+
+        String resetLink = baseUrl + "/reset-password?token=" + rawToken;
         emailService.sendPasswordResetEmailAsync(user.getEmail(), resetLink);
     }
 

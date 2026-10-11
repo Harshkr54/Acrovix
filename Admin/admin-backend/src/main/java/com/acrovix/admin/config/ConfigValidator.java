@@ -32,6 +32,9 @@ public class ConfigValidator {
     @Value("${admin.initial.password:}")
     private String adminPassword;
 
+    @Value("${acrovix.app.frontend-url:}")
+    private String frontendUrl;
+
     public ConfigValidator(Environment environment) {
         this.environment = environment;
     }
@@ -59,6 +62,12 @@ public class ConfigValidator {
             // 3. Admin Bootstrap Validation
             if (!StringUtils.hasText(adminPassword)) {
                 throw new IllegalStateException("Required production configuration INITIAL_ADMIN_PASSWORD is missing.");
+            }
+
+            // 4. Frontend URL Validation
+            String frontendUrlVal = StringUtils.hasText(this.frontendUrl) ? this.frontendUrl : environment.getProperty("acrovix.app.frontend-url");
+            if (frontendUrlVal != null && (frontendUrlVal.contains("localhost") || frontendUrlVal.contains("127.0.0.1"))) {
+                throw new IllegalStateException("Production configuration acrovix.app.frontend-url cannot point to localhost or 127.0.0.1: " + frontendUrlVal);
             }
 
             logger.info("PRODUCTION configuration secrets validated successfully.");
