@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getPurchaseOrderById, verifyPurchaseOrder, updatePurchaseOrderStatus, createInvoiceFromPurchaseOrder, fetchApi, getCompanySettings } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { ArrowLeft, Clock, CheckCircle, Package, XCircle, FileText, Download, AlertTriangle, Eye, X, Building2, MapPin, Mail, Phone, Hash, CalendarDays, Receipt, UserSquare2, Loader2, Link, ShoppingCart, User, FileDigit, Activity } from 'lucide-react';
 import { API_BASE_URL } from '../services/api';
 import { formatCurrency } from '../utils/formatters';
@@ -8,6 +9,8 @@ import { formatCurrency } from '../utils/formatters';
 export default function PurchaseOrderDetail() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { user } = useAuth();
+    const isSuperAdmin = user?.role === 'SUPER_ADMIN';
     
     const [order, setOrder] = useState(null);
     const [quotation, setQuotation] = useState(null);
@@ -30,7 +33,7 @@ export default function PurchaseOrderDetail() {
             
             const [qData, cData] = await Promise.all([
                 fetchApi(`/quotations/${poData.quotationId}`).catch(() => null),
-                getCompanySettings().catch(() => null)
+                isSuperAdmin ? getCompanySettings().catch(() => null) : Promise.resolve(null)
             ]);
             setQuotation(qData);
             setCompanySettings(cData);
@@ -297,7 +300,7 @@ export default function PurchaseOrderDetail() {
                         <Download className="w-4 h-4 mr-2" /> PDF
                     </button>
                     
-                    {['VERIFIED', 'PARTIALLY_FULFILLED'].includes(order.status) && (
+                    {isSuperAdmin && ['VERIFIED', 'PARTIALLY_FULFILLED'].includes(order.status) && (
                         <button 
                             onClick={handleCreateTaxInvoice}
                             disabled={actionLoading}
@@ -307,7 +310,7 @@ export default function PurchaseOrderDetail() {
                         </button>
                     )}
                     
-                    {order.status === 'RECEIVED' && (
+                    {isSuperAdmin && order.status === 'RECEIVED' && (
                         <button 
                             onClick={handleVerify}
                             disabled={actionLoading}
@@ -318,7 +321,7 @@ export default function PurchaseOrderDetail() {
                         </button>
                     )}
 
-                    {['VERIFIED', 'PARTIALLY_FULFILLED'].includes(order.status) && (
+                    {isSuperAdmin && ['VERIFIED', 'PARTIALLY_FULFILLED'].includes(order.status) && (
                         <button 
                             onClick={() => { setNewStatus(''); setStatusModalOpen(true); }}
                             className="btn btn-secondary btn-md flex items-center"

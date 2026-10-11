@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Shield, Mail, Lock, AlertCircle, Loader2, Info, Sun, Moon, Eye, EyeOff, ArrowRight, Crown, User } from 'lucide-react';
+import { Shield, Mail, Lock, AlertCircle, Loader2, Info, Sun, Moon, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { API_BASE_URL } from '../services/api';
 import logoLight from '../assets/acrovix_logo1.png';
 import logoDark from '../assets/Acrovix_logo.png';
@@ -19,7 +19,6 @@ export default function Login() {
 
     const { theme, toggleTheme } = useTheme();
     const [showPassword, setShowPassword] = useState(false);
-    const [loginMode, setLoginMode] = useState('admin');
 
     const { login, user } = useAuth();
     const navigate = useNavigate();
@@ -132,97 +131,72 @@ export default function Login() {
 
     return (
         <div className={`min-h-[100dvh] w-full flex flex-col relative bg-bg-main ${isExiting ? 'animate-page-exit' : 'animate-page-entrance'}`}>
-            
-            {/* Theme Toggle */}
-            <div className="absolute top-6 right-6 z-50 flex items-center bg-bg-card rounded-full p-1 shadow-sm border border-border-subtle">
+                       {/* Theme Toggle */}
+            <div className="absolute top-4 right-4 sm:top-5 sm:right-6 z-50 flex items-center bg-bg-card rounded-full p-1 shadow-sm border border-border-subtle">
                 <button
                     type="button"
                     onClick={() => theme !== 'light' && toggleTheme()}
-                    className={`p-2 rounded-full transition-colors ${theme === 'light' ? 'bg-bg-muted text-[#F59E0B]' : 'text-text-muted hover:text-text-primary'}`}
+                    aria-label="Switch to light mode"
+                    className={`p-1.5 sm:p-2 rounded-full transition-colors ${theme === 'light' ? 'bg-bg-muted text-[#F59E0B]' : 'text-text-muted hover:text-text-primary'}`}
                 >
                     <Sun className="w-4 h-4" />
                 </button>
                 <button
                     type="button"
                     onClick={() => theme !== 'dark' && toggleTheme()}
-                    className={`p-2 rounded-full transition-colors ${theme === 'dark' ? 'bg-bg-muted text-[#2563EB]' : 'text-text-muted hover:text-text-primary'}`}
+                    aria-label="Switch to dark mode"
+                    className={`p-1.5 sm:p-2 rounded-full transition-colors ${theme === 'dark' ? 'bg-bg-muted text-[#2563EB]' : 'text-text-muted hover:text-text-primary'}`}
                 >
                     <Moon className="w-4 h-4" />
                 </button>
             </div>
 
             {/* Main Content Area */}
-            <div className="flex-1 flex items-center justify-center p-4">
-                <div className="w-full max-w-[420px] md:max-w-[460px] bg-bg-card p-8 sm:p-10 rounded-[20px] border border-border-subtle shadow-sm flex flex-col z-10 relative mt-[2vh]">
+            <div className="flex-1 flex items-center justify-center p-3 sm:p-4 min-h-0">
+                <div className="w-full max-w-[420px] md:max-w-[450px] bg-bg-card p-6 sm:p-8 rounded-[20px] border border-border-subtle shadow-sm flex flex-col z-10 relative">
                     
                     {/* Header */}
-                    <div className="flex flex-col items-center mb-8">
+                    <div className="flex flex-col items-center mb-5 sm:mb-6">
                         <img 
                             src={theme === 'dark' ? logoDark : logoLight} 
                             alt="Acrovix" 
                             width="250"
                             height="56"
-                            className="h-9 sm:h-14 w-auto object-contain mb-6"
+                            className="h-8 sm:h-11 w-auto object-contain mb-3 sm:mb-4"
                         />
-                        <h2 className="text-[24px] sm:text-[26px] font-bold text-text-primary tracking-tight">Welcome back 👋</h2>
-                        <p className="mt-1.5 text-center text-[14px] text-text-secondary">
+                        <h1 className="text-[22px] sm:text-[24px] font-bold text-text-primary tracking-tight">Welcome back 👋</h1>
+                        <p className="mt-1 text-center text-[13px] sm:text-[14px] text-text-secondary">
                             Sign in to manage your ACROVIX workspace.
                         </p>
                     </div>
 
-                    {/* Mode Selector */}
-                    <div className="flex p-1 bg-bg-main rounded-xl mb-6 border border-border-subtle">
-                        <button
-                            type="button"
-                            onClick={() => setLoginMode('admin')}
-                            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[13px] font-semibold transition-all duration-200 ${loginMode === 'admin'
-                                    ? 'btn-primary shadow-sm'
-                                    : 'text-text-secondary hover:text-text-primary'
-                                }`}
-                        >
-                            <Crown className="w-4 h-4" />
-                            Admin Login
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setLoginMode('user')}
-                            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[13px] font-semibold transition-all duration-200 ${loginMode === 'user'
-                                    ? 'btn-primary shadow-sm'
-                                    : 'text-text-secondary hover:text-text-primary'
-                                }`}
-                        >
-                            <User className="w-4 h-4" />
-                            User Login
-                        </button>
-                    </div>
-
-                    <form className="space-y-5" onSubmit={handleSubmit}>
+                    <form className="space-y-4" onSubmit={handleSubmit}>
                         {inactivityMsg && !error && (
-                            <div className="flex items-start p-3 bg-[#2563EB]/10 border border-[#2563EB]/20 rounded-xl">
+                            <div className="flex items-start p-2.5 sm:p-3 bg-[#2563EB]/10 border border-[#2563EB]/20 rounded-xl">
                                 <Info className="w-4 h-4 text-[#2563EB] mt-0.5 flex-shrink-0" />
-                                <p className="text-[13px] text-[#2563EB] font-medium ml-2">{inactivityMsg}</p>
+                                <p className="text-[12.5px] sm:text-[13px] text-[#2563EB] font-medium ml-2">{inactivityMsg}</p>
                             </div>
                         )}
 
                         {error && (
-                            <div className="flex items-start p-3 bg-brand-danger/10 border border-brand-danger/20 rounded-xl dark:bg-[#7f1d1d]/20 dark:border-[#ef4444]/30">
+                            <div className="flex items-start p-2.5 sm:p-3 bg-brand-danger/10 border border-brand-danger/20 rounded-xl dark:bg-[#7f1d1d]/20 dark:border-[#ef4444]/30">
                                 <AlertCircle className="w-4 h-4 text-brand-danger mt-0.5 flex-shrink-0" />
-                                <p className="text-[13px] text-brand-danger dark:text-[#fca5a5] font-medium ml-2">{error}</p>
+                                <p className="text-[12.5px] sm:text-[13px] text-brand-danger dark:text-[#fca5a5] font-medium ml-2">{error}</p>
                             </div>
                         )}
 
                         <div>
-                            <label className="block text-[13px] font-semibold text-text-primary mb-1.5 ml-0.5">Email address</label>
+                            <label className="block text-[12.5px] sm:text-[13px] font-semibold text-text-primary mb-1 ml-0.5">Email address</label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                                    <Mail className="h-[18px] w-[18px] text-text-muted" />
+                                    <Mail className="h-[17px] w-[17px] text-text-muted" />
                                 </div>
                                 <input
                                     name="email"
                                     type="email"
                                     required
-                                    className="w-full pl-10 pr-4 rounded-xl h-[50px] text-[14px] bg-bg-main text-text-primary border border-border-subtle focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] outline-none transition-all placeholder-text-muted"
-                                    placeholder="admin@acrovix.com"
+                                    className="w-full pl-10 pr-4 rounded-xl h-[44px] sm:h-[46px] text-[13.5px] sm:text-[14px] bg-bg-main text-text-primary border border-border-subtle focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] outline-none transition-all placeholder-text-muted"
+                                    placeholder="user@acrovix.com"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                 />
@@ -230,16 +204,16 @@ export default function Login() {
                         </div>
 
                         <div>
-                            <label className="block text-[13px] font-semibold text-text-primary mb-1.5 ml-0.5">Password</label>
+                            <label className="block text-[12.5px] sm:text-[13px] font-semibold text-text-primary mb-1 ml-0.5">Password</label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                                    <Lock className="h-[18px] w-[18px] text-text-muted" />
+                                    <Lock className="h-[17px] w-[17px] text-text-muted" />
                                 </div>
                                 <input
                                     name="password"
                                     type={showPassword ? "text" : "password"}
                                     required
-                                    className="w-full pl-10 pr-10 rounded-xl h-[50px] text-[14px] bg-bg-main text-text-primary border border-border-subtle focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] outline-none transition-all placeholder-text-muted"
+                                    className="w-full pl-10 pr-10 rounded-xl h-[44px] sm:h-[46px] text-[13.5px] sm:text-[14px] bg-bg-main text-text-primary border border-border-subtle focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] outline-none transition-all placeholder-text-muted"
                                     placeholder="••••••••"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
@@ -247,15 +221,16 @@ export default function Login() {
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
+                                    aria-label={showPassword ? "Hide password" : "Show password"}
                                     className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-text-muted hover:text-text-primary focus:outline-none"
                                 >
-                                    {showPassword ? <EyeOff className="h-[18px] w-[18px]" /> : <Eye className="h-[18px] w-[18px]" />}
+                                    {showPassword ? <EyeOff className="h-[17px] w-[17px]" /> : <Eye className="h-[17px] w-[17px]" />}
                                 </button>
                             </div>
-                            <div className="flex justify-end mt-2">
+                            <div className="flex justify-end mt-1.5">
                                 <Link
                                     to="/forgot-password"
-                                    className="text-[12.5px] font-medium text-[#2563EB] hover:text-[#1d4ed8] transition-colors focus:outline-none"
+                                    className="text-[12px] font-medium text-[#2563EB] hover:text-[#1d4ed8] transition-colors focus:outline-none"
                                 >
                                     Forgot password?
                                 </Link>
@@ -265,7 +240,7 @@ export default function Login() {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="btn btn-primary w-full h-[50px] mt-6 text-[15px] rounded-xl"
+                            className="btn btn-primary w-full h-[46px] sm:h-[48px] mt-4 text-[14px] sm:text-[15px] rounded-xl"
                         >
                             {isLoading ? (
                                 <Loader2 className="w-[18px] h-[18px] animate-spin" />
@@ -277,9 +252,9 @@ export default function Login() {
                             )}
                         </button>
                         
-                        <div className="flex items-center justify-center gap-1.5 mt-5 pt-1">
+                        <div className="flex items-center justify-center gap-1.5 pt-1">
                             <Shield className="w-3.5 h-3.5 text-text-muted" />
-                            <p className="text-[12px] text-text-muted">
+                            <p className="text-[11.5px] sm:text-[12px] text-text-muted">
                                 Secure access to your ACROVIX workspace
                             </p>
                         </div>
@@ -288,15 +263,14 @@ export default function Login() {
             </div>
 
             {/* Footer */}
-            <div className="w-full px-6 py-5 flex flex-col sm:flex-row items-center justify-between z-20 text-[11px] text-text-muted gap-3 sm:gap-0 mt-auto">
+            <footer className="w-full px-4 sm:px-6 py-3 flex flex-col sm:flex-row items-center justify-between z-20 text-[11px] text-text-muted gap-2 sm:gap-0 mt-auto shrink-0">
                 <div>© 2026 Acrovix Innovations Private Limited</div>
                 <div className="flex gap-4">
                     <Link to="#" className="hover:text-text-primary transition-colors">Privacy Policy</Link>
                     <Link to="#" className="hover:text-text-primary transition-colors">Terms of Service</Link>
                     <Link to="#" className="hover:text-text-primary transition-colors">Support</Link>
                 </div>
-            </div>
-
+            </footer>
         </div>
     );
 }

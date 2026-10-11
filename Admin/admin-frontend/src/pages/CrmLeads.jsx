@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { getCrmLeads, getAdminUsers } from '../services/api';
 import PageHeader from '../components/ui/PageHeader';
 import EmptyState from '../components/ui/EmptyState';
@@ -118,6 +119,8 @@ const SOURCE_OPTIONS = [
 
 export default function CrmLeads() {
     const navigate = useNavigate();
+    const { user } = useAuth();
+    const isSuperAdmin = user?.role === 'SUPER_ADMIN';
 
     const [leads, setLeads] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -150,7 +153,7 @@ export default function CrmLeads() {
                 status: statusFilter || undefined,
                 priority: priorityFilter || undefined,
                 leadSource: sourceFilter || undefined,
-                assignedToId: assignedToIdFilter ? Number(assignedToIdFilter) : undefined,
+                assignedToId: isSuperAdmin && assignedToIdFilter ? Number(assignedToIdFilter) : undefined,
                 page,
                 size: 10
             });
@@ -173,10 +176,12 @@ export default function CrmLeads() {
     };
 
     useEffect(() => {
-        getAdminUsers()
-            .then(users => setAdminUsers(Array.isArray(users) ? users : []))
-            .catch(err => console.error("Failed to load admin users", err));
-    }, []);
+        if (isSuperAdmin) {
+            getAdminUsers()
+                .then(users => setAdminUsers(Array.isArray(users) ? users : []))
+                .catch(err => console.error("Failed to load admin users", err));
+        }
+    }, [isSuperAdmin]);
 
     useEffect(() => {
         fetchLeads();
@@ -279,16 +284,18 @@ export default function CrmLeads() {
                         ))}
                     </select>
 
-                    <select
-                        value={assignedToIdFilter}
-                        onChange={(e) => { setAssignedToIdFilter(e.target.value); setPage(0); }}
-                        className="px-3 py-1.5 text-xs bg-bg-main border border-border-subtle rounded-xl text-text-primary focus:outline-none focus:ring-2 focus:ring-[#0D9488]"
-                    >
-                        <option value="">All Sales Reps</option>
-                        {adminUsers.map(u => (
-                            <option key={u.id} value={u.id}>{u.name}</option>
-                        ))}
-                    </select>
+                    {isSuperAdmin && (
+                        <select
+                            value={assignedToIdFilter}
+                            onChange={(e) => { setAssignedToIdFilter(e.target.value); setPage(0); }}
+                            className="px-3 py-1.5 text-xs bg-bg-main border border-border-subtle rounded-xl text-text-primary focus:outline-none focus:ring-2 focus:ring-[#0D9488]"
+                        >
+                            <option value="">All Sales Reps</option>
+                            {adminUsers.map(u => (
+                                <option key={u.id} value={u.id}>{u.name}</option>
+                            ))}
+                        </select>
+                    )}
 
                     {hasActiveFilters && (
                         <button

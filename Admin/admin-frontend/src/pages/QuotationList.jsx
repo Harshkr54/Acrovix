@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { fetchApi } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { FileText, Plus, AlertCircle, ChevronLeft, ChevronRight, File, Trash2, ShoppingCart, Eye, CheckCircle, XCircle, RefreshCw, History, Send, Pencil } from 'lucide-react';
 import CreateQuotationModal from '../components/CreateQuotationModal';
 import CreatePurchaseOrderModal from '../components/CreatePurchaseOrderModal';
@@ -14,6 +15,8 @@ import EmptyState from '../components/ui/EmptyState';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 
 export default function QuotationList() {
+    const { user } = useAuth();
+    const isSuperAdmin = user?.role === 'SUPER_ADMIN';
     const [quotations, setQuotations] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -284,8 +287,9 @@ export default function QuotationList() {
                     historyItem,
                     { type: 'divider' },
                     ...(hasPO ? [viewPoItem] : [convertToPoItem]),
-                    hasProforma ? viewProformaItem : createProformaItem,
-                    hasTaxInvoice ? viewTaxInvoiceItem : createTaxInvoiceItem
+                    ...(isSuperAdmin 
+                        ? [hasProforma ? viewProformaItem : createProformaItem, hasTaxInvoice ? viewTaxInvoiceItem : createTaxInvoiceItem]
+                        : [...(hasProforma ? [viewProformaItem] : []), ...(hasTaxInvoice ? [viewTaxInvoiceItem] : [])])
                 ];
 
             case 'REJECTED':
@@ -303,8 +307,9 @@ export default function QuotationList() {
                     historyItem,
                     { type: 'divider' },
                     ...(hasPO ? [viewPoItem] : []),
-                    hasProforma ? viewProformaItem : createProformaItem,
-                    hasTaxInvoice ? viewTaxInvoiceItem : createTaxInvoiceItem
+                    ...(isSuperAdmin 
+                        ? [hasProforma ? viewProformaItem : createProformaItem, hasTaxInvoice ? viewTaxInvoiceItem : createTaxInvoiceItem]
+                        : [...(hasProforma ? [viewProformaItem] : []), ...(hasTaxInvoice ? [viewTaxInvoiceItem] : [])])
                 ];
 
             case 'REVISED':

@@ -39,6 +39,7 @@ import ConfirmDialog from '../components/ui/ConfirmDialog';
 export default function Payments() {
     const navigate = useNavigate();
     const { user } = useAuth();
+    const isSuperAdmin = user?.role === 'SUPER_ADMIN';
     const { showToast } = useToast();
 
     const [payments, setPayments] = useState([]);
@@ -323,12 +324,14 @@ export default function Payments() {
                         Track, inspect, and manually record customer payments for money received externally.
                     </p>
                 </div>
-                <button 
-                    onClick={handleOpenRecordPaymentModal}
-                    className="btn btn-primary btn-md self-start md:self-auto"
-                >
-                    <Plus className="w-4 h-4" /> Record Payment
-                </button>
+                {isSuperAdmin && (
+                    <button 
+                        onClick={handleOpenRecordPaymentModal}
+                        className="btn btn-primary btn-md self-start md:self-auto"
+                    >
+                        <Plus className="w-4 h-4" /> Record Payment
+                    </button>
+                )}
             </div>
 
             {/* Filter Bar */}
@@ -527,7 +530,7 @@ export default function Payments() {
                                                         <Mail className="w-4 h-4 text-brand-primary" />
                                                     )}
                                                 </button>
-                                                {p.status === 'RECORDED' && (
+                                                {isSuperAdmin && p.status === 'RECORDED' && (
                                                     <button 
                                                         onClick={() => handleOpenCancelModal(p)}
                                                         className="btn btn-danger btn-sm"

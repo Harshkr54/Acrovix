@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { resetPassword } from '../services/api';
+import { useTheme } from '../context/ThemeContext';
 import logoLight from '../assets/acrovix_logo1.png';
 import logoDark from '../assets/Acrovix_logo.png';
-import { Loader2 } from 'lucide-react';
+import { Lock, Loader2, ArrowRight, ArrowLeft, Sun, Moon, Shield, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 
 const ResetPassword = () => {
     const [searchParams] = useSearchParams();
@@ -11,10 +12,12 @@ const ResetPassword = () => {
     
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
     const [errorMsg, setErrorMsg] = useState(null);
-    const [theme] = useState(() => localStorage.getItem('acrovix_admin_theme') || 'light');
+    const { theme, toggleTheme } = useTheme();
 
     useEffect(() => {
         if (!token) {
@@ -31,16 +34,12 @@ const ResetPassword = () => {
         }
 
         if (newPassword.length < 8) {
-            window.dispatchEvent(new CustomEvent('acrovix-toast', {
-                detail: { type: 'error', message: 'Password must be at least 8 characters long.' }
-            }));
+            setErrorMsg('Password must be at least 8 characters long.');
             return;
         }
 
         if (newPassword !== confirmPassword) {
-            window.dispatchEvent(new CustomEvent('acrovix-toast', {
-                detail: { type: 'error', message: 'Passwords do not match.' }
-            }));
+            setErrorMsg('Passwords do not match.');
             return;
         }
 
@@ -49,9 +48,6 @@ const ResetPassword = () => {
         try {
             await resetPassword({ token, newPassword, confirmPassword });
             setIsSuccess(true);
-            window.dispatchEvent(new CustomEvent('acrovix-toast', {
-                detail: { type: 'success', message: 'Password reset successfully.' }
-            }));
         } catch (error) {
             const message = error.message || 'Password reset link is invalid or has expired.';
             setErrorMsg(message);
@@ -61,106 +57,179 @@ const ResetPassword = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0B1120] transition-colors duration-200">
-            <div className="w-full max-w-md p-8 bg-white dark:bg-[#151E2E] rounded-2xl shadow-xl dark:shadow-none border border-transparent dark:border-gray-800 transition-colors duration-200"
-                 style={{ animation: 'fadeInUp 0.25s ease-out forwards' }}>
-                <div className="flex flex-col items-center mb-8">
-                    <img 
-                        src={theme === 'dark' ? logoDark : logoLight} 
-                        alt="Acrovix" 
-                        className="h-10 mb-6"
-                    />
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Reset Password</h2>
-                </div>
+        <div className="min-h-[100dvh] w-full flex flex-col relative bg-bg-main">
+            {/* Theme Toggle */}
+            <div className="absolute top-4 right-4 sm:top-5 sm:right-6 z-50 flex items-center bg-bg-card rounded-full p-1 shadow-sm border border-border-subtle">
+                <button
+                    type="button"
+                    onClick={() => theme !== 'light' && toggleTheme()}
+                    aria-label="Switch to light mode"
+                    className={`p-1.5 sm:p-2 rounded-full transition-colors ${theme === 'light' ? 'bg-bg-muted text-[#F59E0B]' : 'text-text-muted hover:text-text-primary'}`}
+                >
+                    <Sun className="w-4 h-4" />
+                </button>
+                <button
+                    type="button"
+                    onClick={() => theme !== 'dark' && toggleTheme()}
+                    aria-label="Switch to dark mode"
+                    className={`p-1.5 sm:p-2 rounded-full transition-colors ${theme === 'dark' ? 'bg-bg-muted text-[#2563EB]' : 'text-text-muted hover:text-text-primary'}`}
+                >
+                    <Moon className="w-4 h-4" />
+                </button>
+            </div>
 
-                {isSuccess ? (
-                    <div className="text-center">
-                        <div className="p-4 bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 rounded-lg mb-6 text-sm">
-                            Password reset successfully. Please sign in with your new password.
-                        </div>
-                        <Link 
-                            to="/login"
-                            className="w-full flex justify-center items-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none transition-colors"
-                        >
-                            Back to Sign In
-                        </Link>
+            {/* Main Content Area */}
+            <div className="flex-1 flex items-center justify-center p-3 sm:p-4 min-h-0">
+                <div className="w-full max-w-[420px] md:max-w-[450px] bg-bg-card p-6 sm:p-8 rounded-[20px] border border-border-subtle shadow-sm flex flex-col z-10 relative">
+                    
+                    {/* Header */}
+                    <div className="flex flex-col items-center mb-5 sm:mb-6">
+                        <img 
+                            src={theme === 'dark' ? logoDark : logoLight} 
+                            alt="Acrovix" 
+                            width="250"
+                            height="56"
+                            className="h-8 sm:h-11 w-auto object-contain mb-3 sm:mb-4"
+                        />
+                        <h1 className="text-[22px] sm:text-[24px] font-bold text-text-primary tracking-tight">Reset password 🔑</h1>
+                        <p className="mt-1 text-center text-[13px] sm:text-[14px] text-text-secondary">
+                            Choose a strong, secure password for your account.
+                        </p>
                     </div>
-                ) : errorMsg ? (
-                    <div className="text-center">
-                        <div className="p-4 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg mb-6 text-sm">
-                            {errorMsg}
-                        </div>
-                        <Link 
-                            to="/forgot-password"
-                            className="w-full flex justify-center items-center py-2.5 px-4 border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-[#0B1120] hover:bg-gray-50 dark:hover:bg-gray-800 focus:outline-none transition-colors"
-                        >
-                            Request New Reset Link
-                        </Link>
-                        <div className="mt-4">
+
+                    {isSuccess ? (
+                        <div className="space-y-5 text-center">
+                            <div className="flex items-start p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-left">
+                                <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 mt-0.5 flex-shrink-0" />
+                                <div className="ml-2.5">
+                                    <p className="text-[13px] font-semibold text-emerald-700 dark:text-emerald-300">Password updated successfully</p>
+                                    <p className="text-[12.5px] text-emerald-600 dark:text-emerald-400 mt-0.5">
+                                        Your password has been reset. You can now sign in with your new credentials.
+                                    </p>
+                                </div>
+                            </div>
                             <Link 
                                 to="/login"
-                                className="text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 font-medium text-sm transition-colors"
+                                className="btn btn-primary w-full h-[46px] sm:h-[48px] text-[14px] sm:text-[15px] rounded-xl flex items-center justify-center gap-2"
                             >
                                 Back to Sign In
+                                <ArrowRight className="w-4 h-4" />
                             </Link>
                         </div>
-                    </div>
-                ) : (
-                    <form onSubmit={handleSubmit} className="space-y-5">
-                        <div>
-                            <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                New Password
-                            </label>
-                            <input
-                                id="newPassword"
-                                type="password"
-                                value={newPassword}
-                                onChange={(e) => setNewPassword(e.target.value)}
-                                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#0B1120] text-gray-900 dark:text-white focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 dark:focus:border-teal-400 transition-colors outline-none"
-                                required
-                            />
-                        </div>
-                        
-                        <div>
-                            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Confirm Password
-                            </label>
-                            <input
-                                id="confirmPassword"
-                                type="password"
-                                value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#0B1120] text-gray-900 dark:text-white focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 dark:focus:border-teal-400 transition-colors outline-none"
-                                required
-                            />
-                        </div>
-
-                        <button
-                            type="submit"
-                            disabled={isLoading}
-                            className="w-full flex justify-center items-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors mt-2"
-                        >
-                            {isLoading ? (
-                                <>
-                                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                                    Resetting...
-                                </>
-                            ) : (
-                                'Reset Password'
+                    ) : (
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            {errorMsg && (
+                                <div className="flex items-start p-2.5 sm:p-3 bg-brand-danger/10 border border-brand-danger/20 rounded-xl dark:bg-[#7f1d1d]/20 dark:border-[#ef4444]/30">
+                                    <AlertCircle className="w-4 h-4 text-brand-danger mt-0.5 flex-shrink-0" />
+                                    <p className="text-[12.5px] sm:text-[13px] text-brand-danger dark:text-[#fca5a5] font-medium ml-2">{errorMsg}</p>
+                                </div>
                             )}
-                        </button>
-                    </form>
-                )}
+
+                            <div>
+                                <label htmlFor="newPassword" className="block text-[12.5px] sm:text-[13px] font-semibold text-text-primary mb-1 ml-0.5">
+                                    New password
+                                </label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                        <Lock className="h-[17px] w-[17px] text-text-muted" />
+                                    </div>
+                                    <input
+                                        id="newPassword"
+                                        name="newPassword"
+                                        type={showNewPassword ? "text" : "password"}
+                                        value={newPassword}
+                                        onChange={(e) => setNewPassword(e.target.value)}
+                                        className="w-full pl-10 pr-10 rounded-xl h-[44px] sm:h-[46px] text-[13.5px] sm:text-[14px] bg-bg-main text-text-primary border border-border-subtle focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] outline-none transition-all placeholder-text-muted"
+                                        placeholder="••••••••"
+                                        required
+                                        minLength={8}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowNewPassword(!showNewPassword)}
+                                        aria-label={showNewPassword ? "Hide password" : "Show password"}
+                                        className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-text-muted hover:text-text-primary focus:outline-none"
+                                    >
+                                        {showNewPassword ? <EyeOff className="h-[17px] w-[17px]" /> : <Eye className="h-[17px] w-[17px]" />}
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label htmlFor="confirmPassword" className="block text-[12.5px] sm:text-[13px] font-semibold text-text-primary mb-1 ml-0.5">
+                                    Confirm new password
+                                </label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                        <Lock className="h-[17px] w-[17px] text-text-muted" />
+                                    </div>
+                                    <input
+                                        id="confirmPassword"
+                                        name="confirmPassword"
+                                        type={showConfirmPassword ? "text" : "password"}
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        className="w-full pl-10 pr-10 rounded-xl h-[44px] sm:h-[46px] text-[13.5px] sm:text-[14px] bg-bg-main text-text-primary border border-border-subtle focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] outline-none transition-all placeholder-text-muted"
+                                        placeholder="••••••••"
+                                        required
+                                        minLength={8}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                                        className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-text-muted hover:text-text-primary focus:outline-none"
+                                    >
+                                        {showConfirmPassword ? <EyeOff className="h-[17px] w-[17px]" /> : <Eye className="h-[17px] w-[17px]" />}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={isLoading || !token}
+                                className="btn btn-primary w-full h-[46px] sm:h-[48px] mt-4 text-[14px] sm:text-[15px] rounded-xl"
+                            >
+                                {isLoading ? (
+                                    <Loader2 className="w-[18px] h-[18px] animate-spin" />
+                                ) : (
+                                    <>
+                                        Reset Password
+                                        <ArrowRight className="w-[18px] h-[18px]" />
+                                    </>
+                                )}
+                            </button>
+
+                            <div className="pt-2 text-center">
+                                <Link 
+                                    to="/login"
+                                    className="inline-flex items-center gap-1.5 text-[13px] font-medium text-text-secondary hover:text-text-primary transition-colors focus:outline-none"
+                                >
+                                    <ArrowLeft className="w-3.5 h-3.5" />
+                                    Back to Sign In
+                                </Link>
+                            </div>
+
+                            <div className="flex items-center justify-center gap-1.5 pt-2">
+                                <Shield className="w-3.5 h-3.5 text-text-muted" />
+                                <p className="text-[11.5px] sm:text-[12px] text-text-muted">
+                                    Protected by ACROVIX Security
+                                </p>
+                            </div>
+                        </form>
+                    )}
+                </div>
             </div>
-            <style dangerouslySetInnerHTML={{__html: `
-                @keyframes fadeInUp {
-                    from { opacity: 0; transform: translateY(10px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-                @media (prefers-reduced-motion: reduce) {
-                    .min-h-screen > div { animation: none !important; opacity: 1 !important; transform: none !important; }
-                }
-            `}} />
+
+            {/* Footer */}
+            <footer className="w-full px-4 sm:px-6 py-3 flex flex-col sm:flex-row items-center justify-between z-20 text-[11px] text-text-muted gap-2 sm:gap-0 mt-auto shrink-0">
+                <div>© 2026 Acrovix Innovations Private Limited</div>
+                <div className="flex gap-4">
+                    <Link to="#" className="hover:text-text-primary transition-colors">Privacy Policy</Link>
+                    <Link to="#" className="hover:text-text-primary transition-colors">Terms of Service</Link>
+                    <Link to="#" className="hover:text-text-primary transition-colors">Support</Link>
+                </div>
+            </footer>
         </div>
     );
 };

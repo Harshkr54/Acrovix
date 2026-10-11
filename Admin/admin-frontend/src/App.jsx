@@ -3,10 +3,12 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { ToastProvider, useToast } from './context/ToastContext';
 import Layout from './components/Layout';
+import SalesLayout from './components/SalesLayout';
 const Login = lazy(() => import('./pages/Login'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
+const SalesDashboard = lazy(() => import('./pages/SalesDashboard'));
 const EnquiryList = lazy(() => import('./pages/EnquiryList'));
 const QuotationBuilder = lazy(() => import('./pages/QuotationBuilder'));
 const QuotationList = lazy(() => import('./pages/QuotationList'));
@@ -50,6 +52,16 @@ const RoleRoute = ({ children, allowedRoles, redirectTo = "/" }) => {
     return children;
 };
 
+const AppLayout = () => {
+    const { user } = useAuth();
+    return user?.role === 'SALES' ? <SalesLayout /> : <Layout />;
+};
+
+const RoleDashboard = () => {
+    const { user } = useAuth();
+    return user?.role === 'SALES' ? <SalesDashboard /> : <Dashboard />;
+};
+
 function NetworkStatus() {
     const { showToast } = useToast();
 
@@ -91,8 +103,8 @@ function App() {
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 
-                <Route path="/" element={<ProtectedRoute><SessionManager><Layout /></SessionManager></ProtectedRoute>}>
-                    <Route index element={<Dashboard />} />
+                <Route path="/" element={<ProtectedRoute><SessionManager><AppLayout /></SessionManager></ProtectedRoute>}>
+                    <Route index element={<RoleDashboard />} />
                     <Route path="crm" element={<CrmDashboard />} />
                     <Route path="crm/leads" element={<CrmLeads />} />
                     <Route path="crm/leads/:id" element={<CrmLeadDetails />} />
@@ -113,9 +125,9 @@ function App() {
                     <Route path="receivables" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><Receivables /></RoleRoute>} />
                     <Route path="reports" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><Reports /></RoleRoute>} />
                     <Route path="users" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><UserList /></RoleRoute>} />
-                    <Route path="trash" element={<TrashList />} />
-                    <Route path="activity" element={<Activity />} />
-                    <Route path="settings" element={<Settings />} />
+                    <Route path="trash" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><TrashList /></RoleRoute>} />
+                    <Route path="activity" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><Activity /></RoleRoute>} />
+                    <Route path="settings" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><Settings /></RoleRoute>} />
                 </Route>
             </Routes>
             </Suspense>

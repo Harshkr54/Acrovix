@@ -376,7 +376,8 @@ export default function InvoiceDetail() {
         }
     };
 
-    const isRecordPaymentEligible = invoice.invoiceType === 'TAX_INVOICE' && (invoice.status === 'ISSUED' || invoice.status === 'PARTIALLY_PAID');
+    const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+    const isRecordPaymentEligible = isSuperAdmin && invoice.invoiceType === 'TAX_INVOICE' && (invoice.status === 'ISSUED' || invoice.status === 'PARTIALLY_PAID');
 
     return (
         <div className="p-8 max-w-5xl mx-auto pb-24">
@@ -407,7 +408,7 @@ export default function InvoiceDetail() {
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
-                    {invoice.status === 'DRAFT' && (
+                    {isSuperAdmin && invoice.status === 'DRAFT' && (
                         <button 
                             onClick={handleOpenEditModal}
                             className="btn btn-primary btn-md"
@@ -440,7 +441,7 @@ export default function InvoiceDetail() {
                             <CreditCard className="w-4 h-4" /> Record Payment
                         </button>
                     )}
-                    {invoice.status === 'DRAFT' && (
+                    {isSuperAdmin && invoice.status === 'DRAFT' && (
                         <button 
                             onClick={handleIssue}
                             disabled={actionLoading}
@@ -449,7 +450,7 @@ export default function InvoiceDetail() {
                             <CheckCircle className="w-4 h-4" /> Issue Invoice
                         </button>
                     )}
-                    {(invoice.status === 'DRAFT' || invoice.status === 'ISSUED') && (
+                    {isSuperAdmin && (invoice.status === 'DRAFT' || invoice.status === 'ISSUED') && (
                         <button 
                             onClick={handleCancel}
                             disabled={actionLoading}
@@ -458,7 +459,7 @@ export default function InvoiceDetail() {
                             Cancel
                         </button>
                     )}
-                    {invoice.invoiceType === 'PROFORMA' && invoice.status === 'ISSUED' && (
+                    {isSuperAdmin && invoice.invoiceType === 'PROFORMA' && invoice.status === 'ISSUED' && (
                         <button 
                             onClick={handleConvertToTaxInvoice}
                             disabled={actionLoading}
@@ -670,7 +671,7 @@ export default function InvoiceDetail() {
                                                             >
                                                                 <Download className="w-3.5 h-3.5" />
                                                             </button>
-                                                            {p.status === 'RECORDED' && (
+                                                            {isSuperAdmin && p.status === 'RECORDED' && (
                                                                 <button 
                                                                     onClick={() => handleOpenCancelModal(p.id)}
                                                                     className="btn btn-danger btn-md"
@@ -695,7 +696,7 @@ export default function InvoiceDetail() {
                     <div className="bg-bg-card border border-border-subtle rounded-xl p-6">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wider">Billed To</h3>
-                            {invoice.status === 'DRAFT' && (
+                            {isSuperAdmin && invoice.status === 'DRAFT' && (
                                 <button 
                                     onClick={handleOpenEditModal}
                                     className="btn btn-secondary btn-icon"

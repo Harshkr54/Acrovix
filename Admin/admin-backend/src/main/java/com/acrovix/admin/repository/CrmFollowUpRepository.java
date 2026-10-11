@@ -34,5 +34,11 @@ public interface CrmFollowUpRepository extends JpaRepository<CrmFollowUp, Long> 
 
     long countByStatusAndScheduledAtBetween(FollowUpStatus status, LocalDateTime start, LocalDateTime end);
 
+    @Query("SELECT COUNT(f) FROM CrmFollowUp f WHERE f.status = :status AND f.scheduledAt BETWEEN :start AND :end AND (:assignedId IS NULL OR f.assignedTo.id = :assignedId)")
+    long countByStatusAndScheduledAtBetweenWithFilter(@Param("status") FollowUpStatus status, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end, @Param("assignedId") Long assignedId);
+
     long countByStatusAndScheduledAtBefore(FollowUpStatus status, LocalDateTime dateTime);
+
+    @Query("SELECT COUNT(f) FROM CrmFollowUp f WHERE f.status = :status AND f.scheduledAt < :dateTime AND (:assignedId IS NULL OR f.assignedTo.id = :assignedId)")
+    long countByStatusAndScheduledAtBeforeWithFilter(@Param("status") FollowUpStatus status, @Param("dateTime") LocalDateTime dateTime, @Param("assignedId") Long assignedId);
 }

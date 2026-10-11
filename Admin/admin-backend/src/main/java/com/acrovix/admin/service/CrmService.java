@@ -514,12 +514,12 @@ public class CrmService {
         LocalDateTime startToday = LocalDate.now().atStartOfDay();
         LocalDateTime endToday = LocalDate.now().atTime(LocalTime.MAX);
 
-        long dueToday = crmFollowUpRepository.countByStatusAndScheduledAtBetween(
-                FollowUpStatus.PENDING, startToday, endToday
+        long dueToday = crmFollowUpRepository.countByStatusAndScheduledAtBetweenWithFilter(
+                FollowUpStatus.PENDING, startToday, endToday, salesUserId
         );
 
-        long overdue = crmFollowUpRepository.countByStatusAndScheduledAtBefore(
-                FollowUpStatus.PENDING, now
+        long overdue = crmFollowUpRepository.countByStatusAndScheduledAtBeforeWithFilter(
+                FollowUpStatus.PENDING, now, salesUserId
         );
 
         Map<String, Long> statusBreakdown = new LinkedHashMap<>();

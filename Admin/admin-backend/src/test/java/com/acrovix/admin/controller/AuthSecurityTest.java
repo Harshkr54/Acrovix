@@ -20,7 +20,17 @@ import org.springframework.transaction.annotation.Transactional;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import com.acrovix.admin.dto.ForgotPasswordRequest;
+import com.acrovix.admin.dto.ResetPasswordRequest;
+import com.acrovix.admin.entity.PasswordResetToken;
+import com.acrovix.admin.repository.PasswordResetTokenRepository;
+import java.security.MessageDigest;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.util.HexFormat;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -37,6 +47,9 @@ public class AuthSecurityTest {
     private AdminActivityRepository activityRepository;
 
     @Autowired
+    private PasswordResetTokenRepository passwordResetTokenRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Autowired
@@ -47,6 +60,7 @@ public class AuthSecurityTest {
 
     @BeforeEach
     void setUp() {
+        passwordResetTokenRepository.deleteAll();
         adminUserRepository.deleteAll();
         activityRepository.deleteAll();
 
@@ -122,5 +136,153 @@ public class AuthSecurityTest {
         boolean hasRateLimitLog = activityRepository.findAll().stream()
                 .anyMatch(a -> "LOGIN_RATE_LIMITED".equals(a.getAction()));
         assertTrue(hasRateLimitLog, "Rate limited attempt should be logged");
+    }
+
+    @Test
+    void testForgotPasswordUnknownEmailDoesNotLeakOrGenerateToken() throws Exception {
+        ForgotPasswordRequest request = new ForgotPasswordRequest();
+        request.setEmail("unknown-user@example.com");
+
+        mockMvc.perform(post("/api/admin/auth/forgot-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
+
+        assertEquals(0, passwordResetTokenRepository.count(),
+                "Unknown email must not generate any password reset token in the database");
+    }
+
+    @Test
+    void testForgotPasswordInvalidEmailFormatFails() throws Exception {
+        ForgotPasswordRequest request = new ForgotPasswordRequest();
+        request.setEmail("not-a-valid-email");
+
+        mockMvc.perform(post("/api/admin/auth/forgot-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testForgotPasswordRegisteredEmailGeneratesHashedToken() throws Exception {
+        ForgotPasswordRequest request = new ForgotPasswordRequest();
+        request.setEmail("test@example.com");
+
+        mockMvc.perform(post("/api/admin/auth/forgot-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
+
+        assertEquals(1, passwordResetTokenRepository.count(),
+                "Registered email must create exactly one password reset token");
+        PasswordResetToken token = passwordResetTokenRepository.findAll().get(0);
+        assertFalse(token.isUsed());
+        assertEquals("test@example.com", token.getAdminUser().getEmail());
+        assertTrue(token.getExpiryDate().isAfter(LocalDateTime.now()),
+                "Token expiry must be set in the future");
+    }
+
+    @Test
+    void testResetPasswordValidationAndFlow() throws Exception {
+        AdminUser user = adminUserRepository.findByEmail("test@example.com").orElseThrow();
+
+        // Prepare a known token
+        String rawToken = "safe-test-token-value-1234567890";
+        MessageDigest md = MessageDigest.getInstance("SHA-256");
+        String tokenHash = HexFormat.of().formatHex(md.digest(rawToken.getBytes(StandardCharsets.UTF_8)));
+
+        PasswordResetToken resetToken = PasswordResetToken.builder()
+                .tokenHash(tokenHash)
+                .adminUser(user)
+                .expiryDate(LocalDateTime.now().plusMinutes(15))
+                .used(false)
+                .build();
+        passwordResetTokenRepository.save(resetToken);
+
+        // 1. Password mismatch fails
+        ResetPasswordRequest mismatchReq = new ResetPasswordRequest();
+        mismatchReq.setToken(rawToken);
+        mismatchReq.setNewPassword("NewPassword123!");
+        mismatchReq.setConfirmPassword("DifferentPassword123!");
+
+        mockMvc.perform(post("/api/admin/auth/reset-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(mismatchReq)))
+                .andExpect(status().isBadRequest());
+
+        // 2. Invalid token fails
+        ResetPasswordRequest invalidTokenReq = new ResetPasswordRequest();
+        invalidTokenReq.setToken("invalid-nonexistent-token");
+        invalidTokenReq.setNewPassword("NewPassword123!");
+        invalidTokenReq.setConfirmPassword("NewPassword123!");
+
+        mockMvc.perform(post("/api/admin/auth/reset-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(invalidTokenReq)))
+                .andExpect(status().isBadRequest());
+
+        // 3. Valid token resets password
+        ResetPasswordRequest validReq = new ResetPasswordRequest();
+        validReq.setToken(rawToken);
+        validReq.setNewPassword("NewPassword123!");
+        validReq.setConfirmPassword("NewPassword123!");
+
+        mockMvc.perform(post("/api/admin/auth/reset-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(validReq)))
+                .andExpect(status().isOk());
+
+        // Verify token is now marked used
+        PasswordResetToken updatedToken = passwordResetTokenRepository.findByTokenHash(tokenHash).orElseThrow();
+        assertTrue(updatedToken.isUsed(), "Token must be invalidated after use");
+
+        // 4. Token cannot be reused
+        mockMvc.perform(post("/api/admin/auth/reset-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(validReq)))
+                .andExpect(status().isBadRequest());
+
+        // 5. Old password no longer works
+        AuthRequest oldLogin = new AuthRequest("test@example.com", "password123");
+        mockMvc.perform(post("/api/admin/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(oldLogin))
+                .header("X-Forwarded-For", "127.0.0.1"))
+                .andExpect(status().isUnauthorized());
+
+        // 6. New password works
+        AuthRequest newLogin = new AuthRequest("test@example.com", "NewPassword123!");
+        mockMvc.perform(post("/api/admin/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(newLogin))
+                .header("X-Forwarded-For", "127.0.0.1"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void testResetPasswordExpiredTokenFails() throws Exception {
+        AdminUser user = adminUserRepository.findByEmail("test@example.com").orElseThrow();
+
+        String rawToken = "expired-token-value-12345";
+        MessageDigest md = MessageDigest.getInstance("SHA-256");
+        String tokenHash = HexFormat.of().formatHex(md.digest(rawToken.getBytes(StandardCharsets.UTF_8)));
+
+        PasswordResetToken expiredToken = PasswordResetToken.builder()
+                .tokenHash(tokenHash)
+                .adminUser(user)
+                .expiryDate(LocalDateTime.now().minusMinutes(5)) // Expired 5 mins ago
+                .used(false)
+                .build();
+        passwordResetTokenRepository.save(expiredToken);
+
+        ResetPasswordRequest req = new ResetPasswordRequest();
+        req.setToken(rawToken);
+        req.setNewPassword("NewPassword123!");
+        req.setConfirmPassword("NewPassword123!");
+
+        mockMvc.perform(post("/api/admin/auth/reset-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isBadRequest());
     }
 }
