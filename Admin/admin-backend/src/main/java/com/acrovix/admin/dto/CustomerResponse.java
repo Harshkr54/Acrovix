@@ -20,6 +20,7 @@ public class CustomerResponse {
     private String alternatePhone;
     private String gstin;
     private String pan;
+    private String state;
     private String billingAddress;
     private String shippingAddress;
     private String paymentTerms;

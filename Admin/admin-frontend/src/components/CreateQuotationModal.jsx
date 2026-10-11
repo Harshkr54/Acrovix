@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchApi, getCustomers } from '../services/api';
-import { Globe, UserPlus, X, ArrowLeft, Plus, Phone, MessageSquare, Mail, UserCheck, Store, HelpCircle, FileText, Loader2 } from 'lucide-react';
+import { Globe, UserPlus, X, ArrowLeft, Plus, Phone, MessageSquare, Mail, UserCheck, Store, HelpCircle, FileText, Loader2, AlertCircle, ChevronDown } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import GstinAutoLookup from './GstinAutoLookup';
+import { formatStateDisplay, extractStateCode, searchGstStates, GST_STATES } from '../utils/gstStateUtils';
 
 export default function CreateQuotationModal({ isOpen, onClose }) {
     const navigate = useNavigate();
@@ -33,6 +34,10 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
     const [customers, setCustomers] = useState([]);
     const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
     const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
+    const [selectedCustomer, setSelectedCustomer] = useState(null);
+
+    // State Selector State
+    const [isStateDropdownOpen, setIsStateDropdownOpen] = useState(false);
 
 
     useEffect(() => {
@@ -66,10 +71,14 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
             sourceNotes: ''
         });
         setCustomerSearch('');
+        setSelectedCustomer(null);
+        setIsStateDropdownOpen(false);
         onClose();
     };
 
     const selectCustomer = (c) => {
+        setSelectedCustomer(c);
+        const extractedPin = c.pincode || (c.billingAddress ? ((c.billingAddress.match(/\b(\d{6})\b/) || [])[1] || '') : '');
         setFormData(prev => ({
             ...prev,
             customerId: c.id,
@@ -80,11 +89,29 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
             gstin: c.gstin || '',
             billingAddress: c.billingAddress || '',
             shippingAddress: c.shippingAddress || '',
-            state: c.state || '',
-            pincode: c.pincode || ''
+            state: formatStateDisplay(c.state, c.gstin),
+            pincode: extractedPin
         }));
         setCustomerSearch('');
         setIsCustomerDropdownOpen(false);
+    };
+
+    const clearSelectedCustomer = () => {
+        setSelectedCustomer(null);
+        setCustomerSearch('');
+        setFormData(prev => ({
+            ...prev,
+            customerId: null,
+            clientName: '',
+            clientCompany: '',
+            clientEmail: '',
+            clientPhone: '',
+            gstin: '',
+            billingAddress: '',
+            shippingAddress: '',
+            state: '',
+            pincode: ''
+        }));
     };
 
     const handleSelectEnquiry = () => {
@@ -95,6 +122,18 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleStateBlur = () => {
+        setTimeout(() => {
+            setIsStateDropdownOpen(false);
+            if (formData.state) {
+                const formatted = formatStateDisplay(formData.state, formData.gstin);
+                if (formatted && formatted !== formData.state) {
+                    setFormData(prev => ({ ...prev, state: formatted }));
+                }
+            }
+        }, 200);
     };
 
     const handleCreateDirectQuotation = async (e) => {
@@ -126,7 +165,7 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                     gstin: formData.gstin.trim() || null,
                     billingAddress: formData.billingAddress.trim() || null,
                     shippingAddress: formData.shippingAddress.trim() || null,
-                    state: formData.state.trim() || null,
+                    state: extractStateCode(formData.state) || null,
                     pincode: formData.pincode.trim() || null,
                     currency: formData.currency,
                     quotationSource: formData.quotationSource,
@@ -159,6 +198,10 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
 
     const inputClasses = "w-full bg-white border border-[#D9E2EC] focus:border-brand-primary focus:ring-1 focus:ring-brand-primary/20 rounded-[12px] px-3.5 min-h-[44px] text-[13px] font-medium text-[#0B192C] placeholder:text-text-muted outline-none transition-all duration-200";
     const labelClasses = "block text-[12px] font-semibold text-text-secondary uppercase tracking-wider mb-1.5";
+
+    const filteredStates = (formData.state && !GST_STATES.some(s => `${s.code} - ${s.name}`.toLowerCase() === (formData.state || '').trim().toLowerCase()))
+        ? searchGstStates(formData.state)
+        : GST_STATES;
 
     return (
         <div className="fixed inset-0 bg-[#0B192C]/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -256,81 +299,159 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                                 {/* 1. CUSTOMER & GST VERIFICATION */}
                                 <div>
                                     <div className="mb-3">
-                                        <h3 className="text-[14px] font-bold text-[#0B192C] uppercase tracking-wide">Customer & GST Verification</h3>
-                                        <p className="text-[12px] text-text-secondary mt-0.5">Select an existing customer or verify a new GSTIN to auto-fill details.</p>
+                                        <h3 className="text-[14px] font-bold text-[#0B192C] uppercase tracking-wide">
+                                            {formData.customerId ? 'Selected Customer (Master Record)' : 'Customer Selection & GST Details'}
+                                        </h3>
+                                        <p className="text-[12px] text-text-secondary mt-0.5">
+                                            {formData.customerId 
+                                                ? 'Using saved customer record from database. GST verification is not required for existing clients.'
+                                                : 'Choose an existing customer from Customer Master OR verify GSTIN for a new customer.'}
+                                        </p>
                                     </div>
                                     
-                                    <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 md:gap-6 items-start bg-[#F3F7FA] border border-border-subtle rounded-[16px] p-5">
-                                        <div className="relative">
-                                            <label className={labelClasses}>
-                                                Customer Master
-                                            </label>
-                                            <input
-                                                type="text"
-                                                placeholder="Search existing customer..."
-                                                value={customerSearch}
-                                                onChange={(e) => {
-                                                    setCustomerSearch(e.target.value);
-                                                    setIsCustomerDropdownOpen(true);
-                                                }}
-                                                onFocus={() => setIsCustomerDropdownOpen(true)}
-                                                onBlur={() => setTimeout(() => setIsCustomerDropdownOpen(false), 200)}
-                                                className={inputClasses}
-                                            />
-                                            {isCustomerDropdownOpen && (
-                                                <div className="absolute z-50 w-full mt-1 bg-white border border-[#D9E2EC] rounded-[12px] shadow-lg max-h-48 overflow-y-auto">
-                                                    {isLoadingCustomers ? (
-                                                        <div className="p-3 text-[12px] text-text-muted text-center flex items-center justify-center gap-2">
-                                                            <Loader2 className="w-4 h-4 animate-spin" /> Loading...
+                                    {formData.customerId ? (
+                                        /* PATH A: EXISTING CUSTOMER SELECTED */
+                                        <div className="bg-[#F8FAFC] border border-[#CBD5E1] rounded-[16px] p-5 shadow-sm">
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                                <div className="flex items-start gap-3.5 min-w-0">
+                                                    <div className="w-10 h-10 rounded-xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary shrink-0 mt-0.5">
+                                                        <UserCheck className="w-5 h-5" />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <span className="text-[15px] font-bold text-[#0B192C] truncate">
+                                                                {formData.clientName}
+                                                            </span>
+                                                            {formData.clientCompany && (
+                                                                <span className="text-[13px] text-text-secondary font-medium truncate">
+                                                                    ({formData.clientCompany})
+                                                                </span>
+                                                            )}
+                                                            <span className="text-[10px] font-bold uppercase tracking-wider text-[#1E40AF] bg-[#EFF6FF] px-2 py-0.5 rounded-[4px] border border-[#BFDBFE]">
+                                                                Customer Master
+                                                            </span>
+                                                            {selectedCustomer?.customerCode && (
+                                                                <span className="text-[11px] font-mono font-medium text-text-muted bg-white border border-[#D9E2EC] px-1.5 py-0.5 rounded">
+                                                                    {selectedCustomer.customerCode}
+                                                                </span>
+                                                            )}
                                                         </div>
-                                                    ) : customers.length === 0 ? (
-                                                        <div className="p-3 text-[12px] text-text-muted text-center">No customers found</div>
-                                                    ) : (
-                                                        customers.map(c => (
-                                                            <div 
-                                                                key={c.id}
-                                                                onMouseDown={(e) => e.preventDefault()}
-                                                                onClick={() => selectCustomer(c)}
-                                                                className="px-4 py-2.5 hover:bg-bg-hover cursor-pointer border-b border-border-subtle/40 last:border-0 transition-colors"
-                                                            >
-                                                                <div className="text-[13px] font-bold text-[#0B192C]">{c.name} {c.companyName ? `(${c.companyName})` : ''}</div>
-                                                                <div className="text-[11px] text-text-muted mt-0.5">{c.email} | {c.phone}</div>
-                                                            </div>
-                                                        ))
-                                                    )}
+                                                        <div className="flex items-center gap-3 text-[12px] text-text-secondary mt-1.5 flex-wrap">
+                                                            {formData.clientEmail && <span>{formData.clientEmail}</span>}
+                                                            {formData.clientPhone && <span>• {formData.clientPhone}</span>}
+                                                            {formData.state && (
+                                                                <span>• State: <strong className="text-[#0B192C]">{formData.state}</strong></span>
+                                                            )}
+                                                        </div>
+                                                        {/* Saved GSTIN Display - pure customer information, no input or verify button */}
+                                                        <div className="mt-2.5 flex items-center gap-2 flex-wrap">
+                                                            <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">GSTIN:</span>
+                                                            {formData.gstin ? (
+                                                                <span className="font-mono text-[12px] font-bold text-[#0B192C] bg-white border border-[#CBD5E1] px-2.5 py-0.5 rounded-[6px]">
+                                                                    {formData.gstin}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-[12px] text-text-muted italic">Not on file</span>
+                                                            )}
+                                                            <span className="text-[10px] font-medium text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-[4px]">
+                                                                Saved Record
+                                                            </span>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            )}
-                                        </div>
-                                        
-                                        <div className="hidden md:flex flex-col items-center justify-center self-stretch pt-6">
-                                            <div className="w-[1px] h-6 bg-[#D9E2EC]"></div>
-                                            <span className="text-[11px] font-bold text-text-muted uppercase tracking-widest my-2">OR</span>
-                                            <div className="w-[1px] h-6 bg-[#D9E2EC]"></div>
-                                        </div>
 
-                                        <div>
-                                            <label className={labelClasses}>
-                                                GSTIN Verification
-                                            </label>
-                                            <GstinAutoLookup 
-                                                value={formData.gstin}
-                                                onChange={(val) => handleInputChange({ target: { name: 'gstin', value: val } })}
-                                                placeholder="Enter GSTIN"
-                                                className="bg-white border-[#D9E2EC] focus:border-brand-primary focus:ring-1 focus:ring-brand-primary/20 rounded-[12px]"
-                                                onVerified={(data) => {
-                                                    setFormData(prev => ({
-                                                        ...prev,
-                                                        customerId: null,
-                                                        clientName: data.tradeName || data.legalName || prev.clientName,
-                                                        clientCompany: data.legalName || prev.clientCompany,
-                                                        billingAddress: data.billingAddress || prev.billingAddress,
-                                                        state: data.state || prev.state,
-                                                        pincode: data.pincode || prev.pincode
-                                                    }));
-                                                }}
-                                            />
+                                                <button
+                                                    type="button"
+                                                    onClick={clearSelectedCustomer}
+                                                    className="self-start sm:self-center px-3.5 py-2 text-[12px] font-bold text-text-secondary hover:text-brand-danger bg-white hover:bg-red-50 border border-border-subtle hover:border-red-200 rounded-[10px] transition-all flex items-center gap-1.5 shrink-0 shadow-sm cursor-pointer"
+                                                    title="Clear customer selection and switch to new customer"
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                    <span>Change / Switch Customer</span>
+                                                </button>
+                                            </div>
                                         </div>
-                                    </div>
+                                    ) : (
+                                        /* PATH B: DISCOVERY / NEW CUSTOMER */
+                                        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 md:gap-6 items-start bg-[#F3F7FA] border border-border-subtle rounded-[16px] p-5">
+                                            <div className="relative">
+                                                <label className={labelClasses}>
+                                                    Search Customer Master
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Search existing customer..."
+                                                    value={customerSearch}
+                                                    onChange={(e) => {
+                                                        setCustomerSearch(e.target.value);
+                                                        setIsCustomerDropdownOpen(true);
+                                                    }}
+                                                    onFocus={() => setIsCustomerDropdownOpen(true)}
+                                                    onBlur={() => setTimeout(() => setIsCustomerDropdownOpen(false), 200)}
+                                                    className={inputClasses}
+                                                />
+                                                {isCustomerDropdownOpen && (
+                                                    <div className="absolute z-50 w-full mt-1 bg-white border border-[#D9E2EC] rounded-[12px] shadow-lg max-h-48 overflow-y-auto">
+                                                        {isLoadingCustomers ? (
+                                                            <div className="p-3 text-[12px] text-text-muted text-center flex items-center justify-center gap-2">
+                                                                <Loader2 className="w-4 h-4 animate-spin" /> Loading...
+                                                            </div>
+                                                        ) : customers.length === 0 ? (
+                                                            <div className="p-3 text-[12px] text-text-muted text-center">No customers found</div>
+                                                        ) : (
+                                                            customers.map(c => (
+                                                                <div 
+                                                                    key={c.id}
+                                                                    onMouseDown={(e) => e.preventDefault()}
+                                                                    onClick={() => selectCustomer(c)}
+                                                                    className="px-4 py-2.5 hover:bg-bg-hover cursor-pointer border-b border-border-subtle/40 last:border-0 transition-colors"
+                                                                >
+                                                                    <div className="text-[13px] font-bold text-[#0B192C]">{c.name} {c.companyName ? `(${c.companyName})` : ''}</div>
+                                                                    <div className="text-[11px] text-text-muted mt-0.5">{c.email} | {c.phone}</div>
+                                                                </div>
+                                                            ))
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            
+                                            <div className="hidden md:flex flex-col items-center justify-center self-stretch pt-6">
+                                                <div className="w-[1px] h-6 bg-[#D9E2EC]"></div>
+                                                <span className="text-[11px] font-bold text-text-muted uppercase tracking-widest my-2">OR</span>
+                                                <div className="w-[1px] h-6 bg-[#D9E2EC]"></div>
+                                            </div>
+
+                                            <div>
+                                                <label className={labelClasses}>
+                                                    New Customer GSTIN Verification
+                                                </label>
+                                                <GstinAutoLookup 
+                                                    value={formData.gstin}
+                                                    onChange={(val) => {
+                                                        setFormData(prev => ({
+                                                            ...prev,
+                                                            gstin: val
+                                                        }));
+                                                    }}
+                                                    placeholder="Enter 15-digit GSTIN"
+                                                    className="bg-white border-[#D9E2EC] focus:border-brand-primary focus:ring-1 focus:ring-brand-primary/20 rounded-[12px]"
+                                                    isExistingCustomer={false}
+                                                    onVerified={(data) => {
+                                                        setSelectedCustomer(null);
+                                                        setFormData(prev => ({
+                                                            ...prev,
+                                                            customerId: null,
+                                                            clientName: data.tradeName || data.legalName || prev.clientName,
+                                                            clientCompany: data.legalName || prev.clientCompany,
+                                                            billingAddress: data.billingAddress || prev.billingAddress,
+                                                            state: formatStateDisplay(data.state, data.gstin || formData.gstin) || prev.state,
+                                                            pincode: data.pincode || prev.pincode
+                                                        }));
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="h-[1px] w-full bg-border-subtle"></div>
@@ -341,11 +462,15 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                                         <div>
                                             <h3 className="text-[14px] font-bold text-[#0B192C] uppercase tracking-wide flex items-center gap-2">
                                                 Client Information
-                                                {formData.gstin && formData.clientName && (
-                                                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#047857] bg-[#ECFDF5] px-2 py-0.5 rounded-[4px] border border-[#A7F3D0]">
-                                                        Auto-filled
+                                                {formData.customerId ? (
+                                                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#1E40AF] bg-[#EFF6FF] px-2 py-0.5 rounded-[4px] border border-[#BFDBFE]">
+                                                        Saved Customer
                                                     </span>
-                                                )}
+                                                ) : formData.gstin && formData.clientName ? (
+                                                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#047857] bg-[#ECFDF5] px-2 py-0.5 rounded-[4px] border border-[#A7F3D0]">
+                                                        GST Auto-filled
+                                                    </span>
+                                                ) : null}
                                             </h3>
                                             <p className="text-[12px] text-text-secondary mt-0.5">Primary contact and billing details for this quotation.</p>
                                         </div>
@@ -415,7 +540,7 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                                         </div>
                                         
                                         <div className="grid grid-cols-1 sm:grid-cols-6 gap-4">
-                                            <div className="sm:col-span-4">
+                                            <div className="sm:col-span-3">
                                                 <label className={labelClasses}>
                                                     Billing Address
                                                 </label>
@@ -428,18 +553,64 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                                                     className={inputClasses}
                                                 />
                                             </div>
-                                            <div className="sm:col-span-1">
+                                            <div className="sm:col-span-2 relative">
                                                 <label className={labelClasses}>
-                                                    State
+                                                    STATE CODE – STATE NAME
                                                 </label>
-                                                <input
-                                                    type="text"
-                                                    name="state"
-                                                    value={formData.state}
-                                                    onChange={handleInputChange}
-                                                    placeholder="State"
-                                                    className={inputClasses}
-                                                />
+                                                <div className="relative">
+                                                    <input
+                                                        type="text"
+                                                        name="state"
+                                                        value={formData.state}
+                                                        onChange={(e) => {
+                                                            handleInputChange(e);
+                                                            setIsStateDropdownOpen(true);
+                                                        }}
+                                                        onFocus={() => setIsStateDropdownOpen(true)}
+                                                        onBlur={handleStateBlur}
+                                                        placeholder="e.g. 07 - Delhi"
+                                                        className={`${inputClasses} pr-9`}
+                                                        autoComplete="off"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        tabIndex={-1}
+                                                        onClick={() => setIsStateDropdownOpen(prev => !prev)}
+                                                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-1 transition-colors"
+                                                    >
+                                                        <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isStateDropdownOpen ? 'rotate-180' : ''}`} />
+                                                    </button>
+                                                    {isStateDropdownOpen && (
+                                                        <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-[#D9E2EC] rounded-[12px] shadow-xl max-h-52 overflow-y-auto py-1">
+                                                            {filteredStates.length === 0 ? (
+                                                                <div className="px-3 py-2 text-[12px] text-text-muted text-center">
+                                                                    No matching state found
+                                                                </div>
+                                                            ) : (
+                                                                filteredStates.map(st => {
+                                                                    const itemVal = `${st.code} - ${st.name}`;
+                                                                    const isSelected = formData.state === itemVal || extractStateCode(formData.state) === st.code;
+                                                                    return (
+                                                                        <div
+                                                                            key={st.code}
+                                                                            onMouseDown={(e) => e.preventDefault()}
+                                                                            onClick={() => {
+                                                                                setFormData(prev => ({ ...prev, state: itemVal }));
+                                                                                setIsStateDropdownOpen(false);
+                                                                            }}
+                                                                            className={`px-3 py-2 text-[13px] hover:bg-brand-primary/5 cursor-pointer flex items-center justify-between transition-colors ${isSelected ? 'bg-brand-primary/10 text-brand-primary font-semibold' : 'text-[#0B192C]'}`}
+                                                                        >
+                                                                            <span className="font-medium truncate">{itemVal}</span>
+                                                                            <span className="text-[11px] font-mono font-bold text-brand-primary bg-brand-primary/10 px-1.5 py-0.5 rounded ml-2 shrink-0">
+                                                                                {st.code}
+                                                                            </span>
+                                                                        </div>
+                                                                    );
+                                                                })
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                             <div className="sm:col-span-1">
                                                 <label className={labelClasses}>

@@ -198,6 +198,12 @@ public class Customer360Service {
                 .currency(customer.getCurrency())
                 .email(customer.getEmail())
                 .phone(customer.getPhone())
+                .alternatePhone(customer.getAlternatePhone())
+                .gstin(customer.getGstin())
+                .pan(customer.getPan())
+                .state(customer.getState())
+                .billingAddress(customer.getBillingAddress())
+                .shippingAddress(customer.getShippingAddress())
                 .active(customer.isActive())
                 .createdAt(customer.getCreatedAt())
                 .build();

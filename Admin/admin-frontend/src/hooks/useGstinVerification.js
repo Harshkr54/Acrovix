@@ -82,6 +82,8 @@ export function useGstinVerification({ onVerified } = {}) {
                 setVerificationError('GSTIN is invalid or not registered.');
             } else if (err.status === 400) {
                 setVerificationError('GST verification request could not be processed.');
+            } else if (err.status === 402 || (err.message && err.message.toLowerCase().includes('credit'))) {
+                setVerificationError(err.message || 'GST verification credits exhausted. Please contact administrator.');
             } else if (err.status === 429) {
                 setVerificationError('GST verification limit reached. Please try again later.');
             } else {

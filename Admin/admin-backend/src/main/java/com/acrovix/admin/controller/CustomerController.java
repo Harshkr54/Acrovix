@@ -3,6 +3,8 @@ package com.acrovix.admin.controller;
 import com.acrovix.admin.security.ratelimit.RateLimit;
 import com.acrovix.admin.security.ratelimit.RateLimitCategory;
 import com.acrovix.admin.util.PaginationUtil;
+import com.acrovix.admin.dto.BulkCustomerOperationResponse;
+import com.acrovix.admin.dto.BulkCustomerStatusRequest;
 import com.acrovix.admin.dto.CustomerRequest;
 import com.acrovix.admin.dto.CustomerResponse;
 import com.acrovix.admin.entity.AdminUser;
@@ -16,6 +18,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import com.acrovix.admin.entity.Currency;
+import org.springframework.format.annotation.DateTimeFormat;
+import java.time.LocalDateTime;
+
 @RestController
 @RequestMapping("/api/admin/customers")
 @RequiredArgsConstructor
@@ -28,12 +34,15 @@ public class CustomerController {
     public ResponseEntity<Page<CustomerResponse>> getCustomers(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) Boolean active,
+            @RequestParam(required = false) Currency currency,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime toDate,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @AuthenticationPrincipal AdminUser admin) {
         search = com.acrovix.admin.util.PaginationUtil.getSafeSearch(search);
         
-        Page<CustomerResponse> customers = customerService.getCustomers(search, active, page, size, admin);
+        Page<CustomerResponse> customers = customerService.getCustomers(search, active, currency, fromDate, toDate, page, PaginationUtil.getSafeSize(size), admin);
         return ResponseEntity.ok(customers);
     }
 
@@ -79,4 +88,14 @@ public class CustomerController {
         customerService.activateCustomer(id, adminUser);
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/bulk-status")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    public ResponseEntity<BulkCustomerOperationResponse> bulkUpdateStatus(
+            @Valid @RequestBody BulkCustomerStatusRequest request,
+            @AuthenticationPrincipal AdminUser adminUser) {
+        BulkCustomerOperationResponse response = customerService.bulkUpdateCustomerStatus(request, adminUser);
+        return ResponseEntity.ok(response);
+    }
 }
+

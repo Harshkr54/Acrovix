@@ -1,5 +1,7 @@
 package com.acrovix.admin.service;
 
+import com.acrovix.admin.dto.BulkCustomerOperationResponse;
+import com.acrovix.admin.dto.BulkCustomerStatusRequest;
 import com.acrovix.admin.dto.CustomerRequest;
 import com.acrovix.admin.dto.CustomerResponse;
 import com.acrovix.admin.entity.AdminActivity;
@@ -11,6 +13,7 @@ import com.acrovix.admin.exception.ResourceNotFoundException;
 import com.acrovix.admin.repository.AdminActivityRepository;
 import com.acrovix.admin.repository.CustomerRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -18,9 +21,12 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CustomerService {
@@ -33,7 +39,7 @@ public class CustomerService {
 
     @Transactional(readOnly = true)
     public Page<CustomerResponse> getCustomers(String search, Boolean active, int page, int size) {
-        return getCustomers(search, active, page, size, null);
+        return getCustomers(search, active, null, null, null, page, size, null);
     }
 
     @Transactional(readOnly = true)
@@ -43,13 +49,26 @@ public class CustomerService {
 
     @Transactional(readOnly = true)
     public Page<CustomerResponse> getCustomers(String search, Boolean active, int page, int size, AdminUser admin) {
+        return getCustomers(search, active, null, null, null, page, size, admin);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<CustomerResponse> getCustomers(String search, Boolean active, Currency currency, LocalDateTime fromDate, LocalDateTime toDate, int page, int size, AdminUser admin) {
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by("createdAt").descending());
         Long salesUserId = (admin != null && admin.getRole() == com.acrovix.admin.entity.Role.SALES) ? admin.getId() : null;
         Page<Customer> customers;
         if (salesUserId != null) {
-            customers = customerRepository.searchCustomersWithSalesFilter(search, active, salesUserId, pageRequest);
+            if (currency == null && fromDate == null && toDate == null) {
+                customers = customerRepository.searchCustomersWithSalesFilter(search, active, salesUserId, pageRequest);
+            } else {
+                customers = customerRepository.searchCustomersWithSalesFilter(search, active, currency, fromDate, toDate, salesUserId, pageRequest);
+            }
         } else {
-            customers = customerRepository.searchCustomers(search, active, pageRequest);
+            if (currency == null && fromDate == null && toDate == null) {
+                customers = customerRepository.searchCustomers(search, active, pageRequest);
+            } else {
+                customers = customerRepository.searchCustomers(search, active, currency, fromDate, toDate, pageRequest);
+            }
         }
 
         List<CustomerResponse> responseList = customers.getContent().stream()
@@ -209,6 +228,67 @@ public class CustomerService {
         activateCustomer(id, admin);
     }
 
+    @Transactional
+    public BulkCustomerOperationResponse bulkUpdateCustomerStatus(BulkCustomerStatusRequest request, AdminUser adminUser) {
+        if (request == null || request.getCustomerIds() == null || request.getCustomerIds().isEmpty()) {
+            return BulkCustomerOperationResponse.builder()
+                    .totalRequested(0)
+                    .successCount(0)
+                    .failureCount(0)
+                    .successfulIds(new ArrayList<>())
+                    .failures(new ArrayList<>())
+                    .build();
+        }
+
+        List<Long> customerIds = request.getCustomerIds();
+        boolean newActive = Boolean.TRUE.equals(request.getActive());
+        Long adminId = adminUser != null ? adminUser.getId() : null;
+
+        List<Long> successfulIds = new ArrayList<>();
+        List<BulkCustomerOperationResponse.BulkFailureDetail> failures = new ArrayList<>();
+
+        for (Long id : customerIds) {
+            if (id == null) continue;
+            try {
+                Customer customer = customerRepository.findById(id).orElse(null);
+                if (customer == null) {
+                    failures.add(new BulkCustomerOperationResponse.BulkFailureDetail(id, "Customer not found with ID: " + id));
+                    continue;
+                }
+
+                // Check role-based authorization for sales rep
+                if (adminUser != null && adminUser.getRole() == com.acrovix.admin.entity.Role.SALES) {
+                    try {
+                        authorizationService.checkCustomer360Access(adminUser, customer);
+                    } catch (org.springframework.security.access.AccessDeniedException ade) {
+                        failures.add(new BulkCustomerOperationResponse.BulkFailureDetail(id, ade.getMessage()));
+                        continue;
+                    }
+                }
+
+                customer.setActive(newActive);
+                customer.setUpdatedBy(adminId);
+                customerRepository.save(customer);
+
+                String activityType = newActive ? "CUSTOMER_ACTIVATED" : "CUSTOMER_DEACTIVATED";
+                String actionVerb = newActive ? "Activated" : "Deactivated";
+                logActivity(adminId, activityType, customer.getId(), actionVerb + " customer: " + customer.getName() + " via bulk action");
+                successfulIds.add(customer.getId());
+            } catch (Exception e) {
+                log.error("Failed to update status for customer ID {}: {}", id, e.getMessage());
+                failures.add(new BulkCustomerOperationResponse.BulkFailureDetail(id, e.getMessage() != null ? e.getMessage() : "Unexpected error"));
+            }
+        }
+
+        return BulkCustomerOperationResponse.builder()
+                .totalRequested(customerIds.size())
+                .successCount(successfulIds.size())
+                .failureCount(failures.size())
+                .successfulIds(successfulIds)
+                .failures(failures)
+                .build();
+    }
+
     private CustomerResponse mapToResponse(Customer customer) {
         return CustomerResponse.builder()
                 .id(customer.getId())
@@ -221,6 +301,7 @@ public class CustomerService {
                 .alternatePhone(customer.getAlternatePhone())
                 .gstin(customer.getGstin())
                 .pan(customer.getPan())
+                .state(customer.getState())
                 .billingAddress(customer.getBillingAddress())
                 .shippingAddress(customer.getShippingAddress())
                 .paymentTerms(customer.getPaymentTerms())

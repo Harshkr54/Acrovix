@@ -143,7 +143,12 @@ export const resetPassword = (data) => fetchApi('/auth/reset-password', {
 export const getCustomers = (params) => {
     const query = new URLSearchParams();
     if (params?.search) query.append('search', params.search);
-    if (params?.active !== undefined) query.append('active', params.active);
+    if (params?.active !== undefined && params?.active !== null && params?.active !== '') {
+        query.append('active', params.active);
+    }
+    if (params?.currency && params.currency !== 'ALL') query.append('currency', params.currency);
+    if (params?.fromDate) query.append('fromDate', params.fromDate);
+    if (params?.toDate) query.append('toDate', params.toDate);
     if (params?.page !== undefined) query.append('page', params.page);
     if (params?.size !== undefined) query.append('size', params.size);
     return fetchApi(`/customers?${query.toString()}`);
@@ -169,6 +174,11 @@ export const deleteCustomer = (id) => fetchApi(`/customers/${id}`, {
 
 export const activateCustomer = (id) => fetchApi(`/customers/${id}/activate`, {
     method: 'PATCH'
+});
+
+export const bulkUpdateCustomerStatus = (data) => fetchApi('/customers/bulk-status', {
+    method: 'POST',
+    body: JSON.stringify(data)
 });
 
 // --- CATALOG ---

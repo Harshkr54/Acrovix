@@ -525,144 +525,176 @@ export default function Dashboard() {
                         <div className="lg:col-span-8 flex flex-col gap-6">
                             
                             {/* Analytics Chart */}
-                            <div className="acx-card p-6 flex flex-col h-full">
+                            <div className="acx-card p-5 sm:p-6 flex flex-col">
                                 {/* Header */}
-                                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
-                                    <div className="flex items-start gap-4">
-                                        <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100/50 dark:bg-blue-500/10 dark:border-blue-500/20">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4">
+                                    <div className="flex items-center gap-3 sm:gap-3.5">
+                                        <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100/50 dark:bg-blue-500/10 dark:border-blue-500/20">
                                             <Activity className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                                         </div>
                                         <div>
-                                            <h2 className="text-[20px] font-bold text-text-primary tracking-tight">Enquiries &amp; Quotations Trend</h2>
-                                            <p className="text-[14px] text-text-secondary mt-0.5">Track enquiries and quotations performance over time</p>
+                                            <h2 className="text-[18px] sm:text-[20px] font-bold text-text-primary tracking-tight">Enquiries &amp; Quotations Trend</h2>
+                                            <p className="text-[13px] text-text-secondary mt-0.5">Track enquiries and quotations performance over time</p>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border-subtle bg-bg-main shadow-sm text-[13px] font-semibold text-text-secondary cursor-pointer hover:bg-bg-hover transition-colors">
-                                        <Clock className="w-4 h-4 text-text-muted" />
-                                        {getChartTrendLabel(appliedFilters.dateRange)}
+                                    <div className="self-start sm:self-auto flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border-subtle bg-bg-main shadow-sm text-[12px] sm:text-[13px] font-semibold text-text-secondary shrink-0">
+                                        <Clock className="w-3.5 h-3.5 text-text-muted" />
+                                        <span>{getChartTrendLabel(appliedFilters.dateRange)}</span>
                                     </div>
                                 </div>
 
-                                {/* Dynamic Chart Area */}
-                                <div className="flex-1 flex flex-col min-h-[300px] w-full mt-4">
-                                    <div className="flex-1 relative w-full overflow-x-auto hide-scrollbar pb-2">
-                                        <div className="min-w-[400px] lg:min-w-full h-full flex flex-col relative">
+                                {/* Responsive Chart Container (approx 280-320px predictable height) */}
+                                <div className="w-full flex flex-col pt-2">
+                                    {isLoading ? (
+                                        <div className="w-full h-[260px] flex items-center justify-center">
+                                            <Skeleton variant="rectangle" className="w-full h-full rounded-xl" />
+                                        </div>
+                                    ) : stats?.monthlyOverview && stats.monthlyOverview.length > 0 ? (
+                                        (() => {
+                                            const overviewData = stats.monthlyOverview;
                                             
-                                            {isLoading ? (
-                                                <div className="w-full flex justify-center items-center h-full">
-                                                    <Skeleton variant="rectangle" className="w-full h-full rounded-xl" />
-                                                </div>
-                                            ) : stats?.monthlyOverview && stats.monthlyOverview.length > 0 ? (
-                                                (() => {
-                                                    const overviewData = stats.monthlyOverview;
-                                                    const getNiceMax = (max) => {
-                                                        if (max <= 10) return 10;
-                                                        const magnitude = Math.pow(10, Math.floor(Math.log10(max)));
-                                                        return Math.ceil(max / magnitude) * magnitude;
-                                                    };
-                                                    const maxVal = Math.max(0, ...overviewData.map(i => Math.max(Number(i.totalEnquiries) || 0, Number(i.newEnquiries) || 0)));
-                                                    const niceMax = getNiceMax(maxVal);
-                                                    
-                                                    const rawTicks = [1, 0.75, 0.5, 0.25, 0].map(m => Math.round(niceMax * m));
-                                                    const ticks = Array.from(new Set(rawTicks));
+                                            // Fully dynamic Y-axis calculation derived from actual data with headroom
+                                            const getDynamicYAxis = (data) => {
+                                                if (!data || !Array.isArray(data) || data.length === 0) {
+                                                    return { niceMax: 10, ticks: [10, 8, 6, 4, 2, 0] };
+                                                }
 
-                                                    return (
-                                                        <div className="flex-1 relative flex mt-4">
-                                                            {/* Y Axis & Horizontal Grids */}
-                                                            <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
-                                                                {ticks.map((t, i) => (
-                                                                    <div key={i} className="w-full flex items-center -mt-2">
-                                                                        <div className="w-[30px] shrink-0 text-left text-[12px] text-[#64748B]">{t}</div>
-                                                                        <div className="flex-1 border-t border-[#E5E7EB]" />
-                                                                    </div>
-                                                                ))}
-                                                            </div>
+                                                const rawMax = Math.max(
+                                                    0,
+                                                    ...data.map(i => Math.max(Number(i.totalEnquiries) || 0, Number(i.newEnquiries) || 0))
+                                                );
 
-                                                            {/* Chart Content Area */}
-                                                            <div className="flex-1 relative ml-[40px]">
-                                                                
-                                                                {/* Interactive Columns for Tooltips & Bars */}
-                                                                <div className="absolute inset-0 flex">
+                                                if (rawMax <= 0) {
+                                                    return { niceMax: 10, ticks: [10, 8, 6, 4, 2, 0] };
+                                                }
+
+                                                // Add modest headroom (~15%) so highest bars do not touch the chart ceiling
+                                                const target = Math.max(rawMax + 1, Math.ceil(rawMax * 1.15));
+
+                                                // Determine clean step size targeting 4 to 6 intervals
+                                                const roughStep = target / 5;
+                                                const exponent = Math.floor(Math.log10(Math.max(1, roughStep)));
+                                                const power = Math.pow(10, exponent);
+                                                const fraction = roughStep / power;
+
+                                                let multiplier = 1;
+                                                if (fraction <= 1.2) multiplier = 1;
+                                                else if (fraction <= 2.5) multiplier = 2;
+                                                else if (fraction <= 6) multiplier = 5;
+                                                else multiplier = 10;
+
+                                                const step = Math.max(1, Math.round(multiplier * power));
+                                                const numIntervals = Math.max(3, Math.ceil(target / step));
+                                                const niceMax = numIntervals * step;
+
+                                                const ticks = [];
+                                                for (let v = niceMax; v >= 0; v -= step) {
+                                                    ticks.push(v);
+                                                }
+                                                return { niceMax, ticks };
+                                            };
+
+                                            const { niceMax, ticks } = getDynamicYAxis(overviewData);
+
+                                            return (
+                                                <div className="w-full">
+                                                    {/* Scroll wrapper for very small viewports if needed, while preserving natural flow */}
+                                                    <div className="w-full overflow-x-auto hide-scrollbar">
+                                                        <div className="min-w-[340px] sm:min-w-0 w-full flex flex-col">
+                                                            {/* Plot Area */}
+                                                            <div className="relative h-[210px] sm:h-[220px] w-full">
+                                                                {/* Y-Axis Labels & Horizontal Grid Lines */}
+                                                                <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+                                                                    {ticks.map((tickVal, i) => (
+                                                                        <div key={i} className="w-full flex items-center">
+                                                                            <span className="w-[32px] text-right pr-2 text-[11px] font-medium text-text-muted select-none tabular-nums shrink-0">
+                                                                                {tickVal}
+                                                                            </span>
+                                                                            <div className="flex-1 border-t border-border-subtle" />
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+
+                                                                {/* Chart Columns Area */}
+                                                                <div className="absolute top-0 bottom-0 left-[32px] right-0 flex">
                                                                     {overviewData.map((item, idx) => {
-                                                                        const totalHeightPct = Math.max(0, (item.totalEnquiries / niceMax) * 100);
-                                                                        const newHeightPct = Math.max(0, (item.newEnquiries / niceMax) * 100);
-                                                                        
-                                                                        const maxHeightPct = Math.max(totalHeightPct, newHeightPct);
-                                                                        const isHigh = maxHeightPct > 70;
-                                                                        
-                                                                        const tooltipStyle = {
-                                                                            ...(isHigh ? { top: '10px' } : { bottom: `calc(${maxHeightPct}% + 40px)` })
-                                                                        };
-                                                                        
+                                                                        const enquiriesVal = Number(item.totalEnquiries) || 0;
+                                                                        const quotationsVal = Number(item.newEnquiries) || 0;
+
+                                                                        const totalHeightPct = niceMax > 0 ? Math.min(100, Math.max(0, (enquiriesVal / niceMax) * 100)) : 0;
+                                                                        const newHeightPct = niceMax > 0 ? Math.min(100, Math.max(0, (quotationsVal / niceMax) * 100)) : 0;
+
+                                                                        // Tooltip position alignment: left, center, or right anchored
+                                                                        let tooltipAlignClass = 'left-1/2 -translate-x-1/2';
                                                                         if (idx === 0) {
-                                                                            tooltipStyle.left = '0';
-                                                                            tooltipStyle.transform = 'none';
+                                                                            tooltipAlignClass = 'left-0 translate-x-0';
                                                                         } else if (idx === overviewData.length - 1) {
-                                                                            tooltipStyle.right = '0';
-                                                                            tooltipStyle.transform = 'none';
-                                                                        } else {
-                                                                            tooltipStyle.left = '50%';
-                                                                            tooltipStyle.transform = 'translateX(-50%)';
+                                                                            tooltipAlignClass = 'right-0 translate-x-0';
                                                                         }
-                                                                        
+
                                                                         return (
                                                                             <div key={idx} className="flex-1 h-full relative group cursor-crosshair">
-                                                                                {/* Vertical Hover Line */}
-                                                                                <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[1px] bg-border-subtle opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                                                                
-                                                                                {/* Bars */}
-                                                                                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex items-end justify-center gap-[6px] h-full pointer-events-none pt-[30px]">
-                                                                                    {/* Blue Bar (Enquiries) */}
+                                                                                {/* Vertical Hover Column Highlight */}
+                                                                                <div className="absolute inset-y-0 inset-x-0.5 rounded-md bg-bg-hover/60 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+
+                                                                                {/* Bars & Distinct Zero-Value Baseline Markers */}
+                                                                                <div className="absolute inset-x-0 bottom-0 flex items-end justify-center gap-1 sm:gap-2 h-full pointer-events-none px-1 pb-0.5">
+                                                                                    {/* Blue Bar (Enquiries): Vertical bar if > 0, solid dash marker if 0 */}
                                                                                     <div className="flex flex-col items-center justify-end h-full">
-                                                                                        {item.totalEnquiries > 0 ? (
-                                                                                            <>
-                                                                                                <span className="text-[11px] font-bold text-[#2563EB] mb-1.5 animate-fade-in-up" style={{ animationDelay: `${(idx * 50) + 100}ms` }}>{item.totalEnquiries}</span>
-                                                                                                <div 
-                                                                                                    className="w-[10px] sm:w-[12px] bg-[#2563EB] rounded-t-[4px] animate-fade-in-up" 
-                                                                                                    style={{ height: `${totalHeightPct}%`, animationDelay: `${(idx * 50) + 100}ms` }}
-                                                                                                ></div>
-                                                                                            </>
+                                                                                        {enquiriesVal > 0 ? (
+                                                                                            <div
+                                                                                                className="w-[9px] sm:w-[13px] bg-[#2563EB] hover:brightness-110 rounded-t-[3px] transition-all duration-300"
+                                                                                                style={{ height: `${totalHeightPct}%` }}
+                                                                                            />
                                                                                         ) : (
-                                                                                            <div className="w-[5px] h-[5px] rounded-full bg-[#2563EB] mb-[1px] animate-fade-in-up" style={{ animationDelay: `${(idx * 50) + 100}ms` }}></div>
+                                                                                            <div
+                                                                                                className="w-[8px] sm:w-[10px] h-[2.5px] rounded-full bg-[#2563EB]/60 group-hover:bg-[#2563EB] transition-colors mb-0.5"
+                                                                                                title="0 Enquiries"
+                                                                                            />
                                                                                         )}
                                                                                     </div>
-                                                                                    
-                                                                                    {/* Teal Bar (Quotations) */}
+
+                                                                                    {/* Teal Bar (Quotations): Vertical bar if > 0, distinct ring marker if 0 */}
                                                                                     <div className="flex flex-col items-center justify-end h-full">
-                                                                                        {item.newEnquiries > 0 ? (
-                                                                                            <>
-                                                                                                <span className="text-[11px] font-bold text-[#0D9488] mb-1.5 animate-fade-in-up" style={{ animationDelay: `${(idx * 50) + 150}ms` }}>{item.newEnquiries}</span>
-                                                                                                <div 
-                                                                                                    className="w-[10px] sm:w-[12px] bg-[#0D9488] rounded-t-[4px] animate-fade-in-up" 
-                                                                                                    style={{ height: `${newHeightPct}%`, animationDelay: `${(idx * 50) + 150}ms` }}
-                                                                                                ></div>
-                                                                                            </>
+                                                                                        {quotationsVal > 0 ? (
+                                                                                            <div
+                                                                                                className="w-[9px] sm:w-[13px] bg-[#0D9488] hover:brightness-110 rounded-t-[3px] transition-all duration-300"
+                                                                                                style={{ height: `${newHeightPct}%` }}
+                                                                                            />
                                                                                         ) : (
-                                                                                            <div className="w-[5px] h-[5px] rounded-full bg-[#0D9488] mb-[1px] animate-fade-in-up" style={{ animationDelay: `${(idx * 50) + 150}ms` }}></div>
+                                                                                            <div
+                                                                                                className="w-[5.5px] h-[5.5px] rounded-full border-[1.5px] border-[#0D9488]/70 bg-bg-card group-hover:border-[#0D9488] transition-colors mb-0.5"
+                                                                                                title="0 Quotations"
+                                                                                            />
                                                                                         )}
                                                                                     </div>
                                                                                 </div>
 
-                                                                                {/* Tooltip */}
-                                                                                <div 
-                                                                                    className="opacity-0 group-hover:opacity-100 transition-opacity absolute bg-white border border-[#E5E7EB] shadow-sm rounded-[12px] p-3 pointer-events-none w-[160px] z-[100]"
-                                                                                    style={tooltipStyle}
+                                                                                {/* Balanced Theme-Aware Tooltip anchored safely at top */}
+                                                                                <div
+                                                                                    className={`opacity-0 group-hover:opacity-100 transition-opacity duration-150 absolute top-1 ${tooltipAlignClass} bg-bg-card border border-border-subtle shadow-lg rounded-xl p-2.5 pointer-events-none min-w-[135px] z-30`}
                                                                                 >
-                                                                                    <div className="text-[12px] font-semibold text-[#64748B] mb-2">{item.month}</div>
-                                                                                    <div className="flex flex-col gap-1.5">
-                                                                                        <div className="flex justify-between items-center">
-                                                                                            <div className="flex items-center gap-1.5">
-                                                                                                <div className="w-2 h-2 rounded-full bg-[#2563EB]"></div>
-                                                                                                <span className="text-[12px] text-[#0B192C]">Total Enquiries</span>
+                                                                                    <div className="text-[11px] font-semibold text-text-secondary border-b border-border-subtle pb-1 mb-1.5">
+                                                                                        {item.month}
+                                                                                    </div>
+                                                                                    <div className="flex flex-col gap-1">
+                                                                                        <div className="flex justify-between items-center text-[11px]">
+                                                                                            <div className="flex items-center gap-1.5 text-text-secondary">
+                                                                                                <span className="w-2 h-2 rounded-full bg-[#2563EB]" />
+                                                                                                <span>Enquiries</span>
                                                                                             </div>
-                                                                                            <span className="text-[12px] font-bold text-[#0B192C]">{item.totalEnquiries}</span>
+                                                                                            <span className="font-bold text-text-primary ml-2 tabular-nums">
+                                                                                                {enquiriesVal}
+                                                                                            </span>
                                                                                         </div>
-                                                                                        <div className="flex justify-between items-center">
-                                                                                            <div className="flex items-center gap-1.5">
-                                                                                                <div className="w-2 h-2 rounded-full bg-[#0D9488]"></div>
-                                                                                                <span className="text-[12px] text-[#0B192C]">Total Quotations</span>
+                                                                                        <div className="flex justify-between items-center text-[11px]">
+                                                                                            <div className="flex items-center gap-1.5 text-text-secondary">
+                                                                                                <span className="w-2 h-2 rounded-full bg-[#0D9488]" />
+                                                                                                <span>Quotations</span>
                                                                                             </div>
-                                                                                            <span className="text-[12px] font-bold text-[#0B192C]">{item.newEnquiries}</span>
+                                                                                            <span className="font-bold text-text-primary ml-2 tabular-nums">
+                                                                                                {quotationsVal}
+                                                                                            </span>
                                                                                         </div>
                                                                                     </div>
                                                                                 </div>
@@ -670,44 +702,47 @@ export default function Dashboard() {
                                                                         );
                                                                     })}
                                                                 </div>
-                                                                
-                                                                {/* X Axis Labels */}
-                                                                <div className="absolute top-full left-0 right-0 flex pt-3 border-t border-[#E5E7EB]">
-                                                                    {overviewData.map((item, idx) => (
-                                                                        <div className="flex-1 text-center text-[12px] text-[#64748B] font-normal" key={idx}>
-                                                                            {item.month}
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
+                                                            </div>
+
+                                                            {/* X-Axis Month Labels in Natural Flow (Never clipped) */}
+                                                            <div className="flex items-center ml-[32px] pt-2 border-t border-border-subtle">
+                                                                {overviewData.map((item, idx) => (
+                                                                    <div
+                                                                        key={idx}
+                                                                        className="flex-1 text-center text-[11px] sm:text-[12px] font-medium text-text-muted select-none truncate px-0.5"
+                                                                    >
+                                                                        {item.month}
+                                                                    </div>
+                                                                ))}
                                                             </div>
                                                         </div>
-                                                    );
-                                                })()
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center">
-                                                    <EmptyState 
-                                                        icon={PieChart}
-                                                        emptyMessage="No trend data available for this period." 
-                                                        isFiltered={hasActiveFilters}
-                                                        actionLabel="Clear Filters"
-                                                        onAction={handleResetFilters}
-                                                    />
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
+                                                    </div>
 
-                                    {/* Legend */}
-                                    <div className="flex flex-row flex-wrap items-center justify-center gap-6 md:gap-8 pt-4 shrink-0">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-2.5 h-2.5 rounded-full bg-[#2563EB]"></div>
-                                            <span className="text-[13px] font-medium text-[#64748B] whitespace-nowrap">Total Enquiries</span>
+                                                    {/* Centered Legend */}
+                                                    <div className="flex items-center justify-center gap-6 pt-3 mt-1 shrink-0">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="w-2.5 h-2.5 rounded-sm bg-[#2563EB]" />
+                                                            <span className="text-[12px] sm:text-[13px] font-medium text-text-secondary">Total Enquiries</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="w-2.5 h-2.5 rounded-sm bg-[#0D9488]" />
+                                                            <span className="text-[12px] sm:text-[13px] font-medium text-text-secondary">Total Quotations</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()
+                                    ) : (
+                                        <div className="w-full h-[240px] flex items-center justify-center">
+                                            <EmptyState
+                                                icon={PieChart}
+                                                emptyMessage="No trend data available for this period."
+                                                isFiltered={hasActiveFilters}
+                                                actionLabel="Clear Filters"
+                                                onAction={handleResetFilters}
+                                            />
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-2.5 h-2.5 rounded-full bg-[#0D9488]"></div>
-                                            <span className="text-[13px] font-medium text-[#64748B] whitespace-nowrap">Total Quotations</span>
-                                        </div>
-                                    </div>
+                                    )}
                                 </div>
                             </div>
 

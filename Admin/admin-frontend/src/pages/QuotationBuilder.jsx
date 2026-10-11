@@ -201,8 +201,19 @@ export default function QuotationBuilder() {
         setClientCompany(c.companyName || '');
         setClientEmail(c.email || '');
         setClientPhone(c.phone || '');
+        setGstin(c.gstin || '');
         setCustomerSearch('');
         setIsCustomerDropdownOpen(false);
+    };
+
+    const clearSelectedCustomer = () => {
+        setCustomerId(null);
+        setClientName('');
+        setClientCompany('');
+        setClientEmail('');
+        setClientPhone('');
+        setGstin('');
+        setCustomerSearch('');
     };
 
 
@@ -724,60 +735,87 @@ export default function QuotationBuilder() {
                     <summary className="text-[11px] font-bold text-text-secondary uppercase tracking-wider cursor-pointer flex items-center select-none outline-none">
                         <span className="border-b border-dashed border-text-muted hover:text-text-primary pb-0.5">Edit / Change Customer Source (Optional)</span>
                     </summary>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 p-4 border border-border-subtle rounded-xl bg-bg-muted/30">
-                        <div>
-                            <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Load from Customer Master</p>
-                            <div className="relative">
-                                <input
-                                    type="text"
-                                    placeholder="Search existing customer..."
-                                    value={customerSearch}
-                                    onChange={(e) => {
-                                        setCustomerSearch(e.target.value);
-                                        setIsCustomerDropdownOpen(true);
-                                    }}
-                                    onFocus={() => setIsCustomerDropdownOpen(true)}
-                                    onBlur={() => setTimeout(() => setIsCustomerDropdownOpen(false), 200)}
-                                    className="w-full bg-bg-main border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
-                                />
-                                {isCustomerDropdownOpen && (
-                                    <div className="absolute z-50 w-full mt-1 bg-bg-card border border-border-subtle rounded-xl shadow-lg max-h-48 overflow-y-auto">
-                                        {isLoadingCustomers ? (
-                                            <div className="p-3 text-[12px] text-text-muted text-center">Loading...</div>
-                                        ) : customers.length === 0 ? (
-                                            <div className="p-3 text-[12px] text-text-muted text-center">No customers found</div>
-                                        ) : (
-                                            customers.map(c => (
-                                                <div 
-                                                    key={c.id}
-                                                    onMouseDown={(e) => e.preventDefault()}
-                                                    onClick={() => selectCustomer(c)}
-                                                    className="px-4 py-2 hover:bg-bg-hover cursor-pointer border-b border-border-subtle/40 last:border-0"
-                                                >
-                                                    <div className="text-[13px] font-bold text-text-primary">{c.name} {c.companyName ? `(${c.companyName})` : ''}</div>
-                                                    <div className="text-[11px] text-text-muted">{c.email} | {c.phone}</div>
-                                                </div>
-                                            ))
-                                        )}
+                    {customerId ? (
+                        <div className="flex items-center justify-between p-3.5 bg-brand-primary/5 dark:bg-brand-primary/10 border border-brand-primary/20 rounded-xl mt-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-xs border border-emerald-500/20">
+                                    ✓
+                                </div>
+                                <div>
+                                    <div className="text-[13px] font-bold text-text-primary flex items-center gap-2">
+                                        {clientName} {clientCompany ? `(${clientCompany})` : ''}
+                                        <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-500/20">
+                                            Saved Customer
+                                        </span>
                                     </div>
-                                )}
+                                    <div className="text-[11px] text-text-muted mt-0.5">
+                                        {clientEmail || 'No email'} · {clientPhone || 'No phone'} · GSTIN: <span className="font-mono">{gstin || 'N/A'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={clearSelectedCustomer}
+                                className="px-3 py-1.5 text-xs font-semibold text-text-secondary hover:text-red-600 bg-bg-card border border-border-subtle rounded-lg shadow-sm transition-colors"
+                            >
+                                Change / Clear
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 p-4 border border-border-subtle rounded-xl bg-bg-muted/30">
+                            <div>
+                                <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Load from Customer Master</p>
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        placeholder="Search existing customer..."
+                                        value={customerSearch}
+                                        onChange={(e) => {
+                                            setCustomerSearch(e.target.value);
+                                            setIsCustomerDropdownOpen(true);
+                                        }}
+                                        onFocus={() => setIsCustomerDropdownOpen(true)}
+                                        onBlur={() => setTimeout(() => setIsCustomerDropdownOpen(false), 200)}
+                                        className="w-full bg-bg-main border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
+                                    />
+                                    {isCustomerDropdownOpen && (
+                                        <div className="absolute z-50 w-full mt-1 bg-bg-card border border-border-subtle rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                                            {isLoadingCustomers ? (
+                                                <div className="p-3 text-[12px] text-text-muted text-center">Loading...</div>
+                                            ) : customers.length === 0 ? (
+                                                <div className="p-3 text-[12px] text-text-muted text-center">No customers found</div>
+                                            ) : (
+                                                customers.map(c => (
+                                                    <div 
+                                                        key={c.id}
+                                                        onMouseDown={(e) => e.preventDefault()}
+                                                        onClick={() => selectCustomer(c)}
+                                                        className="px-4 py-2 hover:bg-bg-hover cursor-pointer border-b border-border-subtle/40 last:border-0"
+                                                    >
+                                                        <div className="text-[13px] font-bold text-text-primary">{c.name} {c.companyName ? `(${c.companyName})` : ''}</div>
+                                                        <div className="text-[11px] text-text-muted">{c.email} | {c.phone}</div>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            <div>
+                                <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Or Verify New Customer GSTIN</p>
+                                <GstinAutoLookup 
+                                    value={gstin}
+                                    onChange={setGstin}
+                                    isExistingCustomer={false}
+                                    onVerified={(data) => {
+                                        setCustomerId(null);
+                                        setClientName(data.tradeName || data.legalName || clientName);
+                                        setClientCompany(data.legalName || clientCompany);
+                                    }}
+                                />
                             </div>
                         </div>
-                        <div>
-                            <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Or Verify via GSTIN</p>
-                            <GstinAutoLookup 
-                                value={gstin}
-                                onChange={setGstin}
-                                onVerified={(data) => {
-                                    setCustomerId(null);
-                                    setClientName(data.tradeName || data.legalName || clientName);
-                                    setClientCompany(data.legalName || clientCompany);
-                                    // If we had billingAddress/state/pincode fields exposed directly in the builder summary, we'd update them here.
-                                    // But they are mostly managed in the Modal. We only have clientName/Company in the builder.
-                                }}
-                            />
-                        </div>
-                    </div>
+                    )}
                 </details>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
                     <div>

@@ -34,6 +34,9 @@ class CustomerServiceTest {
     @Mock
     private com.acrovix.admin.repository.AdminUserRepository adminUserRepository;
 
+    @Mock
+    private com.acrovix.admin.service.AuthorizationService authorizationService;
+
     @InjectMocks
     private CustomerService customerService;
 
@@ -78,6 +81,7 @@ class CustomerServiceTest {
         verify(customerRepository).save(customer);
         verify(activityRepository).save(any());
     }
+
     @Test
     void getCustomers_Pagination() {
         when(customerRepository.searchCustomers(any(), any(), any()))
@@ -87,5 +91,32 @@ class CustomerServiceTest {
         
         assertNotNull(result);
         assertEquals(1, result.getContent().size());
+    }
+
+    @Test
+    void bulkUpdateCustomerStatus_SuccessAndPartialFailure() {
+        com.acrovix.admin.entity.AdminUser superAdmin = com.acrovix.admin.entity.AdminUser.builder()
+                .id(1L)
+                .role(com.acrovix.admin.entity.Role.SUPER_ADMIN)
+                .build();
+
+        Customer cust1 = Customer.builder().id(10L).name("Cust 10").active(false).build();
+        when(customerRepository.findById(10L)).thenReturn(Optional.of(cust1));
+        when(customerRepository.findById(99L)).thenReturn(Optional.empty());
+
+        com.acrovix.admin.dto.BulkCustomerStatusRequest req = com.acrovix.admin.dto.BulkCustomerStatusRequest.builder()
+                .customerIds(java.util.List.of(10L, 99L))
+                .active(true)
+                .build();
+
+        com.acrovix.admin.dto.BulkCustomerOperationResponse res = customerService.bulkUpdateCustomerStatus(req, superAdmin);
+
+        assertEquals(2, res.getTotalRequested());
+        assertEquals(1, res.getSuccessCount());
+        assertEquals(1, res.getFailureCount());
+        assertTrue(res.getSuccessfulIds().contains(10L));
+        assertTrue(cust1.isActive());
+        assertEquals(1, res.getFailures().size());
+        assertEquals(99L, res.getFailures().get(0).getCustomerId());
     }
 }

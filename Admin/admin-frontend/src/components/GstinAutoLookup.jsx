@@ -1,14 +1,15 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useGstinVerification } from '../hooks/useGstinVerification';
-import { CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Loader2, ShieldCheck } from 'lucide-react';
 
 export default function GstinAutoLookup({ 
     value, 
     onChange, 
     onVerified, 
     disabled,
-    placeholder = "Enter GSTIN",
-    className = ""
+    placeholder = "Enter 15-digit GSTIN",
+    className = "",
+    isExistingCustomer = false
 }) {
     const {
         verify,
@@ -20,35 +21,15 @@ export default function GstinAutoLookup({
     } = useGstinVerification({ onVerified });
 
     const [localValue, setLocalValue] = useState(value || '');
-    const lastAttemptedGstinRef = useRef(null);
 
+    // Sync input when prop changes (e.g. customer selection, form reset)
     useEffect(() => {
         setLocalValue(value || '');
-    }, [value]);
-
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            const cleanGstin = localValue.trim().toUpperCase();
-            if (cleanGstin.length >= 15) {
-                // If the value changed from the verified one, and we haven't just attempted it
-                if (cleanGstin !== verifiedGstin && cleanGstin !== lastAttemptedGstinRef.current) {
-                    lastAttemptedGstinRef.current = cleanGstin;
-                    verify(cleanGstin);
-                }
-            } else if (cleanGstin.length > 0 && cleanGstin.length < 15) {
-                // Not enough characters yet, but we should reset verification states
-                if (verificationSuccess || verificationError) {
-                    lastAttemptedGstinRef.current = null;
-                    resetVerification();
-                }
-            } else if (cleanGstin.length === 0) {
-                 lastAttemptedGstinRef.current = null;
-                 resetVerification();
-            }
-        }, 600); // 600ms debounce
-
-        return () => clearTimeout(timer);
-    }, [localValue, verify, verifiedGstin, verificationSuccess, verificationError, resetVerification]);
+        // If the prop value changed and doesn't match the current verified GSTIN, reset verified state
+        if ((value || '') !== verifiedGstin) {
+            resetVerification();
+        }
+    }, [value, verifiedGstin, resetVerification]);
 
     const handleChange = (e) => {
         const val = e.target.value.toUpperCase();
@@ -56,44 +37,100 @@ export default function GstinAutoLookup({
         if (onChange) {
             onChange(val);
         }
+        if (verificationSuccess || verificationError) {
+            resetVerification();
+        }
     };
+
+    const handleManualVerify = () => {
+        const cleanGstin = localValue.trim().toUpperCase();
+        if (!cleanGstin || isVerifying) return;
+        verify(cleanGstin);
+    };
+
+    const isLengthValid = localValue.trim().length === 15;
+    const isVerifiedNow = verificationSuccess && localValue.trim().toUpperCase() === verifiedGstin;
 
     return (
         <div className="relative">
-            <div className="relative flex items-center">
-                <input
-                    type="text"
-                    value={localValue}
-                    onChange={handleChange}
-                    disabled={disabled || isVerifying}
-                    placeholder={placeholder}
-                    className={`acx-input w-full rounded-xl text-[13px] bg-bg-main h-11 pr-10 ${className}`}
-                    maxLength={15}
-                />
-                <div className="absolute right-3 flex items-center justify-center pointer-events-none">
-                    {isVerifying ? (
-                        <Loader2 className="w-4 h-4 text-brand-teal animate-spin" />
-                    ) : verificationSuccess && localValue === verifiedGstin ? (
-                        <CheckCircle2 className="w-4 h-4 text-[#059669]" />
-                    ) : verificationError && localValue.length >= 15 ? (
-                        <AlertCircle className="w-4 h-4 text-brand-danger" />
-                    ) : null}
+            <div className="flex items-center gap-2">
+                <div className="relative flex-1 flex items-center">
+                    <input
+                        type="text"
+                        value={localValue}
+                        onChange={handleChange}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleManualVerify();
+                            }
+                        }}
+                        disabled={disabled || isVerifying}
+                        placeholder={placeholder}
+                        className={`acx-input w-full rounded-xl text-[13px] bg-bg-main h-11 pr-8 tracking-wider font-mono font-medium ${className}`}
+                        maxLength={15}
+                        autoComplete="off"
+                    />
+                    <div className="absolute right-3 flex items-center justify-center pointer-events-none">
+                        {isVerifying ? (
+                            <Loader2 className="w-4 h-4 text-brand-teal animate-spin" />
+                        ) : isVerifiedNow ? (
+                            <CheckCircle2 className="w-4 h-4 text-[#059669]" />
+                        ) : null}
+                    </div>
                 </div>
+
+                <button
+                    type="button"
+                    onClick={handleManualVerify}
+                    disabled={disabled || isVerifying || !isLengthValid}
+                    className={`h-11 px-3.5 rounded-xl text-[12px] font-bold tracking-wide transition-all duration-200 shrink-0 flex items-center gap-1.5 shadow-sm select-none ${
+                        isVerifying 
+                            ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+                            : isLengthValid
+                                ? 'bg-brand-primary text-white hover:bg-brand-primary/90 hover:shadow active:scale-[0.98] cursor-pointer'
+                                : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-75'
+                    }`}
+                    title={!isLengthValid ? 'Enter 15-character GSTIN to verify' : 'Verify GSTIN via portal'}
+                >
+                    {isVerifying ? (
+                        <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span>Verifying...</span>
+                        </>
+                    ) : (
+                        <>
+                            <ShieldCheck className="w-3.5 h-3.5" />
+                            <span>Verify GSTIN</span>
+                        </>
+                    )}
+                </button>
             </div>
+
             {/* Status Messages */}
             {isVerifying && (
-                <p className="text-[11px] text-text-secondary mt-1.5 flex items-center">
-                    Verifying GSTIN...
+                <p className="text-[11px] text-text-secondary mt-1.5 flex items-center gap-1.5 font-medium">
+                    <Loader2 className="w-3 h-3 animate-spin text-brand-primary" />
+                    Verifying GSTIN with portal...
                 </p>
             )}
-            {!isVerifying && verificationSuccess && localValue === verifiedGstin && (
-                <div className="mt-2 inline-flex items-center space-x-1.5 px-2 py-1 rounded-[6px] bg-[#ECFDF5] border border-[#A7F3D0] text-[#047857] text-[11px] font-semibold tracking-wide">
+
+            {!isVerifying && isVerifiedNow && (
+                <div className="mt-1.5 inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-[6px] bg-[#ECFDF5] border border-[#A7F3D0] text-[#047857] text-[11px] font-semibold tracking-wide">
                     <span>✓ GSTIN Verified</span>
                 </div>
             )}
-            {!isVerifying && verificationError && localValue.length >= 15 && (
-                <p className="text-[11px] text-brand-danger mt-1.5 flex items-center font-medium leading-tight">
-                    ! {verificationError}
+
+            {!isVerifying && !isVerifiedNow && isExistingCustomer && localValue && (
+                <div className="mt-1.5 inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-[6px] bg-slate-100 border border-slate-200 text-slate-600 text-[11px] font-semibold tracking-wide">
+                    <span>Saved Customer GSTIN (Unverified)</span>
+                </div>
+            )}
+
+            {!isVerifying && verificationError && (
+                <p className="text-[11px] text-brand-danger mt-1.5 flex items-center font-medium leading-tight gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{verificationError}</span>
                 </p>
             )}
         </div>
