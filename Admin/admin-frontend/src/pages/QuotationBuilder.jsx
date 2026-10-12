@@ -1,14 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { fetchApi, getCustomers, getCatalog } from '../services/api';
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
+import { fetchApi, getCustomers, getCatalog, getCompanyBankAccounts } from '../services/api';
 import { formatCurrency } from '../utils/formatters';
-import { Plus, Trash2, Send, Save, Wand2, ArrowUp, ArrowDown, Calculator, User, Hash, AlertCircle, RefreshCw, Download, Settings, Eye, Loader2 } from 'lucide-react';
+import { 
+    VALIDITY_PERIOD_OPTIONS, 
+    getIssueDateStr, 
+    calculateValidUntilDate, 
+    determineValidityPeriod, 
+    isDateBeforeIssueDate 
+} from '../utils/validityUtils';
+import { Plus, Trash2, Send, Save, Wand2, Calculator, User, Hash, AlertCircle, RefreshCw, Download, Settings, Eye, Loader2, Landmark, Building2, CheckCircle2, ExternalLink } from 'lucide-react';
 import SendQuotationModal from '../components/SendQuotationModal';
 import QuotationColumnConfigModal from '../components/QuotationColumnConfigModal';
 import QuotationPreviewModal from '../components/QuotationPreviewModal';
 import { useToast } from '../context/ToastContext';
 import GstinAutoLookup from '../components/GstinAutoLookup';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
+import { parseQuotationText, normalizeLineItem, extractJsonFromText } from '../utils/quotationTextParser';
 
 const defaultConfigs = [
     { columnKey: "rowNumber", displayName: "#", columnType: "TEXT", visible: true, sortOrder: 0, isCustom: false },
@@ -41,6 +49,8 @@ export default function QuotationBuilder() {
     const [currency, setCurrency] = useState('INR');
     const [quotationSource, setQuotationSource] = useState('ENQUIRY');
     const [sourceNotes, setSourceNotes] = useState('');
+    const [issueDate, setIssueDate] = useState(() => getIssueDateStr(null));
+    const [validityPeriod, setValidityPeriod] = useState('30');
     const [validUntil, setValidUntil] = useState('');
     const [termsAndConditions, setTermsAndConditions] = useState('');
     const [gstin, setGstin] = useState('');
@@ -69,6 +79,12 @@ export default function QuotationBuilder() {
     const [catalogItems, setCatalogItems] = useState([]);
     const [isCatalogDropdownOpen, setIsCatalogDropdownOpen] = useState(false);
     const [isLoadingCatalog, setIsLoadingCatalog] = useState(false);
+
+    // Bank Account Selector State
+    const [bankAccounts, setBankAccounts] = useState([]);
+    const [selectedBankAccountId, setSelectedBankAccountId] = useState('');
+    const [selectedBank, setSelectedBank] = useState(null);
+    const [isLoadingBankAccounts, setIsLoadingBankAccounts] = useState(false);
     
     // Preview State
     const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
@@ -95,6 +111,25 @@ export default function QuotationBuilder() {
         setError(null);
         
         try {
+            // Fetch company bank accounts for quotation PDF selection
+            let accounts = [];
+            try {
+                setIsLoadingBankAccounts(true);
+                accounts = await getCompanyBankAccounts();
+                if (Array.isArray(accounts)) {
+                    setBankAccounts(accounts);
+                } else {
+                    accounts = [];
+                    setBankAccounts([]);
+                }
+            } catch (bErr) {
+                console.error("Failed to load company bank accounts", bErr);
+                accounts = [];
+                setBankAccounts([]);
+            } finally {
+                setIsLoadingBankAccounts(false);
+            }
+
             if (isEditMode && quotationId) {
                 // EDIT MODE: Load existing quotation
                 const q = await fetchApi(`/quotations/${quotationId}`);
@@ -109,8 +144,44 @@ export default function QuotationBuilder() {
                 setCustomerId(q.customerId || null);
                 setQuotationSource(q.quotationSource || (q.enquiry ? 'ENQUIRY' : 'DIRECT'));
                 setSourceNotes(q.sourceNotes || '');
+                const qIssueDate = getIssueDateStr(q.createdAt);
+                setIssueDate(qIssueDate);
                 setValidUntil(q.validUntil || '');
+                setValidityPeriod(determineValidityPeriod(qIssueDate, q.validUntil));
                 setTermsAndConditions(q.termsAndConditions || '');
+
+                // Resolve quotation bank account
+                let chosenAccount = null;
+                if (q.companyBankAccountId) {
+                    chosenAccount = accounts.find(a => String(a.id) === String(q.companyBankAccountId));
+                }
+                if (!chosenAccount && q.bankAccountNumber) {
+                    chosenAccount = accounts.find(a => a.bankAccountNumber === q.bankAccountNumber);
+                }
+                if (!chosenAccount && q.bankName) {
+                    chosenAccount = {
+                        id: q.companyBankAccountId || 'saved',
+                        bankName: q.bankName,
+                        accountHolder: q.bankAccountHolder || q.clientCompany || '',
+                        bankAccountNumber: q.bankAccountNumber,
+                        maskedAccountNumber: q.bankAccountNumber && String(q.bankAccountNumber).length > 4 
+                            ? `•••• ${String(q.bankAccountNumber).slice(-4)}` 
+                            : (q.bankAccountNumber || ''),
+                        bankIfsc: q.bankIfsc || '',
+                        bankBranch: q.bankBranch || ''
+                    };
+                }
+                if (!chosenAccount && accounts.length > 0) {
+                    chosenAccount = accounts.find(a => a.isDefault) || accounts[0];
+                }
+
+                if (chosenAccount) {
+                    setSelectedBankAccountId(String(chosenAccount.id));
+                    setSelectedBank(chosenAccount);
+                } else {
+                    setSelectedBankAccountId('NONE');
+                    setSelectedBank(null);
+                }
 
                 setEnquiry(q.enquiry ? {
                     referenceId: q.enquiry.referenceId,
@@ -134,16 +205,16 @@ export default function QuotationBuilder() {
                         sku: item.sku || '',
                         description: item.description || '',
                         hsnSac: item.hsnSac || '',
-                        quantity: item.quantity || 1,
-                        listPrice: item.listPrice !== null && item.listPrice !== undefined ? item.listPrice : (item.unitPrice || 0),
-                        unitPrice: item.unitPrice || 0,
-                        discountPercent: item.discountPercent || 0,
-                        taxPercent: item.taxPercent || 18,
+                        quantity: item.quantity !== null && item.quantity !== undefined ? item.quantity : '',
+                        listPrice: item.listPrice !== null && item.listPrice !== undefined ? item.listPrice : '',
+                        unitPrice: item.unitPrice !== null && item.unitPrice !== undefined ? item.unitPrice : '',
+                        discountPercent: item.discountPercent !== null && item.discountPercent !== undefined ? item.discountPercent : '',
+                        taxPercent: item.taxPercent !== null && item.taxPercent !== undefined ? item.taxPercent : '',
                         sourceText: '',
                         customValues: item.customValues || {}
                     })));
                 } else {
-                    setItems([{ id: Date.now(), productServiceId: null, sku: '', description: '', hsnSac: '', quantity: 1, listPrice: 0, discountPercent: 0, unitPrice: 0, taxPercent: 18, customValues: {} }]);
+                    setItems([]);
                 }
 
             } else if (!isEditMode && enquiryId) {
@@ -155,11 +226,25 @@ export default function QuotationBuilder() {
                 setClientEmail(enqData.businessEmail || '');
                 setClientPhone(enqData.phoneNumber || '');
                 setQuotationSource('ENQUIRY');
+                const todayIssueDate = getIssueDateStr(null);
+                setIssueDate(todayIssueDate);
+                setValidityPeriod('30');
+                setValidUntil(calculateValidUntilDate(todayIssueDate, 30));
                 setColumnConfigs(defaultConfigs);
                 setCustomerId(null);
-                setItems([{ id: Date.now(), productServiceId: null, sku: '', description: '', hsnSac: '', quantity: 1, listPrice: 0, discountPercent: 0, unitPrice: 0, taxPercent: 18, customValues: {} }]);
+                setItems([]);
                 setCurrentQuotationId(null);
                 setQuotationNumber('');
+
+                // Pre-select default bank account for new quotation
+                const defaultAcc = accounts.find(a => a.isDefault) || (accounts.length > 0 ? accounts[0] : null);
+                if (defaultAcc) {
+                    setSelectedBankAccountId(String(defaultAcc.id));
+                    setSelectedBank(defaultAcc);
+                } else {
+                    setSelectedBankAccountId('NONE');
+                    setSelectedBank(null);
+                }
             } else {
                 throw new Error("Invalid routing parameters.");
             }
@@ -218,8 +303,8 @@ export default function QuotationBuilder() {
 
 
     const addCatalogItem = (c) => {
-        setItems([...items, { 
-            id: Date.now(), 
+        const newItem = { 
+            id: Date.now() + Math.random(), 
             productServiceId: c.id,
             sku: c.sku || '', 
             description: c.name || '', 
@@ -230,41 +315,97 @@ export default function QuotationBuilder() {
             unitPrice: c.listPrice || 0, 
             taxPercent: c.taxPercentage || 18, 
             customValues: {} 
-        }]);
+        };
+        const activeItems = items.filter(it => it.description?.trim() || it.sku?.trim() || it.productServiceId);
+        setItems([...activeItems, newItem]);
         setCatalogSearch('');
         setIsCatalogDropdownOpen(false);
     };
 
     const handleParseText = async () => {
-        if (!roughText.trim()) return;
+        const textToParse = roughText.trim();
+        if (!textToParse) {
+            showToast({ type: 'warning', message: 'Please enter or paste quotation requirements to extract.' });
+            return;
+        }
+
         setIsParsing(true);
         try {
-            const data = await fetchApi('/gemini/extract', {
-                method: 'POST',
-                body: JSON.stringify({ roughText })
-            });
-            
-            // Format imported data and append to grid
-            const newItems = data.map(item => ({
-                id: Date.now() + Math.random(),
-                productServiceId: null,
-                sku: item.sku || '',
-                description: item.description || '',
-                hsnSac: item.hsnSac || '',
-                quantity: item.quantity || 1,
-                listPrice: item.listPrice !== null && item.listPrice !== undefined ? item.listPrice : (item.unitPrice || 0),
-                unitPrice: item.unitPrice || 0,
-                discountPercent: item.discountPercent || 0,
-                taxPercent: item.taxPercent || 18, // default tax
-                sourceText: item.sourceText,
-                customValues: item.customValues || {}
-            }));
-            
-            setItems([...items, ...newItems]);
-            setRoughText('');
+            // 1. Try local deterministic parser (supports multiline plain-text, tab/pipe tables, numbered items, and direct JSON)
+            const localResult = parseQuotationText(textToParse);
+
+            if (localResult.success && localResult.items.length > 0) {
+                // Discard any empty placeholder rows and append extracted rows
+                const activeItems = items.filter(it => it.description?.trim() || it.sku?.trim() || it.productServiceId);
+                setItems([...activeItems, ...localResult.items]);
+                setRoughText('');
+                showToast({
+                    type: 'success',
+                    message: `Successfully extracted ${localResult.items.length} item${localResult.items.length > 1 ? 's' : ''} to line items.`
+                });
+                return;
+            }
+
+            // 2. If text was unstructured / natural language, attempt AI extraction via backend Gemini endpoint
+            let aiResponse = null;
+            try {
+                aiResponse = await fetchApi('/gemini/extract', {
+                    method: 'POST',
+                    body: JSON.stringify({ roughText: textToParse })
+                });
+            } catch (apiError) {
+                console.warn('AI Extraction API failed:', apiError);
+                // If local parser had descriptive line errors, report them
+                if (localResult.error && localResult.format !== 'empty' && localResult.format !== 'unstructured') {
+                    showToast({
+                        type: 'error',
+                        message: localResult.error
+                    });
+                } else {
+                    const msg = apiError.message && !apiError.message.includes('Something went wrong')
+                        ? apiError.message
+                        : 'Could not extract quotation items. Please ensure items include a description and price or quantity, or paste in table format.';
+                    showToast({ type: 'error', message: msg });
+                }
+                return;
+            }
+
+            // 3. Process AI Response (safely handles arrays, JSON strings, markdown fences, or object wrappers)
+            let rawList = [];
+            if (Array.isArray(aiResponse)) {
+                rawList = aiResponse;
+            } else if (typeof aiResponse === 'string') {
+                const parsed = extractJsonFromText(aiResponse);
+                if (Array.isArray(parsed)) rawList = parsed;
+            } else if (aiResponse && typeof aiResponse === 'object') {
+                const inner = aiResponse.items || aiResponse.rows || aiResponse.data || aiResponse.quotationItems;
+                if (Array.isArray(inner)) rawList = inner;
+            }
+
+            const validItems = rawList
+                .map(it => normalizeLineItem(it))
+                .filter(Boolean);
+
+            if (validItems.length > 0) {
+                const activeItems = items.filter(it => it.description?.trim() || it.sku?.trim() || it.productServiceId);
+                setItems([...activeItems, ...validItems]);
+                setRoughText('');
+                showToast({
+                    type: 'success',
+                    message: `Successfully extracted ${validItems.length} item${validItems.length > 1 ? 's' : ''} via AI.`
+                });
+            } else {
+                showToast({
+                    type: 'error',
+                    message: localResult.error || 'No quotation items could be parsed from the provided text. Please check the format.'
+                });
+            }
         } catch (error) {
-            console.error("Failed to parse", error);
-            alert("Failed to parse text. Please check the format.");
+            console.error("Extraction error:", error);
+            showToast({
+                type: 'error',
+                message: error.message ? `Extraction error: ${error.message}` : "Failed to parse text. Please check the format."
+            });
         } finally {
             setIsParsing(false);
         }
@@ -280,19 +421,26 @@ export default function QuotationBuilder() {
                 } else {
                     newItem[field] = value;
                     if (field === 'listPrice' || field === 'unitPrice') {
-                        const lp = parseFloat(newItem.listPrice) || 0;
-                        const up = parseFloat(newItem.unitPrice) || 0;
-                        if (lp > 0 && up >= 0 && up <= lp) {
-                            newItem.discountPercent = parseFloat((((lp - up) / lp) * 100).toFixed(2));
-                        } else if (lp > 0 && up > lp) {
-                            newItem.discountPercent = 0; 
-                        } else {
-                            newItem.discountPercent = 0;
+                        const hasLp = newItem.listPrice !== '' && newItem.listPrice !== null && newItem.listPrice !== undefined;
+                        const hasUp = newItem.unitPrice !== '' && newItem.unitPrice !== null && newItem.unitPrice !== undefined;
+                        if (hasLp && hasUp) {
+                            const lp = parseFloat(newItem.listPrice) || 0;
+                            const up = parseFloat(newItem.unitPrice) || 0;
+                            if (lp > 0 && up >= 0 && up <= lp) {
+                                newItem.discountPercent = parseFloat((((lp - up) / lp) * 100).toFixed(2));
+                            } else {
+                                newItem.discountPercent = 0; 
+                            }
+                        } else if (!hasUp && field === 'unitPrice') {
+                            newItem.discountPercent = '';
                         }
                     } else if (field === 'discountPercent') {
-                        const lp = parseFloat(newItem.listPrice) || 0;
-                        const dp = parseFloat(newItem.discountPercent) || 0;
-                        newItem.unitPrice = parseFloat((lp * (1 - dp / 100)).toFixed(2));
+                        const hasLp = newItem.listPrice !== '' && newItem.listPrice !== null && newItem.listPrice !== undefined;
+                        if (hasLp && value !== '') {
+                            const lp = parseFloat(newItem.listPrice) || 0;
+                            const dp = parseFloat(value) || 0;
+                            newItem.unitPrice = parseFloat((lp * (1 - dp / 100)).toFixed(2));
+                        }
                     }
                 }
                 return newItem;
@@ -323,7 +471,22 @@ export default function QuotationBuilder() {
     };
 
     const addItem = () => {
-        setItems([...items, { id: Date.now(), productServiceId: null, sku: '', description: '', hsnSac: '', quantity: 1, listPrice: 0, discountPercent: 0, unitPrice: 0, taxPercent: 18, customValues: {} }]);
+        setItems([
+            ...items, 
+            { 
+                id: Date.now() + Math.random(), 
+                productServiceId: null, 
+                sku: '', 
+                description: '', 
+                hsnSac: '', 
+                quantity: '', 
+                listPrice: '', 
+                discountPercent: '', 
+                unitPrice: '', 
+                taxPercent: '', 
+                customValues: {} 
+            }
+        ]);
     };
 
     const handleDownloadTemplate = () => {
@@ -378,11 +541,99 @@ export default function QuotationBuilder() {
 
     const totals = calculateTotals();
 
+    const isDateInvalid = Boolean(validUntil && issueDate && isDateBeforeIssueDate(validUntil, issueDate));
+
+    const formattedIssueDate = React.useMemo(() => {
+        if (!issueDate) return '';
+        try {
+            const parts = String(issueDate).split('-');
+            if (parts.length === 3) {
+                const y = parseInt(parts[0], 10);
+                const m = parseInt(parts[1], 10) - 1;
+                const d = parseInt(parts[2], 10);
+                const dateObj = new Date(y, m, d);
+                if (!isNaN(dateObj.getTime())) {
+                    return dateObj.toLocaleDateString('en-IN', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric'
+                    });
+                }
+            }
+        } catch {
+            // fallback
+        }
+        return issueDate;
+    }, [issueDate]);
+
+    const handleValidityPeriodChange = (e) => {
+        const period = e.target.value;
+        setValidityPeriod(period);
+        if (period !== 'custom') {
+            const calculated = calculateValidUntilDate(issueDate, Number(period));
+            setValidUntil(calculated);
+        }
+    };
+
+    const handleValidUntilChange = (e) => {
+        const newDate = e.target.value;
+        setValidUntil(newDate);
+        setValidityPeriod('custom');
+    };
+
+    const handleBankAccountChange = (e) => {
+        const val = e.target.value;
+        setSelectedBankAccountId(val);
+        if (!val || val === 'NONE') {
+            setSelectedBank(null);
+        } else {
+            const found = bankAccounts.find(a => String(a.id) === String(val));
+            setSelectedBank(found || null);
+        }
+    };
+
+    const serializeItems = (itemList) => {
+        return (itemList || []).map((item, index) => {
+            const hasQty = item.quantity !== '' && item.quantity !== null && item.quantity !== undefined;
+            const hasLp = item.listPrice !== '' && item.listPrice !== null && item.listPrice !== undefined;
+            const hasUp = item.unitPrice !== '' && item.unitPrice !== null && item.unitPrice !== undefined;
+            const hasDp = item.discountPercent !== '' && item.discountPercent !== null && item.discountPercent !== undefined;
+            const hasTax = item.taxPercent !== '' && item.taxPercent !== null && item.taxPercent !== undefined;
+
+            const qty = hasQty ? (parseFloat(item.quantity) || 0) : 0;
+            const up = hasUp ? (parseFloat(item.unitPrice) || 0) : 0;
+            const lp = hasLp ? (parseFloat(item.listPrice) || 0) : up;
+            const dp = hasDp ? (parseFloat(item.discountPercent) || 0) : 0;
+            const tax = hasTax ? (parseFloat(item.taxPercent) || 0) : 0;
+
+            return {
+                productServiceId: item.productServiceId || null,
+                sku: item.sku || '',
+                hsnSac: item.hsnSac || '',
+                description: item.description || '',
+                quantity: qty,
+                listPrice: lp,
+                unitPrice: up,
+                discountPercent: dp,
+                taxPercent: tax,
+                sortOrder: index,
+                customValues: item.customValues || {}
+            };
+        });
+    };
+
     const handlePreview = async () => {
         setValidationError(null);
         
         if (!clientName?.trim()) {
             const msg = "Please enter a Client Name before previewing.";
+            setValidationError(msg);
+            showToast({ type: 'error', message: msg });
+            return;
+        }
+
+        if (isDateInvalid) {
+            const msg = `Valid Until date (${validUntil}) cannot be earlier than quotation issue date (${issueDate}).`;
             setValidationError(msg);
             showToast({ type: 'error', message: msg });
             return;
@@ -438,19 +689,13 @@ export default function QuotationBuilder() {
                 validUntil: validUntil || null,
                 termsAndConditions: termsAndConditions,
                 columnConfigs: columnConfigs,
-                items: items.map((item, index) => ({
-                    productServiceId: item.productServiceId,
-                    sku: item.sku,
-                    hsnSac: item.hsnSac,
-                    description: item.description,
-                    quantity: item.quantity,
-                    listPrice: item.listPrice,
-                    unitPrice: item.unitPrice,
-                    discountPercent: item.discountPercent,
-                    taxPercent: item.taxPercent,
-                    sortOrder: index,
-                    customValues: item.customValues || {}
-                }))
+                items: serializeItems(items),
+                bankName: selectedBank ? selectedBank.bankName : null,
+                bankAccountHolder: selectedBank ? selectedBank.accountHolder : null,
+                bankAccountNumber: selectedBank ? selectedBank.bankAccountNumber : null,
+                bankIfsc: selectedBank ? selectedBank.bankIfsc : null,
+                bankBranch: selectedBank ? selectedBank.bankBranch : null,
+                companyBankAccountId: selectedBank && !isNaN(Number(selectedBank.id)) ? Number(selectedBank.id) : null
             };
 
             const pdfResponse = await fetchApi('/quotations/preview/pdf', {
@@ -478,6 +723,11 @@ export default function QuotationBuilder() {
 
     const handleSaveDraft = async () => {
         if (isSaving || isSending) return;
+        if (isDateInvalid) {
+            const msg = `Valid Until date (${validUntil}) cannot be earlier than quotation issue date (${issueDate}).`;
+            showToast({ type: 'error', message: msg });
+            return;
+        }
         setIsSaving(true);
         setError(null);
         
@@ -509,19 +759,13 @@ export default function QuotationBuilder() {
                 validUntil: validUntil || null,
                 termsAndConditions: termsAndConditions,
                 columnConfigs: columnConfigs,
-                items: items.map((item, index) => ({
-                    productServiceId: item.productServiceId,
-                    sku: item.sku,
-                    hsnSac: item.hsnSac,
-                    description: item.description,
-                    quantity: item.quantity,
-                    listPrice: item.listPrice,
-                    unitPrice: item.unitPrice,
-                    discountPercent: item.discountPercent,
-                    taxPercent: item.taxPercent,
-                    sortOrder: index,
-                    customValues: item.customValues || {}
-                }))
+                items: serializeItems(items),
+                bankName: selectedBank ? selectedBank.bankName : null,
+                bankAccountHolder: selectedBank ? selectedBank.accountHolder : null,
+                bankAccountNumber: selectedBank ? selectedBank.bankAccountNumber : null,
+                bankIfsc: selectedBank ? selectedBank.bankIfsc : null,
+                bankBranch: selectedBank ? selectedBank.bankBranch : null,
+                companyBankAccountId: selectedBank && !isNaN(Number(selectedBank.id)) ? Number(selectedBank.id) : null
             };
 
             await fetchApi(`/quotations/${activeQuotationId}`, {
@@ -540,10 +784,20 @@ export default function QuotationBuilder() {
 
     const handleSend = () => {
         if (isSending || isSaving) return;
+        if (isDateInvalid) {
+            const msg = `Valid Until date (${validUntil}) cannot be earlier than quotation issue date (${issueDate}).`;
+            showToast({ type: 'error', message: msg });
+            return;
+        }
         setIsSendModalOpen(true);
     };
 
     const executeSendQuotation = async (confirmedEmail) => {
+        if (isDateInvalid) {
+            const msg = `Valid Until date (${validUntil}) cannot be earlier than quotation issue date (${issueDate}).`;
+            showToast({ type: 'error', message: msg });
+            return;
+        }
         setIsSending(true);
         setError(null);
 
@@ -575,19 +829,13 @@ export default function QuotationBuilder() {
                 validUntil: validUntil || null,
                 termsAndConditions: termsAndConditions,
                 columnConfigs: columnConfigs,
-                items: items.map((item, index) => ({
-                    productServiceId: item.productServiceId,
-                    sku: item.sku,
-                    hsnSac: item.hsnSac,
-                    description: item.description,
-                    quantity: item.quantity,
-                    listPrice: item.listPrice,
-                    unitPrice: item.unitPrice,
-                    discountPercent: item.discountPercent,
-                    taxPercent: item.taxPercent,
-                    sortOrder: index,
-                    customValues: item.customValues || {}
-                }))
+                items: serializeItems(items),
+                bankName: selectedBank ? selectedBank.bankName : null,
+                bankAccountHolder: selectedBank ? selectedBank.accountHolder : null,
+                bankAccountNumber: selectedBank ? selectedBank.bankAccountNumber : null,
+                bankIfsc: selectedBank ? selectedBank.bankIfsc : null,
+                bankBranch: selectedBank ? selectedBank.bankBranch : null,
+                companyBankAccountId: selectedBank && !isNaN(Number(selectedBank.id)) ? Number(selectedBank.id) : null
             };
 
             // Ensure latest state is saved
@@ -817,66 +1065,113 @@ export default function QuotationBuilder() {
                         </div>
                     )}
                 </details>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
-                    <div>
-                        <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Currency</p>
+                <div className="quotation-client-grid">
+                    <div className="min-w-0">
+                        <label htmlFor="quotation-currency" className="block text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5 truncate">
+                            Currency
+                        </label>
                         <select
+                            id="quotation-currency"
                             value={currency}
                             onChange={(e) => setCurrency(e.target.value)}
-                            className="w-full bg-bg-main border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
+                            className="w-full h-10 bg-bg-main border border-border-subtle focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/20 rounded-xl px-3 text-[13px] font-medium text-text-primary outline-none transition-colors cursor-pointer"
                         >
                             <option value="INR">INR (₹)</option>
                             <option value="USD">USD ($)</option>
                         </select>
                     </div>
-                    <div>
-                        <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Client Name</p>
+                    <div className="min-w-0">
+                        <label htmlFor="quotation-client-name" className="block text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5 truncate">
+                            Client Name
+                        </label>
                         <input
+                            id="quotation-client-name"
                             type="text"
                             value={clientName}
                             onChange={(e) => setClientName(e.target.value)}
-                            className="w-full bg-bg-main border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
+                            className="w-full h-10 bg-bg-main border border-border-subtle focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/20 rounded-xl px-3 text-[13px] font-medium text-text-primary outline-none transition-colors"
                             placeholder="Client Name"
                         />
                     </div>
-                    <div>
-                        <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Company</p>
+                    <div className="min-w-0">
+                        <label htmlFor="quotation-client-company" className="block text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5 truncate">
+                            Company
+                        </label>
                         <input
+                            id="quotation-client-company"
                             type="text"
                             value={clientCompany}
                             onChange={(e) => setClientCompany(e.target.value)}
-                            className="w-full bg-bg-main border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
+                            className="w-full h-10 bg-bg-main border border-border-subtle focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/20 rounded-xl px-3 text-[13px] font-medium text-text-primary outline-none transition-colors"
                             placeholder="Company Name"
                         />
                     </div>
-                    <div>
-                        <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Email</p>
+                    <div className="min-w-0">
+                        <label htmlFor="quotation-client-email" className="block text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5 truncate">
+                            Email
+                        </label>
                         <input
+                            id="quotation-client-email"
                             type="email"
                             value={clientEmail}
                             onChange={(e) => setClientEmail(e.target.value)}
-                            className="w-full bg-bg-main border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] font-medium text-text-primary outline-none transition-colors"
+                            className="w-full h-10 bg-bg-main border border-border-subtle focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/20 rounded-xl px-3 text-[13px] font-medium text-text-primary outline-none transition-colors"
                             placeholder="client@email.com"
                         />
                     </div>
-                    <div>
-                        <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Phone</p>
+                    <div className="min-w-0">
+                        <label htmlFor="quotation-client-phone" className="block text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5 truncate">
+                            Phone
+                        </label>
                         <input
+                            id="quotation-client-phone"
                             type="text"
                             value={clientPhone}
                             onChange={(e) => setClientPhone(e.target.value)}
-                            className="w-full bg-bg-main border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] font-medium text-text-primary outline-none transition-colors"
+                            className="w-full h-10 bg-bg-main border border-border-subtle focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/20 rounded-xl px-3 text-[13px] font-medium text-text-primary outline-none transition-colors"
                             placeholder="+91..."
                         />
                     </div>
-                    <div>
-                        <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Valid Until</p>
+                    <div className="min-w-0">
+                        <label htmlFor="validity-period-select" className="block text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5 truncate">
+                            Validity Period
+                        </label>
+                        <select
+                            id="validity-period-select"
+                            value={validityPeriod}
+                            onChange={handleValidityPeriodChange}
+                            className="w-full h-10 bg-bg-main border border-border-subtle focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/20 rounded-xl px-3 text-[13px] font-medium text-text-primary outline-none transition-colors cursor-pointer"
+                        >
+                            {VALIDITY_PERIOD_OPTIONS.map(opt => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="min-w-0">
+                        <label htmlFor="valid-until-input" className="block text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5 truncate">
+                            Valid Until
+                        </label>
                         <input
+                            id="valid-until-input"
                             type="date"
                             value={validUntil}
-                            onChange={(e) => setValidUntil(e.target.value)}
-                            className="w-full bg-bg-main border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] font-medium text-text-primary outline-none transition-colors"
+                            min={issueDate}
+                            onChange={handleValidUntilChange}
+                            className={`w-full h-10 bg-bg-main border ${
+                                isDateInvalid ? 'border-red-500 focus:border-red-500 text-red-500' : 'border-border-subtle focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/20 text-text-primary'
+                            } rounded-xl px-3 text-[13px] font-medium outline-none transition-colors`}
                         />
+                        <div className="mt-1 min-h-[16px]">
+                            {isDateInvalid ? (
+                                <p className="text-[11px] text-red-500 font-medium truncate">
+                                    Cannot be before issue date
+                                </p>
+                            ) : issueDate ? (
+                                <p className="text-[11px] text-text-muted font-normal truncate" title={`Quotation issue date: ${formattedIssueDate}`}>
+                                    From {formattedIssueDate}
+                                </p>
+                            ) : null}
+                        </div>
                     </div>
                 </div>
 
@@ -991,7 +1286,7 @@ export default function QuotationBuilder() {
                         <thead>
                             <tr>
                                 {columnConfigs.filter(c => c.visible).sort((a,b) => a.sortOrder - b.sortOrder).map(config => (
-                                    <th key={config.columnKey} className={`px-3 py-4 text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card ${config.columnType === 'CURRENCY' || config.columnKey === 'rowNumber' ? 'text-right' : 'text-left'}`}>
+                                    <th key={config.columnKey} className={`px-3 py-4 text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card ${config.columnKey === 'rowNumber' ? 'text-center w-[48px]' : config.columnType === 'CURRENCY' || config.columnType === 'NUMBER' ? 'text-right' : 'text-left'}`}>
                                         {config.displayName}
                                     </th>
                                 ))}
@@ -999,132 +1294,225 @@ export default function QuotationBuilder() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border-subtle/40 bg-bg-card">
-                            {items.map((item, index) => {
-                                const qty = parseFloat(item.quantity) || 0;
-                                const lp = parseFloat(item.listPrice) || 0;
-                                const up = parseFloat(item.unitPrice) || 0;
-                                const taxPct = parseFloat(item.taxPercent) || 0;
-                                
-                                const net = qty * up;
-                                const taxAmt = net * (taxPct / 100);
-                                const lineTotal = net + taxAmt;
-
-                                const activeConfigs = columnConfigs.filter(c => c.visible).sort((a,b) => a.sortOrder - b.sortOrder);
-
-                                return (
-                                    <tr key={item.id} className="group hover:bg-bg-hover transition-colors">
-                                        {activeConfigs.map(config => {
-                                            if (config.isCustom) {
-                                                return (
-                                                    <td key={config.columnKey} className="px-3 py-3 align-top">
-                                                        <input 
-                                                            type={config.columnType === 'NUMBER' || config.columnType === 'CURRENCY' ? 'number' : 'text'}
-                                                            step="any"
-                                                            value={(item.customValues && item.customValues[config.columnKey]) || ''} 
-                                                            onChange={(e) => updateItem(item.id, `custom_${config.columnKey}`, e.target.value)} 
-                                                            className={`w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary transition-all outline-none ${config.columnType === 'CURRENCY' || config.columnType === 'NUMBER' ? 'text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none' : ''}`}
-                                                            placeholder={config.displayName}
-                                                        />
-                                                    </td>
-                                                );
-                                            }
-
-                                            switch (config.columnKey) {
-                                                case "rowNumber":
-                                                    return (
-                                                        <td key={config.columnKey} className="px-2 py-3 align-top text-right text-[12px] font-medium text-text-muted mt-2">
-                                                            {index + 1}
-                                                        </td>
-                                                    );
-                                                case "sku":
-                                                    return (
-                                                        <td key={config.columnKey} className="px-3 py-3 align-top">
-                                                            <input type="text" value={item.sku} onChange={(e) => updateItem(item.id, 'sku', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary transition-all outline-none uppercase font-mono tracking-tight" placeholder="SKU" />
-                                                        </td>
-                                                    );
-                                                case "description":
-                                                    return (
-                                                        <td key={config.columnKey} className="px-4 py-3 align-top">
-                                                            <input type="text" value={item.description} onChange={(e) => updateItem(item.id, 'description', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-3 text-[13px] font-semibold text-text-primary transition-all outline-none" placeholder="Item description" />
-                                                            {item.sourceText && <p className="text-[11px] text-text-secondary mt-1 italic pl-3 border-l-2 border-[#7C3AED]/40 leading-tight">"{item.sourceText}"</p>}
-                                                        </td>
-                                                    );
-                                                case "hsnSac":
-                                                    return (
-                                                        <td key={config.columnKey} className="px-3 py-3 align-top">
-                                                            <input type="text" value={item.hsnSac} onChange={(e) => updateItem(item.id, 'hsnSac', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary transition-all outline-none font-mono tracking-tight" placeholder="HSN/SAC" />
-                                                        </td>
-                                                    );
-                                                case "quantity":
-                                                    return (
-                                                        <td key={config.columnKey} className="px-3 py-3 align-top text-right">
-                                                            <input type="number" step="any" min="0" value={item.quantity} onChange={(e) => updateItem(item.id, 'quantity', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary text-right transition-all outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
-                                                        </td>
-                                                    );
-                                                case "listPrice":
-                                                    return (
-                                                        <td key={config.columnKey} className="px-3 py-3 align-top text-right">
-                                                            <input type="number" step="any" min="0" value={item.listPrice} onChange={(e) => updateItem(item.id, 'listPrice', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary text-right transition-all outline-none font-mono tracking-tight [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
-                                                        </td>
-                                                    );
-                                                case "discountPercent":
-                                                    return (
-                                                        <td key={config.columnKey} className="px-3 py-3 align-top text-right">
-                                                            <input type="number" step="any" min="0" max="100" value={item.discountPercent} onChange={(e) => updateItem(item.id, 'discountPercent', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-1 text-[13px] font-medium text-text-primary text-right transition-all outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
-                                                        </td>
-                                                    );
-                                                case "unitPrice":
-                                                    return (
-                                                        <td key={config.columnKey} className="px-3 py-3 align-top text-right">
-                                                            <input type="number" step="any" min="0" value={item.unitPrice} onChange={(e) => updateItem(item.id, 'unitPrice', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-bold text-text-primary text-right transition-all outline-none font-mono tracking-tight [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
-                                                        </td>
-                                                    );
-                                                case "taxPercent":
-                                                    return (
-                                                        <td key={config.columnKey} className="px-3 py-3 align-top text-right">
-                                                            <input type="number" step="any" min="0" max="100" value={item.taxPercent} onChange={(e) => updateItem(item.id, 'taxPercent', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-1 text-[13px] font-medium text-text-primary text-right transition-all outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
-                                                        </td>
-                                                    );
-                                                case "taxAmount":
-                                                    return (
-                                                        <td key={config.columnKey} className="px-3 py-3 align-top text-right">
-                                                            <div className="font-medium text-text-secondary mt-2 font-mono text-[13px] tracking-tight">
-                                                                {taxAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                            </div>
-                                                        </td>
-                                                    );
-                                                case "total":
-                                                    return (
-                                                        <td key={config.columnKey} className="px-4 py-3 align-top text-right">
-                                                            <div className="font-bold text-text-primary mt-2 font-mono text-[14px] tracking-tight">
-                                                                {lineTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                            </div>
-                                                        </td>
-                                                    );
-                                                default:
-                                                    return <td key={config.columnKey}></td>;
-                                            }
-                                        })}
-                                        <td className="px-2 py-3 align-top text-center">
-                                            <div className="flex flex-col items-center justify-center space-y-1.5 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button onClick={() => removeItem(item.id)} className="btn btn-danger btn-icon" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
+                            {items.length === 0 ? (
+                                <tr>
+                                    <td 
+                                        colSpan={columnConfigs.filter(c => c.visible).length + 1}
+                                        className="px-6 py-14 text-center bg-bg-card"
+                                    >
+                                        <div className="flex flex-col items-center justify-center max-w-sm mx-auto text-center">
+                                            <div className="w-10 h-10 rounded-full bg-bg-muted flex items-center justify-center text-text-muted mb-3">
+                                                <Hash className="w-5 h-5 text-text-muted/60" />
                                             </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
+                                            <p className="text-[13px] font-semibold text-text-secondary mb-1">
+                                                No items added yet. Click &ldquo;+ Add Item&rdquo; or use AI Auto-Extraction.
+                                            </p>
+                                            <p className="text-[12px] text-text-muted mb-4">
+                                                Add line items manually, extract from rough requirements, or select from the catalog.
+                                            </p>
+                                            <button 
+                                                type="button" 
+                                                onClick={addItem} 
+                                                className="btn btn-secondary btn-sm flex items-center gap-1.5 shadow-sm"
+                                            >
+                                                <Plus className="w-3.5 h-3.5" /> Add Item
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : (
+                                items.map((item, index) => {
+                                    const qty = parseFloat(item.quantity) || 0;
+                                    const up = parseFloat(item.unitPrice) || 0;
+                                    const taxPct = parseFloat(item.taxPercent) || 0;
+                                    
+                                    const net = qty * up;
+                                    const taxAmt = net * (taxPct / 100);
+                                    const lineTotal = net + taxAmt;
+
+                                    const activeConfigs = columnConfigs.filter(c => c.visible).sort((a,b) => a.sortOrder - b.sortOrder);
+
+                                    return (
+                                        <tr key={item.id} className="group hover:bg-bg-hover transition-colors">
+                                            {activeConfigs.map(config => {
+                                                if (config.isCustom) {
+                                                    return (
+                                                        <td key={config.columnKey} className="px-3 py-3 align-top">
+                                                            <input 
+                                                                type={config.columnType === 'NUMBER' || config.columnType === 'CURRENCY' ? 'number' : 'text'}
+                                                                step="any"
+                                                                value={(item.customValues && item.customValues[config.columnKey]) || ''} 
+                                                                onChange={(e) => updateItem(item.id, `custom_${config.columnKey}`, e.target.value)} 
+                                                                className={`w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary transition-all outline-none ${config.columnType === 'CURRENCY' || config.columnType === 'NUMBER' ? 'text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none' : ''}`}
+                                                                placeholder={config.displayName}
+                                                            />
+                                                        </td>
+                                                    );
+                                                }
+
+                                                switch (config.columnKey) {
+                                                    case "rowNumber":
+                                                        return (
+                                                            <td key={config.columnKey} className="px-2 py-3 align-top text-center text-[12px] font-mono font-medium text-text-muted pt-3.5">
+                                                                {index + 1}
+                                                            </td>
+                                                        );
+                                                    case "sku":
+                                                        return (
+                                                            <td key={config.columnKey} className="px-3 py-3 align-top">
+                                                                <input 
+                                                                    type="text" 
+                                                                    value={item.sku || ''} 
+                                                                    onChange={(e) => updateItem(item.id, 'sku', e.target.value)} 
+                                                                    className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary transition-all outline-none uppercase font-mono tracking-tight placeholder:normal-case placeholder:font-sans placeholder:text-text-muted/60" 
+                                                                    placeholder="e.g. SKU-001" 
+                                                                />
+                                                            </td>
+                                                        );
+                                                    case "description":
+                                                        return (
+                                                            <td key={config.columnKey} className="px-3 py-3 align-top min-w-[240px]">
+                                                                <textarea
+                                                                    value={item.description || ''}
+                                                                    onChange={(e) => updateItem(item.id, 'description', e.target.value)}
+                                                                    rows={1}
+                                                                    className="w-full min-h-[38px] bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-3 text-[13px] font-semibold text-text-primary transition-colors outline-none resize-y leading-relaxed placeholder:font-normal placeholder:text-text-muted/60"
+                                                                    placeholder="Enter item description"
+                                                                />
+                                                                {item.sourceText && (
+                                                                    <p className="text-[11px] text-text-secondary mt-1.5 italic pl-3 border-l-2 border-[#7C3AED]/40 leading-tight">
+                                                                        &ldquo;{item.sourceText}&rdquo;
+                                                                    </p>
+                                                                )}
+                                                            </td>
+                                                        );
+                                                    case "hsnSac":
+                                                        return (
+                                                            <td key={config.columnKey} className="px-3 py-3 align-top">
+                                                                <input 
+                                                                    type="text" 
+                                                                    value={item.hsnSac || ''} 
+                                                                    onChange={(e) => updateItem(item.id, 'hsnSac', e.target.value)} 
+                                                                    className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary transition-all outline-none font-mono tracking-tight placeholder:font-sans placeholder:text-text-muted/60" 
+                                                                    placeholder="e.g. 998314" 
+                                                                />
+                                                            </td>
+                                                        );
+                                                    case "quantity":
+                                                        return (
+                                                            <td key={config.columnKey} className="px-3 py-3 align-top text-right">
+                                                                <input 
+                                                                    type="number" 
+                                                                    step="any" 
+                                                                    min="0" 
+                                                                    value={item.quantity === '' || item.quantity === null || item.quantity === undefined ? '' : item.quantity} 
+                                                                    onChange={(e) => updateItem(item.id, 'quantity', e.target.value)} 
+                                                                    className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary text-right transition-all outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-text-muted/60" 
+                                                                    placeholder="e.g. 1" 
+                                                                />
+                                                            </td>
+                                                        );
+                                                    case "listPrice":
+                                                        return (
+                                                            <td key={config.columnKey} className="px-3 py-3 align-top text-right">
+                                                                <input 
+                                                                    type="number" 
+                                                                    step="any" 
+                                                                    min="0" 
+                                                                    value={item.listPrice === '' || item.listPrice === null || item.listPrice === undefined ? '' : item.listPrice} 
+                                                                    onChange={(e) => updateItem(item.id, 'listPrice', e.target.value)} 
+                                                                    className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary text-right transition-all outline-none font-mono tracking-tight [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:font-sans placeholder:text-text-muted/60" 
+                                                                    placeholder="e.g. 1000.00" 
+                                                                />
+                                                            </td>
+                                                        );
+                                                    case "discountPercent":
+                                                        return (
+                                                            <td key={config.columnKey} className="px-3 py-3 align-top text-right">
+                                                                <input 
+                                                                    type="number" 
+                                                                    step="any" 
+                                                                    min="0" 
+                                                                    max="100" 
+                                                                    value={item.discountPercent === '' || item.discountPercent === null || item.discountPercent === undefined ? '' : item.discountPercent} 
+                                                                    onChange={(e) => updateItem(item.id, 'discountPercent', e.target.value)} 
+                                                                    className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-1 text-[13px] font-medium text-text-primary text-right transition-all outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-text-muted/60" 
+                                                                    placeholder="e.g. 0" 
+                                                                />
+                                                            </td>
+                                                        );
+                                                    case "unitPrice":
+                                                        return (
+                                                            <td key={config.columnKey} className="px-3 py-3 align-top text-right">
+                                                                <input 
+                                                                    type="number" 
+                                                                    step="any" 
+                                                                    min="0" 
+                                                                    value={item.unitPrice === '' || item.unitPrice === null || item.unitPrice === undefined ? '' : item.unitPrice} 
+                                                                    onChange={(e) => updateItem(item.id, 'unitPrice', e.target.value)} 
+                                                                    className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-bold text-text-primary text-right transition-all outline-none font-mono tracking-tight [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:font-sans placeholder:font-normal placeholder:text-text-muted/60" 
+                                                                    placeholder="0.00" 
+                                                                />
+                                                            </td>
+                                                        );
+                                                    case "taxPercent":
+                                                        return (
+                                                            <td key={config.columnKey} className="px-3 py-3 align-top text-right">
+                                                                <input 
+                                                                    type="number" 
+                                                                    step="any" 
+                                                                    min="0" 
+                                                                    max="100" 
+                                                                    value={item.taxPercent === '' || item.taxPercent === null || item.taxPercent === undefined ? '' : item.taxPercent} 
+                                                                    onChange={(e) => updateItem(item.id, 'taxPercent', e.target.value)} 
+                                                                    className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-1 text-[13px] font-medium text-text-primary text-right transition-all outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-text-muted/60" 
+                                                                    placeholder="18" 
+                                                                />
+                                                            </td>
+                                                        );
+                                                    case "taxAmount":
+                                                        return (
+                                                            <td key={config.columnKey} className="px-3 py-3 align-top text-right">
+                                                                <div className="font-medium text-text-secondary mt-2 font-mono text-[13px] tracking-tight">
+                                                                    {taxAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                                </div>
+                                                            </td>
+                                                        );
+                                                    case "total":
+                                                        return (
+                                                            <td key={config.columnKey} className="px-4 py-3 align-top text-right">
+                                                                <div className="font-bold text-text-primary mt-2 font-mono text-[14px] tracking-tight">
+                                                                    {lineTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                                </div>
+                                                            </td>
+                                                        );
+                                                    default:
+                                                        return <td key={config.columnKey}></td>;
+                                                }
+                                            })}
+                                            <td className="px-2 py-3 align-top text-center">
+                                                <div className="flex flex-col items-center justify-center space-y-1.5 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button type="button" onClick={() => removeItem(item.id)} className="btn btn-danger btn-icon" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
+                            )}
                         </tbody>
                     </table>
                 </div>
                 
                 {/* Add Item & Clear All Row */}
                 <div className="p-5 border-t border-border-subtle/50 bg-bg-card rounded-b-[24px] flex justify-between items-center">
-                    <button onClick={addItem} className="btn btn-secondary btn-sm flex items-center gap-1.5">
+                    <button type="button" onClick={addItem} className="btn btn-secondary btn-sm flex items-center gap-1.5">
                         <Plus className="w-4 h-4" /> Add Item
                     </button>
                     <button 
+                        type="button"
+                        disabled={items.length === 0}
                         onClick={() => setIsClearConfirmOpen(true)}
-                        className="flex items-center bg-white border border-brand-danger/30 text-brand-danger hover:bg-brand-danger/5 h-[38px] md:h-[40px] px-3 md:px-4 rounded-[10px] md:rounded-[12px] text-[13px] md:text-[14px] font-medium transition-colors"
+                        className="flex items-center bg-white border border-brand-danger/30 text-brand-danger hover:bg-brand-danger/5 disabled:opacity-40 disabled:cursor-not-allowed h-[38px] md:h-[40px] px-3 md:px-4 rounded-[10px] md:rounded-[12px] text-[13px] md:text-[14px] font-medium transition-colors"
                     >
                         <Trash2 className="w-4 h-4 mr-1.5" /> Clear All
                     </button>
@@ -1148,35 +1536,185 @@ export default function QuotationBuilder() {
                 </div>
             </div>
 
-            {/* Totals Preview - Light Summary Panel */}
-            <div className="flex flex-col md:flex-row md:justify-end">
-                <div className="acx-card p-8 w-full md:max-w-[420px] bg-bg-card border border-border-subtle shadow-sm relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--color-brand-primary)]/5 rounded-full - -mt-16 blur-2xl pointer-events-none"></div>
-                    <div className="absolute bottom-0 left-0 w-32 h-32 bg-[#14B8A6]/5 rounded-full - -mb-16 blur-2xl pointer-events-none"></div>
-                    
-                    <h3 className="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-6 flex items-center relative z-10">
-                        <Calculator className="w-4 h-4 " /> Quotation Summary
-                    </h3>
-                    <div className="space-y-4 relative z-10">
-                        <div className="flex justify-between text-[13px] text-text-secondary">
-                            <span className="font-medium">Subtotal (Before Tax)</span>
-                            <span className="font-mono font-semibold text-text-primary tracking-tight">{formatCurrency(totals.subtotalBeforeTax, currency, 2)}</span>
+            {/* Bank Details & Quotation Summary Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start mb-8">
+                {/* Bank Account Selection Panel */}
+                <div className="lg:col-span-7">
+                    <div className="acx-card overflow-hidden">
+                        <div className="px-5 py-4 border-b border-border-subtle bg-bg-card flex justify-between items-center">
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-7 h-7 rounded-lg bg-[var(--color-brand-primary)]/10 flex items-center justify-center text-[var(--color-brand-primary)]">
+                                    <Landmark className="w-4 h-4 text-brand-teal" />
+                                </div>
+                                <div>
+                                    <h3 className="text-[13px] font-bold text-text-primary uppercase tracking-wider">
+                                        Bank Account for This Quotation
+                                    </h3>
+                                    <p className="text-[11px] text-text-muted mt-0.5">
+                                        Selected account will be rendered in the customer quotation PDF Bank Details panel
+                                    </p>
+                                </div>
+                            </div>
                         </div>
-                        <div className="flex justify-between text-[13px]">
-                            <span className="font-medium text-text-secondary">Total Discount</span>
-                            <span className="text-brand-danger font-mono font-semibold tracking-tight">-{formatCurrency(totals.discount, currency, 2)}</span>
+
+                        <div className="p-5">
+                            {isLoadingBankAccounts ? (
+                                <div className="flex items-center justify-center py-8 text-text-muted text-sm gap-2">
+                                    <Loader2 className="w-4 h-4 animate-spin text-brand-teal" />
+                                    <span>Loading company bank accounts...</span>
+                                </div>
+                            ) : bankAccounts.length === 0 ? (
+                                <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 sm:p-5">
+                                    <div className="flex items-start gap-3">
+                                        <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                                        <div className="space-y-1.5">
+                                            <div className="text-[13px] font-semibold text-text-primary">
+                                                No Bank Accounts Configured
+                                            </div>
+                                            <p className="text-[12px] text-text-secondary leading-relaxed">
+                                                Bank details must first be configured in <strong className="text-text-primary">Company Settings</strong> before they can be selected and included on quotation PDFs.
+                                            </p>
+                                            <div className="pt-1.5">
+                                                <Link
+                                                    to="/settings"
+                                                    className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[var(--color-brand-primary)] hover:underline"
+                                                >
+                                                    Configure in Company Settings <ExternalLink className="w-3.5 h-3.5" />
+                                                </Link>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    <div>
+                                        <label htmlFor="quotation-bank-select" className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">
+                                            Select Bank Account
+                                        </label>
+                                        <select
+                                            id="quotation-bank-select"
+                                            value={selectedBankAccountId}
+                                            onChange={handleBankAccountChange}
+                                            className="acx-input w-full text-[13px] font-medium bg-bg-main"
+                                        >
+                                            <option value="NONE">-- No Bank Account on PDF --</option>
+                                            {bankAccounts.map((acc) => {
+                                                const masked = acc.maskedAccountNumber || (acc.bankAccountNumber && acc.bankAccountNumber.length > 4 ? `•••• ${acc.bankAccountNumber.slice(-4)}` : acc.bankAccountNumber);
+                                                return (
+                                                    <option key={acc.id} value={acc.id}>
+                                                        {acc.bankName} {masked ? `(${masked})` : ''} {acc.isDefault ? '• [Primary Account]' : ''}
+                                                    </option>
+                                                );
+                                            })}
+                                        </select>
+                                    </div>
+
+                                    {selectedBank ? (
+                                        <div className="rounded-xl border border-border-subtle bg-bg-main/60 p-4 relative overflow-hidden transition-all shadow-sm">
+                                            <div className="flex items-center justify-between pb-3 mb-3 border-b border-border-subtle/80">
+                                                <div className="flex items-center gap-2">
+                                                    <Building2 className="w-4 h-4 text-brand-teal" />
+                                                    <span className="text-[13px] font-bold text-text-primary">
+                                                        {selectedBank.bankName}
+                                                    </span>
+                                                    {selectedBank.isDefault && (
+                                                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-brand-teal/10 text-brand-teal">
+                                                            Primary
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-1 text-[11px] text-text-muted">
+                                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                                                    <span className="font-medium text-emerald-600 dark:text-emerald-400">Active for PDF</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[12px]">
+                                                <div>
+                                                    <span className="block text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-0.5">
+                                                        Account Holder
+                                                    </span>
+                                                    <span className="font-medium text-text-primary">
+                                                        {selectedBank.accountHolder || '—'}
+                                                    </span>
+                                                </div>
+                                                <div>
+                                                    <span className="block text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-0.5">
+                                                        Account Number
+                                                    </span>
+                                                    <span className="font-mono font-semibold text-text-primary">
+                                                        {selectedBank.maskedAccountNumber || (selectedBank.bankAccountNumber && selectedBank.bankAccountNumber.length > 4 ? `•••• ${selectedBank.bankAccountNumber.slice(-4)}` : selectedBank.bankAccountNumber || '—')}
+                                                    </span>
+                                                </div>
+                                                <div>
+                                                    <span className="block text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-0.5">
+                                                        IFSC Code
+                                                    </span>
+                                                    <span className="font-mono font-medium text-text-primary uppercase">
+                                                        {selectedBank.bankIfsc || '—'}
+                                                    </span>
+                                                </div>
+                                                <div>
+                                                    <span className="block text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-0.5">
+                                                        Branch
+                                                    </span>
+                                                    <span className="font-medium text-text-primary">
+                                                        {selectedBank.bankBranch || '—'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="p-3.5 rounded-xl border border-dashed border-border-subtle bg-bg-main/30 text-[12px] text-text-muted flex items-center gap-2">
+                                            <AlertCircle className="w-4 h-4 text-text-muted shrink-0" />
+                                            <span>No bank account selected. The Bank Details section on the quotation PDF will be omitted.</span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
-                        <div className="flex justify-between text-[13px] text-text-secondary">
-                            <span className="font-medium">Taxable Amount</span>
-                            <span className="font-mono font-semibold text-text-primary tracking-tight">{formatCurrency(totals.taxableAmount, currency, 2)}</span>
-                        </div>
-                        <div className="flex justify-between text-[13px] text-text-secondary pb-5 border-b border-border-subtle">
-                            <span className="font-medium">Total Tax</span>
-                            <span className="font-mono font-semibold text-text-primary tracking-tight">{formatCurrency(totals.tax, currency, 2)}</span>
-                        </div>
-                        <div className="flex justify-between items-end pt-3">
-                            <span className="text-[15px] font-bold text-text-primary">Grand Total</span>
-                            <span className="text-[32px] font-bold text-brand-teal font-mono tracking-tight leading-none">{formatCurrency(totals.grandTotal, currency, 2)}</span>
+
+                        {bankAccounts.length > 0 && (
+                            <div className="px-5 py-3 border-t border-border-subtle/50 bg-bg-card/50 flex justify-between items-center text-[11px] text-text-muted">
+                                <span>{bankAccounts.length} saved account{bankAccounts.length > 1 ? 's' : ''} available</span>
+                                <Link to="/settings" className="hover:text-text-primary flex items-center gap-1 transition-colors font-medium">
+                                    Manage Accounts in Settings <ExternalLink className="w-3 h-3" />
+                                </Link>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Quotation Summary Panel */}
+                <div className="lg:col-span-5">
+                    <div className="acx-card p-6 sm:p-8 w-full bg-bg-card border border-border-subtle shadow-sm relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--color-brand-primary)]/5 rounded-full -mt-16 blur-2xl pointer-events-none"></div>
+                        <div className="absolute bottom-0 left-0 w-32 h-32 bg-[#14B8A6]/5 rounded-full -mb-16 blur-2xl pointer-events-none"></div>
+                        
+                        <h3 className="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-6 flex items-center relative z-10">
+                            <Calculator className="w-4 h-4 mr-2" /> Quotation Summary
+                        </h3>
+                        <div className="space-y-4 relative z-10">
+                            <div className="flex justify-between text-[13px] text-text-secondary">
+                                <span className="font-medium">Subtotal (Before Tax)</span>
+                                <span className="font-mono font-semibold text-text-primary tracking-tight">{formatCurrency(totals.subtotalBeforeTax, currency, 2)}</span>
+                            </div>
+                            <div className="flex justify-between text-[13px]">
+                                <span className="font-medium text-text-secondary">Total Discount</span>
+                                <span className="text-brand-danger font-mono font-semibold tracking-tight">-{formatCurrency(totals.discount, currency, 2)}</span>
+                            </div>
+                            <div className="flex justify-between text-[13px] text-text-secondary">
+                                <span className="font-medium">Taxable Amount</span>
+                                <span className="font-mono font-semibold text-text-primary tracking-tight">{formatCurrency(totals.taxableAmount, currency, 2)}</span>
+                            </div>
+                            <div className="flex justify-between text-[13px] text-text-secondary pb-5 border-b border-border-subtle">
+                                <span className="font-medium">Total Tax</span>
+                                <span className="font-mono font-semibold text-text-primary tracking-tight">{formatCurrency(totals.tax, currency, 2)}</span>
+                            </div>
+                            <div className="flex justify-between items-end pt-3">
+                                <span className="text-[15px] font-bold text-text-primary">Grand Total</span>
+                                <span className="text-[32px] font-bold text-brand-teal font-mono tracking-tight leading-none">{formatCurrency(totals.grandTotal, currency, 2)}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1213,9 +1751,10 @@ export default function QuotationBuilder() {
             <ConfirmDialog
                 isOpen={isClearConfirmOpen}
                 title="Clear quotation?"
-                message="All entered quotation data will be removed. This action cannot be undone."
-                confirmLabel="Clear All"
-                cancelLabel="Cancel"
+                description="All entered quotation data will be removed. This action cannot be undone."
+                confirmText="Clear All"
+                cancelText="Cancel"
+                variant="destructive"
                 onConfirm={() => {
                     setItems([]);
                     setIsClearConfirmOpen(false);

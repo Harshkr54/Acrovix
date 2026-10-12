@@ -43,7 +43,20 @@ public class AdminUserService {
     }
 
     public List<AdminUserResponse> getAllUsers() {
-        return userRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+        return getAllUsers(null);
+    }
+
+    public List<AdminUserResponse> getAllUsers(Boolean enabled) {
+        if (enabled == null) {
+            return userRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+        }
+        return userRepository.findByEnabled(enabled).stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    public AdminUserResponse getUserById(Long userId) {
+        AdminUser user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        return mapToResponse(user);
     }
 
     @Transactional
@@ -149,7 +162,7 @@ public class AdminUserService {
 
     @Transactional
     public void updateUserStatus(Long userId, boolean enabled, Long reassignToUserId, Long adminId) {
-        if (userId.equals(adminId)) {
+        if (!enabled && userId.equals(adminId)) {
             throw new IllegalArgumentException("Cannot disable yourself");
         }
         AdminUser user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User not found"));
@@ -162,6 +175,9 @@ public class AdminUserService {
         }
         
         if (!enabled && reassignToUserId != null) {
+            if (reassignToUserId.equals(userId)) {
+                throw new IllegalArgumentException("Cannot reassign work to the user being disabled");
+            }
             AdminUser newAssignee = userRepository.findById(reassignToUserId)
                     .orElseThrow(() -> new ResourceNotFoundException("Reassignment User not found"));
             if (!newAssignee.isEnabled()) {
@@ -175,7 +191,7 @@ public class AdminUserService {
         user.setEnabled(enabled);
         userRepository.save(user);
 
-        String actionDesc = (enabled ? "Enabled" : "Disabled") + " Admin User: " + user.getEmail();
+        String actionDesc = (enabled ? "Reactivated" : "Disabled") + " Admin User: " + user.getEmail();
         if (!enabled && reassignToUserId != null) {
             actionDesc += " and reassigned work to User ID: " + reassignToUserId;
         }

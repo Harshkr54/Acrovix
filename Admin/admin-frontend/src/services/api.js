@@ -210,6 +210,11 @@ export const updatePurchaseOrderStatus = (id, data) => fetchApi(`/purchase-order
     body: JSON.stringify(data)
 });
 
+export const updatePurchaseOrderRemarks = (id, remarks) => fetchApi(`/purchase-orders/${id}/remarks`, {
+    method: 'PATCH',
+    body: JSON.stringify({ remarks })
+});
+
 export const verifyPurchaseOrder = (id) => fetchApi(`/purchase-orders/${id}/verify`, {
     method: 'POST'
 });
@@ -263,6 +268,32 @@ export const updateCompanySettings = (data) => fetchApi('/company-settings', {
     body: JSON.stringify(data)
 });
 
+export const getCompanyBankAccounts = () => fetchApi('/company-settings/bank-accounts');
+
+export const getCompanyBankAccountById = (id) => fetchApi(`/company-settings/bank-accounts/${id}`);
+
+export const createCompanyBankAccount = (data) => fetchApi('/company-settings/bank-accounts', {
+    method: 'POST',
+    body: JSON.stringify(data)
+});
+
+export const updateCompanyBankAccount = (id, data) => fetchApi(`/company-settings/bank-accounts/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
+});
+
+export const setDefaultCompanyBankAccount = (id) => fetchApi(`/company-settings/bank-accounts/${id}/default`, {
+    method: 'PATCH'
+});
+
+export const deactivateCompanyBankAccount = (id) => fetchApi(`/company-settings/bank-accounts/${id}/deactivate`, {
+    method: 'PATCH'
+});
+
+export const deleteCompanyBankAccount = (id) => fetchApi(`/company-settings/bank-accounts/${id}`, {
+    method: 'DELETE'
+});
+
 // --- INVOICES ---
 export const getInvoices = (params = {}) => {
     const qs = new URLSearchParams(params).toString();
@@ -302,6 +333,13 @@ export const cancelInvoice = (id) => fetchApi(`/invoices/${id}/cancel`, {
 
 export const convertProformaToTaxInvoice = (id) => fetchApi(`/invoices/proforma/${id}/convert-to-tax-invoice`, {
     method: 'POST'
+});
+
+export const getInvoicePdf = (id) => fetchApi(`/invoices/${id}/pdf`);
+
+export const sendInvoiceEmail = (id, data) => fetchApi(`/invoices/${id}/send-email`, {
+    method: 'POST',
+    body: JSON.stringify(data || {})
 });
 
 // --- PAYMENTS & RECEIVABLES ---

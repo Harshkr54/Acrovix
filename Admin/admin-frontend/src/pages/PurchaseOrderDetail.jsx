@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getPurchaseOrderById, verifyPurchaseOrder, updatePurchaseOrderStatus, createInvoiceFromPurchaseOrder, fetchApi, getCompanySettings } from '../services/api';
+import { getPurchaseOrderById, verifyPurchaseOrder, updatePurchaseOrderStatus, updatePurchaseOrderRemarks, createInvoiceFromPurchaseOrder, fetchApi, getCompanySettings } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { ArrowLeft, Clock, CheckCircle, Package, XCircle, FileText, Download, AlertTriangle, Eye, X, Building2, MapPin, Mail, Phone, Hash, CalendarDays, Receipt, UserSquare2, Loader2, Link, ShoppingCart, User, FileDigit, Activity } from 'lucide-react';
+import { ArrowLeft, Clock, CheckCircle, Package, XCircle, FileText, Download, AlertTriangle, Eye, X, Building2, MapPin, Mail, Phone, Hash, CalendarDays, Receipt, UserSquare2, Loader2, Link, ShoppingCart, User, FileDigit, Activity, Edit3 } from 'lucide-react';
 import { API_BASE_URL } from '../services/api';
 import { formatCurrency } from '../utils/formatters';
 
@@ -20,20 +20,130 @@ export default function PurchaseOrderDetail() {
     const [statusModalOpen, setStatusModalOpen] = useState(false);
     const [newStatus, setNewStatus] = useState('');
     const [remarks, setRemarks] = useState('');
+
+    const [isEditingRemarks, setIsEditingRemarks] = useState(false);
+    const [editedRemarks, setEditedRemarks] = useState('');
+    const [savingRemarks, setSavingRemarks] = useState(false);
     
     const [previewPdfUrl, setPreviewPdfUrl] = useState(null);
     const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
     const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+
+    // Horizontal Scrollbar State & Refs for Order Details Table
+    const tableContainerRef = useRef(null);
+    const scrollTrackRef = useRef(null);
+    const [scrollMetrics, setScrollMetrics] = useState({
+        scrollLeft: 0,
+        scrollWidth: 0,
+        clientWidth: 0
+    });
+    const isDraggingThumbRef = useRef(false);
+    const dragStartXRef = useRef(0);
+    const dragStartScrollLeftRef = useRef(0);
+
+    const updateScrollMetrics = useCallback(() => {
+        if (tableContainerRef.current) {
+            const { scrollLeft, scrollWidth, clientWidth } = tableContainerRef.current;
+            setScrollMetrics({ scrollLeft, scrollWidth, clientWidth });
+        }
+    }, []);
+
+    useEffect(() => {
+        const el = tableContainerRef.current;
+        if (!el) return;
+
+        updateScrollMetrics();
+
+        const handleScroll = () => {
+            updateScrollMetrics();
+        };
+
+        el.addEventListener('scroll', handleScroll, { passive: true });
+
+        const handleWheel = (e) => {
+            if (e.shiftKey || Math.abs(e.deltaX) > 0) {
+                return;
+            }
+            if (el.scrollWidth > el.clientWidth) {
+                if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+                    const atLeft = el.scrollLeft <= 0 && e.deltaY < 0;
+                    const atRight = el.scrollLeft >= el.scrollWidth - el.clientWidth - 1 && e.deltaY > 0;
+                    if (!atLeft && !atRight) {
+                        el.scrollLeft += e.deltaY;
+                        e.preventDefault();
+                    }
+                }
+            }
+        };
+        el.addEventListener('wheel', handleWheel, { passive: false });
+
+        const ro = new ResizeObserver(() => {
+            updateScrollMetrics();
+        });
+        ro.observe(el);
+
+        return () => {
+            el.removeEventListener('scroll', handleScroll);
+            el.removeEventListener('wheel', handleWheel);
+            ro.disconnect();
+        };
+    }, [updateScrollMetrics, quotation]);
+
+    const isTableOverflowing = scrollMetrics.scrollWidth > scrollMetrics.clientWidth + 2;
+    const maxTableScroll = Math.max(1, scrollMetrics.scrollWidth - scrollMetrics.clientWidth);
+
+    const handleTrackClick = (e) => {
+        if (!scrollTrackRef.current || !tableContainerRef.current) return;
+        const rect = scrollTrackRef.current.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        const trackWidth = rect.width;
+        const targetRatio = Math.max(0, Math.min(1, clickX / trackWidth));
+        tableContainerRef.current.scrollTo({
+            left: targetRatio * maxTableScroll,
+            behavior: 'smooth'
+        });
+    };
+
+    const handleThumbMouseDown = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        isDraggingThumbRef.current = true;
+        dragStartXRef.current = e.clientX;
+        dragStartScrollLeftRef.current = tableContainerRef.current ? tableContainerRef.current.scrollLeft : 0;
+
+        document.body.style.userSelect = 'none';
+
+        const onMouseMove = (moveEvent) => {
+            if (!isDraggingThumbRef.current || !tableContainerRef.current || !scrollTrackRef.current) return;
+            const deltaX = moveEvent.clientX - dragStartXRef.current;
+            const trackWidth = scrollTrackRef.current.clientWidth;
+            const thumbWidth = Math.max(36, (scrollMetrics.clientWidth / scrollMetrics.scrollWidth) * trackWidth);
+            const scrollableTrackSpace = Math.max(1, trackWidth - thumbWidth);
+            const scrollDelta = (deltaX / scrollableTrackSpace) * maxTableScroll;
+            tableContainerRef.current.scrollLeft = dragStartScrollLeftRef.current + scrollDelta;
+        };
+
+        const onMouseUp = () => {
+            isDraggingThumbRef.current = false;
+            document.body.style.userSelect = '';
+            window.removeEventListener('mousemove', onMouseMove);
+            window.removeEventListener('mouseup', onMouseUp);
+        };
+
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+    };
 
     const fetchOrderData = async () => {
         try {
             setLoading(true);
             const poData = await getPurchaseOrderById(id);
             setOrder(poData);
+            setEditedRemarks(poData.remarks || '');
             
             const [qData, cData] = await Promise.all([
                 fetchApi(`/quotations/${poData.quotationId}`).catch(() => null),
-                isSuperAdmin ? getCompanySettings().catch(() => null) : Promise.resolve(null)
+                getCompanySettings().catch(() => null)
             ]);
             setQuotation(qData);
             setCompanySettings(cData);
@@ -48,6 +158,21 @@ export default function PurchaseOrderDetail() {
     useEffect(() => {
         fetchOrderData();
     }, [id]);
+
+    const handleSaveRemarks = async () => {
+        try {
+            setSavingRemarks(true);
+            const updated = await updatePurchaseOrderRemarks(id, editedRemarks);
+            setOrder(updated);
+            setEditedRemarks(updated.remarks || '');
+            setIsEditingRemarks(false);
+        } catch (err) {
+            console.error('Failed to update remarks', err);
+            alert(err.message || 'Failed to update remarks');
+        } finally {
+            setSavingRemarks(false);
+        }
+    };
 
     const handleVerify = async () => {
         if (!window.confirm('Are you sure you want to verify this Purchase Order?')) return;
@@ -251,6 +376,39 @@ export default function PurchaseOrderDetail() {
     const totals = calculateTotals();
     const visibleColumns = quotation?.columnConfigs?.filter(c => c.visible).sort((a,b)=>a.sortOrder-b.sortOrder) || [];
 
+    // Helper to format Bill To Company Address lines (Address lines, City, State, PIN code)
+    const getCompanyAddressLines = () => {
+        const rawAddress = companySettings?.registeredAddress || companySettings?.billingAddress || '';
+        if (rawAddress.trim()) {
+            const lines = rawAddress.split('\n').map(l => l.trim()).filter(Boolean);
+            const separateLoc = [
+                companySettings?.city,
+                companySettings?.state,
+                companySettings?.pincode || companySettings?.pinCode || companySettings?.postalCode
+            ].filter(Boolean).join(', ');
+
+            if (separateLoc && !rawAddress.toLowerCase().includes((companySettings?.city || '').toLowerCase())) {
+                lines.push(separateLoc);
+            }
+            return lines;
+        }
+
+        const lines = [];
+        if (companySettings?.addressLine1) lines.push(companySettings.addressLine1);
+        if (companySettings?.addressLine2) lines.push(companySettings.addressLine2);
+        
+        const cityStatePin = [
+            companySettings?.city,
+            companySettings?.state,
+            companySettings?.pincode || companySettings?.pinCode || companySettings?.postalCode
+        ].filter(Boolean).join(', ');
+        if (cityStatePin) lines.push(cityStatePin);
+
+        return lines;
+    };
+
+    const companyAddressLines = getCompanyAddressLines();
+
     return (
         <div className="space-y-6 max-w-[1600px] mx-auto pb-24">
             {/* Top Action Bar */}
@@ -414,10 +572,15 @@ export default function PurchaseOrderDetail() {
                                 <div>
                                     <p className="text-[14px] font-bold text-text-primary">{companySettings?.companyName || 'ACROVIX INNOVATIONS PRIVATE LIMITED'}</p>
                                 </div>
-                                {companySettings?.registeredAddress && (
+
+                                {companyAddressLines.length > 0 && (
                                     <div className="flex items-start text-[13px] text-text-secondary">
                                         <MapPin className="w-4 h-4 mr-2 mt-0.5 shrink-0 text-text-muted" />
-                                        <p className="leading-relaxed">{companySettings.registeredAddress}</p>
+                                        <div className="leading-relaxed break-words space-y-0.5">
+                                            {companyAddressLines.map((line, idx) => (
+                                                <p key={idx}>{line}</p>
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
                                 
@@ -441,13 +604,13 @@ export default function PurchaseOrderDetail() {
                                 {((companySettings?.email) || (companySettings?.phone)) && (
                                     <div className="pt-3 border-t border-border-subtle/50 space-y-2">
                                         {companySettings?.email && (
-                                            <div className="flex items-center text-[12px] text-text-secondary">
-                                                <Mail className="w-3.5 h-3.5 mr-2 text-text-muted" /> {companySettings.email}
+                                            <div className="flex items-center text-[12px] text-text-secondary break-all">
+                                                <Mail className="w-3.5 h-3.5 mr-2 text-text-muted shrink-0" /> {companySettings.email}
                                             </div>
                                         )}
                                         {companySettings?.phone && (
                                             <div className="flex items-center text-[12px] text-text-secondary">
-                                                <Phone className="w-3.5 h-3.5 mr-2 text-text-muted" /> {companySettings.phone}
+                                                <Phone className="w-3.5 h-3.5 mr-2 text-text-muted shrink-0" /> {companySettings.phone}
                                             </div>
                                         )}
                                     </div>
@@ -508,8 +671,8 @@ export default function PurchaseOrderDetail() {
                                 <span className="ml-3 text-[11px] font-normal text-text-muted tracking-wide">Line Items</span>
                             </h3>
                         </div>
-                        <div className="overflow-x-auto w-full table-wrapper">
-                            <table className="w-full text-left border-collapse min-w-[700px]">
+                        <div ref={tableContainerRef} className="overflow-x-auto w-full no-scrollbar table-wrapper">
+                            <table className="w-full text-left border-collapse min-w-[900px]">
                                 <thead>
                                     <tr className="bg-bg-muted border-b border-border-subtle">
                                         {visibleColumns.map((col) => (
@@ -539,6 +702,27 @@ export default function PurchaseOrderDetail() {
                                 </tbody>
                             </table>
                         </div>
+                        
+                        {/* Thin Synchronized Horizontal Scrollbar (4–6px) */}
+                        {isTableOverflowing && (
+                            <div className="w-full px-6 py-2.5 bg-bg-muted/30 border-t border-border-subtle/40 select-none">
+                                <div
+                                    ref={scrollTrackRef}
+                                    onClick={handleTrackClick}
+                                    className="relative w-full h-[5px] bg-border-subtle/60 dark:bg-slate-800 rounded-full cursor-pointer overflow-hidden transition-colors hover:bg-border-subtle"
+                                    title="Drag or click to scroll horizontally"
+                                >
+                                    <div
+                                        onMouseDown={handleThumbMouseDown}
+                                        style={{
+                                            width: `${Math.max(8, Math.min(100, (scrollMetrics.clientWidth / scrollMetrics.scrollWidth) * 100))}%`,
+                                            left: `${(scrollMetrics.scrollLeft / maxTableScroll) * (100 - Math.max(8, Math.min(100, (scrollMetrics.clientWidth / scrollMetrics.scrollWidth) * 100)))}%`
+                                        }}
+                                        className="absolute top-0 bottom-0 bg-[var(--color-brand-primary,#2563EB)] hover:brightness-110 active:brightness-95 rounded-full cursor-grab active:cursor-grabbing shadow-sm transition-transform duration-75"
+                                    />
+                                </div>
+                            </div>
+                        )}
                         
                         {/* Summary / Totals inside Table Card Footer */}
                         <div className="bg-bg-muted/30 p-6 border-t border-border-subtle">
@@ -581,14 +765,81 @@ export default function PurchaseOrderDetail() {
                                 </div>
                             </div>
                         )}
-                        {order.remarks && (
-                            <div className="acx-card p-6">
-                                <h3 className="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-4">Internal Remarks</h3>
-                                <div className="text-[13px] text-text-secondary whitespace-pre-wrap leading-relaxed bg-yellow-500/5 p-4 rounded-xl border border-yellow-500/10">
+                        {/* Remarks / Additional Notes */}
+                        <div className="acx-card p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-2">
+                                    <FileText className="w-4 h-4 text-brand-primary" />
+                                    <h3 className="text-[12px] font-bold text-text-primary uppercase tracking-wider">
+                                        Remarks / Additional Notes
+                                    </h3>
+                                </div>
+                                {isSuperAdmin && !isEditingRemarks && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setEditedRemarks(order.remarks || '');
+                                            setIsEditingRemarks(true);
+                                        }}
+                                        className="text-xs font-semibold text-brand-primary hover:text-brand-primary/80 flex items-center gap-1.5 transition-colors"
+                                    >
+                                        <Edit3 className="w-3.5 h-3.5" />
+                                        {order.remarks ? 'Edit Notes' : 'Add Notes'}
+                                    </button>
+                                )}
+                            </div>
+
+                            {isEditingRemarks ? (
+                                <div className="space-y-3">
+                                    <textarea
+                                        rows="3"
+                                        maxLength={2000}
+                                        value={editedRemarks}
+                                        onChange={(e) => setEditedRemarks(e.target.value)}
+                                        placeholder="Add delivery instructions, special requirements, or other notes..."
+                                        className="w-full bg-bg-main border border-border-subtle rounded-lg px-4 py-2.5 text-sm text-text-primary focus:border-brand-primary placeholder:text-text-muted/60"
+                                    />
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[11px] text-text-muted">
+                                            {(editedRemarks || '').length} / 2000
+                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setEditedRemarks(order.remarks || '');
+                                                    setIsEditingRemarks(false);
+                                                }}
+                                                className="btn btn-secondary btn-sm"
+                                                disabled={savingRemarks}
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={handleSaveRemarks}
+                                                className="btn btn-primary btn-sm flex items-center gap-1.5"
+                                                disabled={savingRemarks}
+                                            >
+                                                {savingRemarks && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                                                Save Notes
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <p className="text-[11px] text-text-muted">
+                                        These notes are rendered on the Purchase Order PDF in a dedicated Remarks panel, kept separate from Terms & Conditions.
+                                    </p>
+                                </div>
+                            ) : order.remarks ? (
+                                <div className="text-[13px] text-text-secondary whitespace-pre-wrap leading-relaxed bg-brand-primary/5 p-4 rounded-xl border border-brand-primary/10">
                                     {order.remarks}
                                 </div>
-                            </div>
-                        )}
+                            ) : (
+                                <p className="text-[13px] text-text-muted italic">
+                                    No additional notes or instructions specified. Click &ldquo;Add Notes&rdquo; to include remarks on this PO.
+                                </p>
+                            )}
+                        </div>
                     </div>
                 </div>
 

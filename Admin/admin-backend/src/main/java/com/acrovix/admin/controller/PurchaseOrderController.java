@@ -73,6 +73,15 @@ public class PurchaseOrderController {
         return ResponseEntity.ok(purchaseOrderService.updateStatus(id, request, admin));
     }
 
+    @PatchMapping("/{id}/remarks")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<PurchaseOrderResponse> updateRemarks(
+            @PathVariable Long id,
+            @Valid @RequestBody com.acrovix.admin.dto.PurchaseOrderRemarksRequest request,
+            @AuthenticationPrincipal AdminUser admin) {
+        return ResponseEntity.ok(purchaseOrderService.updateRemarks(id, request, admin));
+    }
+
     @RateLimit(category = RateLimitCategory.PDF)
     @GetMapping("/{id}/pdf")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")

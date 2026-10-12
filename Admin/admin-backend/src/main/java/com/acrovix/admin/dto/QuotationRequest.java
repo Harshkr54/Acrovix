@@ -33,6 +33,12 @@ public class QuotationRequest {
     private String sourceNotes;
     private String termsAndConditions;
     private java.time.LocalDate validUntil;
+    private String bankName;
+    private String bankAccountHolder;
+    private String bankAccountNumber;
+    private String bankIfsc;
+    private String bankBranch;
+    private Long companyBankAccountId;
     
     @Valid
     private List<QuotationItemRequest> items;

@@ -93,11 +93,18 @@ public class PurchaseOrderService {
             throw new IllegalArgumentException("Only ACCEPTED quotations can be converted to Purchase Orders");
         }
 
+        if (quotation.getGrandTotal() == null || quotation.getGrandTotal().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Quotation does not have a valid grand total to convert to a Purchase Order");
+        }
+
         if (purchaseOrderRepository.existsByQuotationIdAndDeletedAtIsNull(quotation.getId())) {
             throw new ResourceConflictException("A Purchase Order already exists for this quotation");
         }
 
         String poNumber = sequenceGeneratorService.generateNextPurchaseOrderNumber(request.getPoDate());
+
+        // Authoritatively derive PO Value and currency from source quotation's persisted total
+        BigDecimal authoritativePoValue = quotation.getGrandTotal();
 
         PurchaseOrder po = PurchaseOrder.builder()
                 .poNumber(poNumber)
@@ -105,7 +112,7 @@ public class PurchaseOrderService {
                 .currency(quotation.getCurrency())
                 .clientPoNumber(request.getClientPoNumber())
                 .poDate(request.getPoDate())
-                .poValue(request.getPoValue())
+                .poValue(authoritativePoValue)
                 .poDocumentUrl(request.getPoDocumentUrl())
                 .receivedVia(request.getReceivedVia())
                 .remarks(request.getRemarks())
@@ -279,6 +286,27 @@ public class PurchaseOrderService {
         response.setUpdatedAt(po.getUpdatedAt());
         
         return response;
+    }
+
+    @Transactional
+    public PurchaseOrderResponse updateRemarks(Long id, com.acrovix.admin.dto.PurchaseOrderRemarksRequest request, AdminUser currentUser) {
+        PurchaseOrder po = purchaseOrderRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Purchase Order not found"));
+
+        authorizationService.checkPurchaseOrderAccess(currentUser, po);
+
+        po.setRemarks(request != null ? request.getRemarks() : null);
+        po = purchaseOrderRepository.save(po);
+
+        activityRepository.save(AdminActivity.builder()
+                .adminUserId(currentUser.getId())
+                .action("PURCHASE_ORDER_UPDATED")
+                .entityType("PurchaseOrder")
+                .entityId(po.getId())
+                .description("Updated Remarks / Additional Notes for Purchase Order " + po.getPoNumber())
+                .build());
+
+        return mapToResponse(po);
     }
 
     @Transactional(readOnly = true)

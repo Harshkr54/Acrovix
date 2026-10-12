@@ -9,6 +9,8 @@ public interface AdminUserRepository extends JpaRepository<AdminUser, Long> {
     Optional<AdminUser> findByEmail(String email);
     boolean existsByEmail(String email);
     long countByRoleAndEnabledTrue(com.acrovix.admin.entity.Role role);
+    java.util.List<AdminUser> findByEnabled(boolean enabled);
+    long countByEnabled(boolean enabled);
 
     @org.springframework.data.jpa.repository.Modifying(clearAutomatically = true)
     @org.springframework.data.jpa.repository.Query("UPDATE AdminEnquiry e SET e.assignedTo = :newAssignee WHERE e.assignedTo = :oldAssignee AND e.status NOT IN ('CONVERTED', 'CLOSED')")

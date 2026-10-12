@@ -12,9 +12,11 @@ export function ThemeProvider({ children }) {
         if (theme === 'light') {
             document.documentElement.setAttribute('data-theme', 'light');
             document.documentElement.classList.add('light');
+            document.documentElement.classList.remove('dark');
         } else {
             document.documentElement.setAttribute('data-theme', 'dark');
             document.documentElement.classList.remove('light');
+            document.documentElement.classList.add('dark');
         }
         localStorage.setItem('acrovix_admin_theme', theme);
     }, [theme]);

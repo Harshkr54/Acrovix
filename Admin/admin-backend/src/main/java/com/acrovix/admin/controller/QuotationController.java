@@ -311,6 +311,12 @@ public class QuotationController {
         map.put("grandTotal", q.getGrandTotal());
         map.put("validUntil", q.getValidUntil());
         map.put("termsAndConditions", q.getTermsAndConditions());
+        map.put("bankName", q.getBankName());
+        map.put("bankAccountHolder", q.getBankAccountHolder());
+        map.put("bankAccountNumber", q.getBankAccountNumber());
+        map.put("bankIfsc", q.getBankIfsc());
+        map.put("bankBranch", q.getBankBranch());
+        map.put("companyBankAccountId", q.getCompanyBankAccountId());
         map.put("createdAt", q.getCreatedAt());
         map.put("updatedAt", q.getUpdatedAt());
         map.put("deletedAt", q.getDeletedAt());

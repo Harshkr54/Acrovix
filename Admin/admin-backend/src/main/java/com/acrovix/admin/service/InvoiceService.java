@@ -690,7 +690,14 @@ public class InvoiceService {
 
         response.setCustomerId(invoice.getCustomer() != null ? invoice.getCustomer().getId() : null);
         response.setQuotationId(invoice.getQuotation() != null ? invoice.getQuotation().getId() : null);
-        response.setPurchaseOrderId(invoice.getPurchaseOrder() != null ? invoice.getPurchaseOrder().getId() : null);
+        if (invoice.getPurchaseOrder() != null) {
+            response.setPurchaseOrderId(invoice.getPurchaseOrder().getId());
+            response.setPoNumber(invoice.getPurchaseOrder().getPoNumber());
+            response.setPoDate(invoice.getPurchaseOrder().getPoDate());
+            response.setClientPoNumber(invoice.getPurchaseOrder().getClientPoNumber());
+        } else {
+            response.setPurchaseOrderId(null);
+        }
 
         response.setClientName(invoice.getClientName());
         response.setClientCompany(invoice.getClientCompany());

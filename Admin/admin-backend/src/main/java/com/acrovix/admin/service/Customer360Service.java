@@ -269,6 +269,12 @@ public class Customer360Service {
         r.setBalanceDue(i.getBalanceDue());
         r.setDueDate(i.getDueDate());
         r.setInvoiceDate(i.getInvoiceDate());
+        if (i.getPurchaseOrder() != null) {
+            r.setPurchaseOrderId(i.getPurchaseOrder().getId());
+            r.setPoNumber(i.getPurchaseOrder().getPoNumber());
+            r.setPoDate(i.getPurchaseOrder().getPoDate());
+            r.setClientPoNumber(i.getPurchaseOrder().getClientPoNumber());
+        }
         r.setCreatedAt(i.getCreatedAt());
         return r;
     }

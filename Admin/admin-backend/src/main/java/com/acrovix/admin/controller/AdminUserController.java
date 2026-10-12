@@ -1,6 +1,5 @@
 package com.acrovix.admin.controller;
 
-
 import com.acrovix.admin.security.ratelimit.RateLimit;
 import com.acrovix.admin.security.ratelimit.RateLimitCategory;
 import com.acrovix.admin.util.PaginationUtil;
@@ -28,8 +27,15 @@ public class AdminUserController {
 
     @GetMapping
     @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public ResponseEntity<List<AdminUserResponse>> getAllUsers() {
-        return ResponseEntity.ok(userService.getAllUsers());
+    public ResponseEntity<List<AdminUserResponse>> getAllUsers(
+            @RequestParam(required = false) Boolean enabled) {
+        return ResponseEntity.ok(userService.getAllUsers(enabled));
+    }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<AdminUserResponse> getUserById(@PathVariable Long id) {
+        return ResponseEntity.ok(userService.getUserById(id));
     }
 
     @PostMapping
@@ -74,5 +80,3 @@ public class AdminUserController {
         return ResponseEntity.ok().build();
     }
 }
-
-

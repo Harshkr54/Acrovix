@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { AlertCircle, ArrowRight, UserX, X } from 'lucide-react';
 
-export default function DisableUserModal({ user, activeUsers, onClose, onConfirm }) {
+export default function DisableUserModal({ user, activeUsers, onClose, onConfirm, isLoading = false }) {
     const [reassignTo, setReassignTo] = useState('');
 
     const handleConfirm = () => {
@@ -16,7 +16,7 @@ export default function DisableUserModal({ user, activeUsers, onClose, onConfirm
                         <UserX className="w-5 h-5 mr-2" />
                         Disable User Account
                     </h2>
-                    <button onClick={onClose} className="text-text-muted hover:text-text-primary transition-colors">
+                    <button onClick={onClose} disabled={isLoading} className="text-text-muted hover:text-text-primary transition-colors">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -27,7 +27,7 @@ export default function DisableUserModal({ user, activeUsers, onClose, onConfirm
                         <div>
                             <p className="text-[13px] font-bold text-brand-danger mb-1">Login Access Will Be Revoked</p>
                             <p className="text-[12px] text-brand-danger/80">
-                                Disabling <strong>{user?.name}</strong> will immediately revoke their access and invalidate any active sessions. Historical business records (Invoices, Quotations, Payments) will remain intact and will continue to reference this user.
+                                Disabling <strong>{user?.name}</strong> {user?.email && `(${user.email})`} will immediately revoke their access and invalidate any active sessions. Historical business records (Invoices, Quotations, Payments) will remain intact and will continue to reference this user.
                             </p>
                         </div>
                     </div>
@@ -44,6 +44,7 @@ export default function DisableUserModal({ user, activeUsers, onClose, onConfirm
                             <select 
                                 value={reassignTo} 
                                 onChange={e => setReassignTo(e.target.value)}
+                                disabled={isLoading}
                                 className="acx-input rounded-xl text-[13px] bg-bg-card h-11 w-full appearance-none pr-10"
                             >
                                 <option value="">Do not reassign (leave unassigned)</option>
@@ -59,11 +60,15 @@ export default function DisableUserModal({ user, activeUsers, onClose, onConfirm
                 </div>
 
                 <div className="p-6 border-t border-border-subtle bg-bg-card flex justify-end gap-3">
-                    <button onClick={onClose} className="btn btn-secondary btn-md">
+                    <button onClick={onClose} disabled={isLoading} className="btn btn-secondary btn-md">
                         Cancel
                     </button>
-                    <button onClick={handleConfirm} className="btn btn-md bg-brand-danger hover:bg-brand-danger/90 text-white">
-                        Disable Account
+                    <button 
+                        onClick={handleConfirm} 
+                        disabled={isLoading}
+                        className="btn btn-md bg-brand-danger hover:bg-brand-danger/90 text-white disabled:opacity-50"
+                    >
+                        {isLoading ? 'Disabling...' : 'Disable Account'}
                     </button>
                 </div>
             </div>

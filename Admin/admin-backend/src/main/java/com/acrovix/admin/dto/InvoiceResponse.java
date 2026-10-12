@@ -22,6 +22,9 @@ public class InvoiceResponse {
     private Long customerId;
     private Long quotationId;
     private Long purchaseOrderId;
+    private String poNumber;
+    private LocalDate poDate;
+    private String clientPoNumber;
 
     private String clientName;
     private String clientCompany;

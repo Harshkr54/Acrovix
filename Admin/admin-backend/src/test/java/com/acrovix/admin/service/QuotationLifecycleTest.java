@@ -194,4 +194,31 @@ class QuotationLifecycleTest {
             quotationService.createRevision(10L, adminUser);
         });
     }
+
+    @Test
+    void testSaveDraftValidUntilBeforeIssueDateThrowsException() {
+        draftQuotation.setCreatedAt(java.time.LocalDateTime.of(2026, 3, 10, 10, 0));
+        when(quotationRepository.findById(10L)).thenReturn(Optional.of(draftQuotation));
+
+        com.acrovix.admin.dto.QuotationRequest req = new com.acrovix.admin.dto.QuotationRequest();
+        req.setValidUntil(java.time.LocalDate.of(2026, 3, 9)); // Before March 10, 2026
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+            quotationService.saveQuotationDraft(10L, req, adminUser);
+        });
+        assertTrue(ex.getMessage().contains("cannot be earlier than quotation issue date"));
+    }
+
+    @Test
+    void testSaveDraftValidUntilOnOrAfterIssueDateSucceeds() {
+        draftQuotation.setCreatedAt(java.time.LocalDateTime.of(2026, 3, 10, 10, 0));
+        when(quotationRepository.findById(10L)).thenReturn(Optional.of(draftQuotation));
+        when(quotationRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        com.acrovix.admin.dto.QuotationRequest req = new com.acrovix.admin.dto.QuotationRequest();
+        req.setValidUntil(java.time.LocalDate.of(2026, 4, 9));
+
+        Quotation updated = quotationService.saveQuotationDraft(10L, req, adminUser);
+        assertEquals(java.time.LocalDate.of(2026, 4, 9), updated.getValidUntil());
+    }
 }

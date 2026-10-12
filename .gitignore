@@ -28,3 +28,14 @@ Admin/admin-backend/target/
 Admin/admin-backend/.mvn/
 deploy_root/
 
+# Test outputs & scratch
+*.pdf
+*.png
+Admin/admin-frontend/bundle-analysis.html
+Admin/DbCleanUp.java
+Admin/db_clean.py
+Admin/simulate.py
+Admin/test.csv
+Admin/admin-frontend/fix_*.py
+Admin/admin-backend/test_retry.sh
+

@@ -228,7 +228,17 @@ public class QuotationService {
         }
         quotation.setSourceNotes(request.getSourceNotes());
         quotation.setTermsAndConditions(request.getTermsAndConditions());
+        quotation.setBankName(request.getBankName());
+        quotation.setBankAccountHolder(request.getBankAccountHolder());
+        quotation.setBankAccountNumber(request.getBankAccountNumber());
+        quotation.setBankIfsc(request.getBankIfsc());
+        quotation.setBankBranch(request.getBankBranch());
+        quotation.setCompanyBankAccountId(request.getCompanyBankAccountId());
         if (request.getValidUntil() != null) {
+            LocalDate issueDate = quotation.getCreatedAt() != null ? quotation.getCreatedAt().toLocalDate() : LocalDate.now();
+            if (request.getValidUntil().isBefore(issueDate)) {
+                throw new IllegalArgumentException("Valid Until date cannot be earlier than quotation issue date (" + issueDate + ").");
+            }
             quotation.setValidUntil(request.getValidUntil());
         }
         
@@ -527,6 +537,12 @@ public class QuotationService {
         transientQ.setQuotationSource(request.getQuotationSource() != null ? request.getQuotationSource() : QuotationSource.OTHER);
         transientQ.setSourceNotes(request.getSourceNotes());
         transientQ.setTermsAndConditions(request.getTermsAndConditions());
+        transientQ.setBankName(request.getBankName());
+        transientQ.setBankAccountHolder(request.getBankAccountHolder());
+        transientQ.setBankAccountNumber(request.getBankAccountNumber());
+        transientQ.setBankIfsc(request.getBankIfsc());
+        transientQ.setBankBranch(request.getBankBranch());
+        transientQ.setCompanyBankAccountId(request.getCompanyBankAccountId());
         if (request.getValidUntil() != null) {
             transientQ.setValidUntil(request.getValidUntil());
         }
@@ -544,12 +560,16 @@ public class QuotationService {
             transientQ.setId(existing.getId());
             transientQ.setQuotationNumber(existing.getQuotationNumber());
             transientQ.setCreatedAt(existing.getCreatedAt());
-            transientQ.setValidUntil(existing.getValidUntil());
+            transientQ.setValidUntil(request.getValidUntil() != null ? request.getValidUntil() : existing.getValidUntil());
             transientQ.setEnquiry(existing.getEnquiry());
         } else {
             transientQ.setQuotationNumber("PREVIEW-DRAFT");
             transientQ.setCreatedAt(java.time.LocalDateTime.now());
-            transientQ.setValidUntil(java.time.LocalDate.now().plusDays(30));
+            if (request.getValidUntil() != null) {
+                transientQ.setValidUntil(request.getValidUntil());
+            } else {
+                transientQ.setValidUntil(java.time.LocalDate.now().plusDays(30));
+            }
             if (request.getEnquiryId() != null) {
                 transientQ.setEnquiry(enquiryRepository.findById(request.getEnquiryId()).orElse(null));
             }
@@ -723,6 +743,12 @@ public class QuotationService {
                 .grandTotal(original.getGrandTotal())
                 .validUntil(LocalDate.now().plusDays(30))
                 .termsAndConditions(original.getTermsAndConditions())
+                .bankName(original.getBankName())
+                .bankAccountHolder(original.getBankAccountHolder())
+                .bankAccountNumber(original.getBankAccountNumber())
+                .bankIfsc(original.getBankIfsc())
+                .bankBranch(original.getBankBranch())
+                .companyBankAccountId(original.getCompanyBankAccountId())
                 .createdBy(admin)
                 .build();
 

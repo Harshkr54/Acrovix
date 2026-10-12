@@ -329,10 +329,10 @@ export default function CrmLeads() {
                     />
                 ) : (
                     <>
-                        <div className="acx-table-container">
-                            <table className="w-full text-left border-collapse">
+                        <div className="w-full max-w-full overflow-x-auto leads-table-scroll-container">
+                            <table className="w-full min-w-[1260px] text-left border-collapse">
                                 <thead>
-                                    <tr className="border-b border-border-subtle bg-bg-main/50 text-[11px] font-bold text-text-muted uppercase tracking-wider">
+                                    <tr className="border-b border-border-subtle bg-bg-main/50 text-[11px] font-bold text-text-muted uppercase tracking-wider sticky top-0 z-10">
                                         <th className="px-5 py-3 min-w-[140px]">Lead #</th>
                                         <th className="px-5 py-3 min-w-[300px]">Client / Contact</th>
                                         <th className="px-5 py-3 min-w-[150px]">Source & Priority</th>

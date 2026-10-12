@@ -31,6 +31,9 @@ const CrmLeads = lazy(() => import('./pages/CrmLeads'));
 const CrmLeadDetails = lazy(() => import('./pages/CrmLeadDetails'));
 const CrmPipeline = lazy(() => import('./pages/CrmPipeline'));
 const CrmFollowUps = lazy(() => import('./pages/CrmFollowUps'));
+const CompanyBankOverview = lazy(() => import('./pages/CompanyBankOverview'));
+const CompanyDetailsPage = lazy(() => import('./pages/CompanyDetailsPage'));
+const BankAccountsPage = lazy(() => import('./pages/BankAccountsPage'));
 import SessionManager from './components/SessionManager';
 
 const ProtectedRoute = ({ children }) => {
@@ -127,6 +130,9 @@ function App() {
                     <Route path="users" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><UserList /></RoleRoute>} />
                     <Route path="trash" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><TrashList /></RoleRoute>} />
                     <Route path="activity" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><Activity /></RoleRoute>} />
+                    <Route path="company-bank-details" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><CompanyBankOverview /></RoleRoute>} />
+                    <Route path="company-bank-details/company" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><CompanyDetailsPage /></RoleRoute>} />
+                    <Route path="company-bank-details/bank-accounts" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><BankAccountsPage /></RoleRoute>} />
                     <Route path="settings" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><Settings /></RoleRoute>} />
                 </Route>
             </Routes>

@@ -23,7 +23,7 @@ public class CompanySettingsController {
     private final CompanySettingsService companySettingsService;
 
     @GetMapping
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES', 'EDITOR')")
     public ResponseEntity<CompanySettingsResponse> getCompanySettings() {
         CompanySettingsResponse settings = companySettingsService.getCompanySettings();
         return ResponseEntity.ok(settings);

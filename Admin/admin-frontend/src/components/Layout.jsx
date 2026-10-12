@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { LayoutDashboard, MessageSquare, LogOut, FileText, Shield, Menu, X, ChevronLeft, ChevronRight, Sun, Moon, Search, Bell, Settings, Trash2, PanelLeftClose, PanelLeftOpen, ArrowLeft, UsersRound, Package, ShoppingCart, CreditCard, DollarSign, BarChart3, Target, TrendingUp, Clock, Calendar } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, LogOut, FileText, Shield, Menu, X, ChevronLeft, ChevronRight, Sun, Moon, Search, Bell, Settings, Trash2, PanelLeftClose, PanelLeftOpen, ArrowLeft, UsersRound, Package, ShoppingCart, CreditCard, DollarSign, BarChart3, Target, TrendingUp, Clock, Calendar, Building2 } from 'lucide-react';
 import HeaderControls from './HeaderControls';
 import { getInitials } from '../utils/userUtils';
 import { fetchApi } from '../services/api';
@@ -154,7 +154,8 @@ export default function Layout() {
         { path: '/payments', name: 'Payments', icon: CreditCard },
         ...(user?.role === 'SUPER_ADMIN' ? [
             { path: '/receivables', name: 'Receivables', icon: DollarSign },
-            { path: '/reports', name: 'Reports', icon: BarChart3 }
+            { path: '/reports', name: 'Reports', icon: BarChart3 },
+            { path: '/company-bank-details', name: 'Company & Bank Details', icon: Building2 }
         ] : [])
     ];
 
