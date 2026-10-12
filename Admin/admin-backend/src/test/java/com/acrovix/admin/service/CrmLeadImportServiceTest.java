@@ -436,6 +436,223 @@ class CrmLeadImportServiceTest {
         verify(crmService, times(2)).createLead(any(CrmLeadRequest.class), eq(testAdmin));
     }
 
+    @Test
+    @DisplayName("29. Multi-Sheet Excel Support and Sheet Selection")
+    void test29_MultiSheetExcelSelection() throws Exception {
+        try (Workbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet1 = workbook.createSheet("East Leads");
+            Row r0 = sheet1.createRow(0);
+            r0.createCell(0).setCellValue("Full Name");
+            r0.createCell(1).setCellValue("Business Email");
+            Row r1 = sheet1.createRow(1);
+            r1.createCell(0).setCellValue("East Lead 1");
+            r1.createCell(1).setCellValue("east1@example.com");
+
+            Sheet sheet2 = workbook.createSheet("West Leads");
+            Row s0 = sheet2.createRow(0);
+            s0.createCell(0).setCellValue("Full Name");
+            s0.createCell(1).setCellValue("Business Email");
+            Row s1 = sheet2.createRow(1);
+            s1.createCell(0).setCellValue("West Lead 1");
+            s1.createCell(1).setCellValue("west1@example.com");
+            Row s2 = sheet2.createRow(2);
+            s2.createCell(0).setCellValue("West Lead 2");
+            s2.createCell(1).setCellValue("west2@example.com");
+
+            workbook.write(out);
+
+            MockMultipartFile file = new MockMultipartFile(
+                    "file", "multi_sheet.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    out.toByteArray()
+            );
+
+            // 1. Default (Sheet 1)
+            CrmLeadImportPreviewResponse preview1 = crmLeadImportService.previewImport(file);
+            assertEquals(2, preview1.getAvailableSheets().size());
+            assertEquals("East Leads", preview1.getActiveSheet());
+            assertEquals(1, preview1.getTotalRows());
+
+            // 2. Select Sheet 2 ("West Leads")
+            CrmLeadImportPreviewResponse preview2 = crmLeadImportService.previewImport(file, "West Leads");
+            assertEquals("West Leads", preview2.getActiveSheet());
+            assertEquals(2, preview2.getTotalRows());
+            assertEquals("West Lead 1", preview2.getPreviewRows().get(0).getFullName());
+        }
+    }
+
+    @Test
+    @DisplayName("30. Multi-Page PDF Table with Repeated Headers Extraction")
+    void test30_MultiPagePdfWithRepeatedHeaders() throws Exception {
+        try (PDDocument doc = new PDDocument();
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+
+            // Page 1
+            PDPage page1 = new PDPage();
+            doc.addPage(page1);
+            try (PDPageContentStream cs = new PDPageContentStream(doc, page1)) {
+                cs.setFont(PDType1Font.HELVETICA_BOLD, 10);
+                drawPdfRow(cs, 700, "Full Name", "Business Email", "Company", "Phone", "Industry", "Source", "Priority", "Requirement", "City");
+                cs.setFont(PDType1Font.HELVETICA, 10);
+                drawPdfRow(cs, 670, "John Doe", "john.doe@example.com", "Acme", "+919876543210", "Tech", "WEBSITE", "HIGH", "Cloud", "Mumbai");
+            }
+
+            // Page 2 (with repeated header)
+            PDPage page2 = new PDPage();
+            doc.addPage(page2);
+            try (PDPageContentStream cs = new PDPageContentStream(doc, page2)) {
+                cs.setFont(PDType1Font.HELVETICA_BOLD, 10);
+                drawPdfRow(cs, 700, "Full Name", "Business Email", "Company", "Phone", "Industry", "Source", "Priority", "Requirement", "City");
+                cs.setFont(PDType1Font.HELVETICA, 10);
+                drawPdfRow(cs, 670, "Jane Smith", "jane.smith@example.com", "Beta LLC", "+919876543211", "Finance", "REFERRAL", "MEDIUM", "ERP", "Delhi");
+            }
+
+            doc.save(out);
+
+            MockMultipartFile file = new MockMultipartFile(
+                    "file", "leads_multipage.pdf", "application/pdf", out.toByteArray()
+            );
+
+            when(crmLeadRepository.existsByBusinessEmailIgnoreCase(anyString())).thenReturn(false);
+
+            CrmLeadImportPreviewResponse preview = crmLeadImportService.previewImport(file);
+            assertNotNull(preview);
+            assertEquals("PDF", preview.getFileType());
+            // Should extract 2 leads and skip the repeated header row
+            assertEquals(2, preview.getTotalRows());
+            assertEquals("John Doe", preview.getPreviewRows().get(0).getFullName());
+            assertEquals("Jane Smith", preview.getPreviewRows().get(1).getFullName());
+        }
+    }
+
+    @Test
+    @DisplayName("31. Large Dataset Performance Test (1,861 records)")
+    void test31_LargeDataset1861RecordsProcessing() {
+        StringBuilder csv = new StringBuilder();
+        csv.append("Full Name,Business Email,Phone,Company,Industry Sector,Status\n");
+        for (int i = 1; i <= 1861; i++) {
+            csv.append("Lead Number ").append(i).append(",");
+            csv.append("lead").append(i).append("@enterprise.com,");
+            csv.append("+9198765").append(String.format("%05d", i)).append(",");
+            csv.append("Company ").append(i).append(",");
+            csv.append("Technology,NEW\n");
+        }
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "large_dataset_1861.csv", "text/csv", csv.toString().getBytes(StandardCharsets.UTF_8)
+        );
+
+        when(crmLeadRepository.existsByBusinessEmailIgnoreCase(anyString())).thenReturn(false);
+
+        long start = System.currentTimeMillis();
+        CrmLeadImportPreviewResponse preview = crmLeadImportService.previewImport(file);
+        long duration = System.currentTimeMillis() - start;
+
+        assertEquals(1861, preview.getTotalRows());
+        assertEquals(1861, preview.getValidCount());
+        assertEquals(0, preview.getInvalidCount());
+        assertEquals(0, preview.getDuplicateCount());
+        assertTrue(duration < 4000, "1861 rows should be parsed within 4 seconds, took: " + duration + "ms");
+    }
+
+    @Test
+    @DisplayName("32. Secondary Duplicate Signals (Phone and Company+Name)")
+    void test32_SecondaryDuplicatePhoneAndCompanyDetection() {
+        String csv = "Full Name,Business Email,Phone,Company\n" +
+                "New Lead,unique1@example.com,+919999988888,Unique Org\n" +
+                "Existing Person,unique2@example.com,+911111122222,Existing Org\n";
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "possible_dup.csv", "text/csv", csv.getBytes(StandardCharsets.UTF_8)
+        );
+
+        when(crmLeadRepository.existsByBusinessEmailIgnoreCase(anyString())).thenReturn(false);
+        // Phone duplicate trigger for first row
+        when(crmLeadRepository.existsByPhoneNumber("+919999988888")).thenReturn(true);
+        // Company + Name duplicate trigger for second row
+        when(crmLeadRepository.existsByPhoneNumber("+911111122222")).thenReturn(false);
+        when(crmLeadRepository.findByFullNameIgnoreCaseAndCompanyNameIgnoreCase("Existing Person", "Existing Org"))
+                .thenReturn(List.of(CrmLead.builder().id(99L).leadNumber("LEAD-99").build()));
+
+        CrmLeadImportPreviewResponse preview = crmLeadImportService.previewImport(file);
+
+        assertEquals(2, preview.getTotalRows());
+        assertEquals(2, preview.getPossibleDuplicateCount());
+        assertEquals("POSSIBLE_DUPLICATE", preview.getPreviewRows().get(0).getStatus());
+        assertEquals("POSSIBLE_DUPLICATE", preview.getPreviewRows().get(1).getStatus());
+        assertTrue(preview.getPreviewRows().get(0).getWarnings().get(0).contains("Phone number already exists"));
+        assertTrue(preview.getPreviewRows().get(1).getWarnings().get(0).contains("Contact name and company match"));
+    }
+
+    @Test
+    @DisplayName("33. Domain-Specific Fields (CSI, Contract, Renewal) Preserved in Notes")
+    void test33_DomainSpecificFieldsPreservedInNotes() {
+        String csv = "Full Name,Business Email,CSI Number,Contract ID,Renewal Date\n" +
+                "Robert Lang,robert@domain.com,CSI-9941,CT-8820,2026-11-30\n";
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "domain_fields.csv", "text/csv", csv.getBytes(StandardCharsets.UTF_8)
+        );
+
+        when(crmLeadRepository.existsByBusinessEmailIgnoreCase(anyString())).thenReturn(false);
+        when(crmService.createLead(any(CrmLeadRequest.class), eq(testAdmin)))
+                .thenAnswer(inv -> {
+                    CrmLeadRequest req = inv.getArgument(0);
+                    // Verify domain fields were appended into notes
+                    assertNotNull(req.getNotes());
+                    assertTrue(req.getNotes().contains("CSI Number: CSI-9941"));
+                    assertTrue(req.getNotes().contains("Contract ID: CT-8820"));
+                    assertTrue(req.getNotes().contains("Renewal Date: 2026-11-30"));
+                    // Verify they were not mapped into phone or company
+                    assertNull(req.getPhoneNumber());
+                    assertNull(req.getCompanyName());
+                    return CrmLeadResponse.builder().id(123L).build();
+                });
+
+        CrmLeadImportResultResponse result = crmLeadImportService.importLeads(file, null, testAdmin);
+        assertEquals(1, result.getSuccessCount());
+    }
+
+    @Test
+    @DisplayName("34. Export Converted Records as CSV and XLSX")
+    void test34_ExportConvertedRecordsCsvAndXlsx() {
+        CrmLeadRequest req1 = CrmLeadRequest.builder()
+                .fullName("John Doe")
+                .businessEmail("john@example.com")
+                .companyName("Acme")
+                .phoneNumber("+919876543210")
+                .status(LeadStatus.NEW)
+                .build();
+
+        byte[] csvBytes = crmLeadImportService.exportConvertedRecords(List.of(req1), "CSV");
+        assertNotNull(csvBytes);
+        String csvStr = new String(csvBytes, StandardCharsets.UTF_8);
+        assertTrue(csvStr.contains("John Doe"));
+        assertTrue(csvStr.contains("john@example.com"));
+
+        byte[] xlsxBytes = crmLeadImportService.exportConvertedRecords(List.of(req1), "XLSX");
+        assertNotNull(xlsxBytes);
+        assertTrue(xlsxBytes.length > 500);
+    }
+
+    @Test
+    @DisplayName("35. Export Error Report")
+    void test35_ExportErrorReport() {
+        CrmLeadImportPreviewRow row = CrmLeadImportPreviewRow.builder()
+                .rowIndex(5)
+                .fullName("Invalid Person")
+                .businessEmail("bad-email")
+                .status("INVALID")
+                .errors(List.of("Invalid business email format"))
+                .build();
+
+        byte[] errorCsv = crmLeadImportService.exportErrorReport(List.of(row));
+        assertNotNull(errorCsv);
+        String errorStr = new String(errorCsv, StandardCharsets.UTF_8);
+        assertTrue(errorStr.contains("Invalid Person"));
+        assertTrue(errorStr.contains("Invalid business email format"));
+    }
+
     private void drawPdfRow(PDPageContentStream cs, float y, String name, String email, String company, String phone, String industry, String source, String priority, String requirement, String city) throws Exception {
         cs.beginText();
         cs.newLineAtOffset(40, y);
@@ -459,3 +676,4 @@ class CrmLeadImportServiceTest {
         cs.endText();
     }
 }
+

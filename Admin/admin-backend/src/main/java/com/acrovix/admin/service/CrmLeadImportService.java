@@ -9,28 +9,28 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
-import org.apache.poi.ss.usermodel.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.encryption.InvalidPasswordException;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.pdfbox.text.TextPosition;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-
-
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -49,7 +49,7 @@ public class CrmLeadImportService {
 
     // Supported Field Metadata Definitions
     private static final List<CrmLeadImportFieldMeta> SUPPORTED_FIELDS = List.of(
-            CrmLeadImportFieldMeta.builder().key("fullName").label("Full Name").required(true).description("Lead full name").sampleValues(List.of("John Doe", "Rahul Sharma")).build(),
+            CrmLeadImportFieldMeta.builder().key("fullName").label("Full Name").required(true).description("Lead contact full name").sampleValues(List.of("John Doe", "Rahul Sharma")).build(),
             CrmLeadImportFieldMeta.builder().key("businessEmail").label("Business Email").required(true).description("Work email address").sampleValues(List.of("john@example.com", "rahul@acme.com")).build(),
             CrmLeadImportFieldMeta.builder().key("companyName").label("Company").required(false).description("Company or organization name").sampleValues(List.of("Acme Corp", "Tech Solutions Ltd")).build(),
             CrmLeadImportFieldMeta.builder().key("phoneNumber").label("Phone").required(false).description("Contact phone number").sampleValues(List.of("+919876543210", "9876543210")).build(),
@@ -71,38 +71,70 @@ public class CrmLeadImportService {
     }
 
     /**
-     * Preview endpoint logic: parses file headers, generates auto-mapping, and evaluates valid/invalid/duplicate status for preview rows without persisting anything.
+     * Preview endpoint logic with optional sheet selection for multi-sheet Excel files.
      */
     public CrmLeadImportPreviewResponse previewImport(MultipartFile file) {
-        validateFile(file);
+        return previewImport(file, null);
+    }
 
-        ParsedSheet parsedSheet = parseSpreadsheet(file);
-        if (parsedSheet.getHeaders().isEmpty()) {
+    public CrmLeadImportPreviewResponse previewImport(MultipartFile file, String sheetName) {
+        String detectedFormat = inspectAndValidateFile(file);
+
+        ParsedWorkbookResult workbookResult;
+        if ("PDF".equalsIgnoreCase(detectedFormat)) {
+            ParsedSheet pdfSheet = parsePdf(file);
+            workbookResult = new ParsedWorkbookResult(List.of("Default"), "Default", pdfSheet.getHeaders(), pdfSheet.getRows(), pdfSheet.getSkippedRowCount());
+        } else if ("CSV".equalsIgnoreCase(detectedFormat)) {
+            ParsedSheet csvSheet = parseCsv(file);
+            workbookResult = new ParsedWorkbookResult(List.of("Default"), "Default", csvSheet.getHeaders(), csvSheet.getRows(), csvSheet.getSkippedRowCount());
+        } else {
+            workbookResult = parseExcel(file, sheetName);
+        }
+
+        if (workbookResult.getHeaders().isEmpty()) {
             throw new IllegalArgumentException("The uploaded file does not contain header columns.");
         }
-        if (parsedSheet.getRows().isEmpty()) {
+        if (workbookResult.getRows().isEmpty()) {
             throw new IllegalArgumentException("The uploaded sheet does not contain any data rows.");
         }
 
-        Map<String, String> suggestedMapping = autoSuggestMapping(parsedSheet.getHeaders());
-        
+        // Generate mapping and confidence analysis
+        List<CrmLeadImportColumnMappingInfo> columnMappings = analyzeColumnMappings(workbookResult.getHeaders(), workbookResult.getRows());
+        Map<String, String> suggestedMapping = new LinkedHashMap<>();
+        for (CrmLeadImportColumnMappingInfo info : columnMappings) {
+            if (info.getSuggestedField() != null && !info.getSuggestedField().isBlank()) {
+                suggestedMapping.put(info.getSourceColumn(), info.getSuggestedField());
+            }
+        }
+
         Set<String> seenEmailsInFile = new HashSet<>();
+        Set<String> seenPhonesInFile = new HashSet<>();
         List<CrmLeadImportPreviewRow> previewRows = new ArrayList<>();
-        
+
         int validCount = 0;
         int invalidCount = 0;
         int duplicateCount = 0;
+        int possibleDuplicateCount = 0;
 
-        for (int i = 0; i < parsedSheet.getRows().size(); i++) {
-            Map<String, String> rawRow = parsedSheet.getRows().get(i);
+        for (int i = 0; i < workbookResult.getRows().size(); i++) {
+            Map<String, String> rawRow = workbookResult.getRows().get(i);
             int rowIndex = i + 1; // 1-indexed data row
 
-            Map<String, String> mappedFields = mapRowFields(rawRow, suggestedMapping);
+            // Normalize row values
+            Map<String, String> normalizedRawRow = normalizeRawRow(rawRow);
+
+            // Separate domain-specific and unmapped fields
+            Map<String, String> unmappedDomainData = extractDomainSpecificFields(rawRow, suggestedMapping);
+
+            // Map fields to CRM keys
+            Map<String, String> mappedFields = mapRowFields(normalizedRawRow, suggestedMapping);
             List<String> rowErrors = new ArrayList<>();
+            List<String> rowWarnings = new ArrayList<>();
 
             String fullName = mappedFields.getOrDefault("fullName", "").trim();
             String businessEmail = mappedFields.getOrDefault("businessEmail", "").trim();
             String companyName = mappedFields.getOrDefault("companyName", "").trim();
+            String phoneNumber = mappedFields.getOrDefault("phoneNumber", "").trim();
 
             // 1. Required Field Validation
             if (fullName.isBlank()) {
@@ -117,29 +149,77 @@ public class CrmLeadImportService {
             // 2. Enum & Numeric Validations
             validateFieldFormats(mappedFields, rowErrors);
 
-            // 3. Duplicate Detection
-            boolean isDuplicate = false;
+            // 3. Primary Duplicate Detection (Email)
+            boolean isExactDuplicate = false;
+            String duplicateReason = null;
+
             if (!businessEmail.isBlank() && EMAIL_PATTERN.matcher(businessEmail).matches()) {
                 String normalizedEmail = businessEmail.toLowerCase();
                 if (seenEmailsInFile.contains(normalizedEmail)) {
-                    isDuplicate = true;
-                    rowErrors.add("Duplicate email within uploaded file: " + businessEmail);
+                    isExactDuplicate = true;
+                    duplicateReason = "Duplicate email within uploaded file: " + businessEmail;
+                    rowErrors.add(duplicateReason);
                 } else {
                     seenEmailsInFile.add(normalizedEmail);
                     if (crmLeadRepository.existsByBusinessEmailIgnoreCase(businessEmail)) {
-                        isDuplicate = true;
-                        rowErrors.add("Duplicate lead: email already exists in system (" + businessEmail + ")");
+                        isExactDuplicate = true;
+                        duplicateReason = "Duplicate lead: email already exists in system (" + businessEmail + ")";
+                        rowErrors.add(duplicateReason);
+                    }
+                }
+            }
+
+            // 4. Secondary Duplicate Detection (Phone, Company + Name)
+            boolean isPossibleDuplicate = false;
+            if (!isExactDuplicate) {
+                if (!phoneNumber.isBlank() && phoneNumber.length() >= 7) {
+                    String cleanPhone = phoneNumber.replaceAll("[^0-9+]", "");
+                    if (seenPhonesInFile.contains(cleanPhone)) {
+                        isPossibleDuplicate = true;
+                        String warn = "Possible duplicate: Phone number matches earlier row in file (" + phoneNumber + ")";
+                        rowWarnings.add(warn);
+                        duplicateReason = warn;
+                    } else {
+                        seenPhonesInFile.add(cleanPhone);
+                        if (crmLeadRepository.existsByPhoneNumber(phoneNumber) || crmLeadRepository.existsByPhoneNumber(cleanPhone)) {
+                            isPossibleDuplicate = true;
+                            String warn = "Possible duplicate: Phone number already exists in CRM (" + phoneNumber + ")";
+                            rowWarnings.add(warn);
+                            duplicateReason = warn;
+                        }
+                    }
+                }
+
+                if (!isPossibleDuplicate && !companyName.isBlank() && !fullName.isBlank()) {
+                    List<CrmLead> existingMatches = crmLeadRepository.findByFullNameIgnoreCaseAndCompanyNameIgnoreCase(fullName, companyName);
+                    if (!existingMatches.isEmpty()) {
+                        isPossibleDuplicate = true;
+                        String warn = "Possible duplicate: Contact name and company match existing CRM lead #" + existingMatches.get(0).getLeadNumber();
+                        rowWarnings.add(warn);
+                        duplicateReason = warn;
                     }
                 }
             }
 
             String rowStatus;
-            if (isDuplicate) {
+            boolean defaultIncluded = true;
+
+            if (isExactDuplicate) {
                 rowStatus = "DUPLICATE";
                 duplicateCount++;
+                defaultIncluded = false;
+            } else if (isPossibleDuplicate) {
+                rowStatus = "POSSIBLE_DUPLICATE";
+                possibleDuplicateCount++;
+                if (!rowErrors.isEmpty()) {
+                    invalidCount++;
+                } else {
+                    validCount++;
+                }
             } else if (!rowErrors.isEmpty()) {
                 rowStatus = "INVALID";
                 invalidCount++;
+                defaultIncluded = false;
             } else {
                 rowStatus = "VALID";
                 validCount++;
@@ -148,144 +228,83 @@ public class CrmLeadImportService {
             previewRows.add(CrmLeadImportPreviewRow.builder()
                     .rowIndex(rowIndex)
                     .rowData(rawRow)
+                    .normalizedData(normalizedRawRow)
                     .status(rowStatus)
                     .fullName(fullName)
                     .businessEmail(businessEmail)
                     .companyName(companyName)
+                    .phoneNumber(phoneNumber)
                     .errors(rowErrors)
+                    .warnings(rowWarnings)
+                    .unmappedDomainData(unmappedDomainData)
+                    .isServerDuplicate(isExactDuplicate)
+                    .isPossibleDuplicate(isPossibleDuplicate)
+                    .duplicateReason(duplicateReason)
+                    .included(defaultIncluded)
                     .build());
         }
 
         return CrmLeadImportPreviewResponse.builder()
                 .fileName(file.getOriginalFilename())
                 .fileSize(file.getSize())
-                .totalRows(parsedSheet.getRows().size())
+                .fileType(detectedFormat)
+                .availableSheets(workbookResult.getSheetNames())
+                .activeSheet(workbookResult.getActiveSheet())
+                .totalRows(workbookResult.getRows().size())
                 .validCount(validCount)
                 .invalidCount(invalidCount)
                 .duplicateCount(duplicateCount)
-                .fileHeaders(parsedSheet.getHeaders())
+                .possibleDuplicateCount(possibleDuplicateCount)
+                .skippedCount(workbookResult.getSkippedRowCount())
+                .fileHeaders(workbookResult.getHeaders())
                 .suggestedMapping(suggestedMapping)
+                .columnMappings(columnMappings)
                 .supportedFields(SUPPORTED_FIELDS)
                 .previewRows(previewRows)
                 .build();
     }
 
     /**
-     * Import endpoint logic: parses file, applies explicit or auto column mapping, validates, filters duplicates, and imports valid leads.
+     * Import endpoint logic from file with optional mapping json.
      */
     public CrmLeadImportResultResponse importLeads(
             MultipartFile file,
             String columnMappingJson,
             AdminUser currentUser
     ) {
-        validateFile(file);
+        String detectedFormat = inspectAndValidateFile(file);
 
         Map<String, String> columnMapping = parseMappingJson(columnMappingJson);
-        ParsedSheet parsedSheet = parseSpreadsheet(file);
+        ParsedWorkbookResult workbookResult;
+        if ("PDF".equalsIgnoreCase(detectedFormat)) {
+            ParsedSheet pdfSheet = parsePdf(file);
+            workbookResult = new ParsedWorkbookResult(List.of("Default"), "Default", pdfSheet.getHeaders(), pdfSheet.getRows(), pdfSheet.getSkippedRowCount());
+        } else if ("CSV".equalsIgnoreCase(detectedFormat)) {
+            ParsedSheet csvSheet = parseCsv(file);
+            workbookResult = new ParsedWorkbookResult(List.of("Default"), "Default", csvSheet.getHeaders(), csvSheet.getRows(), csvSheet.getSkippedRowCount());
+        } else {
+            workbookResult = parseExcel(file, null);
+        }
 
         if (columnMapping == null || columnMapping.isEmpty()) {
-            columnMapping = autoSuggestMapping(parsedSheet.getHeaders());
+            columnMapping = autoSuggestMapping(workbookResult.getHeaders());
         }
 
-        Set<String> seenEmailsInFile = new HashSet<>();
-        List<CrmLeadImportRowError> importErrors = new ArrayList<>();
-        List<CrmLeadRequest> validRequests = new ArrayList<>();
-        List<Integer> validRowIndices = new ArrayList<>();
+        List<CrmLeadRequest> requestsToImport = new ArrayList<>();
+        for (Map<String, String> rawRow : workbookResult.getRows()) {
+            Map<String, String> normalizedRaw = normalizeRawRow(rawRow);
+            Map<String, String> mapped = mapRowFields(normalizedRaw, columnMapping);
+            Map<String, String> domainData = extractDomainSpecificFields(rawRow, columnMapping);
 
-        int duplicateCount = 0;
-        int errorCount = 0;
-
-        for (int i = 0; i < parsedSheet.getRows().size(); i++) {
-            Map<String, String> rawRow = parsedSheet.getRows().get(i);
-            int rowIndex = i + 1;
-
-            Map<String, String> mappedFields = mapRowFields(rawRow, columnMapping);
-            List<String> rowErrors = new ArrayList<>();
-
-            String fullName = mappedFields.getOrDefault("fullName", "").trim();
-            String businessEmail = mappedFields.getOrDefault("businessEmail", "").trim();
-
-            if (fullName.isBlank()) {
-                rowErrors.add("Full Name is required");
-            }
-            if (businessEmail.isBlank()) {
-                rowErrors.add("Business Email is required");
-            } else if (!EMAIL_PATTERN.matcher(businessEmail).matches()) {
-                rowErrors.add("Invalid business email format");
-            }
-
-            validateFieldFormats(mappedFields, rowErrors);
-
-            boolean isDuplicate = false;
-            if (!businessEmail.isBlank() && EMAIL_PATTERN.matcher(businessEmail).matches()) {
-                String normalizedEmail = businessEmail.toLowerCase();
-                if (seenEmailsInFile.contains(normalizedEmail)) {
-                    isDuplicate = true;
-                    rowErrors.add("Duplicate lead within uploaded file");
-                } else {
-                    seenEmailsInFile.add(normalizedEmail);
-                    if (crmLeadRepository.existsByBusinessEmailIgnoreCase(businessEmail)) {
-                        isDuplicate = true;
-                        rowErrors.add("Duplicate lead: email already exists in CRM");
-                    }
-                }
-            }
-
-            if (isDuplicate) {
-                duplicateCount++;
-                importErrors.add(CrmLeadImportRowError.builder()
-                        .rowIndex(rowIndex)
-                        .fullName(fullName)
-                        .businessEmail(businessEmail)
-                        .errorMessage("Duplicate lead skipped: " + String.join("; ", rowErrors))
-                        .build());
-            } else if (!rowErrors.isEmpty()) {
-                errorCount++;
-                importErrors.add(CrmLeadImportRowError.builder()
-                        .rowIndex(rowIndex)
-                        .fullName(fullName)
-                        .businessEmail(businessEmail)
-                        .errorMessage(String.join("; ", rowErrors))
-                        .build());
-            } else {
-                CrmLeadRequest request = buildLeadRequest(mappedFields);
-                validRequests.add(request);
-                validRowIndices.add(rowIndex);
-            }
+            CrmLeadRequest request = buildLeadRequest(mapped, domainData);
+            requestsToImport.add(request);
         }
 
-        // Batch Persist Valid Records
-        int successCount = 0;
-        for (int i = 0; i < validRequests.size(); i++) {
-            CrmLeadRequest req = validRequests.get(i);
-            int rowIndex = validRowIndices.get(i);
-
-            try {
-                crmService.createLead(req, currentUser);
-                successCount++;
-            } catch (Exception e) {
-                logger.error("Failed to import lead at row {}: {}", rowIndex, e.getMessage());
-                errorCount++;
-                importErrors.add(CrmLeadImportRowError.builder()
-                        .rowIndex(rowIndex)
-                        .fullName(req.getFullName())
-                        .businessEmail(req.getBusinessEmail())
-                        .errorMessage("Import error: " + e.getMessage())
-                        .build());
-            }
-        }
-
-        return CrmLeadImportResultResponse.builder()
-                .totalProcessed(parsedSheet.getRows().size())
-                .successCount(successCount)
-                .duplicateCount(duplicateCount)
-                .errorCount(errorCount)
-                .errors(importErrors)
-                .build();
+        return importLeadRequests(requestsToImport, currentUser);
     }
 
     /**
-     * Directly import pre-validated or user-edited CrmLeadRequest records.
+     * Directly import pre-validated or user-edited CrmLeadRequest records with batching and transaction safety.
      */
     public CrmLeadImportResultResponse importLeadRequests(
             List<CrmLeadRequest> requests,
@@ -301,6 +320,7 @@ public class CrmLeadImportService {
         Set<String> seenEmailsInBatch = new HashSet<>();
         List<CrmLeadImportRowError> importErrors = new ArrayList<>();
         List<CrmLeadRequest> validRequests = new ArrayList<>();
+        List<Integer> validRowIndices = new ArrayList<>();
 
         int duplicateCount = 0;
         int errorCount = 0;
@@ -334,12 +354,12 @@ public class CrmLeadImportService {
                 String normalizedEmail = businessEmail.toLowerCase();
                 if (seenEmailsInBatch.contains(normalizedEmail)) {
                     isDuplicate = true;
-                    rowErrors.add("Duplicate lead within batch");
+                    rowErrors.add("Duplicate lead within batch: " + businessEmail);
                 } else {
                     seenEmailsInBatch.add(normalizedEmail);
                     if (crmLeadRepository.existsByBusinessEmailIgnoreCase(businessEmail)) {
                         isDuplicate = true;
-                        rowErrors.add("Duplicate lead: email already exists in CRM");
+                        rowErrors.add("Duplicate lead: email already exists in CRM (" + businessEmail + ")");
                     }
                 }
             }
@@ -362,24 +382,34 @@ public class CrmLeadImportService {
                         .build());
             } else {
                 validRequests.add(req);
+                validRowIndices.add(rowIndex);
             }
         }
 
+        // Batch Persist Valid Records in chunks of 100
         int successCount = 0;
-        for (int i = 0; i < validRequests.size(); i++) {
-            CrmLeadRequest req = validRequests.get(i);
-            try {
-                crmService.createLead(req, currentUser);
-                successCount++;
-            } catch (Exception e) {
-                logger.error("Failed to import lead request: {}", e.getMessage());
-                errorCount++;
-                importErrors.add(CrmLeadImportRowError.builder()
-                        .rowIndex(i + 1)
-                        .fullName(req.getFullName())
-                        .businessEmail(req.getBusinessEmail())
-                        .errorMessage("Import error: " + e.getMessage())
-                        .build());
+        int batchSize = 100;
+        for (int b = 0; b < validRequests.size(); b += batchSize) {
+            int end = Math.min(b + batchSize, validRequests.size());
+            List<CrmLeadRequest> subBatch = validRequests.subList(b, end);
+            List<Integer> subIndices = validRowIndices.subList(b, end);
+
+            for (int j = 0; j < subBatch.size(); j++) {
+                CrmLeadRequest req = subBatch.get(j);
+                int rowIndex = subIndices.get(j);
+                try {
+                    crmService.createLead(req, currentUser);
+                    successCount++;
+                } catch (Exception e) {
+                    logger.error("Failed to import lead at row {}: {}", rowIndex, e.getMessage());
+                    errorCount++;
+                    importErrors.add(CrmLeadImportRowError.builder()
+                            .rowIndex(rowIndex)
+                            .fullName(req.getFullName())
+                            .businessEmail(req.getBusinessEmail())
+                            .errorMessage("Import error: " + e.getMessage())
+                            .build());
+                }
             }
         }
 
@@ -393,6 +423,40 @@ public class CrmLeadImportService {
     }
 
     /**
+     * Generate Converted CSV or XLSX file representing normalized and reviewed records.
+     */
+    public byte[] exportConvertedRecords(List<CrmLeadRequest> records, String format) {
+        if ("XLSX".equalsIgnoreCase(format)) {
+            return generateXlsxFromRequests(records);
+        } else {
+            return generateCsvFromRequests(records);
+        }
+    }
+
+    /**
+     * Generate CSV Error Report containing rejected rows and validation failure reasons.
+     */
+    public byte[] exportErrorReport(List<CrmLeadImportPreviewRow> rejectedRows) {
+        StringBuilder csv = new StringBuilder();
+        csv.append("Row Index,Full Name,Business Email,Phone,Company,Status,Validation & Duplicate Errors\n");
+
+        for (CrmLeadImportPreviewRow r : rejectedRows) {
+            csv.append(r.getRowIndex()).append(",");
+            csv.append(escapeCsv(r.getFullName())).append(",");
+            csv.append(escapeCsv(r.getBusinessEmail())).append(",");
+            csv.append(escapeCsv(r.getPhoneNumber())).append(",");
+            csv.append(escapeCsv(r.getCompanyName())).append(",");
+            csv.append(escapeCsv(r.getStatus())).append(",");
+            List<String> combined = new ArrayList<>();
+            if (r.getErrors() != null) combined.addAll(r.getErrors());
+            if (r.getWarnings() != null) combined.addAll(r.getWarnings());
+            csv.append(escapeCsv(String.join("; ", combined))).append("\n");
+        }
+
+        return csv.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
+    /**
      * Generate CSV Template Content for Download
      */
     public byte[] generateTemplateCsv() {
@@ -402,9 +466,9 @@ public class CrmLeadImportService {
         return csv.toString().getBytes(StandardCharsets.UTF_8);
     }
 
-    // --- HELPER METHODS ---
+    // --- FILE INSPECTION & MAGIC BYTES VALIDATION ---
 
-    private void validateFile(MultipartFile file) {
+    public String inspectAndValidateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("Uploaded file is empty.");
         }
@@ -417,19 +481,222 @@ public class CrmLeadImportService {
         }
 
         String lower = filename.toLowerCase();
-        if (!lower.endsWith(".csv") && !lower.endsWith(".xlsx") && !lower.endsWith(".xls")) {
-            throw new IllegalArgumentException("Unsupported file extension. Only CSV, XLSX, and XLS files are supported.");
+        boolean hasExt = lower.endsWith(".csv") || lower.endsWith(".xlsx") || lower.endsWith(".xls") || lower.endsWith(".pdf");
+        if (!hasExt) {
+            throw new IllegalArgumentException("Unsupported file extension. Only CSV, XLSX, XLS, and PDF files are supported.");
         }
+
+        // Sniff Magic Bytes
+        byte[] magic = new byte[8];
+        try (InputStream is = file.getInputStream()) {
+            int read = is.read(magic);
+            if (read < 4) {
+                throw new IllegalArgumentException("Uploaded file is corrupted or too small.");
+            }
+        } catch (IllegalArgumentException ie) {
+            throw ie;
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Unable to read file contents: " + e.getMessage());
+        }
+
+        // Check PDF: %PDF
+        if (magic[0] == 0x25 && magic[1] == 0x50 && magic[2] == 0x44 && magic[3] == 0x46) {
+            if (!lower.endsWith(".pdf")) {
+                throw new IllegalArgumentException("File contains PDF content but does not have a .pdf extension.");
+            }
+            return "PDF";
+        }
+
+        // Check ZIP / XLSX: PK\x03\x04
+        if (magic[0] == 0x50 && magic[1] == 0x4B && magic[2] == 0x03 && magic[3] == 0x04) {
+            if (!lower.endsWith(".xlsx")) {
+                throw new IllegalArgumentException("File contains XLSX zip archive content but has mismatched extension.");
+            }
+            return "XLSX";
+        }
+
+        // Check OLE2 / XLS: \xD0\xCF\x11\xE0
+        if ((magic[0] & 0xFF) == 0xD0 && (magic[1] & 0xFF) == 0xCF && (magic[2] & 0xFF) == 0x11 && (magic[3] & 0xFF) == 0xE0) {
+            if (!lower.endsWith(".xls") && !lower.endsWith(".xlsx")) {
+                throw new IllegalArgumentException("File contains Excel binary format content but has mismatched extension.");
+            }
+            return "XLS";
+        }
+
+        // If user declared XLSX or PDF but magic bytes mismatch
+        if (lower.endsWith(".pdf")) {
+            throw new IllegalArgumentException("File has .pdf extension but does not contain valid PDF header (%PDF).");
+        }
+        if (lower.endsWith(".xlsx")) {
+            throw new IllegalArgumentException("Failed to parse Excel sheet. Ensure file is not corrupted: Invalid ZIP stream");
+        }
+
+        if (lower.endsWith(".csv")) {
+            return "CSV";
+        } else if (lower.endsWith(".xls")) {
+            return "XLS";
+        }
+
+        return "CSV";
     }
 
-    private ParsedSheet parseSpreadsheet(MultipartFile file) {
-        String filename = file.getOriginalFilename().toLowerCase();
-        if (filename.endsWith(".csv")) {
-            return parseCsv(file);
-        } else {
-            return parseExcel(file);
+    // --- SPREADSHEET PARSING (MULTI-SHEET & HEADER DETECTION) ---
+
+    private ParsedWorkbookResult parseExcel(MultipartFile file, String requestedSheetName) {
+        List<String> sheetNames = new ArrayList<>();
+        String activeSheetName = "Sheet1";
+        List<String> headers = new ArrayList<>();
+        List<Map<String, String>> rows = new ArrayList<>();
+        int skippedRowCount = 0;
+
+        try (InputStream is = file.getInputStream();
+             Workbook workbook = WorkbookFactory.create(is)) {
+
+            int numberOfSheets = workbook.getNumberOfSheets();
+            if (numberOfSheets == 0) {
+                throw new IllegalArgumentException("The uploaded spreadsheet contains no worksheets.");
+            }
+
+            for (int s = 0; s < numberOfSheets; s++) {
+                sheetNames.add(workbook.getSheetName(s));
+            }
+
+            Sheet sheet = null;
+            if (requestedSheetName != null && !requestedSheetName.isBlank()) {
+                sheet = workbook.getSheet(requestedSheetName);
+            }
+            if (sheet == null) {
+                sheet = workbook.getSheetAt(0);
+                activeSheetName = sheetNames.get(0);
+            } else {
+                activeSheetName = sheet.getSheetName();
+            }
+
+            if (sheet.getPhysicalNumberOfRows() == 0) {
+                throw new IllegalArgumentException("Worksheet '" + activeSheetName + "' is empty.");
+            }
+
+            DataFormatter formatter = new DataFormatter();
+
+            // Detect Header Row within first 10 rows
+            int headerRowIndex = 0;
+            int maxScore = -1;
+
+            int limit = Math.min(sheet.getLastRowNum(), 10);
+            for (int r = 0; r <= limit; r++) {
+                Row row = sheet.getRow(r);
+                if (row == null) continue;
+
+                int score = 0;
+                int nonBlankCount = 0;
+                int lastCell = row.getLastCellNum();
+                for (int c = 0; c < lastCell; c++) {
+                    Cell cell = row.getCell(c);
+                    String val = cell != null ? formatter.formatCellValue(cell).trim() : "";
+                    if (!val.isBlank()) {
+                        nonBlankCount++;
+                        if (isRecognizedHeader(val)) {
+                            score += 5;
+                        } else {
+                            score += 1;
+                        }
+                    }
+                }
+
+                if (nonBlankCount >= 2 && score > maxScore) {
+                    maxScore = score;
+                    headerRowIndex = r;
+                }
+            }
+
+            skippedRowCount = headerRowIndex;
+            Row headerRow = sheet.getRow(headerRowIndex);
+            if (headerRow == null) {
+                throw new IllegalArgumentException("Spreadsheet contains no header row.");
+            }
+
+            int lastCellNum = headerRow.getLastCellNum();
+            for (int c = 0; c < lastCellNum; c++) {
+                Cell cell = headerRow.getCell(c);
+                String val = cell != null ? formatter.formatCellValue(cell).trim() : "";
+                if (!val.isBlank()) {
+                    headers.add(val);
+                } else {
+                    headers.add("Column_" + (c + 1));
+                }
+            }
+
+            for (int r = headerRowIndex + 1; r <= sheet.getLastRowNum(); r++) {
+                Row row = sheet.getRow(r);
+                if (row == null) continue;
+
+                Map<String, String> rowMap = new LinkedHashMap<>();
+                boolean emptyRow = true;
+
+                for (int c = 0; c < headers.size(); c++) {
+                    Cell cell = row.getCell(c);
+                    String val = cell != null ? formatter.formatCellValue(cell).trim() : "";
+                    if (!val.isBlank()) emptyRow = false;
+                    rowMap.put(headers.get(c), val);
+                }
+
+                if (!emptyRow) {
+                    rows.add(rowMap);
+                } else {
+                    skippedRowCount++;
+                }
+            }
+
+        } catch (IllegalArgumentException ie) {
+            throw ie;
+        } catch (Exception e) {
+            logger.error("Excel parse failure", e);
+            throw new IllegalArgumentException("Failed to parse Excel sheet. Ensure file is not corrupted: " + e.getMessage());
         }
+
+        return new ParsedWorkbookResult(sheetNames, activeSheetName, headers, rows, skippedRowCount);
     }
+
+    private ParsedSheet parseCsv(MultipartFile file) {
+        List<String> headers = new ArrayList<>();
+        List<Map<String, String>> rows = new ArrayList<>();
+        int skippedRows = 0;
+
+        try (InputStream is = file.getInputStream();
+             InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8);
+             CSVParser parser = CSVFormat.DEFAULT.builder()
+                     .setHeader()
+                     .setSkipHeaderRecord(true)
+                     .setIgnoreHeaderCase(true)
+                     .setTrim(true)
+                     .build().parse(reader)) {
+
+            headers = new ArrayList<>(parser.getHeaderNames());
+            headers = headers.stream().filter(h -> h != null && !h.isBlank()).collect(Collectors.toList());
+
+            for (CSVRecord record : parser) {
+                Map<String, String> row = new LinkedHashMap<>();
+                boolean emptyRow = true;
+                for (String h : headers) {
+                    String val = record.isMapped(h) ? record.get(h) : "";
+                    if (val != null && !val.isBlank()) emptyRow = false;
+                    row.put(h, val != null ? val.trim() : "");
+                }
+                if (!emptyRow) {
+                    rows.add(row);
+                } else {
+                    skippedRows++;
+                }
+            }
+        } catch (Exception e) {
+            logger.error("CSV parse failure", e);
+            throw new IllegalArgumentException("Failed to parse CSV file: " + e.getMessage());
+        }
+
+        return new ParsedSheet(headers, rows, skippedRows);
+    }
+
+    // --- PDF PARSING (MULTI-PAGE & REPEATED HEADERS) ---
 
     private ParsedSheet parsePdf(MultipartFile file) {
         String pdfText = "";
@@ -469,13 +736,775 @@ public class CrmLeadImportService {
         }
 
         if (pdfText == null || pdfText.trim().isEmpty() || pdfText.replaceAll("\\s+", "").length() < 10) {
-            throw new IllegalArgumentException("This PDF appears to be scanned. Please upload a text-based PDF or use an OCR-enabled version.");
+            throw new IllegalArgumentException("This PDF appears to be scanned or image-only. Please upload a text-based PDF or use an OCR-enabled document.");
         }
 
         return extractLeadRecordsFromPdfText(pdfText);
     }
 
-    // --- POSITIONAL PDF EXTRACTION IMPLEMENTATION ---
+    private ParsedSheet extractTableFromPdfChunks(List<PdfTextChunk> chunks) {
+        if (chunks == null || chunks.isEmpty()) return null;
+
+        Map<Integer, List<PdfTextChunk>> chunksByPage = new TreeMap<>();
+        for (PdfTextChunk c : chunks) {
+            chunksByPage.computeIfAbsent(c.getPageNum(), k -> new ArrayList<>()).add(c);
+        }
+
+        List<HeaderColumnDef> columnDefs = null;
+        int headerPage = -1;
+        float headerY = -1.0f;
+
+        for (Map.Entry<Integer, List<PdfTextChunk>> entry : chunksByPage.entrySet()) {
+            int pageNum = entry.getKey();
+            List<PdfTextChunk> pageChunks = entry.getValue();
+
+            List<List<PdfTextChunk>> pageLines = groupChunksIntoLines(pageChunks, 4.0f);
+            for (List<PdfTextChunk> line : pageLines) {
+                List<HeaderColumnDef> detected = detectHeaderRow(line);
+                if (detected != null && detected.size() >= 2) {
+                    columnDefs = detected;
+                    headerPage = pageNum;
+                    float maxY = 0f;
+                    for (PdfTextChunk c : line) {
+                        if (c.getY() > maxY) maxY = c.getY();
+                    }
+                    headerY = maxY;
+                    break;
+                }
+            }
+            if (columnDefs != null) break;
+        }
+
+        if (columnDefs == null || columnDefs.isEmpty()) return null;
+
+        calculateColumnBoundaries(columnDefs);
+        List<String> headers = columnDefs.stream().map(HeaderColumnDef::getName).collect(Collectors.toList());
+
+        List<PdfTextChunk> dataChunks = new ArrayList<>();
+        int skippedRepeatedHeaders = 0;
+
+        for (Map.Entry<Integer, List<PdfTextChunk>> entry : chunksByPage.entrySet()) {
+            int pageNum = entry.getKey();
+            List<PdfTextChunk> pageChunks = entry.getValue();
+
+            // Detect repeated headers on subsequent pages
+            List<List<PdfTextChunk>> pageLines = groupChunksIntoLines(pageChunks, 4.0f);
+            float repeatedHeaderY = -1.0f;
+
+            if (pageNum > headerPage) {
+                for (List<PdfTextChunk> line : pageLines) {
+                    List<HeaderColumnDef> repHeader = detectHeaderRow(line);
+                    if (repHeader != null && repHeader.size() >= 2) {
+                        for (PdfTextChunk c : line) {
+                            if (c.getY() > repeatedHeaderY) repeatedHeaderY = c.getY();
+                        }
+                        skippedRepeatedHeaders++;
+                        break;
+                    }
+                }
+            }
+
+            for (PdfTextChunk c : pageChunks) {
+                if (pageNum < headerPage) continue;
+                if (pageNum == headerPage && c.getY() <= headerY + 2.0f) continue;
+                if (repeatedHeaderY > 0 && c.getY() <= repeatedHeaderY + 2.0f) continue;
+                if (isFooterOrHeaderNoise(c.getText())) continue;
+                dataChunks.add(c);
+            }
+        }
+
+        if (dataChunks.isEmpty()) return null;
+
+        dataChunks.sort((a, b) -> {
+            if (a.getPageNum() != b.getPageNum()) return Integer.compare(a.getPageNum(), b.getPageNum());
+            if (Math.abs(a.getY() - b.getY()) > 3.0f) return Float.compare(a.getY(), b.getY());
+            return Float.compare(a.getX(), b.getX());
+        });
+
+        List<Map<String, String>> rows = new ArrayList<>();
+        Map<String, List<PdfTextChunk>> currentCellChunks = new LinkedHashMap<>();
+        for (HeaderColumnDef col : columnDefs) {
+            currentCellChunks.put(col.getName(), new ArrayList<>());
+        }
+
+        float currentY = -1.0f;
+        int currentLinePage = -1;
+
+        for (PdfTextChunk chunk : dataChunks) {
+            int colIdx = getMatchingColumnIndex(chunk.getX(), columnDefs);
+            if (colIdx == -1) continue;
+
+            HeaderColumnDef colDef = columnDefs.get(colIdx);
+            boolean isNewRow = false;
+
+            if (currentY < 0) {
+                isNewRow = false;
+            } else if (chunk.getPageNum() != currentLinePage) {
+                isNewRow = true;
+            } else if (chunk.getY() - currentY > 5.0f && colIdx <= 2) {
+                isNewRow = true;
+            } else if (chunk.getY() - currentY > 16.0f) {
+                isNewRow = true;
+            }
+
+            if (isNewRow) {
+                Map<String, String> rowMap = flushRow(columnDefs, currentCellChunks);
+                if (hasMeaningfulContent(rowMap)) {
+                    rows.add(rowMap);
+                }
+                for (HeaderColumnDef c : columnDefs) {
+                    currentCellChunks.get(c.getName()).clear();
+                }
+            }
+
+            currentCellChunks.get(colDef.getName()).add(chunk);
+            currentY = chunk.getY();
+            currentLinePage = chunk.getPageNum();
+        }
+
+        Map<String, String> lastRowMap = flushRow(columnDefs, currentCellChunks);
+        if (hasMeaningfulContent(lastRowMap)) {
+            rows.add(lastRowMap);
+        }
+
+        if (rows.isEmpty()) return null;
+        return new ParsedSheet(headers, rows, skippedRepeatedHeaders);
+    }
+
+    private ParsedSheet extractLeadRecordsFromPdfText(String pdfText) {
+        String[] rawLines = pdfText.split("\\r?\\n");
+        List<String> lines = new ArrayList<>();
+        for (String line : rawLines) {
+            if (line != null && !line.trim().isEmpty()) {
+                lines.add(line.trim());
+            }
+        }
+
+        if (lines.isEmpty()) {
+            throw new IllegalArgumentException("No readable text lines found in PDF.");
+        }
+
+        List<String> headers = new ArrayList<>();
+        List<Map<String, String>> rows = new ArrayList<>();
+
+        // Check for table header line
+        int headerLineIndex = -1;
+        for (int i = 0; i < Math.min(lines.size(), 15); i++) {
+            String l = lines.get(i).toLowerCase();
+            if ((l.contains("name") || l.contains("lead") || l.contains("contact")) &&
+                    (l.contains("email") || l.contains("mail") || l.contains("phone") || l.contains("company"))) {
+                headerLineIndex = i;
+                break;
+            }
+        }
+
+        if (headerLineIndex != -1) {
+            String headerLine = lines.get(headerLineIndex);
+            String delimiter = detectDelimiter(headerLine);
+            String[] rawHeaders = headerLine.split(delimiter);
+
+            for (String h : rawHeaders) {
+                String trimmed = h.trim();
+                if (!trimmed.isEmpty()) {
+                    headers.add(trimmed);
+                }
+            }
+
+            for (int i = headerLineIndex + 1; i < lines.size(); i++) {
+                String line = lines.get(i);
+                if (isFooterOrHeaderNoise(line)) continue;
+
+                String[] parts = line.split(delimiter);
+                Map<String, String> rowMap = new LinkedHashMap<>();
+                boolean hasContent = false;
+                for (int c = 0; c < headers.size(); c++) {
+                    String val = (c < parts.length && parts[c] != null) ? parts[c].trim() : "";
+                    if (!val.isEmpty()) hasContent = true;
+                    rowMap.put(headers.get(c), val);
+                }
+
+                if (hasContent) {
+                    rows.add(rowMap);
+                }
+            }
+        }
+
+        // Fallback: Regex email matching
+        if (rows.isEmpty()) {
+            headers = List.of("Full Name", "Business Email", "Phone", "Company", "Notes");
+            for (String line : lines) {
+                Matcher emailMatcher = EMAIL_PATTERN.matcher(line);
+                if (emailMatcher.find()) {
+                    String email = emailMatcher.group();
+                    String remaining = line.replace(email, "").trim();
+
+                    String phone = "";
+                    Matcher phoneMatcher = Pattern.compile("\\+?[0-9]{10,12}").matcher(remaining);
+                    if (phoneMatcher.find()) {
+                        phone = phoneMatcher.group();
+                        remaining = remaining.replace(phone, "").trim();
+                    }
+
+                    String[] parts = remaining.split("[,|\\t]|\\s{2,}");
+                    String name = parts.length > 0 ? parts[0].trim() : "Lead Record";
+                    String company = parts.length > 1 ? parts[1].trim() : "";
+
+                    Map<String, String> rowMap = new LinkedHashMap<>();
+                    rowMap.put("Full Name", name.isBlank() ? "Lead Record" : name);
+                    rowMap.put("Business Email", email);
+                    rowMap.put("Phone", phone);
+                    rowMap.put("Company", company);
+                    rowMap.put("Notes", remaining);
+                    rows.add(rowMap);
+                }
+            }
+        }
+
+        if (rows.isEmpty()) {
+            throw new IllegalArgumentException("No recognizable lead records found in this PDF.");
+        }
+
+        return new ParsedSheet(headers, rows, 0);
+    }
+
+    // --- DATA NORMALIZATION & RECOVERY ---
+
+    private Map<String, String> normalizeRawRow(Map<String, String> rawRow) {
+        Map<String, String> normalized = new LinkedHashMap<>();
+        for (Map.Entry<String, String> entry : rawRow.entrySet()) {
+            String key = entry.getKey();
+            String rawVal = entry.getValue();
+            if (rawVal == null) {
+                normalized.put(key, "");
+                continue;
+            }
+
+            String clean = normalizeWhitespace(rawVal);
+            String normKey = key.toLowerCase().replaceAll("[^a-z]", "");
+
+            if (normKey.contains("email") || normKey.contains("mail")) {
+                clean = normalizeEmail(clean);
+            } else if (normKey.contains("phone") || normKey.contains("mobile") || normKey.contains("tel") || normKey.contains("contactno")) {
+                clean = normalizePhone(clean);
+            } else if (normKey.contains("date") || normKey.contains("closing")) {
+                clean = normalizeDate(clean);
+            }
+
+            normalized.put(key, clean);
+        }
+        return normalized;
+    }
+
+    private String normalizeWhitespace(String val) {
+        if (val == null) return "";
+        return val.replaceAll("[\\r\\n\\t]+", " ").replaceAll("\\s{2,}", " ").trim();
+    }
+
+    private String normalizeEmail(String val) {
+        if (val == null) return "";
+        String clean = normalizeWhitespace(val).toLowerCase();
+        // Strip trailing punctuation
+        clean = clean.replaceAll("[.,;:>]+$", "");
+        return clean;
+    }
+
+    private String normalizePhone(String val) {
+        if (val == null) return "";
+        String clean = normalizeWhitespace(val);
+        // Retain leading +, strip invalid characters
+        boolean hasPlus = clean.startsWith("+");
+        String digits = clean.replaceAll("[^0-9]", "");
+        if (digits.isEmpty()) return "";
+        return hasPlus ? "+" + digits : digits;
+    }
+
+    private String normalizeDate(String val) {
+        if (val == null || val.isBlank()) return "";
+        String clean = normalizeWhitespace(val);
+        LocalDate parsed = parseLocalDate(clean);
+        return parsed != null ? parsed.format(DateTimeFormatter.ISO_LOCAL_DATE) : clean;
+    }
+
+    // --- DOMAIN FIELD EXTRACTION (CSI, CONTRACT, RENEWAL, ETC.) ---
+
+    private Map<String, String> extractDomainSpecificFields(Map<String, String> rawRow, Map<String, String> columnMapping) {
+        Map<String, String> domainData = new LinkedHashMap<>();
+        for (Map.Entry<String, String> entry : rawRow.entrySet()) {
+            String colName = entry.getKey();
+            String value = entry.getValue();
+            if (value == null || value.isBlank()) continue;
+
+            String norm = colName.toLowerCase().replaceAll("[^a-z0-9]", "");
+            boolean isDomainSpecific = norm.contains("csi") || norm.contains("contract") || norm.contains("renewal")
+                    || norm.contains("license") || norm.contains("provider") || norm.contains("policy")
+                    || norm.contains("accountno") || norm.contains("agreement");
+
+            String mappedTarget = columnMapping.get(colName);
+            // If domain specific or unmapped non-lead field
+            if (isDomainSpecific || (mappedTarget == null && norm.length() > 2 && !norm.startsWith("col"))) {
+                domainData.put(colName, value.trim());
+            }
+        }
+        return domainData;
+    }
+
+    // --- SMART FIELD MAPPING & CONFIDENCE ANALYSIS ---
+
+    private List<CrmLeadImportColumnMappingInfo> analyzeColumnMappings(List<String> headers, List<Map<String, String>> rows) {
+        List<CrmLeadImportColumnMappingInfo> mappingInfos = new ArrayList<>();
+
+        for (String header : headers) {
+            String norm = header.toLowerCase().replaceAll("[^a-z0-9]", "");
+
+            // Sample value
+            String sample = "";
+            for (Map<String, String> r : rows) {
+                String v = r.get(header);
+                if (v != null && !v.isBlank()) {
+                    sample = v.trim();
+                    break;
+                }
+            }
+
+            // Check for domain specific fields first (CSI, Contract, Renewal)
+            boolean isDomain = norm.contains("csi") || norm.contains("contract") || norm.contains("renewal")
+                    || norm.contains("license") || norm.contains("provider") || norm.contains("policy")
+                    || norm.contains("agreement");
+
+            if (isDomain) {
+                mappingInfos.add(CrmLeadImportColumnMappingInfo.builder()
+                        .sourceColumn(header)
+                        .suggestedField(null)
+                        .sampleValue(sample)
+                        .confidence("DOMAIN_FIELD")
+                        .confidenceScore(90)
+                        .domainSpecific(true)
+                        .description("Domain-specific business identifier (Preserved in Lead Notes)")
+                        .build());
+                continue;
+            }
+
+            String suggestedField = null;
+            String confidence = "UNMAPPED";
+            int score = 0;
+            String desc = "Unmapped source column";
+
+            if (norm.equals("fullname") || norm.equals("leadname") || norm.equals("clientname") || norm.equals("contactname")) {
+                suggestedField = "fullName";
+                confidence = "HIGH";
+                score = 98;
+                desc = "Matched primary contact name";
+            } else if (norm.equals("name") || norm.equals("contact") || norm.equals("person")) {
+                suggestedField = "fullName";
+                confidence = "MEDIUM";
+                score = 80;
+                desc = "Probable contact person name";
+            } else if (norm.equals("businessemail") || norm.equals("email") || norm.equals("emailaddress") || norm.equals("workemail") || norm.equals("mail") || norm.contains("email")) {
+                suggestedField = "businessEmail";
+                confidence = "HIGH";
+                score = 98;
+                desc = "Work email address";
+            } else if (norm.equals("company") || norm.equals("companyname") || norm.equals("organization") || norm.equals("firm") || norm.contains("company")) {
+                suggestedField = "companyName";
+                confidence = "HIGH";
+                score = 95;
+                desc = "Organization or company name";
+            } else if (norm.equals("phone") || norm.equals("phonenumber") || norm.equals("mobile") || norm.equals("mobilenumber") || norm.contains("phone") || norm.contains("mobile") || norm.equals("contactnumber") || norm.equals("tel")) {
+                suggestedField = "phoneNumber";
+                confidence = "HIGH";
+                score = 95;
+                desc = "Telephone or mobile number";
+            } else if (norm.equals("industry") || norm.equals("industrysector") || norm.equals("sector")) {
+                suggestedField = "industrySector";
+                confidence = "HIGH";
+                score = 90;
+                desc = "Industry sector";
+            } else if (norm.equals("service") || norm.equals("servicerequired") || norm.equals("services") || norm.equals("requirement")) {
+                suggestedField = "serviceRequired";
+                confidence = "HIGH";
+                score = 90;
+                desc = "Required service or solution";
+            } else if (norm.equals("status") || norm.equals("leadstatus")) {
+                suggestedField = "status";
+                confidence = "HIGH";
+                score = 90;
+                desc = "Lead status";
+            } else if (norm.equals("priority") || norm.equals("leadpriority")) {
+                suggestedField = "priority";
+                confidence = "HIGH";
+                score = 90;
+                desc = "Lead priority";
+            } else if (norm.equals("source") || norm.equals("leadsource")) {
+                suggestedField = "leadSource";
+                confidence = "HIGH";
+                score = 90;
+                desc = "Acquisition source";
+            } else if (norm.equals("currency")) {
+                suggestedField = "currency";
+                confidence = "HIGH";
+                score = 90;
+                desc = "Deal currency";
+            } else if (norm.equals("estimatedvalue") || norm.equals("value") || norm.equals("amount") || norm.equals("dealvalue")) {
+                suggestedField = "estimatedValue";
+                confidence = "HIGH";
+                score = 90;
+                desc = "Estimated deal value";
+            } else if (norm.equals("expectedclosingdate") || norm.equals("closingdate") || norm.equals("targetdate")) {
+                suggestedField = "expectedClosingDate";
+                confidence = "HIGH";
+                score = 90;
+                desc = "Target closing date";
+            } else if (norm.equals("probability") || norm.equals("winprobability")) {
+                suggestedField = "probability";
+                confidence = "HIGH";
+                score = 90;
+                desc = "Win probability";
+            } else if (norm.equals("notes") || norm.equals("comment") || norm.equals("remarks") || norm.equals("city") || norm.equals("location") || norm.equals("address") || norm.equals("website")) {
+                suggestedField = "notes";
+                confidence = "MEDIUM";
+                score = 75;
+                desc = "Appended to lead notes";
+            } else if (norm.equals("assignedto") || norm.equals("assignedtoid") || norm.equals("salesrep") || norm.equals("salesrepid")) {
+                suggestedField = "assignedToId";
+                confidence = "HIGH";
+                score = 85;
+                desc = "Assigned sales rep identifier";
+            }
+
+            mappingInfos.add(CrmLeadImportColumnMappingInfo.builder()
+                    .sourceColumn(header)
+                    .suggestedField(suggestedField)
+                    .sampleValue(sample)
+                    .confidence(confidence)
+                    .confidenceScore(score)
+                    .domainSpecific(false)
+                    .description(desc)
+                    .build());
+        }
+
+        return mappingInfos;
+    }
+
+    private Map<String, String> autoSuggestMapping(List<String> headers) {
+        Map<String, String> mapping = new LinkedHashMap<>();
+        for (String header : headers) {
+            String norm = header.toLowerCase().replaceAll("[^a-z0-9]", "");
+
+            // Ignore domain-specific fields from false mapping
+            if (norm.contains("csi") || norm.contains("contract") || norm.contains("renewal") || norm.contains("license") || norm.contains("provider")) {
+                continue;
+            }
+
+            if (norm.equals("fullname") || norm.equals("name") || norm.equals("leadname") || norm.equals("clientname") || norm.contains("contactname") || norm.equals("contact")) {
+                mapping.put(header, "fullName");
+            } else if (norm.equals("businessemail") || norm.equals("email") || norm.equals("emailaddress") || norm.equals("workemail") || norm.equals("mail") || norm.contains("email")) {
+                mapping.put(header, "businessEmail");
+            } else if (norm.equals("company") || norm.equals("companyname") || norm.equals("organization") || norm.equals("firm") || norm.contains("company")) {
+                mapping.put(header, "companyName");
+            } else if (norm.equals("phone") || norm.equals("phonenumber") || norm.equals("mobile") || norm.equals("mobilenumber") || norm.contains("phone") || norm.contains("mobile") || norm.equals("contactnumber") || norm.equals("tel")) {
+                mapping.put(header, "phoneNumber");
+            } else if (norm.equals("industry") || norm.equals("industrysector") || norm.equals("sector")) {
+                mapping.put(header, "industrySector");
+            } else if (norm.equals("service") || norm.equals("servicerequired") || norm.equals("services") || norm.equals("requirement")) {
+                mapping.put(header, "serviceRequired");
+            } else if (norm.equals("status") || norm.equals("leadstatus")) {
+                mapping.put(header, "status");
+            } else if (norm.equals("priority") || norm.equals("leadpriority")) {
+                mapping.put(header, "priority");
+            } else if (norm.equals("source") || norm.equals("leadsource")) {
+                mapping.put(header, "leadSource");
+            } else if (norm.equals("currency")) {
+                mapping.put(header, "currency");
+            } else if (norm.equals("estimatedvalue") || norm.equals("value") || norm.equals("amount") || norm.equals("dealvalue")) {
+                mapping.put(header, "estimatedValue");
+            } else if (norm.equals("expectedclosingdate") || norm.equals("closingdate") || norm.equals("targetdate")) {
+                mapping.put(header, "expectedClosingDate");
+            } else if (norm.equals("probability") || norm.equals("winprobability")) {
+                mapping.put(header, "probability");
+            } else if (norm.equals("notes") || norm.equals("comment") || norm.equals("remarks") || norm.equals("city") || norm.equals("location") || norm.equals("address")) {
+                mapping.put(header, "notes");
+            } else if (norm.equals("assignedto") || norm.equals("assignedtoid") || norm.equals("salesrep") || norm.equals("salesrepid")) {
+                mapping.put(header, "assignedToId");
+            }
+        }
+        return mapping;
+    }
+
+    private Map<String, String> mapRowFields(Map<String, String> rawRow, Map<String, String> columnMapping) {
+        Map<String, String> result = new HashMap<>();
+        if (columnMapping == null) return result;
+
+        for (Map.Entry<String, String> entry : columnMapping.entrySet()) {
+            String fileHeader = entry.getKey();
+            String targetKey = entry.getValue();
+
+            if (targetKey != null && !targetKey.isBlank() && rawRow.containsKey(fileHeader)) {
+                result.put(targetKey, rawRow.get(fileHeader));
+            }
+        }
+        return result;
+    }
+
+    private void validateFieldFormats(Map<String, String> fields, List<String> errors) {
+        // Status enum check
+        String statusStr = fields.get("status");
+        if (statusStr != null && !statusStr.isBlank()) {
+            try {
+                LeadStatus.valueOf(statusStr.trim().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                errors.add("Invalid status: '" + statusStr + "'. Allowed: NEW, CONTACTED, QUALIFIED, PROPOSAL, NEGOTIATION, WON, LOST");
+            }
+        }
+
+        // Priority enum check
+        String priorityStr = fields.get("priority");
+        if (priorityStr != null && !priorityStr.isBlank()) {
+            try {
+                LeadPriority.valueOf(priorityStr.trim().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                errors.add("Invalid priority: '" + priorityStr + "'. Allowed: LOW, MEDIUM, HIGH, URGENT");
+            }
+        }
+
+        // LeadSource enum check
+        String sourceStr = fields.get("leadSource");
+        if (sourceStr != null && !sourceStr.isBlank()) {
+            try {
+                LeadSource.valueOf(sourceStr.trim().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                errors.add("Invalid lead source: '" + sourceStr + "'. Allowed: WEBSITE, REFERRAL, EMAIL, PHONE, WHATSAPP, LINKEDIN, ADVERTISEMENT, PARTNER, OTHER");
+            }
+        }
+
+        // Currency enum check
+        String currStr = fields.get("currency");
+        if (currStr != null && !currStr.isBlank()) {
+            try {
+                Currency.valueOf(currStr.trim().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                errors.add("Invalid currency: '" + currStr + "'. Allowed: INR, USD, EUR, GBP, AED");
+            }
+        }
+
+        // Estimated Value check
+        String valStr = fields.get("estimatedValue");
+        if (valStr != null && !valStr.isBlank()) {
+            try {
+                new BigDecimal(valStr.trim().replaceAll("[^0-9.]", ""));
+            } catch (Exception e) {
+                errors.add("Invalid estimated value: '" + valStr + "'");
+            }
+        }
+
+        // Expected Closing Date check
+        String dateStr = fields.get("expectedClosingDate");
+        if (dateStr != null && !dateStr.isBlank()) {
+            try {
+                if (parseLocalDate(dateStr.trim()) == null) {
+                    errors.add("Invalid expected closing date: '" + dateStr + "'. Expected format: YYYY-MM-DD");
+                }
+            } catch (Exception e) {
+                errors.add("Invalid expected closing date: '" + dateStr + "'. Expected format: YYYY-MM-DD");
+            }
+        }
+
+        // Probability check
+        String probStr = fields.get("probability");
+        if (probStr != null && !probStr.isBlank()) {
+            try {
+                int prob = Integer.parseInt(probStr.trim());
+                if (prob < 0 || prob > 100) {
+                    errors.add("Probability must be between 0 and 100");
+                }
+            } catch (Exception e) {
+                errors.add("Invalid probability value: '" + probStr + "'");
+            }
+        }
+
+        // Assigned To ID check
+        String assignedStr = fields.get("assignedToId");
+        if (assignedStr != null && !assignedStr.isBlank()) {
+            try {
+                Long.parseLong(assignedStr.trim());
+            } catch (Exception e) {
+                errors.add("Invalid sales rep ID: '" + assignedStr + "'");
+            }
+        }
+    }
+
+    private CrmLeadRequest buildLeadRequest(Map<String, String> fields, Map<String, String> domainData) {
+        LeadStatus status = LeadStatus.NEW;
+        if (fields.containsKey("status") && !fields.get("status").isBlank()) {
+            status = LeadStatus.valueOf(fields.get("status").trim().toUpperCase());
+        }
+
+        LeadPriority priority = LeadPriority.MEDIUM;
+        if (fields.containsKey("priority") && !fields.get("priority").isBlank()) {
+            priority = LeadPriority.valueOf(fields.get("priority").trim().toUpperCase());
+        }
+
+        LeadSource source = LeadSource.WEBSITE;
+        if (fields.containsKey("leadSource") && !fields.get("leadSource").isBlank()) {
+            source = LeadSource.valueOf(fields.get("leadSource").trim().toUpperCase());
+        }
+
+        Currency currency = Currency.INR;
+        if (fields.containsKey("currency") && !fields.get("currency").isBlank()) {
+            currency = Currency.valueOf(fields.get("currency").trim().toUpperCase());
+        }
+
+        BigDecimal estValue = null;
+        if (fields.containsKey("estimatedValue") && !fields.get("estimatedValue").isBlank()) {
+            estValue = new BigDecimal(fields.get("estimatedValue").trim().replaceAll("[^0-9.]", ""));
+        }
+
+        LocalDate closingDate = null;
+        if (fields.containsKey("expectedClosingDate") && !fields.get("expectedClosingDate").isBlank()) {
+            closingDate = parseLocalDate(fields.get("expectedClosingDate").trim());
+        }
+
+        Integer probability = null;
+        if (fields.containsKey("probability") && !fields.get("probability").isBlank()) {
+            probability = Integer.parseInt(fields.get("probability").trim());
+        }
+
+        Long assignedToId = null;
+        if (fields.containsKey("assignedToId") && !fields.get("assignedToId").isBlank()) {
+            assignedToId = Long.parseLong(fields.get("assignedToId").trim());
+        }
+
+        // Build combined notes with domain-specific metadata preserved
+        StringBuilder notesBuilder = new StringBuilder();
+        if (fields.containsKey("notes") && fields.get("notes") != null && !fields.get("notes").isBlank()) {
+            notesBuilder.append(fields.get("notes").trim());
+        }
+        if (domainData != null && !domainData.isEmpty()) {
+            for (Map.Entry<String, String> entry : domainData.entrySet()) {
+                if (notesBuilder.length() > 0) notesBuilder.append(" | ");
+                notesBuilder.append(entry.getKey()).append(": ").append(entry.getValue());
+            }
+        }
+
+        return CrmLeadRequest.builder()
+                .fullName(fields.get("fullName").trim())
+                .businessEmail(fields.get("businessEmail").trim())
+                .companyName(fields.get("companyName") != null ? fields.get("companyName").trim() : null)
+                .phoneNumber(fields.get("phoneNumber") != null ? fields.get("phoneNumber").trim() : null)
+                .industrySector(fields.get("industrySector") != null ? fields.get("industrySector").trim() : null)
+                .serviceRequired(fields.get("serviceRequired") != null ? fields.get("serviceRequired").trim() : null)
+                .status(status)
+                .priority(priority)
+                .leadSource(source)
+                .currency(currency)
+                .estimatedValue(estValue)
+                .expectedClosingDate(closingDate)
+                .probability(probability)
+                .notes(notesBuilder.length() > 0 ? notesBuilder.toString() : null)
+                .assignedToId(assignedToId)
+                .build();
+    }
+
+    private LocalDate parseLocalDate(String str) {
+        if (str == null || str.isBlank()) return null;
+        try {
+            return LocalDate.parse(str, DateTimeFormatter.ISO_LOCAL_DATE);
+        } catch (Exception e1) {
+            try {
+                return LocalDate.parse(str, DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+            } catch (Exception e2) {
+                try {
+                    return LocalDate.parse(str, DateTimeFormatter.ofPattern("MM/dd/yyyy"));
+                } catch (Exception e3) {
+                    try {
+                        return LocalDate.parse(str, DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+                    } catch (Exception e4) {
+                        return null;
+                    }
+                }
+            }
+        }
+    }
+
+    private Map<String, String> parseMappingJson(String json) {
+        if (json == null || json.isBlank()) return null;
+        try {
+            return objectMapper.readValue(json, new TypeReference<Map<String, String>>() {});
+        } catch (Exception e) {
+            logger.warn("Failed to parse columnMapping JSON: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private byte[] generateCsvFromRequests(List<CrmLeadRequest> records) {
+        StringBuilder csv = new StringBuilder();
+        csv.append("Full Name,Business Email,Company,Phone,Industry Sector,Service Required,Status,Priority,Lead Source,Currency,Estimated Value,Expected Closing Date,Probability,Notes\n");
+        for (CrmLeadRequest r : records) {
+            csv.append(escapeCsv(r.getFullName())).append(",");
+            csv.append(escapeCsv(r.getBusinessEmail())).append(",");
+            csv.append(escapeCsv(r.getCompanyName())).append(",");
+            csv.append(escapeCsv(r.getPhoneNumber())).append(",");
+            csv.append(escapeCsv(r.getIndustrySector())).append(",");
+            csv.append(escapeCsv(r.getServiceRequired())).append(",");
+            csv.append(r.getStatus() != null ? r.getStatus().name() : "NEW").append(",");
+            csv.append(r.getPriority() != null ? r.getPriority().name() : "MEDIUM").append(",");
+            csv.append(r.getLeadSource() != null ? r.getLeadSource().name() : "WEBSITE").append(",");
+            csv.append(r.getCurrency() != null ? r.getCurrency().name() : "INR").append(",");
+            csv.append(r.getEstimatedValue() != null ? r.getEstimatedValue().toString() : "").append(",");
+            csv.append(r.getExpectedClosingDate() != null ? r.getExpectedClosingDate().toString() : "").append(",");
+            csv.append(r.getProbability() != null ? r.getProbability().toString() : "").append(",");
+            csv.append(escapeCsv(r.getNotes())).append("\n");
+        }
+        return csv.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
+    private byte[] generateXlsxFromRequests(List<CrmLeadRequest> records) {
+        try (Workbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet("Converted Leads");
+
+            String[] headers = {"Full Name", "Business Email", "Company", "Phone", "Industry Sector", "Service Required", "Status", "Priority", "Lead Source", "Currency", "Estimated Value", "Expected Closing Date", "Probability", "Notes"};
+            Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+            }
+
+            int rowIdx = 1;
+            for (CrmLeadRequest r : records) {
+                Row row = sheet.createRow(rowIdx++);
+                row.createCell(0).setCellValue(r.getFullName() != null ? r.getFullName() : "");
+                row.createCell(1).setCellValue(r.getBusinessEmail() != null ? r.getBusinessEmail() : "");
+                row.createCell(2).setCellValue(r.getCompanyName() != null ? r.getCompanyName() : "");
+                row.createCell(3).setCellValue(r.getPhoneNumber() != null ? r.getPhoneNumber() : "");
+                row.createCell(4).setCellValue(r.getIndustrySector() != null ? r.getIndustrySector() : "");
+                row.createCell(5).setCellValue(r.getServiceRequired() != null ? r.getServiceRequired() : "");
+                row.createCell(6).setCellValue(r.getStatus() != null ? r.getStatus().name() : "NEW");
+                row.createCell(7).setCellValue(r.getPriority() != null ? r.getPriority().name() : "MEDIUM");
+                row.createCell(8).setCellValue(r.getLeadSource() != null ? r.getLeadSource().name() : "WEBSITE");
+                row.createCell(9).setCellValue(r.getCurrency() != null ? r.getCurrency().name() : "INR");
+                row.createCell(10).setCellValue(r.getEstimatedValue() != null ? r.getEstimatedValue().doubleValue() : 0.0);
+                row.createCell(11).setCellValue(r.getExpectedClosingDate() != null ? r.getExpectedClosingDate().toString() : "");
+                row.createCell(12).setCellValue(r.getProbability() != null ? r.getProbability() : 0);
+                row.createCell(13).setCellValue(r.getNotes() != null ? r.getNotes() : "");
+            }
+
+            workbook.write(out);
+            return out.toByteArray();
+        } catch (Exception e) {
+            logger.error("Failed to generate XLSX: {}", e.getMessage());
+            return generateCsvFromRequests(records);
+        }
+    }
+
+    private String escapeCsv(String str) {
+        if (str == null) return "";
+        if (str.contains(",") || str.contains("\"") || str.contains("\n")) {
+            return "\"" + str.replace("\"", "\"\"") + "\"";
+        }
+        return str;
+    }
+
+    // --- POSITIONAL PDF EXTRACTOR CLASSES & HELPERS ---
 
     private static class PdfTextChunk {
         private final String text;
@@ -595,126 +1624,8 @@ public class CrmLeadImportService {
         public float getStartX() { return startX; }
         public float getEndX() { return endX; }
 
-        public void setMinX(float minX) { this.minX = minX; }
-        public void setMaxX(float maxX) { this.maxX = maxX; }
         public void setStartX(float startX) { this.startX = startX; }
         public void setEndX(float endX) { this.endX = endX; }
-    }
-
-    private ParsedSheet extractTableFromPdfChunks(List<PdfTextChunk> chunks) {
-        if (chunks == null || chunks.isEmpty()) return null;
-
-        Map<Integer, List<PdfTextChunk>> chunksByPage = new TreeMap<>();
-        for (PdfTextChunk c : chunks) {
-            chunksByPage.computeIfAbsent(c.getPageNum(), k -> new ArrayList<>()).add(c);
-        }
-
-        List<HeaderColumnDef> columnDefs = null;
-        int headerPage = -1;
-        float headerY = -1.0f;
-
-        for (Map.Entry<Integer, List<PdfTextChunk>> entry : chunksByPage.entrySet()) {
-            int pageNum = entry.getKey();
-            List<PdfTextChunk> pageChunks = entry.getValue();
-
-            List<List<PdfTextChunk>> pageLines = groupChunksIntoLines(pageChunks, 3.5f);
-            for (List<PdfTextChunk> line : pageLines) {
-                List<HeaderColumnDef> detected = detectHeaderRow(line);
-                if (detected != null && detected.size() >= 2) {
-                    columnDefs = detected;
-                    headerPage = pageNum;
-                    float maxY = 0f;
-                    for (PdfTextChunk c : line) {
-                        if (c.getY() > maxY) maxY = c.getY();
-                    }
-                    headerY = maxY;
-                    break;
-                }
-            }
-            if (columnDefs != null) break;
-        }
-
-        if (columnDefs == null || columnDefs.isEmpty()) return null;
-
-        calculateColumnBoundaries(columnDefs);
-        List<String> headers = columnDefs.stream().map(HeaderColumnDef::getName).collect(Collectors.toList());
-
-        List<PdfTextChunk> dataChunks = new ArrayList<>();
-        for (Map.Entry<Integer, List<PdfTextChunk>> entry : chunksByPage.entrySet()) {
-            int pageNum = entry.getKey();
-            for (PdfTextChunk c : entry.getValue()) {
-                if (pageNum < headerPage) continue;
-                if (pageNum == headerPage && c.getY() <= headerY + 2.0f) continue;
-                if (isFooterOrHeaderNoise(c.getText())) continue;
-                dataChunks.add(c);
-            }
-        }
-
-        if (dataChunks.isEmpty()) return null;
-
-        dataChunks.sort((a, b) -> {
-            if (a.getPageNum() != b.getPageNum()) return Integer.compare(a.getPageNum(), b.getPageNum());
-            if (Math.abs(a.getY() - b.getY()) > 3.0f) return Float.compare(a.getY(), b.getY());
-            return Float.compare(a.getX(), b.getX());
-        });
-
-        List<Map<String, String>> rows = new ArrayList<>();
-        int emailColIdx = -1;
-        for (int i = 0; i < columnDefs.size(); i++) {
-            String normName = columnDefs.get(i).getName().toLowerCase().replaceAll("[^a-z]", "");
-            if (normName.contains("email") || normName.contains("mail")) {
-                emailColIdx = i;
-                break;
-            }
-        }
-
-        Map<String, List<PdfTextChunk>> currentCellChunks = new LinkedHashMap<>();
-        for (HeaderColumnDef col : columnDefs) {
-            currentCellChunks.put(col.getName(), new ArrayList<>());
-        }
-
-        float currentY = -1.0f;
-        int currentLinePage = -1;
-
-        for (PdfTextChunk chunk : dataChunks) {
-            int colIdx = getMatchingColumnIndex(chunk.getX(), columnDefs);
-            if (colIdx == -1) continue;
-
-            HeaderColumnDef colDef = columnDefs.get(colIdx);
-            boolean isNewRow = false;
-
-            if (currentY < 0) {
-                isNewRow = false;
-            } else if (chunk.getPageNum() != currentLinePage) {
-                isNewRow = true;
-            } else if (chunk.getY() - currentY > 5.0f && colIdx <= 3) {
-                isNewRow = true;
-            } else if (chunk.getY() - currentY > 16.0f) {
-                isNewRow = true;
-            }
-
-            if (isNewRow) {
-                Map<String, String> rowMap = flushRow(columnDefs, currentCellChunks);
-                if (hasMeaningfulContent(rowMap)) {
-                    rows.add(rowMap);
-                }
-                for (HeaderColumnDef c : columnDefs) {
-                    currentCellChunks.get(c.getName()).clear();
-                }
-            }
-
-            currentCellChunks.get(colDef.getName()).add(chunk);
-            currentY = chunk.getY();
-            currentLinePage = chunk.getPageNum();
-        }
-
-        Map<String, String> lastRowMap = flushRow(columnDefs, currentCellChunks);
-        if (hasMeaningfulContent(lastRowMap)) {
-            rows.add(lastRowMap);
-        }
-
-        if (rows.isEmpty()) return null;
-        return new ParsedSheet(headers, rows);
     }
 
     private List<List<PdfTextChunk>> groupChunksIntoLines(List<PdfTextChunk> pageChunks, float yTolerance) {
@@ -888,149 +1799,6 @@ public class CrmLeadImportService {
                 || t.matches("(?i)^acrovix\\s+crm.*$");
     }
 
-    private ParsedSheet extractLeadRecordsFromPdfText(String pdfText) {
-        String[] rawLines = pdfText.split("\\r?\\n");
-        List<String> lines = new ArrayList<>();
-        for (String line : rawLines) {
-            if (line != null && !line.trim().isEmpty()) {
-                lines.add(line.trim());
-            }
-        }
-
-        if (lines.isEmpty()) {
-            throw new IllegalArgumentException("No readable text lines found in PDF.");
-        }
-
-        List<String> headers = new ArrayList<>();
-        List<Map<String, String>> rows = new ArrayList<>();
-
-        // 1. Check for Key-Value Record Structure (e.g. "Name: ... \n Email: ...")
-        if (isKeyValuePdfText(lines)) {
-            return parseKeyValuePdfRecords(lines);
-        }
-
-        // 2. Check for Table Header line
-        int headerLineIndex = -1;
-        for (int i = 0; i < Math.min(lines.size(), 10); i++) {
-            String l = lines.get(i).toLowerCase();
-            if ((l.contains("name") || l.contains("lead") || l.contains("contact")) && (l.contains("email") || l.contains("mail") || l.contains("phone") || l.contains("mobile") || l.contains("company") || l.contains("organization"))) {
-                headerLineIndex = i;
-                break;
-            }
-        }
-
-        if (headerLineIndex != -1) {
-            String headerLine = lines.get(headerLineIndex);
-            String delimiter = detectDelimiter(headerLine);
-            String[] rawHeaders = headerLine.split(delimiter);
-
-            for (String h : rawHeaders) {
-                String trimmed = h.trim();
-                if (!trimmed.isEmpty()) {
-                    headers.add(trimmed);
-                }
-            }
-
-            for (int i = headerLineIndex + 1; i < lines.size(); i++) {
-                String line = lines.get(i);
-                String[] parts = line.split(delimiter);
-
-                Map<String, String> rowMap = new LinkedHashMap<>();
-                boolean hasContent = false;
-                for (int c = 0; c < headers.size(); c++) {
-                    String val = (c < parts.length && parts[c] != null) ? parts[c].trim() : "";
-                    if (!val.isEmpty()) hasContent = true;
-                    rowMap.put(headers.get(c), val);
-                }
-
-                if (hasContent) {
-                    rows.add(rowMap);
-                }
-            }
-        }
-
-        // 3. Fallback: Line-by-Line Regex Email Matching
-        if (rows.isEmpty()) {
-            headers = List.of("Full Name", "Business Email", "Phone", "Company", "Notes");
-            for (String line : lines) {
-                java.util.regex.Matcher emailMatcher = EMAIL_PATTERN.matcher(line);
-                if (emailMatcher.find()) {
-                    String email = emailMatcher.group();
-                    String remaining = line.replace(email, "").trim();
-
-                    // Find phone if present
-                    String phone = "";
-                    java.util.regex.Matcher phoneMatcher = Pattern.compile("\\+?[0-9]{10,12}").matcher(remaining);
-                    if (phoneMatcher.find()) {
-                        phone = phoneMatcher.group();
-                        remaining = remaining.replace(phone, "").trim();
-                    }
-
-                    String[] parts = remaining.split("[,|\\t]|\\s{2,}");
-                    String name = parts.length > 0 ? parts[0].trim() : "Lead Record";
-                    String company = parts.length > 1 ? parts[1].trim() : "";
-
-                    Map<String, String> rowMap = new LinkedHashMap<>();
-                    rowMap.put("Full Name", name.isBlank() ? "Lead Record" : name);
-                    rowMap.put("Business Email", email);
-                    rowMap.put("Phone", phone);
-                    rowMap.put("Company", company);
-                    rowMap.put("Notes", remaining);
-                    rows.add(rowMap);
-                }
-            }
-        }
-
-        if (rows.isEmpty()) {
-            throw new IllegalArgumentException("No recognizable lead records found in this PDF.");
-        }
-
-        return new ParsedSheet(headers, rows);
-    }
-
-    private boolean isKeyValuePdfText(List<String> lines) {
-        int colonCount = 0;
-        for (int i = 0; i < Math.min(lines.size(), 15); i++) {
-            String l = lines.get(i);
-            if (l.contains(":") && (l.toLowerCase().startsWith("name:") || l.toLowerCase().startsWith("email:") || l.toLowerCase().startsWith("phone:") || l.toLowerCase().startsWith("company:"))) {
-                colonCount++;
-            }
-        }
-        return colonCount >= 2;
-    }
-
-    private ParsedSheet parseKeyValuePdfRecords(List<String> lines) {
-        Set<String> headerSet = new LinkedHashSet<>();
-        List<Map<String, String>> rows = new ArrayList<>();
-        Map<String, String> currentRecord = new LinkedHashMap<>();
-
-        for (String line : lines) {
-            if (line.contains(":")) {
-                int idx = line.indexOf(":");
-                String key = line.substring(0, idx).trim();
-                String val = line.substring(idx + 1).trim();
-
-                String normKey = key.toLowerCase().replaceAll("[^a-z]", "");
-                if ((normKey.equals("name") || normKey.equals("fullname")) && currentRecord.containsKey(key)) {
-                    if (!currentRecord.isEmpty()) {
-                        rows.add(new LinkedHashMap<>(currentRecord));
-                        currentRecord.clear();
-                    }
-                }
-
-                headerSet.add(key);
-                currentRecord.put(key, val);
-            }
-        }
-
-        if (!currentRecord.isEmpty()) {
-            rows.add(currentRecord);
-        }
-
-        List<String> headers = new ArrayList<>(headerSet);
-        return new ParsedSheet(headers, rows);
-    }
-
     private String detectDelimiter(String line) {
         if (line.contains("|")) return "\\|";
         if (line.contains("\t")) return "\t";
@@ -1038,336 +1806,43 @@ public class CrmLeadImportService {
         return "\\s{2,}";
     }
 
-
-    private ParsedSheet parseCsv(MultipartFile file) {
-        List<String> headers = new ArrayList<>();
-        List<Map<String, String>> rows = new ArrayList<>();
-
-        try (InputStream is = file.getInputStream();
-             InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8);
-             CSVParser parser = CSVFormat.DEFAULT.builder()
-                     .setHeader()
-                     .setSkipHeaderRecord(true)
-                     .setIgnoreHeaderCase(true)
-                     .setTrim(true)
-                     .build().parse(reader)) {
-
-            headers = new ArrayList<>(parser.getHeaderNames());
-            // Filter out empty header strings
-            headers = headers.stream().filter(h -> h != null && !h.isBlank()).collect(Collectors.toList());
-
-            for (CSVRecord record : parser) {
-                Map<String, String> row = new LinkedHashMap<>();
-                boolean emptyRow = true;
-                for (String h : headers) {
-                    String val = record.isMapped(h) ? record.get(h) : "";
-                    if (val != null && !val.isBlank()) emptyRow = false;
-                    row.put(h, val != null ? val.trim() : "");
-                }
-                if (!emptyRow) {
-                    rows.add(row);
-                }
-            }
-        } catch (Exception e) {
-            logger.error("CSV parse failure", e);
-            throw new IllegalArgumentException("Failed to parse CSV file: " + e.getMessage());
-        }
-
-        return new ParsedSheet(headers, rows);
-    }
-
-    private ParsedSheet parseExcel(MultipartFile file) {
-        List<String> headers = new ArrayList<>();
-        List<Map<String, String>> rows = new ArrayList<>();
-
-        try (InputStream is = file.getInputStream();
-             Workbook workbook = WorkbookFactory.create(is)) {
-
-            Sheet sheet = workbook.getSheetAt(0);
-            if (sheet == null || sheet.getPhysicalNumberOfRows() == 0) {
-                throw new IllegalArgumentException("The uploaded spreadsheet is empty.");
-            }
-
-            DataFormatter formatter = new DataFormatter();
-            Row headerRow = sheet.getRow(0);
-            if (headerRow == null) {
-                throw new IllegalArgumentException("Spreadsheet contains no header row.");
-            }
-
-            int lastCellNum = headerRow.getLastCellNum();
-            for (int c = 0; c < lastCellNum; c++) {
-                Cell cell = headerRow.getCell(c);
-                String val = cell != null ? formatter.formatCellValue(cell).trim() : "";
-                if (!val.isBlank()) {
-                    headers.add(val);
-                } else {
-                    headers.add("Column_" + (c + 1));
-                }
-            }
-
-            for (int r = 1; r <= sheet.getLastRowNum(); r++) {
-                Row row = sheet.getRow(r);
-                if (row == null) continue;
-
-                Map<String, String> rowMap = new LinkedHashMap<>();
-                boolean emptyRow = true;
-
-                for (int c = 0; c < headers.size(); c++) {
-                    Cell cell = row.getCell(c);
-                    String val = cell != null ? formatter.formatCellValue(cell).trim() : "";
-                    if (!val.isBlank()) emptyRow = false;
-                    rowMap.put(headers.get(c), val);
-                }
-
-                if (!emptyRow) {
-                    rows.add(rowMap);
-                }
-            }
-        } catch (IllegalArgumentException ie) {
-            throw ie;
-        } catch (Exception e) {
-            logger.error("Excel parse failure", e);
-            throw new IllegalArgumentException("Failed to parse Excel sheet. Ensure file is not corrupted: " + e.getMessage());
-        }
-
-        return new ParsedSheet(headers, rows);
-    }
-
-    private Map<String, String> autoSuggestMapping(List<String> headers) {
-        Map<String, String> mapping = new LinkedHashMap<>();
-
-        for (String header : headers) {
-            String norm = header.toLowerCase().replaceAll("[^a-z0-9]", "");
-
-            if (norm.equals("fullname") || norm.equals("name") || norm.equals("leadname") || norm.equals("clientname") || norm.contains("contactname") || norm.equals("contact")) {
-                mapping.put(header, "fullName");
-            } else if (norm.equals("businessemail") || norm.equals("email") || norm.equals("emailaddress") || norm.equals("workemail") || norm.equals("mail") || norm.contains("email")) {
-                mapping.put(header, "businessEmail");
-            } else if (norm.equals("company") || norm.equals("companyname") || norm.equals("organization") || norm.equals("firm") || norm.contains("company")) {
-                mapping.put(header, "companyName");
-            } else if (norm.equals("phone") || norm.equals("phonenumber") || norm.equals("mobile") || norm.equals("mobilenumber") || norm.contains("phone") || norm.contains("mobile") || norm.equals("contactnumber") || norm.equals("tel")) {
-                mapping.put(header, "phoneNumber");
-            } else if (norm.equals("industry") || norm.equals("industrysector") || norm.equals("sector")) {
-                mapping.put(header, "industrySector");
-            } else if (norm.equals("service") || norm.equals("servicerequired") || norm.equals("services") || norm.equals("requirement")) {
-                mapping.put(header, "serviceRequired");
-            } else if (norm.equals("status") || norm.equals("leadstatus")) {
-                mapping.put(header, "status");
-            } else if (norm.equals("priority") || norm.equals("leadpriority")) {
-                mapping.put(header, "priority");
-            } else if (norm.equals("source") || norm.equals("leadsource")) {
-                mapping.put(header, "leadSource");
-            } else if (norm.equals("currency")) {
-                mapping.put(header, "currency");
-            } else if (norm.equals("estimatedvalue") || norm.equals("value") || norm.equals("amount") || norm.equals("dealvalue")) {
-                mapping.put(header, "estimatedValue");
-            } else if (norm.equals("expectedclosingdate") || norm.equals("closingdate") || norm.equals("targetdate")) {
-                mapping.put(header, "expectedClosingDate");
-            } else if (norm.equals("probability") || norm.equals("winprobability")) {
-                mapping.put(header, "probability");
-            } else if (norm.equals("notes") || norm.equals("comment") || norm.equals("remarks") || norm.equals("city") || norm.equals("location") || norm.equals("address")) {
-                mapping.put(header, "notes");
-            } else if (norm.equals("assignedto") || norm.equals("assignedtoid") || norm.equals("salesrep") || norm.equals("salesrepid")) {
-                mapping.put(header, "assignedToId");
-            }
-
-        }
-
-        return mapping;
-    }
-
-    private Map<String, String> mapRowFields(Map<String, String> rawRow, Map<String, String> columnMapping) {
-        Map<String, String> result = new HashMap<>();
-        if (columnMapping == null) return result;
-
-        for (Map.Entry<String, String> entry : columnMapping.entrySet()) {
-            String fileHeader = entry.getKey();
-            String targetKey = entry.getValue();
-
-            if (targetKey != null && !targetKey.isBlank() && rawRow.containsKey(fileHeader)) {
-                result.put(targetKey, rawRow.get(fileHeader));
-            }
-        }
-        return result;
-    }
-
-    private void validateFieldFormats(Map<String, String> fields, List<String> errors) {
-        // Status enum check
-        String statusStr = fields.get("status");
-        if (statusStr != null && !statusStr.isBlank()) {
-            try {
-                LeadStatus.valueOf(statusStr.trim().toUpperCase());
-            } catch (IllegalArgumentException e) {
-                errors.add("Invalid status: '" + statusStr + "'. Allowed: NEW, CONTACTED, QUALIFIED, PROPOSAL, NEGOTIATION, WON, LOST");
-            }
-        }
-
-        // Priority enum check
-        String priorityStr = fields.get("priority");
-        if (priorityStr != null && !priorityStr.isBlank()) {
-            try {
-                LeadPriority.valueOf(priorityStr.trim().toUpperCase());
-            } catch (IllegalArgumentException e) {
-                errors.add("Invalid priority: '" + priorityStr + "'. Allowed: LOW, MEDIUM, HIGH, URGENT");
-            }
-        }
-
-        // LeadSource enum check
-        String sourceStr = fields.get("leadSource");
-        if (sourceStr != null && !sourceStr.isBlank()) {
-            try {
-                LeadSource.valueOf(sourceStr.trim().toUpperCase());
-            } catch (IllegalArgumentException e) {
-                errors.add("Invalid lead source: '" + sourceStr + "'. Allowed: WEBSITE, REFERRAL, EMAIL, PHONE, WHATSAPP, LINKEDIN, ADVERTISEMENT, PARTNER, OTHER");
-            }
-        }
-
-        // Currency enum check
-        String currStr = fields.get("currency");
-        if (currStr != null && !currStr.isBlank()) {
-            try {
-                Currency.valueOf(currStr.trim().toUpperCase());
-            } catch (IllegalArgumentException e) {
-                errors.add("Invalid currency: '" + currStr + "'. Allowed: INR, USD, EUR, GBP, AED");
-            }
-        }
-
-        // Estimated Value check
-        String valStr = fields.get("estimatedValue");
-        if (valStr != null && !valStr.isBlank()) {
-            try {
-                new BigDecimal(valStr.trim().replaceAll("[^0-9.]", ""));
-            } catch (Exception e) {
-                errors.add("Invalid estimated value: '" + valStr + "'");
-            }
-        }
-
-        // Expected Closing Date check
-        String dateStr = fields.get("expectedClosingDate");
-        if (dateStr != null && !dateStr.isBlank()) {
-            try {
-                parseLocalDate(dateStr.trim());
-            } catch (Exception e) {
-                errors.add("Invalid expected closing date: '" + dateStr + "'. Expected format: YYYY-MM-DD");
-            }
-        }
-
-        // Probability check
-        String probStr = fields.get("probability");
-        if (probStr != null && !probStr.isBlank()) {
-            try {
-                int prob = Integer.parseInt(probStr.trim());
-                if (prob < 0 || prob > 100) {
-                    errors.add("Probability must be between 0 and 100");
-                }
-            } catch (Exception e) {
-                errors.add("Invalid probability value: '" + probStr + "'");
-            }
-        }
-
-        // Assigned To ID check
-        String assignedStr = fields.get("assignedToId");
-        if (assignedStr != null && !assignedStr.isBlank()) {
-            try {
-                Long.parseLong(assignedStr.trim());
-            } catch (Exception e) {
-                errors.add("Invalid sales rep ID: '" + assignedStr + "'");
-            }
-        }
-    }
-
-    private CrmLeadRequest buildLeadRequest(Map<String, String> fields) {
-        LeadStatus status = LeadStatus.NEW;
-        if (fields.containsKey("status") && !fields.get("status").isBlank()) {
-            status = LeadStatus.valueOf(fields.get("status").trim().toUpperCase());
-        }
-
-        LeadPriority priority = LeadPriority.MEDIUM;
-        if (fields.containsKey("priority") && !fields.get("priority").isBlank()) {
-            priority = LeadPriority.valueOf(fields.get("priority").trim().toUpperCase());
-        }
-
-        LeadSource source = LeadSource.WEBSITE;
-        if (fields.containsKey("leadSource") && !fields.get("leadSource").isBlank()) {
-            source = LeadSource.valueOf(fields.get("leadSource").trim().toUpperCase());
-        }
-
-        Currency currency = Currency.INR;
-        if (fields.containsKey("currency") && !fields.get("currency").isBlank()) {
-            currency = Currency.valueOf(fields.get("currency").trim().toUpperCase());
-        }
-
-        BigDecimal estValue = null;
-        if (fields.containsKey("estimatedValue") && !fields.get("estimatedValue").isBlank()) {
-            estValue = new BigDecimal(fields.get("estimatedValue").trim().replaceAll("[^0-9.]", ""));
-        }
-
-        LocalDate closingDate = null;
-        if (fields.containsKey("expectedClosingDate") && !fields.get("expectedClosingDate").isBlank()) {
-            closingDate = parseLocalDate(fields.get("expectedClosingDate").trim());
-        }
-
-        Integer probability = null;
-        if (fields.containsKey("probability") && !fields.get("probability").isBlank()) {
-            probability = Integer.parseInt(fields.get("probability").trim());
-        }
-
-        Long assignedToId = null;
-        if (fields.containsKey("assignedToId") && !fields.get("assignedToId").isBlank()) {
-            assignedToId = Long.parseLong(fields.get("assignedToId").trim());
-        }
-
-        return CrmLeadRequest.builder()
-                .fullName(fields.get("fullName").trim())
-                .businessEmail(fields.get("businessEmail").trim())
-                .companyName(fields.get("companyName") != null ? fields.get("companyName").trim() : null)
-                .phoneNumber(fields.get("phoneNumber") != null ? fields.get("phoneNumber").trim() : null)
-                .industrySector(fields.get("industrySector") != null ? fields.get("industrySector").trim() : null)
-                .serviceRequired(fields.get("serviceRequired") != null ? fields.get("serviceRequired").trim() : null)
-                .status(status)
-                .priority(priority)
-                .leadSource(source)
-                .currency(currency)
-                .estimatedValue(estValue)
-                .expectedClosingDate(closingDate)
-                .probability(probability)
-                .notes(fields.get("notes") != null ? fields.get("notes").trim() : null)
-                .assignedToId(assignedToId)
-                .build();
-    }
-
-    private LocalDate parseLocalDate(String str) {
-        try {
-            return LocalDate.parse(str, DateTimeFormatter.ISO_LOCAL_DATE);
-        } catch (Exception e1) {
-            try {
-                return LocalDate.parse(str, DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-            } catch (Exception e2) {
-                return LocalDate.parse(str, DateTimeFormatter.ofPattern("MM/dd/yyyy"));
-            }
-        }
-    }
-
-    private Map<String, String> parseMappingJson(String json) {
-        if (json == null || json.isBlank()) return null;
-        try {
-            return objectMapper.readValue(json, new TypeReference<Map<String, String>>() {});
-        } catch (Exception e) {
-            logger.warn("Failed to parse columnMapping JSON: {}", e.getMessage());
-            return null;
-        }
-    }
+    // --- VALUE OBJECTS ---
 
     private static class ParsedSheet {
         private final List<String> headers;
         private final List<Map<String, String>> rows;
+        private final int skippedRowCount;
 
-        public ParsedSheet(List<String> headers, List<Map<String, String>> rows) {
+        public ParsedSheet(List<String> headers, List<Map<String, String>> rows, int skippedRowCount) {
             this.headers = headers;
             this.rows = rows;
+            this.skippedRowCount = skippedRowCount;
         }
 
         public List<String> getHeaders() { return headers; }
         public List<Map<String, String>> getRows() { return rows; }
+        public int getSkippedRowCount() { return skippedRowCount; }
+    }
+
+    private static class ParsedWorkbookResult {
+        private final List<String> sheetNames;
+        private final String activeSheet;
+        private final List<String> headers;
+        private final List<Map<String, String>> rows;
+        private final int skippedRowCount;
+
+        public ParsedWorkbookResult(List<String> sheetNames, String activeSheet, List<String> headers, List<Map<String, String>> rows, int skippedRowCount) {
+            this.sheetNames = sheetNames;
+            this.activeSheet = activeSheet;
+            this.headers = headers;
+            this.rows = rows;
+            this.skippedRowCount = skippedRowCount;
+        }
+
+        public List<String> getSheetNames() { return sheetNames; }
+        public String getActiveSheet() { return activeSheet; }
+        public List<String> getHeaders() { return headers; }
+        public List<Map<String, String>> getRows() { return rows; }
+        public int getSkippedRowCount() { return skippedRowCount; }
     }
 }

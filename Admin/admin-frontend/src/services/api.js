@@ -532,11 +532,14 @@ export const getCrmDashboardSummary = () => fetchApi('/crm/dashboard');
 
 export const getAdminUsers = () => fetchApi('/users');
 
-export const previewCrmLeadImport = async (file) => {
+export const previewCrmLeadImport = async (file, sheetName) => {
     const token = localStorage.getItem('adminToken');
     const formData = new FormData();
     formData.append('file', file);
-    const response = await fetch(`${API_BASE_URL}/crm/leads/import/preview`, {
+    const url = sheetName 
+        ? `${API_BASE_URL}/crm/leads/import/preview?sheetName=${encodeURIComponent(sheetName)}` 
+        : `${API_BASE_URL}/crm/leads/import/preview`;
+    const response = await fetch(url, {
         method: 'POST',
         headers: {
             'Authorization': token ? `Bearer ${token}` : ''
@@ -548,7 +551,7 @@ export const previewCrmLeadImport = async (file) => {
         try {
             const errData = await response.json();
             if (errData.message) errStr = errData.message;
-        } catch (e) {}
+        } catch (_e) {}
         throw new Error(errStr);
     }
     return await response.json();
@@ -573,7 +576,7 @@ export const importCrmLeads = async (file, columnMapping) => {
         try {
             const errData = await response.json();
             if (errData.message) errStr = errData.message;
-        } catch (e) {}
+        } catch (_e) {}
         throw new Error(errStr);
     }
     return await response.json();
@@ -584,6 +587,50 @@ export const importCrmLeadRecords = async (records) => {
         method: 'POST',
         body: JSON.stringify(records)
     });
+};
+
+export const exportConvertedLeads = async (records, format = 'CSV') => {
+    const token = localStorage.getItem('adminToken');
+    const response = await fetch(`${API_BASE_URL}/crm/leads/import/export/converted`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': token ? `Bearer ${token}` : ''
+        },
+        body: JSON.stringify({ format, records })
+    });
+    if (!response.ok) throw new Error('Failed to export converted leads');
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `converted_crm_leads.${format.toLowerCase() === 'xlsx' ? 'xlsx' : 'csv'}`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+};
+
+export const exportLeadErrorReport = async (previewRows) => {
+    const token = localStorage.getItem('adminToken');
+    const response = await fetch(`${API_BASE_URL}/crm/leads/import/export/errors`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': token ? `Bearer ${token}` : ''
+        },
+        body: JSON.stringify({ previewRows })
+    });
+    if (!response.ok) throw new Error('Failed to export error report');
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'lead_import_error_report.csv';
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
 };
 
 export const downloadCrmLeadTemplate = async () => {

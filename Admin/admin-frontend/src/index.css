@@ -250,23 +250,37 @@
   /* Dedicated visible horizontal scrollbar for tables */
   .leads-table-scroll-container {
     scrollbar-width: thin;
-    scrollbar-color: var(--color-border-subtle) transparent;
+    scrollbar-color: #94a3b8 rgba(0, 0, 0, 0.05);
     -webkit-overflow-scrolling: touch;
   }
   .leads-table-scroll-container::-webkit-scrollbar {
     display: block !important;
-    height: 6px;
-    width: 6px;
+    height: 8px;
+    width: 8px;
   }
   .leads-table-scroll-container::-webkit-scrollbar-track {
-    background: transparent;
+    background: rgba(0, 0, 0, 0.04);
+    border-radius: 9999px;
   }
   .leads-table-scroll-container::-webkit-scrollbar-thumb {
-    background-color: var(--color-border-subtle);
+    background-color: #94a3b8;
     border-radius: 9999px;
   }
   .leads-table-scroll-container::-webkit-scrollbar-thumb:hover {
-    background-color: var(--color-text-muted);
+    background-color: #64748b;
+  }
+
+  :where([data-theme=dark], [data-theme=dark] *) .leads-table-scroll-container {
+    scrollbar-color: #64748b rgba(255, 255, 255, 0.05);
+  }
+  :where([data-theme=dark], [data-theme=dark] *) .leads-table-scroll-container::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+  }
+  :where([data-theme=dark], [data-theme=dark] *) .leads-table-scroll-container::-webkit-scrollbar-thumb {
+    background-color: #475569;
+  }
+  :where([data-theme=dark], [data-theme=dark] *) .leads-table-scroll-container::-webkit-scrollbar-thumb:hover {
+    background-color: #64748b;
   }
 
   .acx-table {

@@ -64,4 +64,10 @@ public interface CrmLeadRepository extends JpaRepository<CrmLead, Long>, JpaSpec
 
     Optional<CrmLead> findByBusinessEmailIgnoreCase(String businessEmail);
 
+    boolean existsByPhoneNumber(String phoneNumber);
+
+    Optional<CrmLead> findFirstByPhoneNumber(String phoneNumber);
+
+    List<CrmLead> findByFullNameIgnoreCaseAndCompanyNameIgnoreCase(String fullName, String companyName);
+
 }

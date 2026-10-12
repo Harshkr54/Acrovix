@@ -189,8 +189,9 @@ public class CrmController {
     @PostMapping(value = "/leads/import/preview", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
     public ResponseEntity<com.acrovix.admin.dto.crm.CrmLeadImportPreviewResponse> previewImportLeads(
-            @RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
-        return ResponseEntity.ok(crmLeadImportService.previewImport(file));
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            @RequestParam(value = "sheetName", required = false) String sheetName) {
+        return ResponseEntity.ok(crmLeadImportService.previewImport(file, sheetName));
     }
 
     @PostMapping(value = "/leads/import", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -208,6 +209,33 @@ public class CrmController {
             @RequestBody List<CrmLeadRequest> requests,
             @AuthenticationPrincipal AdminUser admin) {
         return ResponseEntity.ok(crmLeadImportService.importLeadRequests(requests, admin));
+    }
+
+    @PostMapping(value = "/leads/import/export/converted", consumes = org.springframework.http.MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    public ResponseEntity<byte[]> exportConvertedLeads(
+            @RequestBody com.acrovix.admin.dto.crm.CrmLeadImportExportRequest request) {
+        String format = request.getFormat() != null ? request.getFormat().toUpperCase() : "CSV";
+        byte[] bytes = crmLeadImportService.exportConvertedRecords(request.getRecords(), format);
+        String filename = "converted_crm_leads." + (format.equals("XLSX") ? "xlsx" : "csv");
+        String contentType = format.equals("XLSX")
+                ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                : "text/csv";
+        return ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(org.springframework.http.MediaType.parseMediaType(contentType))
+                .body(bytes);
+    }
+
+    @PostMapping(value = "/leads/import/export/errors", consumes = org.springframework.http.MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    public ResponseEntity<byte[]> exportErrorReport(
+            @RequestBody com.acrovix.admin.dto.crm.CrmLeadImportExportRequest request) {
+        byte[] bytes = crmLeadImportService.exportErrorReport(request.getPreviewRows());
+        return ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"lead_import_error_report.csv\"")
+                .contentType(org.springframework.http.MediaType.parseMediaType("text/csv"))
+                .body(bytes);
     }
 
     @GetMapping("/leads/import/template")

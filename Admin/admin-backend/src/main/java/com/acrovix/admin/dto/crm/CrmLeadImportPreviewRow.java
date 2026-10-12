@@ -14,10 +14,19 @@ import java.util.Map;
 @AllArgsConstructor
 public class CrmLeadImportPreviewRow {
     private int rowIndex;
-    private Map<String, String> rowData;
-    private String status; // "VALID", "INVALID", "DUPLICATE"
+    private Map<String, String> rowData; // Raw unmodified values
+    private Map<String, String> normalizedData; // Cleaned/normalized values
+    private String status; // "VALID", "INVALID", "DUPLICATE", "POSSIBLE_DUPLICATE"
     private String fullName;
     private String businessEmail;
     private String companyName;
+    private String phoneNumber;
     private List<String> errors;
+    private List<String> warnings;
+    private Map<String, String> unmappedDomainData;
+    private boolean isServerDuplicate;
+    private boolean isPossibleDuplicate;
+    private String duplicateReason;
+    @Builder.Default
+    private boolean included = true;
 }
