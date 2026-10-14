@@ -79,4 +79,22 @@ public class AdminUserController {
         userService.updateUserRole(id, body.get("role"), admin.getId());
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/{id}/send-reset-link")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @RateLimit(category = RateLimitCategory.EMAIL)
+    public ResponseEntity<com.acrovix.admin.dto.AdminRecoveryLinkResponse> sendResetLink(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AdminUser admin) {
+        return ResponseEntity.ok(userService.sendPasswordResetLink(id, admin.getId()));
+    }
+
+    @PostMapping("/{id}/reset-temporary-password")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @RateLimit(category = RateLimitCategory.LOGIN)
+    public ResponseEntity<com.acrovix.admin.dto.TemporaryPasswordResetResponse> resetTemporaryPassword(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AdminUser admin) {
+        return ResponseEntity.ok(userService.resetTemporaryPassword(id, admin.getId()));
+    }
 }

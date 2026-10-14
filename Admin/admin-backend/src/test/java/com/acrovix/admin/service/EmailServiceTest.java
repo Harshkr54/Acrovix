@@ -272,4 +272,63 @@ class EmailServiceTest {
         assertTrue(details.get("htmlContent").contains("SYNC | SCALE | SUCCEED"));
         assertEquals("ACX-QT-2026-001.pdf", details.get("filename"));
     }
+
+    @Test
+    void testSendQuotationEmailToRecipientsMultipleAddressesSuccess() {
+        MimeMessage mimeMessage = new MimeMessage((Session) null);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        byte[] fakePdfBytes = "PDF_HEADER_DATA".getBytes();
+        when(pdfService.generateQuotationPdf(testQuotation)).thenReturn(fakePdfBytes);
+
+        var recipients = java.util.List.of("lead@client.com", "billing@client.com", "cxo@client.com");
+        assertDoesNotThrow(() -> emailService.sendQuotationEmailToRecipients(testQuotation, recipients));
+
+        verify(mailSender).send(mimeMessage);
+
+        ArgumentCaptor<EmailLog> logCaptor = ArgumentCaptor.forClass(EmailLog.class);
+        verify(emailLogRepository).save(logCaptor.capture());
+
+        EmailLog log = logCaptor.getValue();
+        assertEquals("lead@client.com, billing@client.com, cxo@client.com", log.getRecipient());
+        assertTrue(log.getSubject().contains("ACX-QT-2026-001"));
+        assertEquals(EmailType.QUOTATION, log.getEmailType());
+        assertEquals(EmailStatus.SENT, log.getStatus());
+    }
+
+    @Test
+    void testSendEmailMultipleRecipientsDeduplicationAndDelimiterParsing() {
+        MimeMessage mimeMessage = new MimeMessage((Session) null);
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+        EmailRequest request = EmailRequest.builder()
+                .to("lead@client.com, billing@client.com")
+                .toRecipients(java.util.List.of("cxo@client.com", "billing@client.com"))
+                .subject("Multi-recipient deduplication test")
+                .body("Hello team")
+                .build();
+
+        boolean sent = emailService.sendEmail(request);
+        assertTrue(sent);
+
+        verify(mailSender).send(mimeMessage);
+
+        ArgumentCaptor<EmailLog> logCaptor = ArgumentCaptor.forClass(EmailLog.class);
+        verify(emailLogRepository).save(logCaptor.capture());
+
+        EmailLog log = logCaptor.getValue();
+        assertEquals("cxo@client.com, billing@client.com, lead@client.com", log.getRecipient());
+    }
+
+    @Test
+    void testSendEmailInvalidRecipientInListThrowsIllegalArgumentException() {
+        EmailRequest request = EmailRequest.builder()
+                .toRecipients(java.util.List.of("valid@client.com", "not-an-email"))
+                .subject("Invalid email test")
+                .body("Hello")
+                .build();
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> emailService.sendEmail(request));
+        assertTrue(ex.getMessage().contains("Invalid recipient email format: not-an-email"));
+        verifyNoInteractions(mailSender);
+    }
 }

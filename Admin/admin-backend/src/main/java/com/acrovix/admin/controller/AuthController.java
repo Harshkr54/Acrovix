@@ -53,6 +53,25 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/force-change-password")
+    @RateLimit(category = RateLimitCategory.LOGIN)
+    public ResponseEntity<?> forceChangePassword(
+            @Valid @RequestBody com.acrovix.admin.dto.ForceChangePasswordRequest request,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.acrovix.admin.entity.AdminUser user
+    ) {
+        if (user == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized."));
+        }
+        try {
+            authService.forceChangePassword(user, request);
+            return ResponseEntity.ok(Map.of("message", "Password changed successfully. You may now access the system."));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (org.springframework.security.authentication.BadCredentialsException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Current temporary password is incorrect."));
+        }
+    }
+
     private String getClientIp(HttpServletRequest request) {
         String xfHeader = request.getHeader("X-Forwarded-For");
         if (xfHeader == null || xfHeader.isEmpty()) {

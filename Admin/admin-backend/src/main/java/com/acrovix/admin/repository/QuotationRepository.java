@@ -47,4 +47,15 @@ public interface QuotationRepository extends JpaRepository<Quotation, Long>, Jpa
     List<Object[]> countGroupByStatus();
 
     boolean existsByCustomerIdAndCreatedById(Long customerId, Long createdById);
+
+    @Query("SELECT DISTINCT q FROM Quotation q WHERE q.deletedAt IS NULL AND (" +
+           "(:enquiryId IS NOT NULL AND q.enquiry.id = :enquiryId) OR " +
+           "(:customerId IS NOT NULL AND q.customer.id = :customerId) OR " +
+           "(:email IS NOT NULL AND LOWER(q.clientEmail) = LOWER(:email))" +
+           ") ORDER BY q.createdAt DESC")
+    List<Quotation> findQuotationsForLead(
+            @org.springframework.data.repository.query.Param("enquiryId") Long enquiryId,
+            @org.springframework.data.repository.query.Param("customerId") Long customerId,
+            @org.springframework.data.repository.query.Param("email") String email
+    );
 }

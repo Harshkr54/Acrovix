@@ -3,11 +3,12 @@ import { fetchApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import DisableUserModal from '../components/DisableUserModal';
 import UserDetailsModal from '../components/UserDetailsModal';
+import AccountRecoveryModal from '../components/AccountRecoveryModal';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { 
     UserPlus, ShieldAlert, Mail, Lock, Shield, Users, 
     AlertCircle, RefreshCw, Search, X, CheckCircle2, 
-    RotateCcw, Eye, Loader2 
+    RotateCcw, Eye, Loader2, KeyRound 
 } from 'lucide-react';
 
 export default function UserList() {
@@ -36,6 +37,7 @@ export default function UserList() {
     const [isReactivating, setIsReactivating] = useState(false);
 
     const [userToView, setUserToView] = useState(null);
+    const [userToRecover, setUserToRecover] = useState(null);
 
     const fetchUsers = useCallback(() => {
         setIsLoading(true);
@@ -498,15 +500,27 @@ export default function UserList() {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap align-middle text-right">
                                             {u.enabled ? (
-                                                <button 
-                                                    type="button"
-                                                    onClick={() => setUserToDisable(u)}
-                                                    disabled={u.email === currentUser?.email}
-                                                    title={u.email === currentUser?.email ? "Cannot disable yourself" : "Disable User"}
-                                                    className="btn btn-sm btn-ghost text-brand-danger hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-30 disabled:cursor-not-allowed"
-                                                >
-                                                    Disable
-                                                </button>
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => setUserToRecover(u)}
+                                                        disabled={u.email === currentUser?.email}
+                                                        title={u.email === currentUser?.email ? "Cannot recover yourself" : "Account Recovery"}
+                                                        className="btn btn-sm btn-secondary inline-flex items-center gap-1.5 text-text-primary hover:text-[#2563EB] disabled:opacity-30 disabled:cursor-not-allowed"
+                                                    >
+                                                        <KeyRound className="w-3.5 h-3.5" />
+                                                        Recovery
+                                                    </button>
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => setUserToDisable(u)}
+                                                        disabled={u.email === currentUser?.email}
+                                                        title={u.email === currentUser?.email ? "Cannot disable yourself" : "Disable User"}
+                                                        className="btn btn-sm btn-ghost text-brand-danger hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-30 disabled:cursor-not-allowed"
+                                                    >
+                                                        Disable
+                                                    </button>
+                                                </div>
                                             ) : (
                                                 <div className="flex items-center justify-end gap-2">
                                                     <button 
@@ -571,6 +585,15 @@ export default function UserList() {
                         setUserToView(null);
                         setUserToReactivate(u);
                     }}
+                />
+            )}
+
+            {/* Account Recovery Modal */}
+            {userToRecover && (
+                <AccountRecoveryModal
+                    user={userToRecover}
+                    onClose={() => setUserToRecover(null)}
+                    onUserUpdated={fetchUsers}
                 />
             )}
         </div>

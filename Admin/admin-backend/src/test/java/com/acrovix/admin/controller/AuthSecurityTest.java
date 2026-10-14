@@ -290,6 +290,7 @@ public class AuthSecurityTest {
     void testResetLinkGenerationUsesConfiguredFrontendUrl() throws Exception {
         // Mock emailService to capture the generated reset link
         com.acrovix.admin.service.EmailService mockEmailService = org.mockito.Mockito.mock(com.acrovix.admin.service.EmailService.class);
+        org.mockito.Mockito.when(mockEmailService.isEmailConfigured()).thenReturn(true);
         
         com.acrovix.admin.service.AuthService customAuthService = new com.acrovix.admin.service.AuthService(
                 adminUserRepository,
@@ -321,5 +322,128 @@ public class AuthSecurityTest {
                 "Production reset link must start with https://admin.acrovix.com/reset-password?token=");
         assertFalse(generatedLink.contains("localhost"),
                 "Production reset link must never contain localhost");
+    }
+
+    @Test
+    void testSuperAdminAccountRecoveryWorkflows() throws Exception {
+        // Create second user (Sales rep)
+        AdminUser salesUser = AdminUser.builder()
+                .email("sales@example.com")
+                .name("Sales Rep")
+                .password(passwordEncoder.encode("SalesPass123!"))
+                .role(Role.SALES)
+                .enabled(true)
+                .build();
+        salesUser = adminUserRepository.save(salesUser);
+
+        // Authenticate as Super Admin to get token
+        AuthRequest loginSuperAdmin = new AuthRequest("test@example.com", "password123");
+        var superAdminRes = mockMvc.perform(post("/api/admin/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(loginSuperAdmin)))
+                .andExpect(status().isOk())
+                .andReturn();
+        String superAdminToken = objectMapper.readTree(superAdminRes.getResponse().getContentAsString()).get("token").asText();
+
+        // 1. Super Admin cannot reset their own password via recovery endpoint
+        AdminUser superAdminUser = adminUserRepository.findByEmail("test@example.com").orElseThrow();
+        mockMvc.perform(post("/api/admin/users/" + superAdminUser.getId() + "/reset-temporary-password")
+                .header("Authorization", "Bearer " + superAdminToken))
+                .andExpect(status().isBadRequest());
+
+        // 2. Super Admin cannot send reset link to themselves
+        mockMvc.perform(post("/api/admin/users/" + superAdminUser.getId() + "/send-reset-link")
+                .header("Authorization", "Bearer " + superAdminToken))
+                .andExpect(status().isBadRequest());
+
+        // 3. Super Admin resets temporary password for Sales user
+        var tempPassRes = mockMvc.perform(post("/api/admin/users/" + salesUser.getId() + "/reset-temporary-password")
+                .header("Authorization", "Bearer " + superAdminToken))
+                .andExpect(status().isOk())
+                .andReturn();
+        
+        var tempPassJson = objectMapper.readTree(tempPassRes.getResponse().getContentAsString());
+        String generatedTempPassword = tempPassJson.get("temporaryPassword").asText();
+        assertTrue(generatedTempPassword.length() >= 12, "Temporary password should be high entropy (at least 12 chars)");
+
+        // Verify user in DB has mustChangePassword = true
+        AdminUser updatedSalesUser = adminUserRepository.findById(salesUser.getId()).orElseThrow();
+        assertTrue(updatedSalesUser.isMustChangePassword(), "User must have mustChangePassword = true");
+
+        // 4. Sales user logs in with the temporary password
+        AuthRequest tempLogin = new AuthRequest("sales@example.com", generatedTempPassword);
+        var salesLoginRes = mockMvc.perform(post("/api/admin/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(tempLogin)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        var salesLoginJson = objectMapper.readTree(salesLoginRes.getResponse().getContentAsString());
+        assertTrue(salesLoginJson.get("mustChangePassword").asBoolean(), "Login response must flag mustChangePassword as true");
+        String salesToken = salesLoginJson.get("token").asText();
+
+        // 5. Trying to access normal endpoints with unfulfilled mustChangePassword is forbidden (HTTP 403)
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/admin/users")
+                .header("Authorization", "Bearer " + salesToken))
+                .andExpect(status().isForbidden());
+
+        // 6. User submits forced password change
+        com.acrovix.admin.dto.ForceChangePasswordRequest changeReq = com.acrovix.admin.dto.ForceChangePasswordRequest.builder()
+                .currentPassword(generatedTempPassword)
+                .newPassword("BrandNewSalesPass2026!")
+                .confirmPassword("BrandNewSalesPass2026!")
+                .build();
+
+        mockMvc.perform(post("/api/admin/auth/force-change-password")
+                .header("Authorization", "Bearer " + salesToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(changeReq)))
+                .andExpect(status().isOk());
+
+        // 7. DB must now show mustChangePassword = false
+        AdminUser finalUser = adminUserRepository.findById(salesUser.getId()).orElseThrow();
+        assertFalse(finalUser.isMustChangePassword(), "mustChangePassword must be cleared after change");
+
+        // 8. Sales user can now authenticate and access normal endpoints with new password
+        AuthRequest permanentLogin = new AuthRequest("sales@example.com", "BrandNewSalesPass2026!");
+        var permanentLoginRes = mockMvc.perform(post("/api/admin/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(permanentLogin)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        var permanentJson = objectMapper.readTree(permanentLoginRes.getResponse().getContentAsString());
+        assertFalse(permanentJson.get("mustChangePassword").asBoolean());
+    }
+
+    @Test
+    void testNonAdminCannotAccessRecoveryEndpoints() throws Exception {
+        // Create Sales user
+        AdminUser salesUser = AdminUser.builder()
+                .email("sales_rep@example.com")
+                .name("Sales Rep")
+                .password(passwordEncoder.encode("SalesPass123!"))
+                .role(Role.SALES)
+                .enabled(true)
+                .build();
+        salesUser = adminUserRepository.save(salesUser);
+
+        // Login as Sales
+        AuthRequest salesLogin = new AuthRequest("sales_rep@example.com", "SalesPass123!");
+        var salesLoginRes = mockMvc.perform(post("/api/admin/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(salesLogin)))
+                .andExpect(status().isOk())
+                .andReturn();
+        String salesToken = objectMapper.readTree(salesLoginRes.getResponse().getContentAsString()).get("token").asText();
+
+        // Sales user attempts to hit recovery endpoint -> Forbidden
+        mockMvc.perform(post("/api/admin/users/1/reset-temporary-password")
+                .header("Authorization", "Bearer " + salesToken))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(post("/api/admin/users/1/send-reset-link")
+                .header("Authorization", "Bearer " + salesToken))
+                .andExpect(status().isForbidden());
     }
 }

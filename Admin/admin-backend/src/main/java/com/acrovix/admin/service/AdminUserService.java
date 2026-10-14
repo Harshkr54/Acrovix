@@ -29,6 +29,8 @@ public class AdminUserService {
     private final AdminActivityRepository activityRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final AuthService authService;
+    private final com.acrovix.admin.repository.PasswordResetTokenRepository passwordResetTokenRepository;
 
     private AdminUserResponse mapToResponse(AdminUser user) {
         return AdminUserResponse.builder()
@@ -37,6 +39,7 @@ public class AdminUserService {
                 .email(user.getEmail())
                 .role(user.getRole().name())
                 .enabled(user.isEnabled())
+                .mustChangePassword(user.isMustChangePassword())
                 .createdAt(user.getCreatedAt())
                 .lastLogin(user.getLastLogin())
                 .build();
@@ -220,6 +223,116 @@ public class AdminUserService {
                 .entityId(user.getId())
                 .build();
         activityRepository.save(activity);
+    }
+
+    @Transactional
+    public com.acrovix.admin.dto.AdminRecoveryLinkResponse sendPasswordResetLink(Long userId, Long adminId) {
+        if (userId.equals(adminId)) {
+            throw new IllegalArgumentException("Cannot request account recovery for your own account.");
+        }
+        AdminUser target = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        if (!target.isEnabled()) {
+            throw new IllegalStateException("Cannot send reset link to a disabled user account.");
+        }
+
+        com.acrovix.admin.dto.email.EmailDispatchResult result = authService.requestPasswordResetWithResult(target.getEmail());
+
+        AdminActivity activity = AdminActivity.builder()
+                .adminUserId(adminId)
+                .action("Super Admin initiated password reset email for user: " + target.getEmail() + " [Status: " + result.getStatus() + "]")
+                .entityType("AdminUser")
+                .entityId(target.getId())
+                .build();
+        activityRepository.save(activity);
+
+        String deliveryStatus = result.getStatus() == com.acrovix.admin.dto.email.EmailDispatchResult.Status.ACCEPTED 
+                ? "ACCEPTED" 
+                : (result.getStatus() == com.acrovix.admin.dto.email.EmailDispatchResult.Status.UNCONFIGURED ? "NOT_CONFIGURED" : "FAILED");
+
+        return com.acrovix.admin.dto.AdminRecoveryLinkResponse.builder()
+                .status(result.getStatus().name())
+                .deliveryStatus(deliveryStatus)
+                .message(result.getMessage())
+                .recipientEmail(target.getEmail())
+                .build();
+    }
+
+    @Transactional
+    public com.acrovix.admin.dto.TemporaryPasswordResetResponse resetTemporaryPassword(Long userId, Long adminId) {
+        if (userId.equals(adminId)) {
+            throw new IllegalArgumentException("Cannot reset your own password via administrative recovery.");
+        }
+        AdminUser target = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        if (!target.isEnabled()) {
+            throw new IllegalStateException("Cannot generate temporary password for a disabled user account.");
+        }
+
+        String temporaryPassword = generateSecureTemporaryPassword();
+
+        target.setPassword(passwordEncoder.encode(temporaryPassword));
+        target.setMustChangePassword(true);
+        userRepository.save(target);
+
+        // Invalidate any existing reset tokens
+        java.util.List<com.acrovix.admin.entity.PasswordResetToken> existingTokens = passwordResetTokenRepository.findByAdminUserAndUsedFalse(target);
+        for (com.acrovix.admin.entity.PasswordResetToken token : existingTokens) {
+            token.setUsed(true);
+        }
+        if (!existingTokens.isEmpty()) {
+            passwordResetTokenRepository.saveAll(existingTokens);
+        }
+
+        AdminActivity activity = AdminActivity.builder()
+                .adminUserId(adminId)
+                .action("Super Admin reset temporary password for user: " + target.getEmail())
+                .entityType("AdminUser")
+                .entityId(target.getId())
+                .build();
+        activityRepository.save(activity);
+
+        return com.acrovix.admin.dto.TemporaryPasswordResetResponse.builder()
+                .userId(target.getId())
+                .userEmail(target.getEmail())
+                .temporaryPassword(temporaryPassword)
+                .message("Temporary password generated. It is displayed ONCE only. Share it securely with the user.")
+                .build();
+    }
+
+    private String generateSecureTemporaryPassword() {
+        String upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+        String lower = "abcdefghijkmnopqrstuvwxyz";
+        String digits = "23456789";
+        String symbols = "!@#$%^&*";
+        String allChars = upper + lower + digits + symbols;
+
+        java.security.SecureRandom random = new java.security.SecureRandom();
+        StringBuilder sb = new StringBuilder();
+
+        // Ensure at least 2 chars of each character class
+        for (int i = 0; i < 2; i++) {
+            sb.append(upper.charAt(random.nextInt(upper.length())));
+            sb.append(lower.charAt(random.nextInt(lower.length())));
+            sb.append(digits.charAt(random.nextInt(digits.length())));
+            sb.append(symbols.charAt(random.nextInt(symbols.length())));
+        }
+
+        // Fill remaining 8 chars to make a 16-char password
+        for (int i = 0; i < 8; i++) {
+            sb.append(allChars.charAt(random.nextInt(allChars.length())));
+        }
+
+        // Shuffle characters
+        char[] array = sb.toString().toCharArray();
+        for (int i = array.length - 1; i > 0; i--) {
+            int j = random.nextInt(i + 1);
+            char temp = array[i];
+            array[i] = array[j];
+            array[j] = temp;
+        }
+
+        return new String(array);
     }
 }
 

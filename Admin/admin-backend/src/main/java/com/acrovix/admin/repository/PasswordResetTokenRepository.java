@@ -9,4 +9,6 @@ import java.util.Optional;
 @Repository
 public interface PasswordResetTokenRepository extends JpaRepository<PasswordResetToken, Long> {
     Optional<PasswordResetToken> findByTokenHash(String tokenHash);
+    java.util.List<PasswordResetToken> findByAdminUserAndUsedFalse(com.acrovix.admin.entity.AdminUser adminUser);
+    void deleteByAdminUser(com.acrovix.admin.entity.AdminUser adminUser);
 }

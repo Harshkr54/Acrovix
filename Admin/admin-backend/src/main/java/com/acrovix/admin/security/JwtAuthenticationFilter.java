@@ -53,6 +53,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             new WebAuthenticationDetailsSource().buildDetails(request)
                     );
                     SecurityContextHolder.getContext().setAuthentication(authToken);
+
+                    if (userDetails instanceof com.acrovix.admin.entity.AdminUser adminUser && adminUser.isMustChangePassword()) {
+                        String path = request.getRequestURI();
+                        boolean isAllowedWhenPasswordChangeRequired = path.endsWith("/force-change-password") 
+                                || path.endsWith("/profile") 
+                                || path.endsWith("/logout");
+                        if (!isAllowedWhenPasswordChangeRequired) {
+                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                            response.setContentType("application/json");
+                            response.getWriter().write("{\"error\":\"PASSWORD_CHANGE_REQUIRED\",\"message\":\"You must change your temporary password before accessing the system.\"}");
+                            return;
+                        }
+                    }
                 }
             }
         } catch (Exception e) {

@@ -94,17 +94,22 @@ public class AuthService {
                 .name(user.getName())
                 .email(user.getEmail())
                 .role(user.getRole().name())
+                .mustChangePassword(user.isMustChangePassword())
                 .build();
         } catch (AuthenticationException ex) {
             rateLimiterService.loginFailed(clientIp);
             
-            AdminActivity activity = AdminActivity.builder()
-                    .action("LOGIN_FAILED")
-                    .entityType("AUTH")
-                    .entityId(0L)
-                    .description("IP: " + clientIp)
-                    .build();
-            activityRepository.save(activity);
+            try {
+                AdminActivity activity = AdminActivity.builder()
+                        .action("LOGIN_FAILED")
+                        .entityType("AUTH")
+                        .entityId(0L)
+                        .description("IP: " + clientIp)
+                        .build();
+                activityRepository.save(activity);
+            } catch (Exception e) {
+                // Activity logging failure should not suppress auth failure
+            }
             
             throw ex;
         }
@@ -112,12 +117,29 @@ public class AuthService {
 
     @Transactional
     public void requestPasswordReset(String email) {
+        requestPasswordResetWithResult(email);
+    }
+
+    @Transactional
+    public com.acrovix.admin.dto.email.EmailDispatchResult requestPasswordResetWithResult(String email) {
         Optional<AdminUser> userOpt = repository.findByEmail(email);
         if (userOpt.isEmpty() || !userOpt.get().isEnabled()) {
-            return; // Do not reveal existence
+            org.slf4j.LoggerFactory.getLogger(AuthService.class).info("Password reset requested for non-existent or disabled account: {}", maskEmail(email));
+            return com.acrovix.admin.dto.email.EmailDispatchResult.accepted("Request processed.");
         }
 
         AdminUser user = userOpt.get();
+        org.slf4j.LoggerFactory.getLogger(AuthService.class).info("Password reset token generating for user: {}", maskEmail(user.getEmail()));
+
+        // Invalidate previous active tokens for this user
+        java.util.List<PasswordResetToken> existingTokens = passwordResetTokenRepository.findByAdminUserAndUsedFalse(user);
+        for (PasswordResetToken token : existingTokens) {
+            token.setUsed(true);
+        }
+        if (!existingTokens.isEmpty()) {
+            passwordResetTokenRepository.saveAll(existingTokens);
+        }
+
         String rawToken = generateSecureToken();
         String tokenHash = hashToken(rawToken);
 
@@ -136,7 +158,14 @@ public class AuthService {
         }
 
         String resetLink = baseUrl + "/reset-password?token=" + rawToken;
-        emailService.sendPasswordResetEmailAsync(user.getEmail(), resetLink);
+        
+        if (emailService.isEmailConfigured()) {
+            emailService.sendPasswordResetEmailAsync(user.getEmail(), resetLink);
+            return com.acrovix.admin.dto.email.EmailDispatchResult.accepted("Password reset link accepted by provider for delivery.");
+        } else {
+            org.slf4j.LoggerFactory.getLogger(AuthService.class).warn("Email provider unconfigured. Reset link generated but could not be sent.");
+            return com.acrovix.admin.dto.email.EmailDispatchResult.unconfigured("Email service is not configured on this server.");
+        }
     }
 
     @Transactional
@@ -155,6 +184,7 @@ public class AuthService {
         }
 
         user.setPassword(passwordEncoder.encode(newPassword));
+        user.setMustChangePassword(false);
         repository.save(user);
 
         resetToken.setUsed(true);
@@ -167,6 +197,41 @@ public class AuthService {
                 .entityId(user.getId())
                 .build();
         activityRepository.save(activity);
+    }
+
+    @Transactional
+    public void forceChangePassword(AdminUser user, com.acrovix.admin.dto.ForceChangePasswordRequest request) {
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new IllegalArgumentException("New passwords do not match.");
+        }
+        if (request.getNewPassword().length() < 8) {
+            throw new IllegalArgumentException("New password must be at least 8 characters long.");
+        }
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new org.springframework.security.authentication.BadCredentialsException("Current password is incorrect.");
+        }
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("New password cannot be the same as your current temporary password.");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setMustChangePassword(false);
+        repository.save(user);
+
+        AdminActivity activity = AdminActivity.builder()
+                .adminUserId(user.getId())
+                .action("Forced temporary password updated by user")
+                .entityType("AUTH")
+                .entityId(user.getId())
+                .build();
+        activityRepository.save(activity);
+    }
+
+    private String maskEmail(String email) {
+        if (email == null || !email.contains("@")) return "***";
+        int atIndex = email.indexOf("@");
+        if (atIndex <= 1) return "***" + email.substring(atIndex);
+        return email.charAt(0) + "***" + email.substring(atIndex - 1);
     }
 
     private String generateSecureToken() {

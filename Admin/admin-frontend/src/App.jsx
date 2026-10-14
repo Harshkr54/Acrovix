@@ -35,6 +35,7 @@ const CompanyBankOverview = lazy(() => import('./pages/CompanyBankOverview'));
 const CompanyDetailsPage = lazy(() => import('./pages/CompanyDetailsPage'));
 const BankAccountsPage = lazy(() => import('./pages/BankAccountsPage'));
 import SessionManager from './components/SessionManager';
+import ForcePasswordChangeModal from './components/ForcePasswordChangeModal';
 
 const ProtectedRoute = ({ children }) => {
     const { user } = useAuth();
@@ -100,6 +101,7 @@ function App() {
     return (
         <ToastProvider>
             <NetworkStatus />
+            <ForcePasswordChangeModal />
             <Suspense fallback={<div className="flex h-screen items-center justify-center"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div></div>}>
                 <Routes>
                 <Route path="/login" element={<Login />} />

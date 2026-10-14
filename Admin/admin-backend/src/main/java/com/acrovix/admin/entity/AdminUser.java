@@ -42,6 +42,10 @@ public class AdminUser implements UserDetails {
     @Column(nullable = false)
     private boolean enabled = true;
 
+    @Builder.Default
+    @Column(name = "must_change_password", nullable = false)
+    private boolean mustChangePassword = false;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

@@ -25,7 +25,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class CrmService {
 
     private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(CrmService.class);
@@ -36,9 +35,50 @@ public class CrmService {
     private final CustomerRepository customerRepository;
     private final AdminUserRepository userRepository;
     private final AdminActivityRepository activityRepository;
+    private final QuotationRepository quotationRepository;
     private final NotificationService notificationService;
     private final SequenceGeneratorService sequenceGeneratorService;
     private final EmailService emailService;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public CrmService(
+            CrmLeadRepository crmLeadRepository,
+            CrmFollowUpRepository crmFollowUpRepository,
+            AdminEnquiryRepository enquiryRepository,
+            CustomerRepository customerRepository,
+            AdminUserRepository userRepository,
+            AdminActivityRepository activityRepository,
+            QuotationRepository quotationRepository,
+            NotificationService notificationService,
+            SequenceGeneratorService sequenceGeneratorService,
+            EmailService emailService
+    ) {
+        this.crmLeadRepository = crmLeadRepository;
+        this.crmFollowUpRepository = crmFollowUpRepository;
+        this.enquiryRepository = enquiryRepository;
+        this.customerRepository = customerRepository;
+        this.userRepository = userRepository;
+        this.activityRepository = activityRepository;
+        this.quotationRepository = quotationRepository;
+        this.notificationService = notificationService;
+        this.sequenceGeneratorService = sequenceGeneratorService;
+        this.emailService = emailService;
+    }
+
+    public CrmService(
+            CrmLeadRepository crmLeadRepository,
+            CrmFollowUpRepository crmFollowUpRepository,
+            AdminEnquiryRepository enquiryRepository,
+            CustomerRepository customerRepository,
+            AdminUserRepository userRepository,
+            AdminActivityRepository activityRepository,
+            NotificationService notificationService,
+            SequenceGeneratorService sequenceGeneratorService,
+            EmailService emailService
+    ) {
+        this(crmLeadRepository, crmFollowUpRepository, enquiryRepository, customerRepository,
+                userRepository, activityRepository, null, notificationService, sequenceGeneratorService, emailService);
+    }
 
     // --- LEAD LIFECYCLE & CRUD ---
 
@@ -122,7 +162,7 @@ public class CrmService {
 
         lead = crmLeadRepository.save(lead);
 
-        logActivity(currentUser.getId(), "LEAD_CREATED", "CrmLead", lead.getId(), "Created CRM Lead #" + lead.getLeadNumber());
+        logActivity(currentUser.getId(), "LEAD_CREATED", "CRM_LEAD", lead.getId(), "Created CRM Lead #" + lead.getLeadNumber());
         
         notificationService.createNewLeadCreatedNotification(assignedUser != null ? assignedUser : currentUser, lead.getLeadNumber(), lead.getId(), companyName != null ? companyName : fullName);
         
@@ -250,7 +290,7 @@ public class CrmService {
         }
 
         lead = crmLeadRepository.save(lead);
-        logActivity(currentUser.getId(), "LEAD_UPDATED", "CrmLead", lead.getId(), "Updated CRM Lead #" + lead.getLeadNumber());
+        logActivity(currentUser.getId(), "LEAD_UPDATED", "CRM_LEAD", lead.getId(), "Updated CRM Lead #" + lead.getLeadNumber());
         return mapToLeadResponse(lead);
     }
 
@@ -276,19 +316,136 @@ public class CrmService {
                 throw new IllegalArgumentException("Lost reason is required when marking a lead as LOST.");
             }
             lead.setLostReason(request.getLostReason().trim());
-        } else {
+            lead.setProbability(0);
+
+            // Stop/cancel active pending follow-ups for this lead
+            List<CrmFollowUp> pendingFollowUps = crmFollowUpRepository.findByLeadIdOrderByScheduledAtDesc(lead.getId());
+            for (CrmFollowUp fu : pendingFollowUps) {
+                if (fu.getStatus() == FollowUpStatus.PENDING) {
+                    fu.setStatus(FollowUpStatus.CANCELLED);
+                    fu.setOutcome("Cancelled: Lead marked as LOST");
+                    crmFollowUpRepository.save(fu);
+                }
+            }
+            lead.setNextFollowUpDate(null);
+        } else if (oldStatus == LeadStatus.LOST) {
+            // Reopening lead from LOST
             lead.setLostReason(null);
+            if (request.getProbability() != null) {
+                lead.setProbability(request.getProbability());
+            } else {
+                lead.setProbability(50);
+            }
+        }
+
+        // Numeric and stage-specific updates & validation
+        if (request.getEstimatedValue() != null) {
+            if (request.getEstimatedValue().compareTo(BigDecimal.ZERO) < 0) {
+                throw new IllegalArgumentException("Estimated deal value cannot be negative.");
+            }
+            lead.setEstimatedValue(request.getEstimatedValue());
+        }
+
+        if (request.getProbability() != null) {
+            if (request.getProbability() < 0 || request.getProbability() > 100) {
+                throw new IllegalArgumentException("Win probability must be between 0 and 100.");
+            }
+            lead.setProbability(request.getProbability());
+        }
+
+        if (request.getExpectedClosingDate() != null) {
+            lead.setExpectedClosingDate(request.getExpectedClosingDate());
+        }
+
+        if (request.getServiceRequired() != null && !request.getServiceRequired().isBlank()) {
+            lead.setServiceRequired(request.getServiceRequired().trim());
+        }
+
+        if (request.getIndustrySector() != null && !request.getIndustrySector().isBlank()) {
+            lead.setIndustrySector(request.getIndustrySector().trim());
+        }
+
+        // Stage WON specific checks
+        if (newStatus == LeadStatus.WON) {
+            lead.setProbability(100);
+        }
+
+        // Notes and requirement update
+        if (request.getNotes() != null && !request.getNotes().isBlank()) {
+            String noteText = request.getNotes().trim();
+            if (lead.getNotes() == null || lead.getNotes().isBlank()) {
+                lead.setNotes(noteText);
+            } else {
+                lead.setNotes(lead.getNotes() + "\n\n[" + newStatus + " Update] " + noteText);
+            }
         }
 
         lead.setStatus(newStatus);
         lead = crmLeadRepository.save(lead);
 
+        // Schedule follow-up if requested during stage change
+        if (request.getNextFollowUpDate() != null && newStatus != LeadStatus.LOST && newStatus != LeadStatus.WON) {
+            FollowUpType fType = parseFollowUpType(request.getInteractionType());
+            String fSubject = (request.getSubject() != null && !request.getSubject().isBlank())
+                    ? request.getSubject().trim()
+                    : "Follow-up for " + newStatus;
+            String fNotes = (request.getNextAction() != null && !request.getNextAction().isBlank())
+                    ? request.getNextAction().trim()
+                    : request.getNotes();
+
+            CrmFollowUp fu = CrmFollowUp.builder()
+                    .lead(lead)
+                    .assignedTo(lead.getAssignedTo() != null ? lead.getAssignedTo() : currentUser)
+                    .type(fType)
+                    .scheduledAt(request.getNextFollowUpDate())
+                    .subject(fSubject)
+                    .notes(fNotes)
+                    .status(FollowUpStatus.PENDING)
+                    .createdBy(currentUser)
+                    .build();
+            crmFollowUpRepository.save(fu);
+            syncLeadNextFollowUpDate(lead);
+
+            logActivity(currentUser.getId(), "FOLLOW_UP_CREATED", "CRM_LEAD", lead.getId(),
+                    "Scheduled " + fu.getType() + " follow-up: \"" + fu.getSubject() + "\" for " + fu.getScheduledAt());
+        }
+
+        // Build descriptive activity audit
+        StringBuilder auditDesc = new StringBuilder();
+        auditDesc.append("Status changed from ").append(oldStatus).append(" to ").append(newStatus);
+
+        if (request.getInteractionType() != null && !request.getInteractionType().isBlank()) {
+            auditDesc.append(" via ").append(request.getInteractionType().toUpperCase());
+        }
+        if (request.getSubject() != null && !request.getSubject().isBlank()) {
+            auditDesc.append("\nSummary: ").append(request.getSubject().trim());
+        }
+        if (request.getOutcome() != null && !request.getOutcome().isBlank()) {
+            auditDesc.append("\nOutcome: ").append(request.getOutcome().trim());
+        }
+        if (request.getCustomerResponse() != null && !request.getCustomerResponse().isBlank()) {
+            auditDesc.append("\nCustomer Feedback: ").append(request.getCustomerResponse().trim());
+        }
+        if (request.getNextAction() != null && !request.getNextAction().isBlank()) {
+            auditDesc.append("\nNext Action: ").append(request.getNextAction().trim());
+        }
+        if (request.getNotes() != null && !request.getNotes().isBlank()) {
+            auditDesc.append("\nNotes: ").append(request.getNotes().trim());
+        }
+        if (newStatus == LeadStatus.LOST) {
+            auditDesc.append("\nLoss Reason: ").append(request.getLostReason().trim());
+            if (request.getCompetitor() != null && !request.getCompetitor().isBlank()) {
+                auditDesc.append("\nCompetitor: ").append(request.getCompetitor().trim());
+            }
+        }
+
         String action = "LEAD_STATUS_CHANGED";
         if (newStatus == LeadStatus.WON) action = "OPPORTUNITY_WON";
         else if (newStatus == LeadStatus.LOST) action = "OPPORTUNITY_LOST";
+        else if (oldStatus == LeadStatus.LOST) action = "LEAD_REOPENED";
+        else action = "STAGE_" + newStatus;
 
-        logActivity(currentUser.getId(), action, "CrmLead", lead.getId(),
-                "Lead status changed from " + oldStatus + " to " + newStatus);
+        logActivity(currentUser.getId(), action, "CRM_LEAD", lead.getId(), auditDesc.toString());
 
         return mapToLeadResponse(lead);
     }
@@ -305,8 +462,8 @@ public class CrmService {
         lead.setAssignedTo(assignee);
         lead = crmLeadRepository.save(lead);
 
-        logActivity(currentUser.getId(), "LEAD_ASSIGNED", "CrmLead", lead.getId(),
-                "Assigned CRM Lead #" + lead.getLeadNumber() + " to user #" + assigneeId);
+        logActivity(currentUser.getId(), "LEAD_ASSIGNED", "CRM_LEAD", lead.getId(),
+                "Assigned CRM Lead #" + lead.getLeadNumber() + " to user #" + assigneeId + " (" + assignee.getName() + ")");
 
         if (!currentUser.getId().equals(assignee.getId())) {
             notificationService.createLeadAssignedNotification(assignee, lead.getLeadNumber(), lead.getId());
@@ -351,8 +508,8 @@ public class CrmService {
         followUp = crmFollowUpRepository.save(followUp);
         syncLeadNextFollowUpDate(lead);
 
-        logActivity(currentUser.getId(), "FOLLOW_UP_CREATED", "CrmFollowUp", followUp.getId(),
-                "Created follow-up for Lead #" + lead.getLeadNumber());
+        logActivity(currentUser.getId(), "FOLLOW_UP_CREATED", "CRM_LEAD", lead.getId(),
+                "Scheduled " + followUp.getType() + " follow-up: \"" + followUp.getSubject() + "\" for " + followUp.getScheduledAt());
 
         try {
             emailService.sendFollowUpNotificationAsync(followUp, "NEW_FOLLOW_UP", null);
@@ -383,8 +540,16 @@ public class CrmService {
             throw new IllegalStateException("Only PENDING follow-ups can be updated.");
         }
 
+        LocalDateTime oldScheduledAt = followUp.getScheduledAt();
+        boolean rescheduled = false;
+
         if (request.getType() != null) followUp.setType(request.getType());
-        if (request.getScheduledAt() != null) followUp.setScheduledAt(request.getScheduledAt());
+        if (request.getScheduledAt() != null) {
+            if (!request.getScheduledAt().equals(oldScheduledAt)) {
+                rescheduled = true;
+            }
+            followUp.setScheduledAt(request.getScheduledAt());
+        }
         if (request.getSubject() != null && !request.getSubject().isBlank()) followUp.setSubject(request.getSubject().trim());
         if (request.getNotes() != null) followUp.setNotes(request.getNotes());
 
@@ -396,6 +561,14 @@ public class CrmService {
 
         followUp = crmFollowUpRepository.save(followUp);
         syncLeadNextFollowUpDate(followUp.getLead());
+
+        if (rescheduled) {
+            logActivity(currentUser.getId(), "FOLLOW_UP_RESCHEDULED", "CRM_LEAD", followUp.getLead().getId(),
+                    "Follow-up \"" + followUp.getSubject() + "\" rescheduled from " + oldScheduledAt + " to " + followUp.getScheduledAt());
+        } else {
+            logActivity(currentUser.getId(), "FOLLOW_UP_UPDATED", "CRM_LEAD", followUp.getLead().getId(),
+                    "Updated follow-up \"" + followUp.getSubject() + "\"");
+        }
 
         return mapToFollowUpResponse(followUp);
     }
@@ -419,8 +592,11 @@ public class CrmService {
         followUp = crmFollowUpRepository.save(followUp);
         syncLeadNextFollowUpDate(followUp.getLead());
 
-        logActivity(currentUser.getId(), "FOLLOW_UP_COMPLETED", "CrmFollowUp", followUp.getId(),
-                "Completed follow-up for Lead #" + followUp.getLead().getLeadNumber());
+        String desc = "Completed follow-up: \"" + followUp.getSubject() + "\"";
+        if (outcome != null && !outcome.isBlank()) {
+            desc += "\nOutcome: " + outcome.trim();
+        }
+        logActivity(currentUser.getId(), "FOLLOW_UP_COMPLETED", "CRM_LEAD", followUp.getLead().getId(), desc);
 
         return mapToFollowUpResponse(followUp);
     }
@@ -439,8 +615,8 @@ public class CrmService {
         followUp = crmFollowUpRepository.save(followUp);
         syncLeadNextFollowUpDate(followUp.getLead());
 
-        logActivity(currentUser.getId(), "FOLLOW_UP_CANCELLED", "CrmFollowUp", followUp.getId(),
-                "Cancelled follow-up for Lead #" + followUp.getLead().getLeadNumber());
+        logActivity(currentUser.getId(), "FOLLOW_UP_CANCELLED", "CRM_LEAD", followUp.getLead().getId(),
+                "Cancelled follow-up: \"" + followUp.getSubject() + "\"");
 
         return mapToFollowUpResponse(followUp);
     }
@@ -666,6 +842,138 @@ public class CrmService {
                 .createdAt(f.getCreatedAt())
                 .updatedAt(f.getUpdatedAt())
                 .build();
+    }
+
+    // --- TIMELINE ACTIVITIES & QUOTATIONS ---
+
+    @Transactional(readOnly = true)
+    public List<com.acrovix.admin.dto.AdminActivityResponse> getActivitiesForLead(Long leadId, AdminUser currentUser) {
+        CrmLead lead = crmLeadRepository.findById(leadId)
+                .orElseThrow(() -> new ResourceNotFoundException("CRM Lead not found #" + leadId));
+        checkLeadAccess(currentUser, lead);
+
+        List<AdminActivity> activities = activityRepository.findActivitiesForLead(leadId);
+
+        Set<Long> userIds = activities.stream()
+                .map(AdminActivity::getAdminUserId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Map<Long, String> userNames = userRepository.findAllById(userIds).stream()
+                .collect(Collectors.toMap(
+                        AdminUser::getId,
+                        u -> u.getName() != null && !u.getName().isBlank() ? u.getName() : u.getEmail(),
+                        (existing, replacement) -> existing
+                ));
+
+        return activities.stream()
+                .map(a -> com.acrovix.admin.dto.AdminActivityResponse.builder()
+                        .id(a.getId())
+                        .adminUserId(a.getAdminUserId())
+                        .adminName(userNames.getOrDefault(a.getAdminUserId(), a.getAdminUserId() != null ? "User #" + a.getAdminUserId() : "System"))
+                        .action(a.getAction())
+                        .entityType(a.getEntityType())
+                        .entityId(a.getEntityId())
+                        .description(a.getDescription())
+                        .createdAt(a.getCreatedAt())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public com.acrovix.admin.dto.AdminActivityResponse logLeadActivity(Long leadId, CrmLeadActivityRequest request, AdminUser currentUser) {
+        CrmLead lead = crmLeadRepository.findById(leadId)
+                .orElseThrow(() -> new ResourceNotFoundException("CRM Lead not found #" + leadId));
+        checkLeadAccess(currentUser, lead);
+
+        if (request.getType() == null || request.getType().isBlank()) {
+            throw new IllegalArgumentException("Activity type is required.");
+        }
+        if (request.getSubject() == null || request.getSubject().isBlank()) {
+            throw new IllegalArgumentException("Subject is required.");
+        }
+
+        StringBuilder desc = new StringBuilder();
+        desc.append("[").append(request.getType().trim().toUpperCase()).append("] ").append(request.getSubject().trim());
+        if (request.getOutcome() != null && !request.getOutcome().isBlank()) {
+            desc.append("\nOutcome: ").append(request.getOutcome().trim());
+        }
+        if (request.getNotes() != null && !request.getNotes().isBlank()) {
+            desc.append("\nNotes: ").append(request.getNotes().trim());
+        }
+        if (request.getNextAction() != null && !request.getNextAction().isBlank()) {
+            desc.append("\nNext Action: ").append(request.getNextAction().trim());
+        }
+
+        LocalDateTime activityTime = request.getPerformedAt() != null ? request.getPerformedAt() : LocalDateTime.now();
+
+        AdminActivity activity = AdminActivity.builder()
+                .adminUserId(currentUser.getId())
+                .action("ACTIVITY_" + request.getType().trim().toUpperCase())
+                .entityType("CRM_LEAD")
+                .entityId(lead.getId())
+                .description(desc.toString())
+                .createdAt(activityTime)
+                .build();
+
+        activity = activityRepository.save(activity);
+
+        return com.acrovix.admin.dto.AdminActivityResponse.builder()
+                .id(activity.getId())
+                .adminUserId(currentUser.getId())
+                .adminName(currentUser.getName() != null && !currentUser.getName().isBlank() ? currentUser.getName() : currentUser.getEmail())
+                .action(activity.getAction())
+                .entityType(activity.getEntityType())
+                .entityId(activity.getEntityId())
+                .description(activity.getDescription())
+                .createdAt(activity.getCreatedAt())
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getQuotationsForLead(Long leadId, AdminUser currentUser) {
+        CrmLead lead = crmLeadRepository.findById(leadId)
+                .orElseThrow(() -> new ResourceNotFoundException("CRM Lead not found #" + leadId));
+        checkLeadAccess(currentUser, lead);
+
+        if (quotationRepository == null) {
+            return Collections.emptyList();
+        }
+
+        Long enquiryId = lead.getEnquiry() != null ? lead.getEnquiry().getId() : null;
+        Long customerId = lead.getCustomer() != null ? lead.getCustomer().getId() : null;
+        String email = lead.getBusinessEmail();
+
+        List<Quotation> quotations = quotationRepository.findQuotationsForLead(enquiryId, customerId, email);
+
+        return quotations.stream()
+                .map(q -> {
+                    Map<String, Object> map = new LinkedHashMap<>();
+                    map.put("id", q.getId());
+                    map.put("quotationNumber", q.getQuotationNumber());
+                    map.put("status", q.getStatus());
+                    map.put("currency", q.getCurrency() != null ? q.getCurrency().name() : "INR");
+                    map.put("grandTotal", q.getGrandTotal());
+                    map.put("subtotal", q.getSubtotal());
+                    map.put("validUntil", q.getValidUntil());
+                    map.put("version", q.getVersion());
+                    map.put("clientName", q.getClientName());
+                    map.put("clientEmail", q.getClientEmail());
+                    map.put("clientCompany", q.getClientCompany());
+                    map.put("createdAt", q.getCreatedAt());
+                    map.put("updatedAt", q.getUpdatedAt());
+                    return map;
+                })
+                .collect(Collectors.toList());
+    }
+
+    private FollowUpType parseFollowUpType(String typeStr) {
+        if (typeStr == null || typeStr.isBlank()) return FollowUpType.CALL;
+        try {
+            return FollowUpType.valueOf(typeStr.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return FollowUpType.OTHER;
+        }
     }
 
     private void logActivity(Long adminId, String action, String entityType, Long entityId, String description) {

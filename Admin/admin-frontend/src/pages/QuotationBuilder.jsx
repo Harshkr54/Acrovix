@@ -845,18 +845,23 @@ export default function QuotationBuilder() {
             });
 
             // Send email
+            const recipientList = Array.isArray(confirmedEmail) ? confirmedEmail : [confirmedEmail];
             await fetchApi(`/quotations/${activeQuotationId}/send`, {
                 method: 'POST',
-                body: JSON.stringify({ recipientEmail: confirmedEmail })
+                body: JSON.stringify({ 
+                    recipientEmails: recipientList,
+                    recipientEmail: recipientList[0] || ''
+                })
             });
 
             setIsSendModalOpen(false);
             window.dispatchEvent(new Event('notification-update'));
-            alert(`Quotation sent successfully to ${confirmedEmail}`);
+            const recipientDisplay = recipientList.join(', ');
+            showToast({ type: 'success', message: `Quotation sent successfully to ${recipientDisplay}` });
             navigate('/enquiries');
         } catch (error) {
             console.error("Send Quotation Error:", error);
-            alert(error.message || "Failed to send quotation.");
+            showToast({ type: 'error', message: error.message || "Failed to send quotation." });
         } finally {
             setIsSending(false);
         }

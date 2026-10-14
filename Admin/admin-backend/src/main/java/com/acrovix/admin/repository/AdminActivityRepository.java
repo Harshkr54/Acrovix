@@ -32,4 +32,9 @@ public interface AdminActivityRepository extends JpaRepository<AdminActivity, Lo
         @Param("paymentIds") List<Long> paymentIds,
         Pageable pageable
     );
+
+    @Query("SELECT a FROM AdminActivity a WHERE " +
+           "(a.entityType IN ('CRM_LEAD', 'CrmLead') AND a.entityId = :leadId) " +
+           "ORDER BY a.createdAt DESC")
+    List<AdminActivity> findActivitiesForLead(@Param("leadId") Long leadId);
 }

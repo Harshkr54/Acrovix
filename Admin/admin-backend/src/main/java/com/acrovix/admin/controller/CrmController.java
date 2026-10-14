@@ -104,6 +104,31 @@ public class CrmController {
         return ResponseEntity.ok(crmService.assignLead(id, assigneeId, admin));
     }
 
+    @GetMapping("/leads/{id}/activities")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    public ResponseEntity<List<com.acrovix.admin.dto.AdminActivityResponse>> getLeadActivities(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AdminUser admin) {
+        return ResponseEntity.ok(crmService.getActivitiesForLead(id, admin));
+    }
+
+    @PostMapping("/leads/{id}/activities")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    public ResponseEntity<com.acrovix.admin.dto.AdminActivityResponse> logLeadActivity(
+            @PathVariable Long id,
+            @Valid @RequestBody CrmLeadActivityRequest request,
+            @AuthenticationPrincipal AdminUser admin) {
+        return ResponseEntity.ok(crmService.logLeadActivity(id, request, admin));
+    }
+
+    @GetMapping("/leads/{id}/quotations")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    public ResponseEntity<List<Map<String, Object>>> getLeadQuotations(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AdminUser admin) {
+        return ResponseEntity.ok(crmService.getQuotationsForLead(id, admin));
+    }
+
     // --- FOLLOW-UPS ---
 
     @PostMapping("/leads/{id}/follow-ups")

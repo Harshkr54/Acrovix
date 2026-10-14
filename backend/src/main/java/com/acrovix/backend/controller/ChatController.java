@@ -34,7 +34,7 @@ public class ChatController {
             .setReadTimeout(Duration.ofSeconds(10))
             .build();
 
-    @Value("${gemini.api-key:}")
+    @Value("${gemini.api-key}")
     private String geminiApiKey;
 
     private static final String GEMINI_URL =

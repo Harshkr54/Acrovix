@@ -35,6 +35,15 @@ class AdminUserServiceTest {
     @Mock
     private EmailService emailService;
 
+    @Mock
+    private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
+    @Mock
+    private AuthService authService;
+
+    @Mock
+    private com.acrovix.admin.repository.PasswordResetTokenRepository passwordResetTokenRepository;
+
     @InjectMocks
     private AdminUserService userService;
 
@@ -222,5 +231,53 @@ class AdminUserServiceTest {
         // When user becomes disabled
         salesUser.setEnabled(false);
         assertFalse(jwtUtil.isTokenValid(token, salesUser), "Disabled user JWT must be rejected by isTokenValid");
+    }
+
+    @Test
+    void testSendPasswordResetLink_Success() {
+        when(userRepository.findById(2L)).thenReturn(Optional.of(salesUser));
+        when(authService.requestPasswordResetWithResult("sales@acrovix.com"))
+                .thenReturn(com.acrovix.admin.dto.email.EmailDispatchResult.accepted("Dispatched."));
+
+        var res = userService.sendPasswordResetLink(2L, 1L);
+
+        assertEquals("ACCEPTED", res.getStatus());
+        assertEquals("ACCEPTED", res.getDeliveryStatus());
+        verify(activityRepository).save(any(AdminActivity.class));
+    }
+
+    @Test
+    void testSendPasswordResetLink_CannotRecoverSelf() {
+        assertThrows(IllegalArgumentException.class, () ->
+                userService.sendPasswordResetLink(1L, 1L));
+    }
+
+    @Test
+    void testResetTemporaryPassword_Success() {
+        when(userRepository.findById(2L)).thenReturn(Optional.of(salesUser));
+        when(passwordEncoder.encode(anyString())).thenReturn("hashed_temp_pw");
+
+        var res = userService.resetTemporaryPassword(2L, 1L);
+
+        assertNotNull(res.getTemporaryPassword());
+        assertEquals(16, res.getTemporaryPassword().length());
+        assertTrue(salesUser.isMustChangePassword(), "User must be flagged with mustChangePassword = true");
+        assertEquals("hashed_temp_pw", salesUser.getPassword());
+        verify(userRepository).save(salesUser);
+        verify(activityRepository).save(any(AdminActivity.class));
+    }
+
+    @Test
+    void testResetTemporaryPassword_CannotResetSelf() {
+        assertThrows(IllegalArgumentException.class, () ->
+                userService.resetTemporaryPassword(1L, 1L));
+    }
+
+    @Test
+    void testResetTemporaryPassword_DisabledUserFails() {
+        when(userRepository.findById(3L)).thenReturn(Optional.of(disabledUser));
+
+        assertThrows(IllegalStateException.class, () ->
+                userService.resetTemporaryPassword(3L, 1L));
     }
 }

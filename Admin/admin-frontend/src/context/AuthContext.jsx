@@ -25,7 +25,12 @@ export const AuthProvider = ({ children }) => {
                 try {
                     const data = await fetchApi('/profile');
                     if (data && data.name) {
-                        const userData = { name: data.name, email: data.email, role: data.role };
+                        const userData = { 
+                            name: data.name, 
+                            email: data.email, 
+                            role: data.role,
+                            mustChangePassword: !!data.mustChangePassword
+                        };
                         localStorage.setItem('adminUser', JSON.stringify(userData));
                         setUser(userData);
                     }
@@ -47,7 +52,12 @@ export const AuthProvider = ({ children }) => {
             });
             
             localStorage.setItem('adminToken', data.token);
-            const userData = { name: data.name, email: data.email, role: data.role };
+            const userData = { 
+                name: data.name, 
+                email: data.email, 
+                role: data.role,
+                mustChangePassword: !!data.mustChangePassword
+            };
             localStorage.setItem('adminUser', JSON.stringify(userData));
             localStorage.setItem('acrovix_last_activity', Date.now().toString());
             setUser(userData);
@@ -58,6 +68,15 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const setPasswordChangedSuccessfully = () => {
+        setUser(prev => {
+            if (!prev) return null;
+            const updated = { ...prev, mustChangePassword: false };
+            localStorage.setItem('adminUser', JSON.stringify(updated));
+            return updated;
+        });
+    };
+
     const logout = () => {
         localStorage.removeItem('adminToken');
         localStorage.removeItem('adminUser');
@@ -66,7 +85,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, setUser, login, logout, loading }}>
+        <AuthContext.Provider value={{ user, setUser, login, logout, loading, setPasswordChangedSuccessfully }}>
             {!loading && children}
         </AuthContext.Provider>
     );

@@ -32,6 +32,7 @@ public class CrmServiceTest {
     @Autowired private AdminUserRepository userRepository;
     @Autowired private AdminActivityRepository activityRepository;
     @Autowired private NotificationRepository notificationRepository;
+    @Autowired private QuotationRepository quotationRepository;
 
     private AdminUser superAdmin;
     private AdminUser salesRep1;
@@ -41,6 +42,7 @@ public class CrmServiceTest {
     @BeforeEach
     void setUp() {
         notificationRepository.deleteAll();
+        quotationRepository.deleteAll();
         crmFollowUpRepository.deleteAll();
         crmLeadRepository.deleteAll();
         enquiryRepository.deleteAll();
@@ -304,5 +306,331 @@ public class CrmServiceTest {
         );
         assertEquals(LeadStatus.LOST, lostResp.getStatus());
         assertEquals("Budget cancelled", lostResp.getLostReason());
+    }
+
+    @Test
+    void testStageAwareContactedTransitionWithFollowUp() {
+        CrmLeadRequest req = CrmLeadRequest.builder()
+                .fullName("Contacted Stage Test")
+                .businessEmail("contacted@test.com")
+                .companyName("Contacted Corp")
+                .build();
+        CrmLeadResponse lead = crmService.createLead(req, superAdmin);
+
+        LocalDateTime scheduledTime = LocalDateTime.now().plusDays(2).withNano(0);
+        CrmLeadStatusUpdateRequest updateReq = CrmLeadStatusUpdateRequest.builder()
+                .status(LeadStatus.CONTACTED)
+                .interactionType("CALL")
+                .subject("Introductory product discovery call")
+                .outcome("Prospect requested solution architecture overview")
+                .nextAction("Send product deck and schedule follow-up")
+                .nextFollowUpDate(scheduledTime)
+                .build();
+
+        CrmLeadResponse resp = crmService.updateLeadStatus(lead.getId(), updateReq, superAdmin);
+        assertEquals(LeadStatus.CONTACTED, resp.getStatus());
+        assertNotNull(resp.getNextFollowUpDate());
+
+        // Verify follow up was created
+        List<CrmFollowUpResponse> followUps = crmService.getFollowUpsForLead(lead.getId(), superAdmin);
+        assertEquals(1, followUps.size());
+        assertEquals("Introductory product discovery call", followUps.get(0).getSubject());
+
+        // Verify activities
+        List<com.acrovix.admin.dto.AdminActivityResponse> activities = crmService.getActivitiesForLead(lead.getId(), superAdmin);
+        assertFalse(activities.isEmpty());
+        assertTrue(activities.stream().anyMatch(a -> a.getAction().equals("STAGE_CONTACTED") || a.getAction().equals("LEAD_STATUS_CHANGED")));
+    }
+
+    @Test
+    void testStageAwareQualifiedTransitionAndValidation() {
+        CrmLeadRequest req = CrmLeadRequest.builder()
+                .fullName("Qualified Stage Test")
+                .businessEmail("qualified@test.com")
+                .build();
+        CrmLeadResponse lead = crmService.createLead(req, superAdmin);
+
+        // Negative estimated value rejected
+        assertThrows(IllegalArgumentException.class, () -> {
+            crmService.updateLeadStatus(lead.getId(), CrmLeadStatusUpdateRequest.builder()
+                    .status(LeadStatus.QUALIFIED)
+                    .estimatedValue(new BigDecimal("-500.00"))
+                    .build(), superAdmin);
+        });
+
+        // Invalid probability rejected
+        assertThrows(IllegalArgumentException.class, () -> {
+            crmService.updateLeadStatus(lead.getId(), CrmLeadStatusUpdateRequest.builder()
+                    .status(LeadStatus.QUALIFIED)
+                    .probability(150)
+                    .build(), superAdmin);
+        });
+
+        // Valid qualification
+        LocalDate closingDate = LocalDate.now().plusMonths(1);
+        CrmLeadStatusUpdateRequest validQual = CrmLeadStatusUpdateRequest.builder()
+                .status(LeadStatus.QUALIFIED)
+                .serviceRequired("Enterprise Cloud ERP")
+                .industrySector("Information Technology")
+                .estimatedValue(new BigDecimal("750000.00"))
+                .expectedClosingDate(closingDate)
+                .probability(60)
+                .notes("Key decision maker is CIO. Urgency is Q4 implementation.")
+                .build();
+
+        CrmLeadResponse qualResp = crmService.updateLeadStatus(lead.getId(), validQual, superAdmin);
+        assertEquals(LeadStatus.QUALIFIED, qualResp.getStatus());
+        assertEquals(new BigDecimal("750000.00"), qualResp.getEstimatedValue());
+        assertEquals("Enterprise Cloud ERP", qualResp.getServiceRequired());
+        assertEquals("Information Technology", qualResp.getIndustrySector());
+        assertEquals(Integer.valueOf(60), qualResp.getProbability());
+        assertEquals(closingDate, qualResp.getExpectedClosingDate());
+    }
+
+    @Test
+    void testProposalAndNegotiationTransitions() {
+        CrmLeadRequest req = CrmLeadRequest.builder()
+                .fullName("Proposal Test")
+                .businessEmail("proposal@test.com")
+                .build();
+        CrmLeadResponse lead = crmService.createLead(req, superAdmin);
+        crmService.updateLeadStatus(lead.getId(), new CrmLeadStatusUpdateRequest(LeadStatus.QUALIFIED), superAdmin);
+
+        // QUALIFIED -> PROPOSAL
+        CrmLeadStatusUpdateRequest proposalReq = CrmLeadStatusUpdateRequest.builder()
+                .status(LeadStatus.PROPOSAL)
+                .subject("Quotation submitted")
+                .notes("Sent formal quotation with 15% enterprise tier discount")
+                .build();
+        CrmLeadResponse proposalResp = crmService.updateLeadStatus(lead.getId(), proposalReq, superAdmin);
+        assertEquals(LeadStatus.PROPOSAL, proposalResp.getStatus());
+
+        // PROPOSAL -> NEGOTIATION
+        CrmLeadStatusUpdateRequest negReq = CrmLeadStatusUpdateRequest.builder()
+                .status(LeadStatus.NEGOTIATION)
+                .customerResponse("Client requested payment term extension to net 45")
+                .notes("Agreed to net 30 with 2% early settlement discount")
+                .build();
+        CrmLeadResponse negResp = crmService.updateLeadStatus(lead.getId(), negReq, superAdmin);
+        assertEquals(LeadStatus.NEGOTIATION, negResp.getStatus());
+
+        // NEGOTIATION -> WON
+        CrmLeadStatusUpdateRequest wonReq = CrmLeadStatusUpdateRequest.builder()
+                .status(LeadStatus.WON)
+                .notes("Contract signed and accepted")
+                .estimatedValue(new BigDecimal("800000.00"))
+                .build();
+        CrmLeadResponse wonResp = crmService.updateLeadStatus(lead.getId(), wonReq, superAdmin);
+        assertEquals(LeadStatus.WON, wonResp.getStatus());
+        assertEquals(Integer.valueOf(100), wonResp.getProbability());
+    }
+
+    @Test
+    void testLostTransitionCancelsPendingFollowUps() {
+        CrmLeadRequest req = CrmLeadRequest.builder()
+                .fullName("Lost FollowUp Test")
+                .businessEmail("lostfu@test.com")
+                .build();
+        CrmLeadResponse lead = crmService.createLead(req, superAdmin);
+
+        // Schedule a follow up
+        crmService.createFollowUp(lead.getId(), CrmFollowUpRequest.builder()
+                .type(FollowUpType.CALL)
+                .scheduledAt(LocalDateTime.now().plusDays(3))
+                .subject("Follow up call")
+                .build(), superAdmin);
+
+        List<CrmFollowUpResponse> pendingBefore = crmService.getFollowUpsForLead(lead.getId(), superAdmin);
+        assertEquals(FollowUpStatus.PENDING, pendingBefore.get(0).getStatus());
+
+        // Mark as LOST
+        CrmLeadStatusUpdateRequest lostReq = CrmLeadStatusUpdateRequest.builder()
+                .status(LeadStatus.LOST)
+                .lostReason("Competitor offered cheaper cloud hosting")
+                .competitor("Competitor X")
+                .build();
+        crmService.updateLeadStatus(lead.getId(), lostReq, superAdmin);
+
+        List<CrmFollowUpResponse> followUpsAfter = crmService.getFollowUpsForLead(lead.getId(), superAdmin);
+        assertEquals(FollowUpStatus.CANCELLED, followUpsAfter.get(0).getStatus());
+        assertTrue(followUpsAfter.get(0).getOutcome().contains("LOST"));
+    }
+
+    @Test
+    void testReopenLeadFromLost() {
+        CrmLeadRequest req = CrmLeadRequest.builder()
+                .fullName("Reopen Test")
+                .businessEmail("reopen@test.com")
+                .build();
+        CrmLeadResponse lead = crmService.createLead(req, superAdmin);
+        crmService.updateLeadStatus(lead.getId(), new CrmLeadStatusUpdateRequest(LeadStatus.LOST, "Budget lost"), superAdmin);
+
+        // Reopening to QUALIFIED is allowed
+        CrmLeadResponse reopened = crmService.updateLeadStatus(lead.getId(), CrmLeadStatusUpdateRequest.builder()
+                .status(LeadStatus.QUALIFIED)
+                .notes("Client secured new FY budget")
+                .build(), superAdmin);
+
+        assertEquals(LeadStatus.QUALIFIED, reopened.getStatus());
+        assertNull(reopened.getLostReason());
+    }
+
+    @Test
+    void testManualActivityLoggingAndTimeline() {
+        CrmLeadRequest req = CrmLeadRequest.builder()
+                .fullName("Activity Log Test")
+                .businessEmail("actlog@test.com")
+                .build();
+        CrmLeadResponse lead = crmService.createLead(req, superAdmin);
+
+        CrmLeadActivityRequest actReq = CrmLeadActivityRequest.builder()
+                .type("MEETING")
+                .subject("Discovery workshop with client CTO")
+                .outcome("Requirements documented")
+                .nextAction("Prepare custom demo")
+                .notes("Client uses legacy on-prem setup")
+                .build();
+
+        com.acrovix.admin.dto.AdminActivityResponse actResp = crmService.logLeadActivity(lead.getId(), actReq, superAdmin);
+        assertNotNull(actResp.getId());
+        assertEquals("ACTIVITY_MEETING", actResp.getAction());
+        assertEquals("Super Admin", actResp.getAdminName());
+
+        List<com.acrovix.admin.dto.AdminActivityResponse> timeline = crmService.getActivitiesForLead(lead.getId(), superAdmin);
+        assertFalse(timeline.isEmpty());
+        assertTrue(timeline.stream().anyMatch(a -> a.getAction().equals("ACTIVITY_MEETING")));
+    }
+
+    @Test
+    void testLogLeadActivityValidationAndPersistence() {
+        CrmLeadRequest req = CrmLeadRequest.builder()
+                .fullName("Validation and Persistence Test")
+                .businessEmail("valpersist@test.com")
+                .phoneNumber("+919876543210")
+                .build();
+        CrmLeadResponse lead = crmService.createLead(req, superAdmin);
+
+        // 1. Rejects blank activity type
+        assertThrows(IllegalArgumentException.class, () -> {
+            crmService.logLeadActivity(lead.getId(), CrmLeadActivityRequest.builder()
+                    .type("")
+                    .subject("Valid Subject")
+                    .build(), superAdmin);
+        });
+
+        // 2. Rejects blank subject
+        assertThrows(IllegalArgumentException.class, () -> {
+            crmService.logLeadActivity(lead.getId(), CrmLeadActivityRequest.builder()
+                    .type("CALL")
+                    .subject("   ")
+                    .build(), superAdmin);
+        });
+
+        // 3. Log Call Activity
+        CrmLeadActivityRequest callReq = CrmLeadActivityRequest.builder()
+                .type("CALL")
+                .subject("Outbound discovery phone call")
+                .outcome("Client interested in enterprise cybersecurity audit")
+                .notes("Spoke with IT Director Mr. Sharma")
+                .nextAction("Send technical quotation")
+                .build();
+        var callResp = crmService.logLeadActivity(lead.getId(), callReq, superAdmin);
+        assertNotNull(callResp.getId());
+        assertEquals("ACTIVITY_CALL", callResp.getAction());
+        assertTrue(callResp.getDescription().contains("Outbound discovery phone call"));
+        assertTrue(callResp.getDescription().contains("Outcome: Client interested in enterprise cybersecurity audit"));
+
+        // 4. Log Email Activity
+        CrmLeadActivityRequest emailReq = CrmLeadActivityRequest.builder()
+                .type("EMAIL")
+                .subject("Follow-up email with product datasheet")
+                .outcome("Awaiting feedback")
+                .notes("Emailed brochure and compliance certificates")
+                .build();
+        var emailResp = crmService.logLeadActivity(lead.getId(), emailReq, superAdmin);
+        assertNotNull(emailResp.getId());
+        assertEquals("ACTIVITY_EMAIL", emailResp.getAction());
+
+        // 5. Verify both appear in timeline
+        List<com.acrovix.admin.dto.AdminActivityResponse> activities = crmService.getActivitiesForLead(lead.getId(), superAdmin);
+        assertTrue(activities.stream().anyMatch(a -> a.getAction().equals("ACTIVITY_CALL")));
+        assertTrue(activities.stream().anyMatch(a -> a.getAction().equals("ACTIVITY_EMAIL")));
+    }
+
+    @Test
+    void testFollowUpReschedulingLogsActivity() {
+        CrmLeadRequest req = CrmLeadRequest.builder()
+                .fullName("Reschedule Test")
+                .businessEmail("reschedule@test.com")
+                .build();
+        CrmLeadResponse lead = crmService.createLead(req, superAdmin);
+
+        LocalDateTime originalTime = LocalDateTime.now().plusDays(2).withNano(0);
+        CrmFollowUpResponse fu = crmService.createFollowUp(lead.getId(), CrmFollowUpRequest.builder()
+                .type(FollowUpType.CALL)
+                .scheduledAt(originalTime)
+                .subject("Check-in Call")
+                .build(), superAdmin);
+
+        LocalDateTime rescheduledTime = LocalDateTime.now().plusDays(5).withNano(0);
+        crmService.updateFollowUp(fu.getId(), CrmFollowUpRequest.builder()
+                .scheduledAt(rescheduledTime)
+                .build(), superAdmin);
+
+        List<com.acrovix.admin.dto.AdminActivityResponse> timeline = crmService.getActivitiesForLead(lead.getId(), superAdmin);
+        assertTrue(timeline.stream().anyMatch(a -> a.getAction().equals("FOLLOW_UP_RESCHEDULED")));
+    }
+
+    @Test
+    void testSalesIsolationOnLeadStatusAndActivity() {
+        CrmLeadRequest req = CrmLeadRequest.builder()
+                .fullName("Sales Isolated Lead")
+                .businessEmail("salesiso@test.com")
+                .assignedToId(salesRep1.getId())
+                .build();
+        CrmLeadResponse lead = crmService.createLead(req, superAdmin);
+
+        // Sales rep 2 attempts to change status -> AccessDeniedException
+        assertThrows(AccessDeniedException.class, () -> {
+            crmService.updateLeadStatus(lead.getId(), new CrmLeadStatusUpdateRequest(LeadStatus.CONTACTED), salesRep2);
+        });
+
+        // Sales rep 2 attempts to log activity -> AccessDeniedException
+        assertThrows(AccessDeniedException.class, () -> {
+            crmService.logLeadActivity(lead.getId(), CrmLeadActivityRequest.builder()
+                    .type("CALL")
+                    .subject("Unauthorized call attempt")
+                    .build(), salesRep2);
+        });
+
+        // Assigned sales rep 1 CAN change status
+        CrmLeadResponse rep1Resp = crmService.updateLeadStatus(lead.getId(), new CrmLeadStatusUpdateRequest(LeadStatus.CONTACTED), salesRep1);
+        assertEquals(LeadStatus.CONTACTED, rep1Resp.getStatus());
+    }
+
+    @Test
+    void testQuotationsForLeadLookup() {
+        CrmLeadRequest req = CrmLeadRequest.builder()
+                .fullName("Quotation Lookup Lead")
+                .businessEmail("quotelookup@test.com")
+                .build();
+        CrmLeadResponse lead = crmService.createLead(req, superAdmin);
+
+        // Create a quotation matching the lead's email
+        Quotation q = Quotation.builder()
+                .quotationNumber("ACX/QT/2026/999")
+                .clientName("Quotation Lookup Lead")
+                .clientEmail("quotelookup@test.com")
+                .status("SENT")
+                .grandTotal(new BigDecimal("250000.00"))
+                .currency(Currency.INR)
+                .createdBy(superAdmin)
+                .build();
+        quotationRepository.save(q);
+
+        List<java.util.Map<String, Object>> quotations = crmService.getQuotationsForLead(lead.getId(), superAdmin);
+        assertEquals(1, quotations.size());
+        assertEquals("ACX/QT/2026/999", quotations.get(0).get("quotationNumber"));
+        assertEquals("SENT", quotations.get(0).get("status"));
     }
 }

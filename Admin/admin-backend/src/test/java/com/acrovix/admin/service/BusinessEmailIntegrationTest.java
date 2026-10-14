@@ -184,6 +184,74 @@ class BusinessEmailIntegrationTest {
         assertFalse(ex.getMessage().contains("password"));
     }
 
+    @Test
+    void test5a_SendQuotationMultipleRecipientsSuccess() {
+        when(quotationRepository.findById(500L)).thenReturn(Optional.of(testQuotation));
+        doNothing().when(authorizationService).checkQuotationAccess(testAdmin, testQuotation);
+
+        var recipients = java.util.List.of("client1@acme.com", "client2@acme.com", "client3@acme.com");
+        quotationService.sendQuotationToRecipients(500L, recipients, testAdmin);
+
+        verify(emailService).sendQuotationEmailToRecipients(eq(testQuotation), eq(recipients));
+        assertEquals("SENT", testQuotation.getStatus());
+    }
+
+    @Test
+    void test5b_SendQuotationMultipleRecipientsCaseInsensitiveDeduplication() {
+        when(quotationRepository.findById(500L)).thenReturn(Optional.of(testQuotation));
+        doNothing().when(authorizationService).checkQuotationAccess(testAdmin, testQuotation);
+
+        var recipients = java.util.List.of("client@acme.com", "CLIENT@ACME.COM", "other@acme.com");
+        quotationService.sendQuotationToRecipients(500L, recipients, testAdmin);
+
+        var expected = java.util.List.of("client@acme.com", "other@acme.com");
+        verify(emailService).sendQuotationEmailToRecipients(eq(testQuotation), eq(expected));
+    }
+
+    @Test
+    void test5c_SendQuotationMultipleRecipientsDelimiterSeparation() {
+        when(quotationRepository.findById(500L)).thenReturn(Optional.of(testQuotation));
+        doNothing().when(authorizationService).checkQuotationAccess(testAdmin, testQuotation);
+
+        var recipients = java.util.List.of("a@acme.com, b@acme.com; c@acme.com");
+        quotationService.sendQuotationToRecipients(500L, recipients, testAdmin);
+
+        var expected = java.util.List.of("a@acme.com", "b@acme.com", "c@acme.com");
+        verify(emailService).sendQuotationEmailToRecipients(eq(testQuotation), eq(expected));
+    }
+
+    @Test
+    void test5d_SendQuotationMultipleRecipientsInvalidEmailThrowsException() {
+        var recipients = java.util.List.of("valid@acme.com", "invalid-email-format");
+        assertThrows(IllegalArgumentException.class,
+                () -> quotationService.sendQuotationToRecipients(500L, recipients, testAdmin));
+
+        verifyNoInteractions(emailService);
+    }
+
+    @Test
+    void test5e_SendQuotationMultipleRecipientsEmptyListFallsBackToClientEmail() {
+        when(quotationRepository.findById(500L)).thenReturn(Optional.of(testQuotation));
+        doNothing().when(authorizationService).checkQuotationAccess(testAdmin, testQuotation);
+
+        quotationService.sendQuotationToRecipients(500L, java.util.Collections.emptyList(), testAdmin);
+
+        verify(emailService).sendQuotationEmail(eq(testQuotation), eq("prospect@client.com"));
+    }
+
+    @Test
+    void test5f_SendQuotationMultipleRecipientsProviderFailureDoesNotExposeCredentials() {
+        when(quotationRepository.findById(500L)).thenReturn(Optional.of(testQuotation));
+        doThrow(new IllegalStateException("SMTP connection refused"))
+                .when(emailService).sendQuotationEmailToRecipients(any(Quotation.class), anyList());
+
+        var recipients = java.util.List.of("client1@acme.com", "client2@acme.com");
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> quotationService.sendQuotationToRecipients(500L, recipients, testAdmin));
+
+        assertFalse(ex.getMessage().contains("password"));
+    }
+
     // --- INVOICE EMAIL TESTS ---
 
     @Test

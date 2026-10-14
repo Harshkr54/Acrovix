@@ -174,7 +174,20 @@ public class QuotationController {
             @PathVariable Long id,
             @RequestBody(required = false) com.acrovix.admin.dto.SendQuotationRequest request,
             @AuthenticationPrincipal AdminUser admin) {
-        quotationService.sendQuotation(id, request != null ? request.getRecipientEmail() : null, admin);
+        java.util.List<String> recipients = null;
+        if (request != null) {
+            if (request.getRecipientEmails() != null && !request.getRecipientEmails().isEmpty()) {
+                recipients = request.resolveRecipients();
+            } else if (request.getRecipientEmail() != null) {
+                recipients = java.util.Collections.singletonList(request.getRecipientEmail());
+            }
+        }
+        if (recipients != null && recipients.size() > 1) {
+            quotationService.sendQuotationToRecipients(id, recipients, admin);
+        } else {
+            String singleEmail = (recipients != null && !recipients.isEmpty()) ? recipients.get(0) : null;
+            quotationService.sendQuotation(id, singleEmail, admin);
+        }
         return ResponseEntity.ok(java.util.Map.of("success", true, "message", "Quotation email sent successfully"));
     }
 

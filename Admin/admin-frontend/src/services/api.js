@@ -342,6 +342,11 @@ export const sendInvoiceEmail = (id, data) => fetchApi(`/invoices/${id}/send-ema
     body: JSON.stringify(data || {})
 });
 
+export const sendQuotationEmail = (id, data) => fetchApi(`/quotations/${id}/send`, {
+    method: 'POST',
+    body: JSON.stringify(data || {})
+});
+
 // --- PAYMENTS & RECEIVABLES ---
 export const recordPayment = (data) => fetchApi('/payments', {
     method: 'POST',
@@ -497,6 +502,15 @@ export const assignCrmLead = (id, assigneeId) => fetchApi(`/crm/leads/${id}/assi
     method: 'PATCH',
     body: JSON.stringify({ assigneeId })
 });
+
+export const getLeadActivities = (leadId) => fetchApi(`/crm/leads/${leadId}/activities`);
+
+export const logLeadActivity = (leadId, data) => fetchApi(`/crm/leads/${leadId}/activities`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+});
+
+export const getLeadQuotations = (leadId) => fetchApi(`/crm/leads/${leadId}/quotations`);
 
 export const createCrmFollowUp = (leadId, data) => fetchApi(`/crm/leads/${leadId}/follow-ups`, {
     method: 'POST',

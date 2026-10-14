@@ -1,28 +1,45 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Edit2, Check, Send } from 'lucide-react';
+import { X, Mail, AlertCircle, Loader2 } from 'lucide-react';
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function SendQuotationModal({ isOpen, onClose, initialEmail, onSend, isSending }) {
-    const [confirmedRecipientEmail, setConfirmedRecipientEmail] = useState('');
-    const [editingRecipientEmail, setEditingRecipientEmail] = useState('');
-    const [isEditingEmail, setIsEditingEmail] = useState(false);
+    const [recipients, setRecipients] = useState([]);
+    const [inputValue, setInputValue] = useState('');
     const [error, setError] = useState(null);
     const inputRef = useRef(null);
+
+    // Parse and normalize a raw string or array of emails
+    const parseEmailsFromInput = (raw) => {
+        if (!raw) return [];
+        let items = [];
+        if (Array.isArray(raw)) {
+            items = raw;
+        } else if (typeof raw === 'string') {
+            items = raw.split(/[,;\s\n\r]+/);
+        }
+        return items
+            .map(e => e.trim())
+            .filter(e => e.length > 0);
+    };
 
     // Initialize state when modal opens
     useEffect(() => {
         if (isOpen) {
-            setConfirmedRecipientEmail(initialEmail || '');
-            setIsEditingEmail(false);
             setError(null);
+            setInputValue('');
+            const initialList = [];
+            const parsed = parseEmailsFromInput(initialEmail);
+            parsed.forEach(email => {
+                if (EMAIL_REGEX.test(email)) {
+                    if (!initialList.some(r => r.toLowerCase() === email.toLowerCase())) {
+                        initialList.push(email);
+                    }
+                }
+            });
+            setRecipients(initialList);
         }
     }, [isOpen, initialEmail]);
-
-    // Focus input when editing starts
-    useEffect(() => {
-        if (isEditingEmail && inputRef.current) {
-            inputRef.current.focus();
-        }
-    }, [isEditingEmail]);
 
     if (!isOpen) return null;
 
@@ -31,166 +48,283 @@ export default function SendQuotationModal({ isOpen, onClose, initialEmail, onSe
         onClose();
     };
 
-    const handleEditClick = () => {
-        setEditingRecipientEmail(confirmedRecipientEmail);
-        setIsEditingEmail(true);
-        setError(null);
-    };
+    const addEmailAddress = (emailToAdd) => {
+        const trimmed = emailToAdd.trim();
+        if (!trimmed) return false;
 
-    const handleCancelEdit = () => {
-        setIsEditingEmail(false);
-        setError(null);
-    };
-
-    const validateEmail = (email) => {
-        if (!email || !email.trim()) {
-            return "Email address is required.";
+        if (!EMAIL_REGEX.test(trimmed)) {
+            setError(`Invalid email address format: "${trimmed}"`);
+            return false;
         }
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email.trim())) {
-            return "Please enter a valid email address.";
+
+        const isDuplicate = recipients.some(r => r.toLowerCase() === trimmed.toLowerCase());
+        if (isDuplicate) {
+            setError(`Email "${trimmed}" is already added.`);
+            return false;
         }
-        return null;
+
+        setRecipients(prev => [...prev, trimmed]);
+        setError(null);
+        return true;
     };
 
-    const handleSaveEdit = () => {
-        const validationError = validateEmail(editingRecipientEmail);
-        if (validationError) {
-            setError(validationError);
+    const addMultipleEmails = (rawText) => {
+        const list = parseEmailsFromInput(rawText);
+        if (list.length === 0) return;
+
+        const newValid = [];
+        let firstInvalid = null;
+
+        for (const item of list) {
+            if (!EMAIL_REGEX.test(item)) {
+                firstInvalid = item;
+                break;
+            }
+            const exists = [...recipients, ...newValid].some(r => r.toLowerCase() === item.toLowerCase());
+            if (!exists) {
+                newValid.push(item);
+            }
+        }
+
+        if (firstInvalid) {
+            setError(`Invalid email address format: "${firstInvalid}"`);
             return;
         }
-        setConfirmedRecipientEmail(editingRecipientEmail.trim());
-        setIsEditingEmail(false);
+
+        if (newValid.length > 0) {
+            setRecipients(prev => [...prev, ...newValid]);
+            setError(null);
+            setInputValue('');
+        }
+    };
+
+    const handleKeyDown = (e) => {
+        if (isSending) return;
+
+        // Escape closes modal
+        if (e.key === 'Escape') {
+            handleClose();
+            return;
+        }
+
+        // Add email on Enter, Comma, or Semicolon
+        if (e.key === 'Enter' || e.key === ',' || e.key === ';') {
+            e.preventDefault();
+            if (inputValue.trim()) {
+                const added = addEmailAddress(inputValue);
+                if (added) {
+                    setInputValue('');
+                }
+            }
+            return;
+        }
+
+        // Backspace removes last chip if input is empty
+        if (e.key === 'Backspace' && !inputValue && recipients.length > 0) {
+            setRecipients(prev => prev.slice(0, prev.length - 1));
+            setError(null);
+        }
+    };
+
+    const handlePaste = (e) => {
+        if (isSending) return;
+        e.preventDefault();
+        const pasted = e.clipboardData.getData('text');
+        if (pasted) {
+            addMultipleEmails(pasted);
+        }
+    };
+
+    const handleRemoveRecipient = (indexToRemove) => {
+        if (isSending) return;
+        setRecipients(prev => prev.filter((_, idx) => idx !== indexToRemove));
         setError(null);
+    };
+
+    const handleEditRecipient = (indexToEdit) => {
+        if (isSending) return;
+        const target = recipients[indexToEdit];
+        setRecipients(prev => prev.filter((_, idx) => idx !== indexToEdit));
+        setInputValue(target);
+        setError(null);
+        if (inputRef.current) {
+            inputRef.current.focus();
+        }
     };
 
     const handleSend = () => {
-        const validationError = validateEmail(confirmedRecipientEmail);
-        if (validationError) {
-            setError(validationError);
+        if (isSending) return;
+
+        let finalRecipients = [...recipients];
+
+        // If there's an uncommitted email typed in input, validate and add it
+        if (inputValue.trim()) {
+            const raw = inputValue.trim();
+            if (!EMAIL_REGEX.test(raw)) {
+                setError(`Please enter a valid email address or remove "${raw}"`);
+                return;
+            }
+            const exists = finalRecipients.some(r => r.toLowerCase() === raw.toLowerCase());
+            if (!exists) {
+                finalRecipients.push(raw);
+            }
+            setInputValue('');
+        }
+
+        if (finalRecipients.length === 0) {
+            setError("At least one valid recipient email address is required.");
             return;
         }
-        onSend(confirmedRecipientEmail.trim());
-    };
 
-    // Close on escape key
-    const handleKeyDown = (e) => {
-        if (e.key === 'Escape' && !isSending) {
-            handleClose();
-        }
+        setError(null);
+        onSend(finalRecipients);
     };
 
     return (
         <div 
-            className="fixed inset-0 bg-text-primary/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onKeyDown={handleKeyDown}
+            className="fixed inset-0 bg-text-primary/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="send-quotation-modal-title"
         >
-            <div className="acx-card p-6 md:p-8 max-w-lg w-full border border-border-subtle shadow-2xl relative animate-modal-entrance">
+            <div className="acx-card p-6 md:p-8 max-w-lg w-full border border-border-subtle shadow-2xl relative animate-modal-entrance bg-bg-card rounded-2xl">
                 {/* Close Button */}
                 <button
                     onClick={handleClose}
                     disabled={isSending}
-                    className="btn btn-secondary btn-icon absolute top-5 right-5 inset-y-0 right-0 pr-3"
+                    className="btn btn-secondary btn-icon absolute top-5 right-5 text-text-muted hover:text-text-primary"
                     aria-label="Close modal"
                 >
                     <X className="w-5 h-5" />
                 </button>
 
+                {/* Modal Title */}
                 <div className="mb-6">
-                    <h2 className="text-[22px] font-bold text-text-primary tracking-tight">Send Quotation</h2>
-                    <p className="text-[13px] text-text-secondary mt-1">Confirm quotation delivery</p>
+                    <h2 id="send-quotation-modal-title" className="text-xl font-bold text-text-primary tracking-tight flex items-center gap-2">
+                        <Mail className="w-5 h-5 text-brand-teal" />
+                        Send Quotation
+                    </h2>
+                    <p className="text-xs text-text-muted mt-1">
+                        Send quotation with attached PDF to one or more customer recipients
+                    </p>
                 </div>
 
                 <div className="space-y-4">
                     <div>
-                        <p className="text-[13px] text-text-primary mb-3">
-                            This quotation will be sent to:
-                        </p>
-                        
-                        <div className="mb-1">
-                            <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-1.5">
-                                Email Address
+                        <div className="flex items-center justify-between mb-1.5">
+                            <label className="block text-xs font-bold text-text-secondary uppercase tracking-wider">
+                                Recipient Emails
                             </label>
-                            
-                            {!isEditingEmail ? (
-                                <div className="flex items-center justify-between w-full bg-bg-main border border-border-subtle rounded-xl px-3.5 py-2.5">
-                                    <span className="text-[13px] font-medium text-text-primary truncate pr-4">
-                                        {confirmedRecipientEmail}
-                                    </span>
-                                    <button 
-                                        onClick={handleEditClick}
-                                        disabled={isSending}
-                                        className="btn btn-primary btn-md"
-                                        aria-label="Edit email"
-                                    >
-                                        Edit <Edit2 className="w-3.5 h-3.5 " />
-                                    </button>
-                                </div>
-                            ) : (
-                                <div className="space-y-3">
-                                    <input
-                                        ref={inputRef}
-                                        type="email"
-                                        value={editingRecipientEmail}
-                                        onChange={(e) => {
-                                            setEditingRecipientEmail(e.target.value);
-                                            setError(null);
-                                        }}
-                                        disabled={isSending}
-                                        className="w-full bg-bg-main border border-border-subtle focus:border-[var(--color-brand-primary)] rounded-xl px-3.5 py-2.5 text-[13px] font-medium text-text-primary outline-none transition-colors"
-                                        placeholder="Enter email address"
-                                    />
-                                    <div className="flex items-center justify-end space-x-2">
-                                        <button 
-                                            onClick={handleCancelEdit}
-                                            disabled={isSending}
-                                            className="btn btn-secondary btn-sm"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button 
-                                            onClick={handleSaveEdit}
-                                            disabled={isSending}
-                                            className="btn btn-primary btn-sm"
-                                        >
-                                            <Check className="w-3.5 h-3.5 " /> Save
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
+                            <span className="text-xs font-semibold px-2 py-0.5 bg-bg-main border border-border-subtle rounded-full text-text-muted">
+                                {recipients.length} {recipients.length === 1 ? 'recipient' : 'recipients'}
+                            </span>
                         </div>
-                        
+
+                        {/* Multi-recipient chip box */}
+                        <div 
+                            onClick={() => inputRef.current && inputRef.current.focus()}
+                            className="w-full min-h-[96px] bg-bg-main border border-border-subtle focus-within:border-brand-teal focus-within:ring-2 focus-within:ring-brand-teal/20 rounded-xl p-2.5 transition-all cursor-text flex flex-wrap gap-2 items-start"
+                        >
+                            {recipients.map((email, idx) => (
+                                <span
+                                    key={`${email}-${idx}`}
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-brand-teal/10 text-brand-teal border border-brand-teal/25 rounded-lg text-xs font-medium dark:bg-brand-teal/20 dark:border-brand-teal/40 dark:text-teal-300 shadow-2xs group transition-all"
+                                >
+                                    <span 
+                                        className="cursor-pointer hover:underline max-w-[240px] truncate"
+                                        title="Click to edit address"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleEditRecipient(idx);
+                                        }}
+                                    >
+                                        {email}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        disabled={isSending}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleRemoveRecipient(idx);
+                                        }}
+                                        className="text-brand-teal/70 hover:text-rose-600 dark:hover:text-rose-400 p-0.5 rounded transition-colors"
+                                        aria-label={`Remove ${email}`}
+                                    >
+                                        <X className="w-3.5 h-3.5" />
+                                    </button>
+                                </span>
+                            ))}
+
+                            <input
+                                ref={inputRef}
+                                type="text"
+                                value={inputValue}
+                                onChange={(e) => {
+                                    setInputValue(e.target.value);
+                                    if (error) setError(null);
+                                }}
+                                onKeyDown={handleKeyDown}
+                                onPaste={handlePaste}
+                                onBlur={() => {
+                                    if (inputValue.trim()) {
+                                        const added = addEmailAddress(inputValue);
+                                        if (added) setInputValue('');
+                                    }
+                                }}
+                                disabled={isSending}
+                                className="flex-1 min-w-[180px] bg-transparent text-xs text-text-primary placeholder:text-text-muted outline-none py-1 px-1"
+                                placeholder={recipients.length === 0 ? "Type email and press Enter, comma, or semicolon..." : "Add another email..."}
+                            />
+                        </div>
+
+                        {/* Helper instructions */}
+                        <p className="text-[11px] text-text-muted mt-2">
+                            Press <kbd className="px-1.5 py-0.5 bg-bg-card border border-border-subtle rounded text-[10px] font-mono">Enter</kbd>, comma, or semicolon to add. You can also paste multiple addresses. Click any chip to edit.
+                        </p>
+
+                        {/* Inline Error */}
                         {error && (
-                            <div className="mt-2 p-2.5 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/50 rounded-lg text-[12px] text-red-600 dark:text-red-400 font-medium">
-                                {error}
+                            <div className="mt-3 p-3 bg-rose-500/10 border border-rose-500/25 rounded-xl text-xs text-rose-600 dark:text-rose-400 font-medium flex items-center gap-2">
+                                <AlertCircle className="w-4 h-4 shrink-0" />
+                                <span>{error}</span>
                             </div>
                         )}
                     </div>
 
-                    {!isEditingEmail && (
-                        <p className="text-[12px] text-text-muted mt-4 italic">
-                            You can change the email address before sending.
+                    <div className="p-3 bg-bg-main/60 border border-border-subtle rounded-xl text-xs text-text-secondary leading-relaxed space-y-1">
+                        <div className="font-semibold text-text-primary">Delivery Details:</div>
+                        <p className="text-text-muted text-[11px]">
+                            A single quotation email with the generated PDF attachment will be delivered to all confirmed recipient addresses in the <strong>To</strong> field.
                         </p>
-                    )}
+                    </div>
                 </div>
 
-                <div className="flex items-center justify-end space-x-3 mt-8 pt-4 border-t border-border-subtle/50">
+                {/* Footer Buttons */}
+                <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-border-subtle">
                     <button
+                        type="button"
                         onClick={handleClose}
                         disabled={isSending}
-                        className="btn btn-secondary btn-md"
+                        className="btn btn-secondary btn-md text-xs font-semibold"
                     >
                         Cancel
                     </button>
                     <button
+                        type="button"
                         onClick={handleSend}
-                        disabled={isSending || isEditingEmail}
-                        className="btn btn-primary btn-md"
+                        disabled={isSending || (recipients.length === 0 && !inputValue.trim())}
+                        className="btn btn-primary btn-md text-xs font-semibold flex items-center gap-1.5 shadow-sm"
                     >
                         {isSending ? (
-                            <><span className="animate-spin w-4 h-4 border-b-2 border-white rounded-full "></span> Sending...</>
+                            <>
+                                <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                                Sending Email...
+                            </>
                         ) : (
-                            <>Send Quotation &rarr;</>
+                            <>
+                                Send Quotation
+                                <span aria-hidden="true">&rarr;</span>
+                            </>
                         )}
                     </button>
                 </div>

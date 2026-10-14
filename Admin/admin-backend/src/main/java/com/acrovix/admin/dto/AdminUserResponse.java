@@ -12,6 +12,7 @@ public class AdminUserResponse {
     private String email;
     private String role;
     private boolean enabled;
+    private boolean mustChangePassword;
     private LocalDateTime createdAt;
     private LocalDateTime lastLogin;
 }

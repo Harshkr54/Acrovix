@@ -21,7 +21,11 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import com.acrovix.admin.entity.Currency;
 
 @Service
 @RequiredArgsConstructor
@@ -362,6 +366,57 @@ public class QuotationService {
         }
         
         emailService.sendQuotationEmail(quotation, finalRecipient);
+        markAsSent(id, admin);
+    }
+
+    @Transactional
+    public void sendQuotationToRecipients(Long id, List<String> overrideRecipientEmails, AdminUser admin) {
+        if (overrideRecipientEmails == null || overrideRecipientEmails.isEmpty()) {
+            sendQuotation(id, (String) null, admin);
+            return;
+        }
+
+        Map<String, String> deduplicated = new LinkedHashMap<>();
+        for (String raw : overrideRecipientEmails) {
+            if (raw == null) {
+                continue;
+            }
+            String[] parts = raw.split("[,;]");
+            for (String part : parts) {
+                String trimmed = part.trim();
+                if (trimmed.isEmpty()) {
+                    throw new IllegalArgumentException("Recipient email cannot be blank");
+                }
+                if (!trimmed.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
+                    throw new IllegalArgumentException("Invalid recipient email format: " + trimmed);
+                }
+                deduplicated.putIfAbsent(trimmed.toLowerCase(), trimmed);
+            }
+        }
+
+        List<String> finalRecipients = new ArrayList<>(deduplicated.values());
+        if (finalRecipients.isEmpty()) {
+            sendQuotation(id, (String) null, admin);
+            return;
+        }
+
+        if (finalRecipients.size() == 1) {
+            sendQuotation(id, finalRecipients.get(0), admin);
+            return;
+        }
+
+        Quotation quotation = getQuotationById(id, admin);
+
+        // Generate a secure unique client token if not already set
+        if (quotation.getClientToken() == null) {
+            String token = java.util.UUID.randomUUID().toString().replace("-", "") +
+                           java.util.UUID.randomUUID().toString().replace("-", "");
+            token = token.substring(0, 64);
+            quotation.setClientToken(token);
+            quotationRepository.save(quotation);
+        }
+
+        emailService.sendQuotationEmailToRecipients(quotation, finalRecipients);
         markAsSent(id, admin);
     }
     
