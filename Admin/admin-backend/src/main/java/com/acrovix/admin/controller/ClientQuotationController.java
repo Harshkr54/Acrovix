@@ -17,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Map;
 
@@ -28,12 +29,23 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/public/quotations")
-@RequiredArgsConstructor
 public class ClientQuotationController {
 
     private final QuotationRepository quotationRepository;
+    private final QuotationService quotationService;
     private final AdminActivityRepository activityRepository;
     private final NotificationService notificationService;
+
+    public ClientQuotationController(
+            QuotationRepository quotationRepository,
+            QuotationService quotationService,
+            AdminActivityRepository activityRepository,
+            NotificationService notificationService) {
+        this.quotationRepository = quotationRepository;
+        this.quotationService = quotationService;
+        this.activityRepository = activityRepository;
+        this.notificationService = notificationService;
+    }
 
     /**
      * View the public quotation summary for a client (no admin data exposed).
@@ -59,12 +71,13 @@ public class ClientQuotationController {
      */
     @RateLimit(category = RateLimitCategory.PUBLIC)
     @PostMapping("/{token}/respond")
-    @Transactional
+    @Transactional(noRollbackFor = {ResourceConflictException.class})
     public ResponseEntity<Map<String, Object>> respondToQuotation(
             @PathVariable String token,
             @RequestBody ClientQuotationResponseRequest request) {
 
-        Quotation q = quotationRepository.findByClientToken(token)
+        Quotation q = quotationRepository.findByClientTokenForUpdate(token)
+                .or(() -> quotationRepository.findByClientToken(token))
                 .orElseThrow(() -> new ResourceNotFoundException("Quotation not found or link has expired."));
 
         if (q.getDeletedAt() != null) {
@@ -79,6 +92,13 @@ public class ClientQuotationController {
         String action = request.getAction() != null ? request.getAction().toUpperCase() : "";
         if (!"ACCEPT".equals(action) && !"REJECT".equals(action)) {
             throw new IllegalArgumentException("Action must be ACCEPT or REJECT.");
+        }
+
+        if (q.getValidUntil() != null && q.getValidUntil().isBefore(LocalDate.now())) {
+            q.setStatus("EXPIRED");
+            quotationRepository.save(q);
+            throw new ResourceConflictException(
+                "This quotation expired on " + q.getValidUntil() + " and can no longer be accepted.");
         }
 
         String newStatus = "ACCEPT".equals(action) ? "ACCEPTED" : "REJECTED";

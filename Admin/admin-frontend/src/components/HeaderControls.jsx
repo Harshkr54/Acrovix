@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FileText, Sun, Moon, Bell, Settings as SettingsIcon, ChevronRight, LogOut, File, Clock, Loader2, Check } from 'lucide-react';
+import { FileText, Sun, Moon, Bell, Settings as SettingsIcon, ChevronRight, LogOut, File, Clock, Loader2, Check, Palette, X } from 'lucide-react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { fetchApi } from '../services/api';
 import { getInitials } from '../utils/userUtils';
+import ThemeStudio from './ThemeStudio';
 
 export default function HeaderControls({ onLogout }) {
     const { user, logout } = useAuth();
@@ -21,6 +22,8 @@ export default function HeaderControls({ onLogout }) {
     const [notifications, setNotifications] = useState(null);
     const [isNotificationsLoading, setIsNotificationsLoading] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
+
+    const [showThemeModal, setShowThemeModal] = useState(false);
 
     const handleLogout = () => {
         if (onLogout) {
@@ -281,6 +284,16 @@ export default function HeaderControls({ onLogout }) {
                 {theme === 'light' ? <Sun className="w-[20px] h-[20px] text-[#FACC15]" /> : <Moon className="w-[20px] h-[20px]" />}
             </button>
 
+            {/* Quick Theme Studio Customizer */}
+            <button
+                onClick={() => setShowThemeModal(true)}
+                className="header-icon-button"
+                aria-label="Theme Studio"
+                title="Theme Studio: Customize Mode & Accent Colors"
+            >
+                <Palette className="w-[18px] h-[18px] text-[var(--color-brand-primary)]" />
+            </button>
+
             {/* Notifications Dropdown */}
             <div className="relative">
                 <button 
@@ -424,6 +437,17 @@ export default function HeaderControls({ onLogout }) {
                         </div>
                         
                         <div className="p-2 space-y-1">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setActiveDropdown(null);
+                                    setShowThemeModal(true);
+                                }}
+                                className="flex items-center gap-3 w-full px-3 py-2 text-[13px] font-medium text-text-secondary hover:text-text-primary hover:bg-bg-hover rounded-xl transition-colors text-left"
+                            >
+                                <Palette className="w-4 h-4 text-brand-primary" />
+                                Appearance & Theme
+                            </button>
                             <Link 
                                 to="/settings" 
                                 onClick={() => setActiveDropdown(null)}
@@ -446,6 +470,38 @@ export default function HeaderControls({ onLogout }) {
                     </div>
                 )}
             </div>
+
+            {/* Quick Access Theme Studio Modal */}
+            {showThemeModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div 
+                        className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+                        onClick={() => setShowThemeModal(false)}
+                    />
+                    <div className="relative w-full max-w-2xl bg-bg-card border border-border-subtle rounded-[24px] shadow-2xl overflow-hidden z-10 flex flex-col max-h-[90vh] animate-modal-entrance">
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-bg-card shrink-0">
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-9 h-9 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                                    <Palette className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-base font-bold text-text-primary">Theme Studio</h3>
+                                    <p className="text-[12px] text-text-muted">Customize enterprise theme and accents live</p>
+                                </div>
+                            </div>
+                            <button 
+                                onClick={() => setShowThemeModal(false)}
+                                className="w-8 h-8 rounded-lg flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <div className="overflow-y-auto p-6 flex-1 space-y-6">
+                            <ThemeStudio isModal={true} onSaved={() => setShowThemeModal(false)} />
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

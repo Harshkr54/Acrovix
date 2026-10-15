@@ -59,7 +59,7 @@ export default function PurchaseOrderList() {
     const getStatusBadge = (status) => {
         switch (status) {
             case 'RECEIVED': return <span className="px-2 py-1 bg-yellow-500/10 text-yellow-500 rounded text-xs font-medium flex items-center gap-1 w-fit"><Clock className="w-3 h-3"/> Received</span>;
-            case 'VERIFIED': return <span className="px-2 py-1 bg-blue-500/10 text-blue-500 rounded text-xs font-medium flex items-center gap-1 w-fit"><CheckCircle className="w-3 h-3"/> Verified</span>;
+            case 'VERIFIED': return <span className="px-2.5 py-1 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 rounded text-xs font-bold flex items-center gap-1 w-fit shadow-xs"><CheckCircle className="w-3 h-3 text-emerald-500"/> Verified</span>;
             case 'PARTIALLY_FULFILLED': return <span className="px-2 py-1 bg-purple-500/10 text-purple-500 rounded text-xs font-medium flex items-center gap-1 w-fit"><Package className="w-3 h-3"/> Partial</span>;
             case 'FULFILLED': return <span className="px-2 py-1 bg-green-500/10 text-green-500 rounded text-xs font-medium flex items-center gap-1 w-fit"><CheckCircle className="w-3 h-3"/> Fulfilled</span>;
             case 'CANCELLED': return <span className="px-2 py-1 bg-red-500/10 text-red-500 rounded text-xs font-medium flex items-center gap-1 w-fit"><XCircle className="w-3 h-3"/> Cancelled</span>;

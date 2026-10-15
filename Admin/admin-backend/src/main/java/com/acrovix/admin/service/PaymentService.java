@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class PaymentService {
 
     private final PaymentRepository paymentRepository;
@@ -34,6 +33,26 @@ public class PaymentService {
     private final EmailService emailService;
     private final AuthorizationService authorizationService;
     private final NotificationService notificationService;
+
+    public PaymentService(PaymentRepository paymentRepository,
+                          InvoiceRepository invoiceRepository,
+                          CustomerRepository customerRepository,
+                          SequenceGeneratorService sequenceGeneratorService,
+                          AdminActivityRepository activityRepository,
+                          PdfService pdfService,
+                          EmailService emailService,
+                          AuthorizationService authorizationService,
+                          NotificationService notificationService) {
+        this.paymentRepository = paymentRepository;
+        this.invoiceRepository = invoiceRepository;
+        this.customerRepository = customerRepository;
+        this.sequenceGeneratorService = sequenceGeneratorService;
+        this.activityRepository = activityRepository;
+        this.pdfService = pdfService;
+        this.emailService = emailService;
+        this.authorizationService = authorizationService;
+        this.notificationService = notificationService;
+    }
 
     @Transactional(readOnly = true)
     public void sendPaymentReceiptEmail(Long id, String overrideEmail, AdminUser admin) {
@@ -102,6 +121,13 @@ public class PaymentService {
         }
 
         String paymentNumber = sequenceGeneratorService.generateNextPaymentNumber(request.getPaymentDate());
+        String normalizedRef = normalizeTransactionReference(request.getTransactionReference());
+
+        if (normalizedRef != null && paymentRepository.existsByInvoiceIdAndTransactionReferenceAndStatus(
+                invoice.getId(), normalizedRef, PaymentStatus.RECORDED)) {
+            throw new IllegalStateException("An active payment with transaction reference '" + 
+                    normalizedRef + "' is already recorded for this invoice.");
+        }
 
         Payment payment = Payment.builder()
                 .paymentNumber(paymentNumber)
@@ -111,7 +137,7 @@ public class PaymentService {
                 .currency(invoice.getCurrency())
                 .amount(paymentAmount)
                 .paymentMethod(request.getPaymentMethod())
-                .transactionReference(request.getTransactionReference())
+                .transactionReference(normalizedRef)
                 .chequeNumber(request.getChequeNumber())
                 .bankName(request.getBankName())
                 .notes(request.getNotes())
@@ -501,4 +527,31 @@ public class PaymentService {
                 .build();
         activityRepository.save(activity);
     }
+
+    /**
+     * Normalizes manual transaction references:
+     * - Trims leading/trailing whitespace.
+     * - Converts empty or whitespace-only strings to null.
+     * - Converts common non-identifying placeholders ("N/A", "NA", "NONE", "NIL", "-") to null.
+     * - Validates maximum length (150 chars).
+     * - Preserves valid UTR/UPI/reference strings as-is.
+     */
+    public static String normalizeTransactionReference(String raw) {
+        if (raw == null) {
+            return null;
+        }
+        String trimmed = raw.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+        if (trimmed.length() > 150) {
+            throw new IllegalArgumentException("Transaction reference must not exceed 150 characters");
+        }
+        String upper = trimmed.toUpperCase();
+        if (upper.equals("N/A") || upper.equals("NA") || upper.equals("NONE") || upper.equals("NIL") || upper.equals("-")) {
+            return null;
+        }
+        return trimmed;
+    }
 }
+

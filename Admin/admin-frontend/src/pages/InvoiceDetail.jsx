@@ -23,6 +23,8 @@ import {
 } from 'lucide-react';
 import { API_BASE_URL } from '../services/api';
 import { formatCurrency } from '../utils/formatters';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
+import Modal from '../components/ui/Modal';
 
 export default function InvoiceDetail() {
     const { id } = useParams();
@@ -76,6 +78,7 @@ export default function InvoiceDetail() {
         clientEmail: '',
         clientPhone: '',
         clientAddress: '',
+        clientShippingAddress: '',
         clientGstin: '',
         placeOfSupply: '',
         invoiceDate: '',
@@ -403,6 +406,7 @@ export default function InvoiceDetail() {
             clientEmail: invoice.clientEmail || '',
             clientPhone: invoice.clientPhone || '',
             clientAddress: invoice.clientAddress || '',
+            clientShippingAddress: invoice.clientShippingAddress || '',
             clientGstin: invoice.clientGstin || '',
             placeOfSupply: invoice.placeOfSupply || '',
             invoiceDate: invoice.invoiceDate || '',
@@ -752,17 +756,24 @@ export default function InvoiceDetail() {
                 {/* 2. Middle: SHIP TO (DELIVERY ADDRESS) */}
                 <div className="bg-white dark:bg-bg-card border border-border-subtle rounded-2xl p-6 shadow-sm flex flex-col justify-between">
                     <div>
-                        <div className="flex items-center gap-2 mb-4">
-                            <Truck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                            <h3 className="text-xs font-bold uppercase tracking-wider text-[#0B192C] dark:text-text-primary">
-                                SHIP TO (DELIVERY ADDRESS)
-                            </h3>
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-2">
+                                <Truck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                <h3 className="text-xs font-bold uppercase tracking-wider text-[#0B192C] dark:text-text-primary">
+                                    SHIP TO (DELIVERY ADDRESS)
+                                </h3>
+                            </div>
+                            {invoice.clientShippingAddress && invoice.clientShippingAddress.trim() !== (invoice.clientAddress || '').trim() && (
+                                <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                                    Distinct Shipping Address
+                                </span>
+                            )}
                         </div>
                         <h4 className="font-bold text-sm text-text-primary mb-1">
                             {invoice.clientCompany || invoice.clientName || 'Customer Name'}
                         </h4>
                         <p className="text-xs text-text-muted leading-relaxed mb-4 whitespace-pre-line">
-                            {invoice.clientAddress || 'Address not provided'}
+                            {invoice.clientShippingAddress || invoice.clientAddress || 'Address not provided'}
                         </p>
                     </div>
                     <div className="space-y-1.5 text-xs pt-2 border-t border-border-subtle/60">
@@ -1160,543 +1171,429 @@ export default function InvoiceDetail() {
             {/* --- MODALS --- */}
 
             {/* 1. PDF Preview Modal */}
-            {isPreviewModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in">
-                    <div className="bg-white dark:bg-bg-card border border-border-subtle rounded-2xl w-full max-w-5xl flex flex-col h-[90vh] overflow-hidden shadow-2xl animate-modal-entrance">
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle shrink-0">
-                            <div className="flex items-center gap-2.5">
-                                <Eye className="w-5 h-5 text-blue-600" />
-                                <h2 className="text-base font-bold text-text-primary">
-                                    Tax Invoice PDF Preview — {invoice.invoiceNumber || 'DRAFT'}
-                                </h2>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <button 
-                                    type="button"
-                                    onClick={handleDownloadPdf}
-                                    className="btn btn-primary btn-sm flex items-center gap-1.5 h-8 px-3 rounded-lg"
-                                >
-                                    <Download className="w-3.5 h-3.5" />
-                                    <span>Download PDF</span>
-                                </button>
-                                <button 
-                                    type="button"
-                                    onClick={handleClosePreviewModal}
-                                    className="btn btn-ghost btn-icon h-8 w-8 flex items-center justify-center rounded-lg text-text-muted hover:text-text-primary"
-                                >
-                                    <X className="w-5 h-5" />
-                                </button>
-                            </div>
+            <Modal
+                isOpen={isPreviewModalOpen}
+                onClose={handleClosePreviewModal}
+                title={`Tax Invoice PDF Preview — ${invoice?.invoiceNumber || 'DRAFT'}`}
+                icon={Eye}
+                size="2xl"
+                headerActions={
+                    <button 
+                        type="button"
+                        onClick={handleDownloadPdf}
+                        className="btn btn-primary btn-sm flex items-center gap-1.5"
+                    >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Download PDF</span>
+                    </button>
+                }
+                bodyClassName="p-0 overflow-hidden"
+            >
+                <div className="h-[75vh] w-full bg-slate-100 dark:bg-slate-900 p-3 flex items-center justify-center">
+                    {previewLoading ? (
+                        <div className="flex flex-col items-center gap-3">
+                            <span className="animate-spin w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full"></span>
+                            <span className="text-sm font-medium text-text-muted">Generating invoice PDF preview...</span>
                         </div>
-
-                        <div className="flex-1 bg-slate-100 dark:bg-slate-900 p-3 overflow-hidden flex items-center justify-center">
-                            {previewLoading ? (
-                                <div className="flex flex-col items-center gap-3">
-                                    <span className="animate-spin w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full"></span>
-                                    <span className="text-sm font-medium text-text-muted">Generating invoice PDF preview...</span>
-                                </div>
-                            ) : previewError ? (
-                                <div className="text-center p-6 bg-white dark:bg-bg-card border border-border-subtle rounded-xl max-w-sm shadow-sm">
-                                    <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-2" />
-                                    <div className="text-sm font-bold text-text-primary mb-1">Failed to Load Preview</div>
-                                    <p className="text-xs text-text-muted mb-4">{previewError}</p>
-                                    <button onClick={handlePreviewPdf} className="btn btn-secondary btn-sm">
-                                        <RefreshCw className="w-3.5 h-3.5 mr-1" /> Retry
-                                    </button>
-                                </div>
-                            ) : previewPdfUrl ? (
-                                <iframe 
-                                    src={previewPdfUrl} 
-                                    title="Invoice PDF Preview" 
-                                    className="w-full h-full rounded-lg border border-border-subtle shadow-inner bg-white"
-                                />
-                            ) : null}
+                    ) : previewError ? (
+                        <div className="text-center p-6 bg-white dark:bg-bg-card border border-border-subtle rounded-xl max-w-sm shadow-sm">
+                            <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-2" />
+                            <div className="text-sm font-bold text-text-primary mb-1">Failed to Load Preview</div>
+                            <p className="text-xs text-text-muted mb-4">{previewError}</p>
+                            <button onClick={handlePreviewPdf} className="btn btn-secondary btn-sm">
+                                <RefreshCw className="w-3.5 h-3.5 mr-1" /> Retry
+                            </button>
                         </div>
-                    </div>
+                    ) : previewPdfUrl ? (
+                        <iframe 
+                            src={previewPdfUrl} 
+                            title="Invoice PDF Preview" 
+                            className="w-full h-full rounded-lg border border-border-subtle shadow-inner bg-white"
+                        />
+                    ) : null}
                 </div>
-            )}
+            </Modal>
 
-            {/* 2. Issue Invoice Confirmation Modal */}
-            {isIssueConfirmOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-                    <div className="bg-white dark:bg-bg-card border border-border-subtle rounded-2xl w-full max-w-md p-6 shadow-2xl animate-modal-entrance">
-                        <div className="flex items-center gap-3 mb-3">
-                            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                                <CheckCircle className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <h3 className="text-base font-bold text-text-primary">Issue Invoice?</h3>
-                                <p className="text-xs text-text-muted">Assign sequential invoice number</p>
-                            </div>
-                        </div>
-                        <p className="text-xs text-text-secondary leading-relaxed mb-6">
-                            Are you sure you want to issue this Invoice? This will lock line items and assign the authoritative sequential tax invoice number. This action cannot be undone.
-                        </p>
-                        <div className="flex items-center justify-end gap-3">
-                            <button
-                                type="button"
-                                onClick={() => setIsIssueConfirmOpen(false)}
-                                disabled={actionLoading}
-                                className="btn btn-secondary btn-md h-9 px-4 rounded-lg"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleIssueConfirm}
-                                disabled={actionLoading}
-                                className="btn btn-primary btn-md h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium"
-                            >
-                                {actionLoading ? 'Issuing...' : 'Confirm & Issue'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* 2. Issue Invoice Confirmation */}
+            <ConfirmDialog
+                isOpen={isIssueConfirmOpen}
+                onClose={() => setIsIssueConfirmOpen(false)}
+                onConfirm={handleIssueConfirm}
+                title="Issue Invoice?"
+                message="Are you sure you want to issue this Invoice? This will lock line items and assign the authoritative sequential tax invoice number. This action cannot be undone."
+                confirmText="Confirm & Issue"
+                type="primary"
+                isLoading={actionLoading}
+            />
 
-            {/* 3. Cancel Invoice Confirmation Modal */}
-            {isCancelConfirmOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-                    <div className="bg-white dark:bg-bg-card border border-border-subtle rounded-2xl w-full max-w-md p-6 shadow-2xl animate-modal-entrance">
-                        <div className="flex items-center gap-3 mb-3">
-                            <div className="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center shrink-0">
-                                <AlertCircle className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <h3 className="text-base font-bold text-red-600">Cancel Invoice?</h3>
-                                <p className="text-xs text-text-muted">Irreversible action</p>
-                            </div>
-                        </div>
-                        <p className="text-xs text-text-secondary leading-relaxed mb-6">
-                            Are you sure you want to cancel this Invoice? The invoice status will be marked as CANCELLED and any ledger balance will be updated accordingly.
-                        </p>
-                        <div className="flex items-center justify-end gap-3">
-                            <button
-                                type="button"
-                                onClick={() => setIsCancelConfirmOpen(false)}
-                                disabled={actionLoading}
-                                className="btn btn-secondary btn-md h-9 px-4 rounded-lg"
-                            >
-                                Close
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleCancelConfirm}
-                                disabled={actionLoading}
-                                className="btn btn-danger btn-md h-9 px-4 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium"
-                            >
-                                {actionLoading ? 'Cancelling...' : 'Confirm Cancellation'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* 3. Cancel Invoice Confirmation */}
+            <ConfirmDialog
+                isOpen={isCancelConfirmOpen}
+                onClose={() => setIsCancelConfirmOpen(false)}
+                onConfirm={handleCancelConfirm}
+                title="Cancel Invoice?"
+                message="Are you sure you want to cancel this Invoice? The invoice status will be marked as CANCELLED and any ledger balance will be updated accordingly."
+                confirmText="Confirm Cancellation"
+                type="danger"
+                isLoading={actionLoading}
+            />
 
-            {/* 4. Convert Proforma Confirmation Modal */}
-            {isConvertConfirmOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-                    <div className="bg-white dark:bg-bg-card border border-border-subtle rounded-2xl w-full max-w-md p-6 shadow-2xl animate-modal-entrance">
-                        <div className="flex items-center gap-3 mb-3">
-                            <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
-                                <RefreshCw className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <h3 className="text-base font-bold text-text-primary">Convert to Tax Invoice?</h3>
-                                <p className="text-xs text-text-muted">Proforma lifecycle conversion</p>
-                            </div>
-                        </div>
-                        <p className="text-xs text-text-secondary leading-relaxed mb-6">
-                            Are you sure you want to convert this Proforma Invoice to a full Tax Invoice? A new sequential Tax Invoice will be created from this proforma.
-                        </p>
-                        <div className="flex items-center justify-end gap-3">
-                            <button
-                                type="button"
-                                onClick={() => setIsConvertConfirmOpen(false)}
-                                disabled={actionLoading}
-                                className="btn btn-secondary btn-md h-9 px-4 rounded-lg"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleConvertToTaxInvoiceConfirm}
-                                disabled={actionLoading}
-                                className="btn btn-primary btn-md h-9 px-4 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-medium"
-                            >
-                                {actionLoading ? 'Converting...' : 'Convert to Tax Invoice'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* 4. Convert Proforma Confirmation */}
+            <ConfirmDialog
+                isOpen={isConvertConfirmOpen}
+                onClose={() => setIsConvertConfirmOpen(false)}
+                onConfirm={handleConvertToTaxInvoiceConfirm}
+                title="Convert to Tax Invoice?"
+                message="Are you sure you want to convert this Proforma Invoice to a full Tax Invoice? A new sequential Tax Invoice will be created from this proforma."
+                confirmText="Convert to Tax Invoice"
+                type="primary"
+                isLoading={actionLoading}
+            />
 
             {/* 5. Record Payment Modal */}
-            {isRecordPaymentModalOpen && createPortal(
-                <div 
-                    className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in"
-                    onClick={(e) => {
-                        if (e.target === e.currentTarget) {
-                            setIsRecordPaymentModalOpen(false);
-                        }
-                    }}
-                >
-                    <div 
-                        className="bg-white dark:bg-bg-card border border-border-subtle rounded-2xl flex flex-col overflow-hidden shadow-2xl animate-modal-entrance w-full"
-                        style={{
-                            width: 'min(550px, calc(100vw - 32px))',
-                            maxHeight: 'calc(100dvh - 32px)'
-                        }}
-                    >
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle shrink-0">
-                            <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
-                                <CreditCard className="w-5 h-5 text-emerald-600 shrink-0" /> Record Payment
-                            </h2>
-                            <button 
-                                type="button"
-                                onClick={() => setIsRecordPaymentModalOpen(false)}
-                                className="btn btn-ghost btn-icon h-8 w-8 flex items-center justify-center rounded-lg text-text-muted hover:text-text-primary"
-                                aria-label="Close modal"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-
-                        <form onSubmit={handleRecordPaymentSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-                            <div className="p-6 space-y-4 overflow-y-auto flex-1 min-h-0 overscroll-contain">
-                                {paymentError && (
-                                    <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-500 font-medium flex items-center gap-2">
-                                        <AlertCircle className="w-4 h-4 shrink-0" />
-                                        <span>{paymentError}</span>
-                                    </div>
-                                )}
-
-                                <div className="p-4 bg-bg-main rounded-xl border border-border-subtle grid grid-cols-3 gap-2 text-center">
-                                    <div>
-                                        <div className="text-[11px] text-text-muted font-medium">Grand Total</div>
-                                        <div className="text-xs font-bold text-text-primary mt-0.5">{formatCurrency(invoice.grandTotal || 0, invoice.currency, 2)}</div>
-                                    </div>
-                                    <div>
-                                        <div className="text-[11px] text-text-muted font-medium">Already Paid</div>
-                                        <div className="text-xs font-bold text-emerald-600 mt-0.5">{formatCurrency(invoice.amountPaid || 0, invoice.currency, 2)}</div>
-                                    </div>
-                                    <div>
-                                        <div className="text-[11px] text-text-muted font-medium">Balance Due</div>
-                                        <div className="text-xs font-bold text-amber-600 mt-0.5">{formatCurrency(invoice.balanceDue !== undefined && invoice.balanceDue !== null ? invoice.balanceDue : invoice.grandTotal, invoice.currency, 2)}</div>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-semibold text-text-muted mb-1">Payment Date *</label>
-                                        <input
-                                            type="date"
-                                            required
-                                            value={paymentForm.paymentDate}
-                                            onChange={(e) => setPaymentForm({ ...paymentForm, paymentDate: e.target.value })}
-                                            className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-semibold text-text-muted mb-1">Amount ({currencySymbol}) *</label>
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            min="0.01"
-                                            required
-                                            value={paymentForm.amount}
-                                            onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
-                                            placeholder="Enter amount"
-                                            className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary font-bold"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-xs font-semibold text-text-muted mb-1">Payment Method *</label>
-                                    <select
-                                        value={paymentForm.paymentMethod}
-                                        onChange={(e) => setPaymentForm({ ...paymentForm, paymentMethod: e.target.value })}
-                                        className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
-                                    >
-                                        <option value="BANK_TRANSFER">Bank Transfer (NEFT/RTGS/IMPS)</option>
-                                        <option value="UPI">UPI / GPay / PhonePe</option>
-                                        <option value="CHEQUE">Cheque / Demand Draft</option>
-                                        <option value="CASH">Cash</option>
-                                        <option value="CARD">Debit / Credit Card</option>
-                                        <option value="OTHER">Other External Method</option>
-                                    </select>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-semibold text-text-muted mb-1">Transaction Ref / UTR</label>
-                                        <input
-                                            type="text"
-                                            placeholder="e.g. UTR12345678"
-                                            value={paymentForm.transactionReference}
-                                            onChange={(e) => setPaymentForm({ ...paymentForm, transactionReference: e.target.value })}
-                                            className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-semibold text-text-muted mb-1">Cheque Number</label>
-                                        <input
-                                            type="text"
-                                            placeholder="e.g. CHQ-998811"
-                                            value={paymentForm.chequeNumber}
-                                            onChange={(e) => setPaymentForm({ ...paymentForm, chequeNumber: e.target.value })}
-                                            className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-xs font-semibold text-text-muted mb-1">Bank Name</label>
-                                    <input
-                                        type="text"
-                                        placeholder="e.g. HDFC Bank / ICICI Bank"
-                                        value={paymentForm.bankName}
-                                        onChange={(e) => setPaymentForm({ ...paymentForm, bankName: e.target.value })}
-                                        className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-xs font-semibold text-text-muted mb-1">Internal Notes</label>
-                                    <textarea
-                                        rows={2}
-                                        placeholder="Optional payment notes..."
-                                        value={paymentForm.notes}
-                                        onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })}
-                                        className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary resize-none"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border-subtle bg-bg-card shrink-0">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsRecordPaymentModalOpen(false)}
-                                    className="btn btn-secondary btn-md"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={recordingPayment}
-                                    className="btn btn-success btn-md"
-                                >
-                                    {recordingPayment ? 'Recording...' : 'Record Payment'}
-                                </button>
-                            </div>
-                        </form>
+            <Modal
+                isOpen={isRecordPaymentModalOpen}
+                onClose={() => setIsRecordPaymentModalOpen(false)}
+                title="Record Payment"
+                subtitle="Record an incoming customer payment against this invoice."
+                icon={CreditCard}
+                iconClassName="text-emerald-500 bg-emerald-500/10 border-emerald-500/20"
+                size="md"
+                isLoading={recordingPayment}
+                footer={
+                    <div className="flex items-center justify-end gap-3 w-full">
+                        <button
+                            type="button"
+                            onClick={() => setIsRecordPaymentModalOpen(false)}
+                            disabled={recordingPayment}
+                            className="btn btn-secondary btn-md"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            form="record-invoice-payment-form"
+                            disabled={recordingPayment}
+                            className="btn btn-success btn-md"
+                        >
+                            {recordingPayment ? 'Recording...' : 'Record Payment'}
+                        </button>
                     </div>
-                </div>,
-                document.body
-            )}
+                }
+            >
+                <form id="record-invoice-payment-form" onSubmit={handleRecordPaymentSubmit} className="space-y-4">
+                    {paymentError && (
+                        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-500 font-medium flex items-center gap-2">
+                            <AlertCircle className="w-4 h-4 shrink-0" />
+                            <span>{paymentError}</span>
+                        </div>
+                    )}
+
+                    <div className="p-4 bg-bg-main rounded-xl border border-border-subtle grid grid-cols-3 gap-2 text-center">
+                        <div>
+                            <div className="text-[11px] text-text-muted font-medium">Grand Total</div>
+                            <div className="text-xs font-bold text-text-primary mt-0.5">{formatCurrency(invoice.grandTotal || 0, invoice.currency, 2)}</div>
+                        </div>
+                        <div>
+                            <div className="text-[11px] text-text-muted font-medium">Already Paid</div>
+                            <div className="text-xs font-bold text-emerald-600 mt-0.5">{formatCurrency(invoice.amountPaid || 0, invoice.currency, 2)}</div>
+                        </div>
+                        <div>
+                            <div className="text-[11px] text-text-muted font-medium">Balance Due</div>
+                            <div className="text-xs font-bold text-amber-600 mt-0.5">{formatCurrency(invoice.balanceDue !== undefined && invoice.balanceDue !== null ? invoice.balanceDue : invoice.grandTotal, invoice.currency, 2)}</div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-semibold text-text-muted mb-1">Payment Date *</label>
+                            <input
+                                type="date"
+                                required
+                                value={paymentForm.paymentDate}
+                                onChange={(e) => setPaymentForm({ ...paymentForm, paymentDate: e.target.value })}
+                                className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-text-muted mb-1">Amount ({currencySymbol}) *</label>
+                            <input
+                                type="number"
+                                step="0.01"
+                                min="0.01"
+                                required
+                                value={paymentForm.amount}
+                                onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
+                                placeholder="Enter amount"
+                                className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary font-bold"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-semibold text-text-muted mb-1">Payment Method *</label>
+                        <select
+                            value={paymentForm.paymentMethod}
+                            onChange={(e) => setPaymentForm({ ...paymentForm, paymentMethod: e.target.value })}
+                            className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
+                        >
+                            <option value="BANK_TRANSFER">Bank Transfer (NEFT/RTGS/IMPS)</option>
+                            <option value="UPI">UPI / GPay / PhonePe</option>
+                            <option value="CHEQUE">Cheque / Demand Draft</option>
+                            <option value="CASH">Cash</option>
+                            <option value="CARD">Debit / Credit Card</option>
+                            <option value="OTHER">Other External Method</option>
+                        </select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-semibold text-text-muted mb-1">Transaction Ref / UTR</label>
+                            <input
+                                type="text"
+                                placeholder="e.g. UTR12345678"
+                                value={paymentForm.transactionReference}
+                                onChange={(e) => setPaymentForm({ ...paymentForm, transactionReference: e.target.value })}
+                                className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-text-muted mb-1">Cheque Number</label>
+                            <input
+                                type="text"
+                                placeholder="e.g. CHQ-998811"
+                                value={paymentForm.chequeNumber}
+                                onChange={(e) => setPaymentForm({ ...paymentForm, chequeNumber: e.target.value })}
+                                className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-semibold text-text-muted mb-1">Bank Name</label>
+                        <input
+                            type="text"
+                            placeholder="e.g. HDFC Bank / ICICI Bank"
+                            value={paymentForm.bankName}
+                            onChange={(e) => setPaymentForm({ ...paymentForm, bankName: e.target.value })}
+                            className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-semibold text-text-muted mb-1">Internal Notes</label>
+                        <textarea
+                            rows={2}
+                            placeholder="Optional payment notes..."
+                            value={paymentForm.notes}
+                            onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })}
+                            className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary resize-none"
+                        />
+                    </div>
+                </form>
+            </Modal>
 
             {/* 6. Cancel Payment Modal */}
-            {cancellingPaymentId && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-                    <div className="bg-white dark:bg-bg-card border border-border-subtle rounded-2xl w-full max-w-md flex flex-col overflow-hidden shadow-2xl animate-modal-entrance">
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle shrink-0">
-                            <h2 className="text-base font-bold text-red-500 flex items-center gap-2">
-                                <AlertCircle className="w-5 h-5" /> Cancel Payment Record
-                            </h2>
-                            <button 
-                                onClick={() => setCancellingPaymentId(null)}
-                                className="btn btn-ghost btn-icon h-8 w-8 flex items-center justify-center rounded-lg text-text-muted hover:text-text-primary"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-
-                        <form onSubmit={handleCancelPaymentSubmit} className="p-6 space-y-4">
-                            {cancelError && (
-                                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-500 font-medium">
-                                    {cancelError}
-                                </div>
-                            )}
-
-                            <p className="text-xs text-text-muted leading-relaxed">
-                                Are you sure you want to cancel this payment? The invoice balance and status will be automatically recalculated. The payment record will remain in history as CANCELLED.
-                            </p>
-
-                            <div>
-                                <label className="block text-xs font-semibold text-text-muted mb-1">Cancellation Reason *</label>
-                                <textarea
-                                    required
-                                    rows={3}
-                                    placeholder="Enter non-empty reason for cancellation..."
-                                    value={cancelReason}
-                                    onChange={(e) => setCancelReason(e.target.value)}
-                                    className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-red-500 resize-none"
-                                />
-                            </div>
-
-                            <div className="flex items-center justify-end gap-3 pt-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setCancellingPaymentId(null)}
-                                    className="btn btn-primary btn-md"
-                                >
-                                    Close
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={submittingCancel}
-                                    className="btn btn-danger btn-md"
-                                >
-                                    {submittingCancel ? 'Cancelling...' : 'Confirm Cancellation'}
-                                </button>
-                            </div>
-                        </form>
+            <Modal
+                isOpen={Boolean(cancellingPaymentId)}
+                onClose={() => setCancellingPaymentId(null)}
+                title="Cancel Payment Record"
+                subtitle="Are you sure you want to cancel this payment? The invoice balance and status will be automatically recalculated."
+                icon={AlertCircle}
+                iconClassName="text-red-500 bg-red-500/10 border-red-500/20"
+                size="sm"
+                isLoading={submittingCancel}
+                footer={
+                    <div className="flex items-center justify-end gap-3 w-full">
+                        <button
+                            type="button"
+                            onClick={() => setCancellingPaymentId(null)}
+                            disabled={submittingCancel}
+                            className="btn btn-secondary btn-md"
+                        >
+                            Close
+                        </button>
+                        <button
+                            type="submit"
+                            form="cancel-invoice-payment-form"
+                            disabled={submittingCancel || !cancelReason.trim()}
+                            className="btn btn-danger btn-md"
+                        >
+                            {submittingCancel ? 'Cancelling...' : 'Confirm Cancellation'}
+                        </button>
                     </div>
-                </div>
-            )}
+                }
+            >
+                <form id="cancel-invoice-payment-form" onSubmit={handleCancelPaymentSubmit} className="space-y-4">
+                    {cancelError && (
+                        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-500 font-medium">
+                            {cancelError}
+                        </div>
+                    )}
+
+                    <p className="text-xs text-text-muted leading-relaxed">
+                        Are you sure you want to cancel this payment? The invoice balance and status will be automatically recalculated. The payment record will remain in history as CANCELLED.
+                    </p>
+
+                    <div>
+                        <label className="block text-xs font-semibold text-text-muted mb-1">Cancellation Reason *</label>
+                        <textarea
+                            required
+                            rows={3}
+                            placeholder="Enter non-empty reason for cancellation..."
+                            value={cancelReason}
+                            onChange={(e) => setCancelReason(e.target.value)}
+                            className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-red-500 resize-none"
+                        />
+                    </div>
+                </form>
+            </Modal>
 
             {/* 7. Edit Invoice Details Modal */}
-            {isEditModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-                    <div className="bg-white dark:bg-bg-card border border-border-subtle rounded-2xl w-full max-w-2xl flex flex-col max-h-[85vh] overflow-hidden shadow-2xl animate-modal-entrance">
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle shrink-0">
-                            <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
-                                <Edit3 className="w-5 h-5 text-blue-600" /> Edit Invoice Details
-                            </h2>
-                            <button 
-                                onClick={() => setIsEditModalOpen(false)}
-                                className="btn btn-ghost btn-icon h-8 w-8 flex items-center justify-center rounded-lg text-text-muted hover:text-text-primary"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-
-                        <form onSubmit={handleSaveEdit} className="flex flex-col flex-1 overflow-hidden">
-                            <div className="p-6 space-y-4 overflow-y-auto flex-1">
-                                {editError && (
-                                    <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-500 font-medium">
-                                        {editError}
-                                    </div>
-                                )}
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-semibold text-text-muted mb-1">Client Name *</label>
-                                        <input
-                                            type="text"
-                                            required
-                                            value={editForm.clientName}
-                                            onChange={(e) => setEditForm({ ...editForm, clientName: e.target.value })}
-                                            className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-semibold text-text-muted mb-1">Company</label>
-                                        <input
-                                            type="text"
-                                            value={editForm.clientCompany}
-                                            onChange={(e) => setEditForm({ ...editForm, clientCompany: e.target.value })}
-                                            className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-semibold text-text-muted mb-1">Email</label>
-                                        <input
-                                            type="email"
-                                            value={editForm.clientEmail}
-                                            onChange={(e) => setEditForm({ ...editForm, clientEmail: e.target.value })}
-                                            className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-semibold text-text-muted mb-1">Phone</label>
-                                        <input
-                                            type="text"
-                                            value={editForm.clientPhone}
-                                            onChange={(e) => setEditForm({ ...editForm, clientPhone: e.target.value })}
-                                            className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
-                                        />
-                                    </div>
-                                    <div className="col-span-2">
-                                        <label className="block text-xs font-semibold text-text-muted mb-1">Address</label>
-                                        <textarea
-                                            rows={2}
-                                            value={editForm.clientAddress}
-                                            onChange={(e) => setEditForm({ ...editForm, clientAddress: e.target.value })}
-                                            className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary resize-none"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-semibold text-text-muted mb-1">GSTIN</label>
-                                        <input
-                                            type="text"
-                                            placeholder="e.g. 27AAAAA0000A1Z5"
-                                            value={editForm.clientGstin}
-                                            onChange={(e) => setEditForm({ ...editForm, clientGstin: e.target.value })}
-                                            className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary uppercase"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-semibold text-text-muted mb-1">Place of Supply</label>
-                                        <input
-                                            type="text"
-                                            placeholder="e.g. Maharashtra"
-                                            value={editForm.placeOfSupply}
-                                            onChange={(e) => setEditForm({ ...editForm, placeOfSupply: e.target.value })}
-                                            className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-semibold text-text-muted mb-1">Invoice Date</label>
-                                        <input
-                                            type="date"
-                                            value={editForm.invoiceDate}
-                                            onChange={(e) => setEditForm({ ...editForm, invoiceDate: e.target.value })}
-                                            className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-semibold text-text-muted mb-1">Due Date</label>
-                                        <input
-                                            type="date"
-                                            value={editForm.dueDate}
-                                            onChange={(e) => setEditForm({ ...editForm, dueDate: e.target.value })}
-                                            className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
-                                        />
-                                    </div>
-                                    <div className="col-span-2">
-                                        <label className="block text-xs font-semibold text-text-muted mb-1">Payment Terms / Remarks</label>
-                                        <textarea
-                                            rows={2}
-                                            placeholder="e.g. Payment within 30 days"
-                                            value={editForm.paymentTerms}
-                                            onChange={(e) => setEditForm({ ...editForm, paymentTerms: e.target.value })}
-                                            className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary resize-none"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border-subtle bg-bg-card shrink-0">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsEditModalOpen(false)}
-                                    className="btn btn-secondary btn-md"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={savingEdit}
-                                    className="btn btn-primary btn-md"
-                                >
-                                    {savingEdit ? 'Saving...' : 'Save Changes'}
-                                </button>
-                            </div>
-                        </form>
+            <Modal
+                isOpen={isEditModalOpen}
+                onClose={() => setIsEditModalOpen(false)}
+                title="Edit Invoice Details"
+                subtitle="Modify client billing information, place of supply, or invoice schedule."
+                icon={Edit3}
+                size="xl"
+                isLoading={savingEdit}
+                footer={
+                    <div className="flex items-center justify-end gap-3 w-full">
+                        <button
+                            type="button"
+                            onClick={() => setIsEditModalOpen(false)}
+                            disabled={savingEdit}
+                            className="btn btn-secondary btn-md"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            form="edit-invoice-form"
+                            disabled={savingEdit}
+                            className="btn btn-primary btn-md"
+                        >
+                            {savingEdit ? 'Saving...' : 'Save Changes'}
+                        </button>
                     </div>
-                </div>
-            )}
+                }
+            >
+                <form id="edit-invoice-form" onSubmit={handleSaveEdit} className="space-y-4">
+                    {editError && (
+                        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-500 font-medium">
+                            {editError}
+                        </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-semibold text-text-muted mb-1">Client Name *</label>
+                            <input
+                                type="text"
+                                required
+                                value={editForm.clientName}
+                                onChange={(e) => setEditForm({ ...editForm, clientName: e.target.value })}
+                                className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-text-muted mb-1">Company</label>
+                            <input
+                                type="text"
+                                value={editForm.clientCompany}
+                                onChange={(e) => setEditForm({ ...editForm, clientCompany: e.target.value })}
+                                className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-text-muted mb-1">Email</label>
+                            <input
+                                type="email"
+                                value={editForm.clientEmail}
+                                onChange={(e) => setEditForm({ ...editForm, clientEmail: e.target.value })}
+                                className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-text-muted mb-1">Phone</label>
+                            <input
+                                type="text"
+                                value={editForm.clientPhone}
+                                onChange={(e) => setEditForm({ ...editForm, clientPhone: e.target.value })}
+                                className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
+                            />
+                        </div>
+                        <div className="col-span-2">
+                            <label className="block text-xs font-semibold text-text-muted mb-1">Billing Address</label>
+                            <textarea
+                                rows={2}
+                                value={editForm.clientAddress}
+                                onChange={(e) => setEditForm({ ...editForm, clientAddress: e.target.value })}
+                                className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary resize-none"
+                            />
+                        </div>
+                        <div className="col-span-2">
+                            <label className="block text-xs font-semibold text-text-muted mb-1">Shipping / Delivery Address (Optional, defaults to Billing Address if empty)</label>
+                            <textarea
+                                rows={2}
+                                placeholder="Leave empty if same as Billing Address"
+                                value={editForm.clientShippingAddress}
+                                onChange={(e) => setEditForm({ ...editForm, clientShippingAddress: e.target.value })}
+                                className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary resize-none"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-text-muted mb-1">GSTIN</label>
+                            <input
+                                type="text"
+                                placeholder="e.g. 27AAAAA0000A1Z5"
+                                value={editForm.clientGstin}
+                                onChange={(e) => setEditForm({ ...editForm, clientGstin: e.target.value })}
+                                className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary uppercase"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-text-muted mb-1">Place of Supply</label>
+                            <input
+                                type="text"
+                                placeholder="e.g. Maharashtra"
+                                value={editForm.placeOfSupply}
+                                onChange={(e) => setEditForm({ ...editForm, placeOfSupply: e.target.value })}
+                                className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-text-muted mb-1">Invoice Date</label>
+                            <input
+                                type="date"
+                                value={editForm.invoiceDate}
+                                onChange={(e) => setEditForm({ ...editForm, invoiceDate: e.target.value })}
+                                className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-text-muted mb-1">Due Date</label>
+                            <input
+                                type="date"
+                                value={editForm.dueDate}
+                                onChange={(e) => setEditForm({ ...editForm, dueDate: e.target.value })}
+                                className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary"
+                            />
+                        </div>
+                        <div className="col-span-2">
+                            <label className="block text-xs font-semibold text-text-muted mb-1">Payment Terms / Remarks</label>
+                            <textarea
+                                rows={2}
+                                placeholder="e.g. Payment within 30 days"
+                                value={editForm.paymentTerms}
+                                onChange={(e) => setEditForm({ ...editForm, paymentTerms: e.target.value })}
+                                className="w-full px-3 py-2 bg-bg-main border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:border-brand-primary resize-none"
+                            />
+                        </div>
+                    </div>
+                </form>
+            </Modal>
         </div>
     );
 }

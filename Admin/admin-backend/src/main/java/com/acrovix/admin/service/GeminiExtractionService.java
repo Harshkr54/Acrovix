@@ -20,8 +20,15 @@ public class GeminiExtractionService {
     @Value("${gemini.api-key:}")
     private String geminiApiKey;
 
-    @Value("${gemini.model:gemini-1.5-flash}")
+    @Value("${gemini.model:gemini-3.5-flash-lite}")
     private String geminiModel;
+
+    private static final java.util.List<String> FALLBACK_MODELS = java.util.List.of(
+            "gemini-3.5-flash-lite",
+            "gemini-3.8-flash",
+            "gemini-flash-latest",
+            "gemini-3.5-flash"
+    );
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -31,11 +38,17 @@ public class GeminiExtractionService {
             throw new IllegalStateException("Gemini API key is not configured.");
         }
 
-        String url = "https://generativelanguage.googleapis.com/v1beta/models/" + geminiModel + ":generateContent?key=" + geminiApiKey;
+        java.util.LinkedHashSet<String> modelsToTry = new java.util.LinkedHashSet<>();
+        if (geminiModel != null && !geminiModel.trim().isEmpty()) {
+            modelsToTry.add(geminiModel.trim());
+        }
+        modelsToTry.addAll(FALLBACK_MODELS);
 
-        String prompt = "You are a pure data extractor. Extract quotation items from the following rough text. " +
-                "NEVER invent prices, quantities, products, or services. If a value is missing, return null. " +
+        String prompt = "You are a pure data extractor for quotation line items. Extract all products, equipment, or services mentioned in the following rough text as quotation line items, even if price or quantity is not explicitly stated (in that case, leave quantity and unitPrice as null). " +
+                "Extract taxPercent if GST or tax rate is stated (e.g. '18% for routers' -> description: 'routers', taxPercent: 18). " +
+                "Extract descriptions and SKUs accurately. " +
                 "If source text contains list price and discount, derive unit price. If it contains list price and selling price, derive discount. " +
+                "Do NOT invent numbers. Do NOT include client names, terms & conditions, warranties, addresses, or payment terms as line items.\n" +
                 "Return strictly valid JSON matching this schema exactly:\n" +
                 "{\n" +
                 "  \"type\": \"array\",\n" +
@@ -73,56 +86,70 @@ public class GeminiExtractionService {
 
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
-        try {
-            String response = restTemplate.postForObject(url, entity, String.class);
-            JsonNode root = objectMapper.readTree(response);
-            
-            JsonNode textNode = root.path("candidates").path(0).path("content").path("parts").path(0).path("text");
-            if (textNode.isMissingNode()) {
-                throw new RuntimeException("Invalid response structure from Gemini API");
-            }
-            
-            String rawText = textNode.asText().trim();
-            if (rawText.startsWith("```json")) {
-                rawText = rawText.substring(7);
-            } else if (rawText.startsWith("```")) {
-                rawText = rawText.substring(3);
-            }
-            if (rawText.endsWith("```")) {
-                rawText = rawText.substring(0, rawText.length() - 3);
-            }
-            rawText = rawText.trim();
+        Exception lastException = null;
+
+        for (String modelName : modelsToTry) {
+            String url = "https://generativelanguage.googleapis.com/v1beta/models/" + modelName + ":generateContent?key=" + geminiApiKey;
 
             try {
-                JsonNode parsed = objectMapper.readTree(rawText);
-                if (parsed.isArray()) {
-                    return objectMapper.writeValueAsString(parsed);
-                } else if (parsed.isObject()) {
-                    if (parsed.has("items") && parsed.get("items").isArray()) {
-                        return objectMapper.writeValueAsString(parsed.get("items"));
-                    } else if (parsed.has("rows") && parsed.get("rows").isArray()) {
-                        return objectMapper.writeValueAsString(parsed.get("rows"));
-                    } else if (parsed.has("data") && parsed.get("data").isArray()) {
-                        return objectMapper.writeValueAsString(parsed.get("data"));
-                    }
+                String response = restTemplate.postForObject(url, entity, String.class);
+                JsonNode root = objectMapper.readTree(response);
+                
+                JsonNode textNode = root.path("candidates").path(0).path("content").path("parts").path(0).path("text");
+                if (textNode.isMissingNode()) {
+                    throw new RuntimeException("Invalid response structure from Gemini API");
                 }
-            } catch (Exception parseEx) {
-                // Return cleaned text if Jackson unwrap not possible
-            }
+                
+                String rawText = textNode.asText().trim();
+                if (rawText.startsWith("```json")) {
+                    rawText = rawText.substring(7);
+                } else if (rawText.startsWith("```")) {
+                    rawText = rawText.substring(3);
+                }
+                if (rawText.endsWith("```")) {
+                    rawText = rawText.substring(0, rawText.length() - 3);
+                }
+                rawText = rawText.trim();
 
-            return rawText;
-        } catch (IllegalStateException e) {
-            throw e;
-        } catch (Exception e) {
-            // Log a sanitized error message server-side for diagnostics.
-            // Do NOT log the exception stack trace directly as it contains the raw API key in the URL parameter.
-            String rawMessage = e.getMessage();
-            String sanitizedMessage = (rawMessage != null && geminiApiKey != null && !geminiApiKey.isEmpty())
-                    ? rawMessage.replace(geminiApiKey, "[REDACTED_KEY]")
-                    : (rawMessage != null ? rawMessage : "Unknown error");
-            org.slf4j.LoggerFactory.getLogger(GeminiExtractionService.class)
-                    .error("Gemini extraction failed [Exception: {}, Message: {}]", e.getClass().getSimpleName(), sanitizedMessage);
-            throw new RuntimeException("Failed to extract data from the provided text. Please try again.");
+                try {
+                    JsonNode parsed = objectMapper.readTree(rawText);
+                    if (parsed.isArray()) {
+                        return objectMapper.writeValueAsString(parsed);
+                    } else if (parsed.isObject()) {
+                        if (parsed.has("items") && parsed.get("items").isArray()) {
+                            return objectMapper.writeValueAsString(parsed.get("items"));
+                        } else if (parsed.has("rows") && parsed.get("rows").isArray()) {
+                            return objectMapper.writeValueAsString(parsed.get("rows"));
+                        } else if (parsed.has("data") && parsed.get("data").isArray()) {
+                            return objectMapper.writeValueAsString(parsed.get("data"));
+                        }
+                    }
+                } catch (Exception parseEx) {
+                    // Return cleaned text if Jackson unwrap not possible
+                }
+
+                return rawText;
+            } catch (IllegalStateException e) {
+                throw e;
+            } catch (Exception e) {
+                lastException = e;
+                String rawMessage = e.getMessage();
+                String sanitizedMessage = (rawMessage != null && geminiApiKey != null && !geminiApiKey.isEmpty())
+                        ? rawMessage.replace(geminiApiKey, "[REDACTED_KEY]")
+                        : (rawMessage != null ? rawMessage : "Unknown error");
+                org.slf4j.LoggerFactory.getLogger(GeminiExtractionService.class)
+                        .warn("Gemini model {} extraction attempt failed [Exception: {}, Message: {}]. Trying fallback...",
+                                modelName, e.getClass().getSimpleName(), sanitizedMessage);
+            }
         }
+
+        String rawMessage = lastException != null ? lastException.getMessage() : "Unknown error";
+        String sanitizedMessage = (rawMessage != null && geminiApiKey != null && !geminiApiKey.isEmpty())
+                ? rawMessage.replace(geminiApiKey, "[REDACTED_KEY]")
+                : (rawMessage != null ? rawMessage : "Unknown error");
+        org.slf4j.LoggerFactory.getLogger(GeminiExtractionService.class)
+                .error("All Gemini extraction models failed [Last Exception: {}, Message: {}]",
+                        lastException != null ? lastException.getClass().getSimpleName() : "N/A", sanitizedMessage);
+        throw new RuntimeException("Failed to extract data from the provided text. Please try again.");
     }
 }

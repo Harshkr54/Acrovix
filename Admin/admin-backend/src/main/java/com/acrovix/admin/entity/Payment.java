@@ -56,6 +56,11 @@ public class Payment {
     @Column(name = "payment_method", nullable = false, length = 30)
     private PaymentMethod paymentMethod;
 
+    // Batch 3.3: Global unique=true removed from entity.
+    // A blanket table-level UNIQUE constraint breaks legitimate B2B workflows:
+    // (1) splitting a single bank UTR across multiple invoices, and
+    // (2) re-recording a transaction reference after cancelling an erroneous record.
+    // Uniqueness is enforced at application/service level and in production via partial indexes.
     @Column(name = "transaction_reference", length = 150)
     private String transactionReference;
 

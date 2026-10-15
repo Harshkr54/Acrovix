@@ -27,6 +27,12 @@ public interface CrmLeadRepository extends JpaRepository<CrmLead, Long>, JpaSpec
 
     long countByStatus(LeadStatus status);
 
+    @Query("SELECT COUNT(l) FROM CrmLead l WHERE (:salesUserId IS NULL OR l.assignedTo IS NULL OR l.assignedTo.id = :salesUserId)")
+    long countTotalWithFilter(@Param("salesUserId") Long salesUserId);
+
+    @Query("SELECT COUNT(l) FROM CrmLead l WHERE l.status IN (:statuses) AND l.updatedAt < :cutoff AND (:salesUserId IS NULL OR l.assignedTo IS NULL OR l.assignedTo.id = :salesUserId)")
+    long countStaleLeadsWithFilter(@Param("statuses") List<LeadStatus> statuses, @Param("cutoff") java.time.LocalDateTime cutoff, @Param("salesUserId") Long salesUserId);
+
     @Query("SELECT COUNT(l) FROM CrmLead l WHERE l.status = :status AND (:salesUserId IS NULL OR l.assignedTo IS NULL OR l.assignedTo.id = :salesUserId)")
     long countByStatusWithFilter(@Param("status") LeadStatus status, @Param("salesUserId") Long salesUserId);
 

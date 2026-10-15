@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { createMailtoUri, triggerSafeProtocol, copyToClipboard } from '../utils/crmActionUtils';
 import { useToast } from '../context/ToastContext';
+import Modal from './ui/Modal';
 
 export default function EmailActionModal({ isOpen, onClose, lead, onOpenLogEmail }) {
     const { showToast } = useToast();
@@ -81,45 +82,28 @@ export default function EmailActionModal({ isOpen, onClose, lead, onOpenLogEmail
         }
     };
 
-    return (
-        <div 
-            className="fixed inset-0 bg-text-primary/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto"
-            onClick={(e) => {
-                if (e.target === e.currentTarget) onClose();
-            }}
+    const modalFooter = (
+        <button
+            type="button"
+            onClick={onClose}
+            className="btn btn-secondary btn-md text-xs font-semibold"
         >
-            <div 
-                className="bg-bg-card border border-border-subtle rounded-2xl shadow-2xl w-full max-w-md overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-150"
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="email-modal-title"
-            >
-                {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-bg-main">
-                    <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                            <Mail className="w-4 h-4" />
-                        </div>
-                        <div>
-                            <h2 id="email-modal-title" className="text-base font-bold text-text-primary">
-                                Email Contact Action
-                            </h2>
-                            <p className="text-xs text-text-muted">
-                                {lead.leadNumber} — {lead.fullName}
-                            </p>
-                        </div>
-                    </div>
-                    <button 
-                        onClick={onClose}
-                        className="btn btn-ghost btn-icon text-text-muted hover:text-text-primary"
-                        aria-label="Close dialog"
-                    >
-                        <X className="w-5 h-5" />
-                    </button>
-                </div>
+            Close
+        </button>
+    );
 
-                {/* Content */}
-                <div className="p-6 space-y-5">
+    return (
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title="Email Contact Action"
+            subtitle={`${lead.leadNumber} — ${lead.fullName}`}
+            icon={Mail}
+            iconClassName="text-blue-500 bg-blue-500/10 border-blue-500/20"
+            size="sm"
+            footer={modalFooter}
+        >
+            <div className="space-y-5">
                     {/* Email Display Card */}
                     <div className="p-4 bg-bg-main border border-border-subtle rounded-xl space-y-3">
                         <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted block">
@@ -209,19 +193,7 @@ export default function EmailActionModal({ isOpen, onClose, lead, onOpenLogEmail
                             <span>Log Email Activity in CRM</span>
                         </button>
                     </div>
-                </div>
-
-                {/* Footer */}
-                <div className="px-6 py-3 bg-bg-main border-t border-border-subtle flex justify-end">
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="btn btn-secondary btn-md text-xs font-semibold"
-                    >
-                        Close
-                    </button>
-                </div>
             </div>
-        </div>
+        </Modal>
     );
 }

@@ -20,6 +20,14 @@ public interface QuotationRepository extends JpaRepository<Quotation, Long>, Jpa
     long countByStatus(String status);
 
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT q FROM Quotation q WHERE q.clientToken = :clientToken")
+    java.util.Optional<Quotation> findByClientTokenForUpdate(@org.springframework.data.repository.query.Param("clientToken") String clientToken);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT q FROM Quotation q WHERE q.id = :id")
+    java.util.Optional<Quotation> findByIdForUpdate(@org.springframework.data.repository.query.Param("id") Long id);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT q FROM Quotation q WHERE q.id = :baseId")
     java.util.Optional<Quotation> findBaseQuotationForUpdate(@org.springframework.data.repository.query.Param("baseId") Long baseId);
 

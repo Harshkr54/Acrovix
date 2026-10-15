@@ -36,17 +36,17 @@ export default function CompanyDetailsPage() {
             const data = await getCompanySettings();
             if (data) {
                 const loaded = {
-                    companyName: data.companyName || 'ACROVIX INNOVATIONS PRIVATE LIMITED',
-                    legalName: data.legalName || 'ACROVIX INNOVATIONS PRIVATE LIMITED',
-                    gstin: data.gstin || '29ABCFA2588C1Z8',
-                    pan: data.pan || 'ABCFA2588C',
-                    email: data.email || 'contact@acrovix.com',
-                    phone: data.phone || '+91 98765 43210',
-                    website: data.website || 'https://www.acrovix.com',
-                    registeredAddress: data.registeredAddress || '3rd Floor, 956, Vigneshwara, 6th Cross 1st Main, Bengaluru Urban, Karnataka - 560060, India',
+                    companyName: data.companyName || '',
+                    legalName: data.legalName || '',
+                    gstin: data.gstin || '',
+                    pan: data.pan || '',
+                    email: data.email || '',
+                    phone: data.phone || '',
+                    website: data.website || '',
+                    registeredAddress: data.registeredAddress || '',
                     billingAddress: data.billingAddress || '',
-                    defaultPaymentTerms: data.defaultPaymentTerms || '50% advance and 50% on completion',
-                    defaultTermsAndConditions: data.defaultTermsAndConditions || '1. Goods once sold will not be taken back.\n2. Payment within 15 days.',
+                    defaultPaymentTerms: data.defaultPaymentTerms || '',
+                    defaultTermsAndConditions: data.defaultTermsAndConditions || '',
                     logoUrl: data.logoUrl || '',
                     signatureUrl: data.signatureUrl || ''
                 };

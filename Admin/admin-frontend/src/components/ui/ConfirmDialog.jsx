@@ -31,12 +31,12 @@ export default function ConfirmDialog({
         };
 
         document.addEventListener('keydown', handleEscape);
-        // Prevent body scroll
+        const previousOverflow = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
 
         return () => {
             document.removeEventListener('keydown', handleEscape);
-            document.body.style.overflow = 'unset';
+            document.body.style.overflow = previousOverflow;
         };
     }, [isOpen, onCancel, isLoading]);
 
@@ -45,10 +45,10 @@ export default function ConfirmDialog({
     const isDestructive = variant === 'destructive';
 
     const dialogElement = (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 md:p-6 overflow-hidden">
             {/* Full-viewport Backdrop */}
             <div 
-                className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity" 
+                className="fixed inset-0 bg-black/65 backdrop-blur-xs transition-opacity animate-fade-in" 
                 onClick={() => !isLoading && onCancel()}
                 aria-hidden="true"
             />
@@ -60,7 +60,7 @@ export default function ConfirmDialog({
                 aria-modal="true"
                 aria-labelledby="dialog-title"
                 aria-describedby="dialog-description"
-                className="relative bg-bg-card rounded-2xl sm:rounded-3xl shadow-xl border border-border-subtle w-full max-w-sm sm:max-w-md overflow-hidden animate-modal-entrance flex flex-col max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-3rem)] my-auto z-10"
+                className="relative bg-bg-card rounded-2xl sm:rounded-3xl shadow-2xl border border-border-subtle w-full max-w-sm sm:max-w-md overflow-hidden animate-modal-entrance flex flex-col max-h-[calc(100dvh-32px)] sm:max-h-[calc(100dvh-48px)] my-auto z-10"
             >
                 <div className="p-6 sm:p-8 overflow-y-auto flex-1">
                     <div className="flex items-start gap-4">

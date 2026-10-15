@@ -46,6 +46,9 @@ public class Customer {
     @Column(length = 100)
     private String state;
 
+    @Column(length = 20)
+    private String pincode;
+
     @Column(name = "billing_address", columnDefinition = "TEXT")
     private String billingAddress;
 

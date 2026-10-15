@@ -26,7 +26,6 @@ import org.springframework.data.domain.Sort;
 
 @RestController
 @RequestMapping("/api/admin/quotations")
-@RequiredArgsConstructor
 public class QuotationController {
 
     private final QuotationService quotationService;
@@ -36,6 +35,26 @@ public class QuotationController {
     private final AuthorizationService authorizationService;
     private final com.acrovix.admin.repository.PurchaseOrderRepository purchaseOrderRepository;
     private final com.acrovix.admin.repository.InvoiceRepository invoiceRepository;
+    private final com.acrovix.admin.repository.EmailLogRepository emailLogRepository;
+
+    public QuotationController(
+            QuotationService quotationService,
+            PdfService pdfService,
+            EmailService emailService,
+            com.acrovix.admin.repository.QuotationRepository quotationRepository,
+            AuthorizationService authorizationService,
+            com.acrovix.admin.repository.PurchaseOrderRepository purchaseOrderRepository,
+            com.acrovix.admin.repository.InvoiceRepository invoiceRepository,
+            com.acrovix.admin.repository.EmailLogRepository emailLogRepository) {
+        this.quotationService = quotationService;
+        this.pdfService = pdfService;
+        this.emailService = emailService;
+        this.quotationRepository = quotationRepository;
+        this.authorizationService = authorizationService;
+        this.purchaseOrderRepository = purchaseOrderRepository;
+        this.invoiceRepository = invoiceRepository;
+        this.emailLogRepository = emailLogRepository;
+    }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
@@ -96,6 +115,16 @@ public class QuotationController {
         java.util.List<Quotation> list = quotationService.getQuotationsByEnquiryId(enquiryId, admin);
         java.util.List<java.util.Map<String, Object>> dtos = list.stream().map(this::mapToDto).collect(java.util.stream.Collectors.toList());
         return ResponseEntity.ok(dtos);
+    }
+
+    @PostMapping("/lead/{leadId}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @Transactional
+    public ResponseEntity<java.util.Map<String, Object>> createDraftQuotationFromLead(
+            @PathVariable Long leadId,
+            @AuthenticationPrincipal AdminUser admin) {
+        Quotation q = quotationService.createDraftQuotationFromLead(leadId, admin);
+        return ResponseEntity.ok(mapToDetailDto(q));
     }
 
     @PostMapping("/enquiry/{enquiryId}")
@@ -188,7 +217,16 @@ public class QuotationController {
             String singleEmail = (recipients != null && !recipients.isEmpty()) ? recipients.get(0) : null;
             quotationService.sendQuotation(id, singleEmail, admin);
         }
-        return ResponseEntity.ok(java.util.Map.of("success", true, "message", "Quotation email sent successfully"));
+        Quotation q = quotationRepository.findById(id).orElse(null);
+        java.util.Map<String, Object> resp = new java.util.HashMap<>();
+        resp.put("success", true);
+        resp.put("message", "Quotation email sent successfully");
+        if (q != null) {
+            resp.put("quotationId", q.getId());
+            resp.put("quotationNumber", q.getQuotationNumber());
+            resp.put("status", q.getStatus());
+        }
+        return ResponseEntity.ok(resp);
     }
 
     @PostMapping("/direct")
@@ -317,6 +355,32 @@ public class QuotationController {
         map.put("parentQuotationId", q.getParentQuotationId());
         if (q.getCustomer() != null) {
             map.put("customerId", q.getCustomer().getId());
+            map.put("customerCode", q.getCustomer().getCustomerCode());
+            map.put("billingAddress", q.getCustomer().getBillingAddress());
+            map.put("shippingAddress", q.getCustomer().getShippingAddress());
+            map.put("state", q.getCustomer().getState());
+            map.put("pincode", q.getCustomer().getPincode());
+            map.put("gstin", q.getCustomer().getGstin());
+            map.put("pan", q.getCustomer().getPan());
+            map.put("alternatePhone", q.getCustomer().getAlternatePhone());
+            map.put("paymentTerms", q.getCustomer().getPaymentTerms());
+
+            java.util.Map<String, Object> custMap = new java.util.HashMap<>();
+            custMap.put("id", q.getCustomer().getId());
+            custMap.put("customerCode", q.getCustomer().getCustomerCode());
+            custMap.put("name", q.getCustomer().getName());
+            custMap.put("companyName", q.getCustomer().getCompanyName());
+            custMap.put("email", q.getCustomer().getEmail());
+            custMap.put("phone", q.getCustomer().getPhone());
+            custMap.put("alternatePhone", q.getCustomer().getAlternatePhone());
+            custMap.put("gstin", q.getCustomer().getGstin());
+            custMap.put("pan", q.getCustomer().getPan());
+            custMap.put("state", q.getCustomer().getState());
+            custMap.put("pincode", q.getCustomer().getPincode());
+            custMap.put("billingAddress", q.getCustomer().getBillingAddress());
+            custMap.put("shippingAddress", q.getCustomer().getShippingAddress());
+            custMap.put("paymentTerms", q.getCustomer().getPaymentTerms());
+            map.put("customer", custMap);
         }
         map.put("subtotal", q.getSubtotal());
         map.put("discountAmount", q.getDiscountAmount());
@@ -346,6 +410,21 @@ public class QuotationController {
         map.put("sourceNotes", q.getSourceNotes());
         map.put("responseSource", q.getResponseSource() != null ? q.getResponseSource().name() : null);
         map.put("responseNotes", q.getResponseNotes());
+
+        if (emailLogRepository != null && q.getId() != null) {
+            java.util.List<com.acrovix.admin.entity.EmailLog> logs = 
+                emailLogRepository.findByRelatedEntityTypeAndRelatedEntityIdOrderBySentAtDesc("QUOTATION", q.getId());
+            if (!logs.isEmpty()) {
+                com.acrovix.admin.entity.EmailLog latest = logs.get(0);
+                map.put("emailDeliveryStatus", latest.getStatus() != null ? latest.getStatus().name() : null);
+                map.put("emailSentAt", latest.getSentAt());
+                map.put("emailRecipient", latest.getRecipient());
+                map.put("emailErrorMessage", latest.getErrorMessage());
+            } else if ("SENT".equalsIgnoreCase(q.getStatus())) {
+                map.put("emailDeliveryStatus", "SENT");
+                map.put("emailRecipient", q.getClientEmail());
+            }
+        }
 
         if (q.getEnquiry() != null) {
             java.util.Map<String, Object> enqMap = new java.util.HashMap<>();

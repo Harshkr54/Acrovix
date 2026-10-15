@@ -40,12 +40,13 @@ public class InvoiceController {
             @RequestParam(required = false) InvoiceType type,
             @RequestParam(required = false) InvoiceStatus status,
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) Long purchaseOrderId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @AuthenticationPrincipal AdminUser admin) {
         search = PaginationUtil.getSafeSearch(search);
         
-        Page<InvoiceResponse> invoices = invoiceService.searchInvoices(type, status, search, PageRequest.of(page, PaginationUtil.getSafeSize(size), Sort.by("createdAt").descending()), admin);
+        Page<InvoiceResponse> invoices = invoiceService.searchInvoices(type, status, search, purchaseOrderId, PageRequest.of(page, PaginationUtil.getSafeSize(size), Sort.by("createdAt").descending()), admin);
         return ResponseEntity.ok(invoices);
     }
 
@@ -76,8 +77,9 @@ public class InvoiceController {
     public ResponseEntity<InvoiceResponse> createInvoiceFromPurchaseOrder(
             @PathVariable Long poId,
             @RequestParam InvoiceType type,
+            @RequestBody(required = false) InvoiceRequest customRequest,
             @AuthenticationPrincipal AdminUser admin) {
-        return ResponseEntity.ok(invoiceService.createInvoiceFromPurchaseOrder(poId, type, admin));
+        return ResponseEntity.ok(invoiceService.createInvoiceFromPurchaseOrder(poId, type, customRequest, admin));
     }
 
     @PreAuthorize("hasRole('SUPER_ADMIN')")

@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class DemoDataService {
     private static final Logger logger = LoggerFactory.getLogger(DemoDataService.class);
 
@@ -36,6 +35,34 @@ public class DemoDataService {
     private final NotificationRepository notificationRepository;
     private final AdminActivityRepository activityRepository;
     private final AdminUserRepository adminUserRepository;
+
+    public DemoDataService(DemoTrackerRepository demoTrackerRepository,
+                           CustomerService customerService,
+                           ProductServiceService productServiceService,
+                           QuotationService quotationService,
+                           PurchaseOrderService purchaseOrderService,
+                           AdminEnquiryRepository enquiryRepository,
+                           CustomerRepository customerRepository,
+                           ProductServiceRepository productServiceRepository,
+                           QuotationRepository quotationRepository,
+                           PurchaseOrderRepository purchaseOrderRepository,
+                           NotificationRepository notificationRepository,
+                           AdminActivityRepository activityRepository,
+                           AdminUserRepository adminUserRepository) {
+        this.demoTrackerRepository = demoTrackerRepository;
+        this.customerService = customerService;
+        this.productServiceService = productServiceService;
+        this.quotationService = quotationService;
+        this.purchaseOrderService = purchaseOrderService;
+        this.enquiryRepository = enquiryRepository;
+        this.customerRepository = customerRepository;
+        this.productServiceRepository = productServiceRepository;
+        this.quotationRepository = quotationRepository;
+        this.purchaseOrderRepository = purchaseOrderRepository;
+        this.notificationRepository = notificationRepository;
+        this.activityRepository = activityRepository;
+        this.adminUserRepository = adminUserRepository;
+    }
 
     @Value("${app.demo-mode:false}")
     private boolean demoMode;

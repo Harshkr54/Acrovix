@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { User, Moon, Sun, Shield, Settings as SettingsIcon, Save, Lock, Loader2, CheckCircle, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { User, Moon, Sun, Shield, Settings as SettingsIcon, Save, Lock, Loader2, CheckCircle, AlertCircle, Eye, EyeOff, Palette } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { fetchApi } from '../services/api';
+import ThemeStudio from '../components/ThemeStudio';
 
 export default function Settings() {
     const { user: authUser, setUser: setAuthUser } = useAuth();
@@ -275,42 +276,13 @@ export default function Settings() {
                 </div>
             </div>
 
-            {/* Bottom Row — Remaining Settings (Appearance & System Info) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Appearance */}
-                <div className="acx-card p-6 flex flex-col justify-between">
-                    <div>
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center">
-                                <Sun className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                            </div>
-                            <div>
-                                <h2 className="text-base font-bold text-text-primary tracking-tight">Appearance</h2>
-                                <p className="text-[12px] text-text-muted">Customize how ACROVIX looks on your device</p>
-                            </div>
-                        </div>
-                        
-                        <div className="flex items-center justify-between p-4 bg-bg-main border border-border-subtle rounded-xl">
-                            <div>
-                                <p className="text-sm font-semibold text-text-primary">Theme Mode</p>
-                                <p className="text-[12px] text-text-muted">Switch between light and dark modes.</p>
-                            </div>
-                            <button 
-                                type="button"
-                                onClick={toggleTheme}
-                                className="btn btn-secondary btn-md inline-flex items-center gap-2"
-                            >
-                                {theme === 'dark' ? (
-                                    <><Moon className="w-4 h-4 text-purple-400" /> Dark Mode</>
-                                ) : (
-                                    <><Sun className="w-4 h-4 text-amber-500" /> Light Mode</>
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                </div>
+            {/* Theme Studio Card */}
+            <div className="acx-card p-6 sm:p-8">
+                <ThemeStudio />
+            </div>
 
-                {/* System Info */}
+            {/* Bottom Row — System Info */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="acx-card p-6 flex flex-col justify-between">
                     <div>
                         <div className="flex items-center gap-3 mb-6">
@@ -326,15 +298,15 @@ export default function Settings() {
                         <div className="space-y-3">
                             <div className="flex justify-between items-center py-2.5 px-3 bg-bg-main border border-border-subtle rounded-lg">
                                 <span className="text-[13px] text-text-secondary">Version</span>
-                                <span className="text-[13px] font-semibold text-text-primary">v2.0.0</span>
+                                <span className="text-[13px] font-semibold text-text-primary">v2.4.0 (Enterprise)</span>
                             </div>
                             <div className="flex justify-between items-center py-2.5 px-3 bg-bg-main border border-border-subtle rounded-lg">
-                                <span className="text-[13px] text-text-secondary">Environment</span>
-                                <span className="text-[13px] font-semibold text-text-primary">Production</span>
+                                <span className="text-[13px] text-text-secondary">Theme Engine</span>
+                                <span className="text-[13px] font-semibold text-text-primary">Midnight Dynamic Tokens</span>
                             </div>
                             <div className="flex justify-between items-center py-2.5 px-3 bg-bg-main border border-border-subtle rounded-lg">
                                 <span className="text-[13px] text-text-secondary">Framework</span>
-                                <span className="text-[13px] font-semibold text-text-primary">React 18</span>
+                                <span className="text-[13px] font-semibold text-text-primary">React 19 + Tailwind v4</span>
                             </div>
                         </div>
                     </div>

@@ -44,6 +44,10 @@ public class PurchaseOrderServiceTest {
     private AuthorizationService authorizationService;
     @Mock
     private PdfService pdfService;
+    @Mock
+    private EmailService emailService;
+    @Mock
+    private com.acrovix.admin.repository.InvoiceRepository invoiceRepository;
 
     @InjectMocks
     private PurchaseOrderService purchaseOrderService;
@@ -209,5 +213,79 @@ public class PurchaseOrderServiceTest {
         req.setQuotationId(100L);
 
         assertThrows(ResourceConflictException.class, () -> purchaseOrderService.createPurchaseOrder(req, mockUser));
+    }
+
+    @Test
+    void createPurchaseOrder_LocksQuotationWithFindByIdForUpdate() {
+        when(quotationRepository.findByIdForUpdate(100L)).thenReturn(Optional.of(mockQuotation));
+        when(purchaseOrderRepository.existsByQuotationIdAndDeletedAtIsNull(100L)).thenReturn(false);
+        when(sequenceGeneratorService.generateNextPurchaseOrderNumber(any())).thenReturn("ACX/PO/26-27/0009");
+        when(purchaseOrderRepository.save(any(PurchaseOrder.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        PurchaseOrderRequest req = new PurchaseOrderRequest();
+        req.setQuotationId(100L);
+        req.setPoDate(LocalDate.now());
+
+        PurchaseOrderResponse res = purchaseOrderService.createPurchaseOrder(req, mockUser);
+        assertNotNull(res);
+        verify(quotationRepository).findByIdForUpdate(100L);
+    }
+
+    @Test
+    void updateStatus_ThrowsIllegalStateException_WhenVerified() {
+        PurchaseOrder verifiedPo = PurchaseOrder.builder()
+                .id(10L)
+                .poNumber("ACX/PO/26-27/0010")
+                .status(PurchaseOrderStatus.VERIFIED)
+                .quotation(mockQuotation)
+                .build();
+        when(purchaseOrderRepository.findByIdAndDeletedAtIsNull(10L)).thenReturn(Optional.of(verifiedPo));
+
+        com.acrovix.admin.dto.PurchaseOrderStatusRequest request = new com.acrovix.admin.dto.PurchaseOrderStatusRequest();
+        request.setStatus(PurchaseOrderStatus.CANCELLED);
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> purchaseOrderService.updateStatus(10L, request, mockUser));
+        assertTrue(ex.getMessage().contains("VERIFIED read-only state"));
+        verify(purchaseOrderRepository, never()).save(any());
+    }
+
+    @Test
+    void updateRemarks_ThrowsIllegalStateException_WhenVerified() {
+        PurchaseOrder verifiedPo = PurchaseOrder.builder()
+                .id(10L)
+                .poNumber("ACX/PO/26-27/0010")
+                .status(PurchaseOrderStatus.VERIFIED)
+                .quotation(mockQuotation)
+                .build();
+        when(purchaseOrderRepository.findByIdAndDeletedAtIsNull(10L)).thenReturn(Optional.of(verifiedPo));
+
+        com.acrovix.admin.dto.PurchaseOrderRemarksRequest request = new com.acrovix.admin.dto.PurchaseOrderRemarksRequest();
+        request.setRemarks("New remarks");
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> purchaseOrderService.updateRemarks(10L, request, mockUser));
+        assertTrue(ex.getMessage().contains("VERIFIED read-only state"));
+        verify(purchaseOrderRepository, never()).save(any());
+    }
+
+    @Test
+    void verifyPurchaseOrder_SetsReadOnlyTrue_AndVerifiedStatus() {
+        PurchaseOrder receivedPo = PurchaseOrder.builder()
+                .id(10L)
+                .poNumber("ACX/PO/26-27/0010")
+                .status(PurchaseOrderStatus.RECEIVED)
+                .quotation(mockQuotation)
+                .build();
+        when(purchaseOrderRepository.findByIdAndDeletedAtIsNull(10L)).thenReturn(Optional.of(receivedPo));
+        when(purchaseOrderRepository.save(any(PurchaseOrder.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        PurchaseOrderResponse response = purchaseOrderService.verifyPurchaseOrder(10L, mockUser);
+        assertNotNull(response);
+        assertEquals(PurchaseOrderStatus.VERIFIED, response.getStatus());
+        assertTrue(response.isReadOnly());
+        assertNotNull(response.getVerifiedBy());
+        assertNotNull(response.getVerifiedAt());
+        verify(purchaseOrderRepository).save(receivedPo);
     }
 }

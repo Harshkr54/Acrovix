@@ -118,21 +118,21 @@ export default function QuotationPreviewModal({
 
                                 {activeTab === 'email' && emailDetails && (
                                     <div className="w-full h-full p-4 sm:p-8 flex justify-center">
-                                        <div className="w-full max-w-[850px] bg-white shadow-xl rounded-xl border border-gray-200 overflow-hidden flex flex-col">
+                                        <div className="w-full max-w-[850px] bg-bg-card shadow-xl rounded-2xl border border-border-subtle overflow-hidden flex flex-col">
                                             
                                             {/* Email Client Header Mock */}
-                                            <div className="bg-slate-50 border-b border-slate-200 p-5 space-y-3">
+                                            <div className="bg-bg-muted/50 border-b border-border-subtle p-5 space-y-3">
                                                 <div className="flex items-start">
-                                                    <span className="w-16 text-[12px] font-semibold text-slate-400 mt-0.5">Subject:</span>
-                                                    <span className="flex-1 text-[14px] font-bold text-slate-800">{emailDetails.subject}</span>
+                                                    <span className="w-16 text-[12px] font-semibold text-text-muted mt-0.5">Subject:</span>
+                                                    <span className="flex-1 text-[14px] font-bold text-text-primary">{emailDetails.subject}</span>
                                                 </div>
                                                 <div className="flex items-start">
-                                                    <span className="w-16 text-[12px] font-semibold text-slate-400 mt-0.5">From:</span>
-                                                    <span className="flex-1 text-[13px] text-slate-700">{emailDetails.from}</span>
+                                                    <span className="w-16 text-[12px] font-semibold text-text-muted mt-0.5">From:</span>
+                                                    <span className="flex-1 text-[13px] text-text-secondary">{emailDetails.from}</span>
                                                 </div>
                                                 <div className="flex items-start">
-                                                    <span className="w-16 text-[12px] font-semibold text-slate-400 mt-0.5">To:</span>
-                                                    <span className="flex-1 text-[13px] text-slate-700">{emailDetails.to}</span>
+                                                    <span className="w-16 text-[12px] font-semibold text-text-muted mt-0.5">To:</span>
+                                                    <span className="flex-1 text-[13px] text-text-secondary">{emailDetails.to}</span>
                                                 </div>
                                             </div>
 
@@ -147,15 +147,15 @@ export default function QuotationPreviewModal({
                                             </div>
 
                                             {/* Email Attachments Mock */}
-                                            <div className="bg-slate-50 border-t border-slate-200 p-4">
-                                                <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-3">1 Attachment</h4>
-                                                <div className="inline-flex items-center px-4 py-3 bg-white border border-slate-200 rounded-lg shadow-sm">
-                                                    <div className="w-8 h-8 bg-red-50 rounded flex items-center justify-center ">
+                                            <div className="bg-bg-muted/50 border-t border-border-subtle p-4">
+                                                <h4 className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-3">1 Attachment</h4>
+                                                <div className="inline-flex items-center px-4 py-3 bg-bg-card border border-border-subtle rounded-xl shadow-xs">
+                                                    <div className="w-8 h-8 bg-red-50 dark:bg-red-950/30 rounded flex items-center justify-center mr-3">
                                                         <FileText className="w-4 h-4 text-red-500" />
                                                     </div>
                                                     <div>
-                                                        <p className="text-[13px] font-semibold text-slate-700 leading-tight">{emailDetails.filename}</p>
-                                                        <p className="text-[11px] text-slate-400 mt-0.5">PDF Document</p>
+                                                        <p className="text-[13px] font-semibold text-text-primary leading-tight">{emailDetails.filename}</p>
+                                                        <p className="text-[11px] text-text-muted mt-0.5">PDF Document</p>
                                                     </div>
                                                 </div>
                                             </div>

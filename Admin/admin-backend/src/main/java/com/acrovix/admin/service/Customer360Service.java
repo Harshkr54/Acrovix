@@ -24,7 +24,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
-@RequiredArgsConstructor
 public class Customer360Service {
 
     private final CustomerRepository customerRepository;
@@ -37,6 +36,30 @@ public class Customer360Service {
     private final EmailLogRepository emailLogRepository;
     private final AdminActivityRepository adminActivityRepository;
     private final AuthorizationService authorizationService;
+
+    public Customer360Service(
+            CustomerRepository customerRepository,
+            AdminEnquiryRepository adminEnquiryRepository,
+            CrmLeadRepository crmLeadRepository,
+            CrmFollowUpRepository crmFollowUpRepository,
+            QuotationRepository quotationRepository,
+            InvoiceRepository invoiceRepository,
+            PaymentRepository paymentRepository,
+            EmailLogRepository emailLogRepository,
+            AdminActivityRepository adminActivityRepository,
+            AuthorizationService authorizationService
+    ) {
+        this.customerRepository = customerRepository;
+        this.adminEnquiryRepository = adminEnquiryRepository;
+        this.crmLeadRepository = crmLeadRepository;
+        this.crmFollowUpRepository = crmFollowUpRepository;
+        this.quotationRepository = quotationRepository;
+        this.invoiceRepository = invoiceRepository;
+        this.paymentRepository = paymentRepository;
+        this.emailLogRepository = emailLogRepository;
+        this.adminActivityRepository = adminActivityRepository;
+        this.authorizationService = authorizationService;
+    }
 
     @Transactional(readOnly = true)
     public Customer360Response getCustomer360(Long customerId, AdminUser currentUser) {
@@ -86,8 +109,9 @@ public class Customer360Service {
         List<Payment> payments = paymentRepository.findByCustomerIdOrderByCreatedAtDesc(customerId, limit50).getContent();
         List<Long> paymentIds = payments.stream().map(Payment::getId).collect(Collectors.toList());
 
-        // 7. Receivables Summary
-        Map<Currency, ReceivableSummaryResponse> summaryByCurrency = calculateReceivablesSummary(customer, invoices);
+        // 7. Receivables Summary (computed over ALL customer invoices, not truncated to first page)
+        List<Invoice> allCustomerInvoices = invoiceRepository.findByCustomerId(customerId);
+        Map<Currency, ReceivableSummaryResponse> summaryByCurrency = calculateReceivablesSummary(customer, allCustomerInvoices);
 
         // 8. Emails
         List<EmailLog> fullEmails = emailLogRepository.findCustomerEmails(

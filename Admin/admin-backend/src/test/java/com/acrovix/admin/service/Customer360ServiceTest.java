@@ -134,6 +134,7 @@ public class Customer360ServiceTest {
                 .balanceDue(new BigDecimal("500"))
                 .build();
 
+        when(invoiceRepository.findByCustomerId(1L)).thenReturn(List.of(inrInvoice, usdInvoice));
         when(crmLeadRepository.findByCustomerIdOrderByCreatedAtDesc(eq(1L), any(Pageable.class))).thenReturn(new PageImpl<>(new ArrayList<>()));
         when(adminEnquiryRepository.findByBusinessEmailOrderByCreatedAtDesc(eq("john@doe.com"), any(Pageable.class))).thenReturn(new PageImpl<>(new ArrayList<>()));
         when(quotationRepository.findByCustomerIdAndDeletedAtIsNullOrderByCreatedAtDesc(eq(1L), any(Pageable.class))).thenReturn(new PageImpl<>(new ArrayList<>()));
@@ -157,5 +158,51 @@ public class Customer360ServiceTest {
         assertEquals(new BigDecimal("500.00"), response.getSummaryByCurrency().get(Currency.USD).getTotalInvoiced());
         assertEquals(new BigDecimal("0.00"), response.getSummaryByCurrency().get(Currency.USD).getTotalReceived());
         assertEquals(new BigDecimal("500.00"), response.getSummaryByCurrency().get(Currency.USD).getOutstandingAmount());
+    }
+
+    @Test
+    void getCustomer360_ReceivablesSummary_NotTruncatedByPagination() {
+        when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
+
+        // Create 60 invoices each of 100 INR
+        List<Invoice> all60Invoices = new ArrayList<>();
+        for (int i = 0; i < 60; i++) {
+            all60Invoices.add(Invoice.builder()
+                    .id((long) (200 + i))
+                    .invoiceType(InvoiceType.TAX_INVOICE)
+                    .status(InvoiceStatus.ISSUED)
+                    .currency(Currency.INR)
+                    .grandTotal(new BigDecimal("100"))
+                    .amountPaid(new BigDecimal("20"))
+                    .balanceDue(new BigDecimal("80"))
+                    .build());
+        }
+
+        // Paginated list returns only 50 (page 1)
+        List<Invoice> first50Invoices = all60Invoices.subList(0, 50);
+
+        when(invoiceRepository.findByCustomerIdOrderByCreatedAtDesc(eq(1L), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(first50Invoices));
+        when(invoiceRepository.findByCustomerId(1L)).thenReturn(all60Invoices);
+
+        when(crmLeadRepository.findByCustomerIdOrderByCreatedAtDesc(eq(1L), any(Pageable.class))).thenReturn(new PageImpl<>(new ArrayList<>()));
+        when(adminEnquiryRepository.findByBusinessEmailOrderByCreatedAtDesc(eq("john@doe.com"), any(Pageable.class))).thenReturn(new PageImpl<>(new ArrayList<>()));
+        when(quotationRepository.findByCustomerIdAndDeletedAtIsNullOrderByCreatedAtDesc(eq(1L), any(Pageable.class))).thenReturn(new PageImpl<>(new ArrayList<>()));
+        when(paymentRepository.findByCustomerIdOrderByCreatedAtDesc(eq(1L), any(Pageable.class))).thenReturn(new PageImpl<>(new ArrayList<>()));
+        when(emailLogRepository.findCustomerEmails(eq("john@doe.com"), eq(1L), any(), any(), any(), any(), any(Pageable.class))).thenReturn(new PageImpl<>(new ArrayList<>()));
+        when(adminActivityRepository.findCustomerActivities(eq(1L), any(), any(), any(), any(), any(Pageable.class))).thenReturn(new PageImpl<>(new ArrayList<>()));
+
+        Customer360Response response = customer360Service.getCustomer360(1L, testAdmin);
+
+        // Paginated list in response has 50 items
+        assertEquals(50, response.getInvoices().size());
+
+        // Receivables summary aggregates ALL 60 invoices (60 * 100 = 6000 total invoiced)
+        assertNotNull(response.getSummaryByCurrency());
+        var inrSummary = response.getSummaryByCurrency().get(Currency.INR);
+        assertNotNull(inrSummary);
+        assertEquals(new BigDecimal("6000.00"), inrSummary.getTotalInvoiced());
+        assertEquals(new BigDecimal("1200.00"), inrSummary.getTotalReceived());
+        assertEquals(new BigDecimal("4800.00"), inrSummary.getOutstandingAmount());
     }
 }

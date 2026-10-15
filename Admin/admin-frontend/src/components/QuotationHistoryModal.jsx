@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { fetchApi } from '../services/api';
 import { History, FileText, AlertCircle, Eye, ExternalLink } from 'lucide-react';
+import Modal from './ui/Modal';
 
 export default function QuotationHistoryModal({ isOpen, onClose, quotation, onViewPdf }) {
     const [history, setHistory] = useState([]);
@@ -45,30 +46,29 @@ export default function QuotationHistoryModal({ isOpen, onClose, quotation, onVi
         }
     };
 
-    return (
-        <div className="fixed inset-0 bg-text-primary/30 backdrop-blur-sm z-[90] flex items-center justify-center p-4">
-            <div className="acx-card w-full max-w-4xl shadow-2xl relative animate-modal-entrance flex flex-col max-h-[85vh]">
-                <div className="p-6 md:px-8 md:pt-8 md:pb-6 border-b border-border-subtle flex justify-between items-center bg-bg-card rounded-t-[24px]">
-                    <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-indigo-50 border border-indigo-100 flex items-center justify-center rounded-[14px] text-indigo-600">
-                            <History className="w-5 h-5" />
-                        </div>
-                        <div>
-                            <h3 className="text-[20px] font-bold text-text-primary tracking-tight">Revision History</h3>
-                            <p className="text-[13px] text-text-secondary mt-0.5">
-                                Base Quotation: {quotation.baseQuotationId ? `ID ${quotation.baseQuotationId}` : quotation.quotationNumber}
-                            </p>
-                        </div>
-                    </div>
-                    <button 
-                        onClick={onClose}
-                        className="btn btn-secondary btn-icon"
-                    >
-                        &times;
-                    </button>
-                </div>
+    const modalFooter = (
+        <button 
+            type="button"
+            onClick={onClose}
+            className="btn btn-secondary btn-md"
+        >
+            Close
+        </button>
+    );
 
-                <div className="flex-1 overflow-y-auto p-0">
+    return (
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title="Revision History"
+            subtitle={`Base Quotation: ${quotation.baseQuotationId ? `ID ${quotation.baseQuotationId}` : quotation.quotationNumber}`}
+            icon={History}
+            iconClassName="bg-indigo-500/10 border-indigo-500/20 text-indigo-500"
+            size="xl"
+            bodyClassName="p-0"
+            footer={modalFooter}
+        >
+            <div className="overflow-x-auto">
                     {isLoading ? (
                         <div className="flex flex-col items-center justify-center py-16">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-primary mb-4"></div>
@@ -114,6 +114,11 @@ export default function QuotationHistoryModal({ isOpen, onClose, quotation, onVi
                                             {ver.responseSource && (
                                                 <div className="text-[10px] text-text-muted mt-1 font-medium">via {ver.responseSource}</div>
                                             )}
+                                            {ver.responseNotes && (
+                                                <div className="text-[11px] text-text-secondary mt-0.5 italic max-w-[220px] whitespace-normal">
+                                                    "{ver.responseNotes}"
+                                                </div>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-[13px] font-bold text-text-primary">
                                             ₹{ver.grandTotal?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
@@ -135,17 +140,7 @@ export default function QuotationHistoryModal({ isOpen, onClose, quotation, onVi
                             </tbody>
                         </table>
                     )}
-                </div>
-
-                <div className="p-6 border-t border-border-subtle bg-bg-card rounded-b-[24px] flex justify-end">
-                    <button 
-                        onClick={onClose}
-                        className="btn btn-primary btn-md"
-                    >
-                        Close
-                    </button>
-                </div>
             </div>
-        </div>
+        </Modal>
     );
 }

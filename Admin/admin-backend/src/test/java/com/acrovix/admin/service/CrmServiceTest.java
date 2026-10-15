@@ -633,4 +633,49 @@ public class CrmServiceTest {
         assertEquals("ACX/QT/2026/999", quotations.get(0).get("quotationNumber"));
         assertEquals("SENT", quotations.get(0).get("status"));
     }
+
+    @Test
+    void testSalesCannotReassignLeadToAnotherSalesUser() {
+        CrmLeadRequest req = CrmLeadRequest.builder()
+                .fullName("Sales Reassign Test")
+                .businessEmail("reassign1@test.com")
+                .assignedToId(salesRep1.getId())
+                .build();
+        CrmLeadResponse lead = crmService.createLead(req, superAdmin);
+
+        // SalesRep1 attempts to assign their lead to SalesRep2 -> AccessDeniedException
+        assertThrows(AccessDeniedException.class, () -> {
+            crmService.assignLead(lead.getId(), salesRep2.getId(), salesRep1);
+        });
+    }
+
+    @Test
+    void testSalesCannotStealOtherUsersLead() {
+        CrmLeadRequest req = CrmLeadRequest.builder()
+                .fullName("Sales Steal Test")
+                .businessEmail("steal@test.com")
+                .assignedToId(salesRep1.getId())
+                .build();
+        CrmLeadResponse lead = crmService.createLead(req, superAdmin);
+
+        // SalesRep2 attempts to assign SalesRep1's lead to themselves -> AccessDeniedException
+        assertThrows(AccessDeniedException.class, () -> {
+            crmService.assignLead(lead.getId(), salesRep2.getId(), salesRep2);
+        });
+    }
+
+    @Test
+    void testSuperAdminCanReassignLead() {
+        CrmLeadRequest req = CrmLeadRequest.builder()
+                .fullName("Admin Reassign Test")
+                .businessEmail("adminreassign@test.com")
+                .assignedToId(salesRep1.getId())
+                .build();
+        CrmLeadResponse lead = crmService.createLead(req, superAdmin);
+
+        // SuperAdmin reassigns from SalesRep1 to SalesRep2 -> SUCCESS
+        CrmLeadResponse reassigned = crmService.assignLead(lead.getId(), salesRep2.getId(), superAdmin);
+        assertNotNull(reassigned);
+        assertEquals(salesRep2.getId(), reassigned.getAssignedToId());
+    }
 }

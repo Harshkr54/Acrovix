@@ -4,7 +4,6 @@ import com.acrovix.backend.dto.EnquiryRequest;
 import com.acrovix.backend.dto.EnquiryResponseData;
 import com.acrovix.backend.entity.Enquiry;
 import com.acrovix.backend.repository.EnquiryRepository;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -16,7 +15,6 @@ import java.time.LocalDateTime;
 import java.time.Year;
 
 @Service
-@RequiredArgsConstructor
 public class EnquiryService {
 
     private static final Logger logger = LoggerFactory.getLogger(EnquiryService.class);
@@ -24,6 +22,11 @@ public class EnquiryService {
     private final EnquiryRepository enquiryRepository;
     private final EmailService emailService;
     private final SecureRandom random = new SecureRandom();
+
+    public EnquiryService(EnquiryRepository enquiryRepository, EmailService emailService) {
+        this.enquiryRepository = enquiryRepository;
+        this.emailService = emailService;
+    }
 
     public EnquiryResponseData createEnquiry(EnquiryRequest request) {
         // Step 1: Persist enquiry to PostgreSQL in transaction

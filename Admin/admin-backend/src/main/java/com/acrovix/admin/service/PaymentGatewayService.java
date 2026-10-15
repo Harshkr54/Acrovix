@@ -39,8 +39,10 @@ public class PaymentGatewayService {
             throw new IllegalStateException("Invoice is already fully paid");
         }
         
-        // If link already exists, just return the invoice
-        if (invoice.getPaymentLinkId() != null && invoice.getPaymentLinkUrl() != null) {
+        // If a real payment-link URL already exists, nothing to do.
+        // NOTE: a conversion marker ("CONVERTED_FROM_PROFORMA:*") stored in paymentLinkId is NOT
+        // a real payment link — do NOT use paymentLinkId alone as the guard.
+        if (invoice.getPaymentLinkUrl() != null && !invoice.getPaymentLinkUrl().isBlank()) {
             return invoice;
         }
 
@@ -78,7 +80,16 @@ public class PaymentGatewayService {
 
             PaymentLink paymentLink = razorpay.paymentLink.create(paymentLinkRequest);
 
-            invoice.setPaymentLinkId(paymentLink.get("id"));
+            // Only overwrite paymentLinkId when it does not carry a conversion marker.
+            // Conversion markers begin with "CONVERTED_FROM_PROFORMA:" or "CONVERTED_TO_TAX_INVOICE:"
+            // and must be preserved for idempotency checks in InvoiceService.
+            String existingLinkId = invoice.getPaymentLinkId();
+            boolean isConversionMarker = existingLinkId != null &&
+                    (existingLinkId.startsWith("CONVERTED_FROM_PROFORMA:") ||
+                     existingLinkId.startsWith("CONVERTED_TO_TAX_INVOICE:"));
+            if (!isConversionMarker) {
+                invoice.setPaymentLinkId(paymentLink.get("id"));
+            }
             invoice.setPaymentLinkUrl(paymentLink.get("short_url"));
             
             return invoiceRepository.save(invoice);

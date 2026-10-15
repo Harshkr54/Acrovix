@@ -4,7 +4,8 @@ import {
     getCrmLeadById, 
     getCrmFollowUpsForLead, 
     getLeadActivities, 
-    getLeadQuotations 
+    getLeadQuotations,
+    createQuotationFromLead 
 } from '../services/api';
 import EmptyState from '../components/ui/EmptyState';
 import StatusBadge from '../components/ui/StatusBadge';
@@ -61,6 +62,7 @@ export default function CrmLeadDetails() {
     const [quotations, setQuotations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activitiesLoading, setActivitiesLoading] = useState(false);
+    const [creatingQuotation, setCreatingQuotation] = useState(false);
     const [error, setError] = useState(null);
 
     // Modal state triggers
@@ -143,6 +145,20 @@ export default function CrmLeadDetails() {
             console.error("Failed to refresh quotations", err);
         }
     }, [id]);
+
+    const handleCreateQuotation = async () => {
+        try {
+            setCreatingQuotation(true);
+            const quote = await createQuotationFromLead(id);
+            showToast({ type: 'success', message: `Draft Quotation ${quote.quotationNumber || ''} created successfully.` });
+            navigate(`/quotations/edit/${quote.id}`);
+        } catch (err) {
+            console.error("Failed to create quotation from lead", err);
+            showToast({ type: 'error', message: err.message || "Failed to create quotation" });
+        } finally {
+            setCreatingQuotation(false);
+        }
+    };
 
     useEffect(() => {
         fetchLeadData();
@@ -527,15 +543,15 @@ export default function CrmLeadDetails() {
                                 >
                                     <RefreshCw className="w-3.5 h-3.5" />
                                 </button>
-                                {lead.enquiryId && (
-                                    <button
-                                        onClick={() => navigate(`/quotations/new/${lead.enquiryId}`)}
-                                        className="btn btn-secondary btn-md text-xs font-semibold flex items-center gap-1.5"
-                                    >
-                                        <Plus className="w-3.5 h-3.5" />
-                                        New Quotation
-                                    </button>
-                                )}
+                                <button
+                                    onClick={handleCreateQuotation}
+                                    disabled={creatingQuotation}
+                                    className="btn btn-secondary btn-md text-xs font-semibold flex items-center gap-1.5"
+                                    title="Create draft quotation for this lead"
+                                >
+                                    <Plus className="w-3.5 h-3.5" />
+                                    {creatingQuotation ? 'Creating...' : 'New Quotation'}
+                                </button>
                             </div>
                         </div>
 

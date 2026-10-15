@@ -306,8 +306,9 @@ export const createInvoiceFromQuotation = (quotationId, type) => fetchApi(`/invo
     method: 'POST'
 });
 
-export const createInvoiceFromPurchaseOrder = (poId, type) => fetchApi(`/invoices/from-po/${poId}?type=${type}`, {
-    method: 'POST'
+export const createInvoiceFromPurchaseOrder = (poId, type = 'TAX_INVOICE', data = null) => fetchApi(`/invoices/from-po/${poId}?type=${type}`, {
+    method: 'POST',
+    body: data ? JSON.stringify(data) : undefined
 });
 
 export const updateDraftInvoice = (id, data) => fetchApi(`/invoices/${id}`, {
@@ -535,6 +536,10 @@ export const cancelCrmFollowUp = (id) => fetchApi(`/crm/follow-ups/${id}/cancel`
 
 export const getDueFollowUpsToday = () => fetchApi('/crm/follow-ups/due');
 
+export const getOverdueFollowUps = () => fetchApi('/crm/follow-ups/overdue');
+
+export const createQuotationFromLead = (leadId) => fetchApi(`/quotations/lead/${leadId}`, { method: 'POST' });
+
 export const getUpcomingFollowUps = (params = {}) => {
     const qs = new URLSearchParams(params).toString();
     return fetchApi(`/crm/follow-ups/upcoming${qs ? `?${qs}` : ''}`);
@@ -543,6 +548,12 @@ export const getUpcomingFollowUps = (params = {}) => {
 export const getCrmPipeline = () => fetchApi('/crm/pipeline');
 
 export const getCrmDashboardSummary = () => fetchApi('/crm/dashboard');
+
+export const getAutomationStatus = () => fetchApi('/automation/status');
+
+export const getAutomationHistory = (page = 0, size = 20) => fetchApi(`/automation/history?page=${page}&size=${size}`);
+
+export const runAutomationTask = (taskName) => fetchApi(`/automation/run/${taskName}`, { method: 'POST' });
 
 export const getAdminUsers = () => fetchApi('/users');
 

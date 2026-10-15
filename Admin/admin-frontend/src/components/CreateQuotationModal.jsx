@@ -12,6 +12,7 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
     const [step, setStep] = useState(1); // 1: Choose type, 2: Direct quotation client details
     const [isCreating, setIsCreating] = useState(false);
     const [error, setError] = useState(null);
+    const [billingAddressError, setBillingAddressError] = useState('');
 
     const [formData, setFormData] = useState({
         customerId: null,
@@ -55,6 +56,7 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
     const handleClose = () => {
         setStep(1);
         setError(null);
+        setBillingAddressError('');
         setFormData({
             customerId: null,
             clientName: '',
@@ -92,6 +94,9 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
             state: formatStateDisplay(c.state, c.gstin),
             pincode: extractedPin
         }));
+        if (c.billingAddress && c.billingAddress.trim()) {
+            setBillingAddressError('');
+        }
         setCustomerSearch('');
         setIsCustomerDropdownOpen(false);
     };
@@ -99,6 +104,7 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
     const clearSelectedCustomer = () => {
         setSelectedCustomer(null);
         setCustomerSearch('');
+        setBillingAddressError('');
         setFormData(prev => ({
             ...prev,
             customerId: null,
@@ -121,7 +127,17 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        if (name === 'billingAddress') {
+            if (value.trim()) {
+                setBillingAddressError('');
+                if (error === 'Billing address is required') {
+                    setError(null);
+                }
+            }
+            setFormData(prev => ({ ...prev, [name]: value }));
+        } else {
+            setFormData(prev => ({ ...prev, [name]: value }));
+        }
     };
 
     const handleStateBlur = () => {
@@ -151,6 +167,12 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
             return;
         }
 
+        if (!formData.billingAddress || !formData.billingAddress.trim()) {
+            setBillingAddressError('Billing address is required');
+            setError('Billing address is required');
+            return;
+        }
+
         setIsCreating(true);
 
         try {
@@ -163,10 +185,10 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                     clientEmail: formData.clientEmail.trim(),
                     clientPhone: formData.clientPhone.trim() || null,
                     gstin: formData.gstin.trim() || null,
-                    billingAddress: formData.billingAddress.trim() || null,
+                    billingAddress: formData.billingAddress.trim(),
                     shippingAddress: formData.shippingAddress.trim() || null,
                     state: extractStateCode(formData.state) || null,
-                    pincode: formData.pincode.trim() || null,
+                    pincode: formData.pincode ? formData.pincode.trim() : null,
                     currency: formData.currency,
                     quotationSource: formData.quotationSource,
                     sourceNotes: formData.sourceNotes.trim() || null
@@ -196,7 +218,7 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
         { value: 'OTHER', label: 'Other Source', icon: HelpCircle }
     ];
 
-    const inputClasses = "w-full bg-white border border-[#D9E2EC] focus:border-brand-primary focus:ring-1 focus:ring-brand-primary/20 rounded-[12px] px-3.5 min-h-[44px] text-[13px] font-medium text-[#0B192C] placeholder:text-text-muted outline-none transition-all duration-200";
+    const inputClasses = "w-full bg-bg-card border border-border-subtle focus:border-brand-primary focus:ring-1 focus:ring-brand-primary/20 rounded-[12px] px-3.5 min-h-[44px] text-[13px] font-medium text-text-primary placeholder:text-text-muted outline-none transition-all duration-200";
     const labelClasses = "block text-[12px] font-semibold text-text-secondary uppercase tracking-wider mb-1.5";
 
     const filteredStates = (formData.state && !GST_STATES.some(s => `${s.code} - ${s.name}`.toLowerCase() === (formData.state || '').trim().toLowerCase()))
@@ -204,13 +226,13 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
         : GST_STATES;
 
     return (
-        <div className="fixed inset-0 bg-[#0B192C]/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className={`bg-white w-full shadow-2xl relative animate-modal-entrance flex flex-col ${step === 1 ? 'max-w-4xl p-6 md:p-8 rounded-[20px] my-8 h-auto overflow-y-auto' : 'max-w-[950px] w-[calc(100vw-32px)] max-h-[88vh] rounded-[24px]'}`}>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+            <div className={`bg-bg-card border border-border-subtle w-full shadow-2xl relative animate-modal-entrance flex flex-col ${step === 1 ? 'max-w-4xl p-6 md:p-8 rounded-[20px] my-8 h-auto overflow-y-auto' : 'max-w-[950px] w-[calc(100vw-32px)] max-h-[88vh] rounded-[24px]'}`}>
                 
                 {/* Close Button - Kept absolute for both steps */}
                 <button
                     onClick={handleClose}
-                    className={`absolute w-9 h-9 flex items-center justify-center rounded-[10px] border border-border-subtle text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors z-[60] ${step === 1 ? 'top-5 right-5 bg-bg-card' : 'top-5 right-5 md:top-6 md:right-6 bg-white'}`}
+                    className="absolute w-9 h-9 flex items-center justify-center rounded-[10px] border border-border-subtle text-text-secondary hover:text-text-primary hover:bg-bg-hover bg-bg-card transition-colors z-[60] top-5 right-5 md:top-6 md:right-6"
                 >
                     <X className="w-5 h-5" />
                 </button>
@@ -218,7 +240,7 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                 {step === 1 ? (
                     <div>
                         <div className="mb-6">
-                            <h2 className="text-[22px] font-bold text-[#0B192C] tracking-tight">Create New Quotation</h2>
+                            <h2 className="text-[22px] font-bold text-text-primary tracking-tight">Create New Quotation</h2>
                             <p className="text-[13px] text-text-secondary mt-1">Choose how you want to create this quotation.</p>
                         </div>
 
@@ -226,14 +248,14 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                             {/* Option 1: From Website Enquiry */}
                             <button
                                 onClick={handleSelectEnquiry}
-                                className="group w-full min-h-[88px] p-4 bg-white hover:bg-brand-primary/5 border border-border-subtle hover:border-brand-primary/40 rounded-[14px] transition-all duration-200 text-left flex items-center gap-4 shadow-sm hover:shadow"
+                                className="group w-full min-h-[88px] p-4 bg-bg-card hover:bg-bg-hover border border-border-subtle hover:border-brand-primary/40 rounded-[14px] transition-all duration-200 text-left flex items-center gap-4 shadow-sm hover:shadow"
                             >
                                 <div className="w-11 h-11 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary shrink-0 transition-transform">
                                     <Globe className="w-5 h-5" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center justify-between gap-3">
-                                        <h3 className="text-[15px] font-bold text-[#0B192C] group-hover:text-brand-primary transition-colors truncate">
+                                        <h3 className="text-[15px] font-bold text-text-primary group-hover:text-brand-primary transition-colors truncate">
                                             From Website Enquiry
                                         </h3>
                                         <span className="text-[12px] font-bold text-brand-primary group-hover:translate-x-0.5 transition-transform shrink-0 whitespace-nowrap">
@@ -249,14 +271,14 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                             {/* Option 2: Direct / Manual Quotation */}
                             <button
                                 onClick={() => setStep(2)}
-                                className="group w-full min-h-[88px] p-4 bg-white hover:bg-[#0D9488]/5 border border-border-subtle hover:border-[#0D9488]/40 rounded-[14px] transition-all duration-200 text-left flex items-center gap-4 shadow-sm hover:shadow"
+                                className="group w-full min-h-[88px] p-4 bg-bg-card hover:bg-bg-hover border border-border-subtle hover:border-[#0D9488]/40 rounded-[14px] transition-all duration-200 text-left flex items-center gap-4 shadow-sm hover:shadow"
                             >
                                 <div className="w-11 h-11 rounded-xl bg-[#14B8A6]/10 flex items-center justify-center text-[#0D9488] shrink-0 transition-transform">
                                     <UserPlus className="w-5 h-5" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center justify-between gap-3">
-                                        <h3 className="text-[15px] font-bold text-[#0B192C] group-hover:text-[#0D9488] transition-colors truncate">
+                                        <h3 className="text-[15px] font-bold text-text-primary group-hover:text-[#0D9488] transition-colors truncate">
                                             Direct / Manual Quotation
                                         </h3>
                                         <span className="text-[12px] font-bold text-[#0D9488] group-hover:translate-x-0.5 transition-transform shrink-0 whitespace-nowrap">
@@ -273,20 +295,20 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                 ) : (
                     <>
                         {/* Header */}
-                        <div className="flex items-center justify-between p-6 md:px-8 border-b border-border-subtle shrink-0">
+                        <div className="flex items-center justify-between p-6 md:px-8 border-b border-border-subtle shrink-0 bg-bg-card">
                             <div className="flex items-center gap-4">
                                 <div className="w-10 h-10 rounded-[12px] bg-brand-primary/10 flex items-center justify-center text-brand-primary shrink-0">
                                     <FileText className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <h2 className="text-[18px] md:text-[22px] font-bold text-[#0B192C] tracking-tight leading-none">Direct Quotation Details</h2>
+                                    <h2 className="text-[18px] md:text-[22px] font-bold text-text-primary tracking-tight leading-none">Direct Quotation Details</h2>
                                     <p className="text-[13px] text-text-secondary mt-1">Enter client and order source information.</p>
                                 </div>
                             </div>
                         </div>
 
                         {/* Scrollable Body */}
-                        <div className="flex-1 overflow-y-auto p-6 md:px-8 bg-white">
+                        <div className="flex-1 overflow-y-auto p-6 md:px-8 bg-bg-card">
                             {error && (
                                 <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-[12px] text-[13px] text-red-600 font-medium flex items-center gap-2">
                                     <AlertCircle className="w-4 h-4 shrink-0" />
@@ -331,7 +353,7 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                                                                 Customer Master
                                                             </span>
                                                             {selectedCustomer?.customerCode && (
-                                                                <span className="text-[11px] font-mono font-medium text-text-muted bg-white border border-[#D9E2EC] px-1.5 py-0.5 rounded">
+                                                                <span className="text-[11px] font-mono font-medium text-text-muted bg-bg-card border border-border-subtle px-1.5 py-0.5 rounded">
                                                                     {selectedCustomer.customerCode}
                                                                 </span>
                                                             )}
@@ -340,20 +362,20 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                                                             {formData.clientEmail && <span>{formData.clientEmail}</span>}
                                                             {formData.clientPhone && <span>• {formData.clientPhone}</span>}
                                                             {formData.state && (
-                                                                <span>• State: <strong className="text-[#0B192C]">{formData.state}</strong></span>
+                                                                <span>• State: <strong className="text-text-primary">{formData.state}</strong></span>
                                                             )}
                                                         </div>
                                                         {/* Saved GSTIN Display - pure customer information, no input or verify button */}
                                                         <div className="mt-2.5 flex items-center gap-2 flex-wrap">
                                                             <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">GSTIN:</span>
                                                             {formData.gstin ? (
-                                                                <span className="font-mono text-[12px] font-bold text-[#0B192C] bg-white border border-[#CBD5E1] px-2.5 py-0.5 rounded-[6px]">
+                                                                <span className="font-mono text-[12px] font-bold text-text-primary bg-bg-card border border-border-subtle px-2.5 py-0.5 rounded-[6px]">
                                                                     {formData.gstin}
                                                                 </span>
                                                             ) : (
                                                                 <span className="text-[12px] text-text-muted italic">Not on file</span>
                                                             )}
-                                                            <span className="text-[10px] font-medium text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-[4px]">
+                                                            <span className="text-[10px] font-medium text-text-muted bg-bg-muted border border-border-subtle px-2.5 py-0.5 rounded-[4px]">
                                                                 Saved Record
                                                             </span>
                                                         </div>
@@ -363,7 +385,7 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                                                 <button
                                                     type="button"
                                                     onClick={clearSelectedCustomer}
-                                                    className="self-start sm:self-center px-3.5 py-2 text-[12px] font-bold text-text-secondary hover:text-brand-danger bg-white hover:bg-red-50 border border-border-subtle hover:border-red-200 rounded-[10px] transition-all flex items-center gap-1.5 shrink-0 shadow-sm cursor-pointer"
+                                                    className="self-start sm:self-center px-3.5 py-2 text-[12px] font-bold text-text-secondary hover:text-brand-danger bg-bg-card hover:bg-red-50 dark:hover:bg-red-950/30 border border-border-subtle hover:border-red-200 rounded-[10px] transition-all flex items-center gap-1.5 shrink-0 shadow-sm cursor-pointer"
                                                     title="Clear customer selection and switch to new customer"
                                                 >
                                                     <X className="w-4 h-4" />
@@ -373,7 +395,7 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                                         </div>
                                     ) : (
                                         /* PATH B: DISCOVERY / NEW CUSTOMER */
-                                        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 md:gap-6 items-start bg-[#F3F7FA] border border-border-subtle rounded-[16px] p-5">
+                                        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 md:gap-6 items-start bg-bg-main/60 border border-border-subtle rounded-[16px] p-5">
                                             <div className="relative">
                                                 <label className={labelClasses}>
                                                     Search Customer Master
@@ -391,7 +413,7 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                                                     className={inputClasses}
                                                 />
                                                 {isCustomerDropdownOpen && (
-                                                    <div className="absolute z-50 w-full mt-1 bg-white border border-[#D9E2EC] rounded-[12px] shadow-lg max-h-48 overflow-y-auto">
+                                                    <div className="absolute z-50 w-full mt-1 bg-bg-card border border-border-subtle rounded-[12px] shadow-lg max-h-48 overflow-y-auto">
                                                         {isLoadingCustomers ? (
                                                             <div className="p-3 text-[12px] text-text-muted text-center flex items-center justify-center gap-2">
                                                                 <Loader2 className="w-4 h-4 animate-spin" /> Loading...
@@ -406,7 +428,7 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                                                                     onClick={() => selectCustomer(c)}
                                                                     className="px-4 py-2.5 hover:bg-bg-hover cursor-pointer border-b border-border-subtle/40 last:border-0 transition-colors"
                                                                 >
-                                                                    <div className="text-[13px] font-bold text-[#0B192C]">{c.name} {c.companyName ? `(${c.companyName})` : ''}</div>
+                                                                    <div className="text-[13px] font-bold text-text-primary">{c.name} {c.companyName ? `(${c.companyName})` : ''}</div>
                                                                     <div className="text-[11px] text-text-muted mt-0.5">{c.email} | {c.phone}</div>
                                                                 </div>
                                                             ))
@@ -416,9 +438,9 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                                             </div>
                                             
                                             <div className="hidden md:flex flex-col items-center justify-center self-stretch pt-6">
-                                                <div className="w-[1px] h-6 bg-[#D9E2EC]"></div>
+                                                <div className="w-[1px] h-6 bg-border-subtle"></div>
                                                 <span className="text-[11px] font-bold text-text-muted uppercase tracking-widest my-2">OR</span>
-                                                <div className="w-[1px] h-6 bg-[#D9E2EC]"></div>
+                                                <div className="w-[1px] h-6 bg-border-subtle"></div>
                                             </div>
 
                                             <div>
@@ -434,7 +456,7 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                                                         }));
                                                     }}
                                                     placeholder="Enter 15-digit GSTIN"
-                                                    className="bg-white border-[#D9E2EC] focus:border-brand-primary focus:ring-1 focus:ring-brand-primary/20 rounded-[12px]"
+                                                    className="bg-bg-card border-border-subtle focus:border-brand-primary focus:ring-1 focus:ring-brand-primary/20 rounded-[12px]"
                                                     isExistingCustomer={false}
                                                     onVerified={(data) => {
                                                         setSelectedCustomer(null);
@@ -447,6 +469,9 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                                                             state: formatStateDisplay(data.state, data.gstin || formData.gstin) || prev.state,
                                                             pincode: data.pincode || prev.pincode
                                                         }));
+                                                        if (data.billingAddress && data.billingAddress.trim()) {
+                                                            setBillingAddressError('');
+                                                        }
                                                     }}
                                                 />
                                             </div>
@@ -542,16 +567,23 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                                         <div className="grid grid-cols-1 sm:grid-cols-6 gap-4">
                                             <div className="sm:col-span-3">
                                                 <label className={labelClasses}>
-                                                    Billing Address
+                                                    Billing Address <span className="text-red-500">*</span>
                                                 </label>
                                                 <input
                                                     type="text"
                                                     name="billingAddress"
                                                     value={formData.billingAddress}
                                                     onChange={handleInputChange}
+                                                    required
                                                     placeholder="123 Business St."
-                                                    className={inputClasses}
+                                                    className={`${inputClasses} ${billingAddressError ? 'border-red-400 focus:border-red-500 focus:ring-red-200' : ''}`}
                                                 />
+                                                {billingAddressError && (
+                                                    <p className="text-[12px] text-red-500 mt-1 flex items-center gap-1 font-medium">
+                                                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                                                        <span>{billingAddressError}</span>
+                                                    </p>
+                                                )}
                                             </div>
                                             <div className="sm:col-span-2 relative">
                                                 <label className={labelClasses}>
@@ -581,9 +613,9 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                                                         <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isStateDropdownOpen ? 'rotate-180' : ''}`} />
                                                     </button>
                                                     {isStateDropdownOpen && (
-                                                        <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-[#D9E2EC] rounded-[12px] shadow-xl max-h-52 overflow-y-auto py-1">
+                                                        <div className="absolute z-50 left-0 right-0 mt-1 bg-bg-card border border-border-subtle rounded-[12px] shadow-xl max-h-52 overflow-y-auto py-1">
                                                             {filteredStates.length === 0 ? (
-                                                                <div className="px-3 py-2 text-[12px] text-text-muted text-center">
+                                                                 <div className="px-3 py-2 text-[12px] text-text-muted text-center">
                                                                     No matching state found
                                                                 </div>
                                                             ) : (
@@ -598,7 +630,7 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                                                                                 setFormData(prev => ({ ...prev, state: itemVal }));
                                                                                 setIsStateDropdownOpen(false);
                                                                             }}
-                                                                            className={`px-3 py-2 text-[13px] hover:bg-brand-primary/5 cursor-pointer flex items-center justify-between transition-colors ${isSelected ? 'bg-brand-primary/10 text-brand-primary font-semibold' : 'text-[#0B192C]'}`}
+                                                                            className={`px-3 py-2 text-[13px] hover:bg-brand-primary/5 cursor-pointer flex items-center justify-between transition-colors ${isSelected ? 'bg-brand-primary/10 text-brand-primary font-semibold' : 'text-text-primary'}`}
                                                                         >
                                                                             <span className="font-medium truncate">{itemVal}</span>
                                                                             <span className="text-[11px] font-mono font-bold text-brand-primary bg-brand-primary/10 px-1.5 py-0.5 rounded ml-2 shrink-0">
@@ -614,14 +646,14 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                                             </div>
                                             <div className="sm:col-span-1">
                                                 <label className={labelClasses}>
-                                                    Pincode
+                                                    PINCODE
                                                 </label>
                                                 <input
                                                     type="text"
                                                     name="pincode"
                                                     value={formData.pincode}
                                                     onChange={handleInputChange}
-                                                    placeholder="Zip Code"
+                                                    placeholder="e.g. 110001"
                                                     className={inputClasses}
                                                 />
                                             </div>
@@ -693,13 +725,13 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                         </div>
 
                         {/* Sticky Footer */}
-                        <div className="p-5 md:px-8 border-t border-border-subtle bg-white shrink-0 rounded-b-[24px]">
+                        <div className="p-5 md:px-8 border-t border-border-subtle bg-bg-card shrink-0 rounded-b-[24px]">
                             <div className="flex items-center justify-between">
                                 <button
                                     type="button"
                                     onClick={() => setStep(1)}
                                     disabled={isCreating}
-                                    className="px-5 h-[44px] rounded-[12px] border border-border-subtle text-[13px] font-bold text-[#0B192C] bg-white hover:bg-bg-hover transition-colors flex items-center justify-center min-w-[100px]"
+                                    className="btn btn-secondary btn-md min-w-[100px]"
                                 >
                                     Back
                                 </button>
@@ -707,7 +739,7 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
                                     type="submit"
                                     form="direct-quotation-form"
                                     disabled={isCreating}
-                                    className="px-6 h-[44px] rounded-[12px] border border-transparent text-[13px] font-bold text-white bg-brand-primary hover:bg-[#1D4ED8] transition-colors flex items-center justify-center space-x-2 min-w-[180px] shadow-sm hover:shadow"
+                                    className="btn btn-primary btn-md min-w-[180px] gap-2 shadow-sm"
                                 >
                                     {isCreating ? (
                                         <><Loader2 className="w-4 h-4 animate-spin" /> <span>Creating...</span></>

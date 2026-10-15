@@ -175,6 +175,13 @@ public class CrmController {
         return ResponseEntity.ok(crmService.cancelFollowUp(id, admin));
     }
 
+    @GetMapping("/follow-ups/overdue")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    public ResponseEntity<List<CrmFollowUpResponse>> getOverdueFollowUps(
+            @AuthenticationPrincipal AdminUser admin) {
+        return ResponseEntity.ok(crmService.getOverdueFollowUps(admin));
+    }
+
     @GetMapping("/follow-ups/due")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
     public ResponseEntity<List<CrmFollowUpResponse>> getDueFollowUpsToday(

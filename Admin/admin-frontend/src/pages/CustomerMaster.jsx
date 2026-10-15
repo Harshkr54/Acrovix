@@ -13,6 +13,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import GstinAutoLookup from '../components/GstinAutoLookup';
 import { formatStateDisplay } from '../utils/gstStateUtils';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 
 // Deterministic initials & colors for customer avatars
 const getInitials = (name, company) => {
@@ -495,9 +496,18 @@ export default function CustomerMaster() {
         setActiveActionMenuId(null);
     };
 
-    const toggleStatus = async (id, currentStatus) => {
-        const actionLabel = currentStatus ? 'deactivate' : 'activate';
-        if (!window.confirm(`Are you sure you want to ${actionLabel} this customer?`)) return;
+    const [customerStatusTarget, setCustomerStatusTarget] = useState(null);
+    const [isTogglingStatus, setIsTogglingStatus] = useState(false);
+
+    const toggleStatus = (id, currentStatus, name) => {
+        setCustomerStatusTarget({ id, currentStatus, name: name || 'this customer' });
+        setActiveActionMenuId(null);
+    };
+
+    const handleConfirmCustomerStatus = async () => {
+        if (!customerStatusTarget) return;
+        const { id, currentStatus } = customerStatusTarget;
+        setIsTogglingStatus(true);
         try {
             if (currentStatus) {
                 await deleteCustomer(id);
@@ -505,9 +515,11 @@ export default function CustomerMaster() {
                 await activateCustomer(id);
             }
             fetchCustomersList();
+            setCustomerStatusTarget(null);
         } catch (err) {
-            alert(err.message || `Failed to ${actionLabel} customer.`);
+            alert(err.message || 'Failed to update customer status.');
         } finally {
+            setIsTogglingStatus(false);
             setActiveActionMenuId(null);
         }
     };
@@ -1592,6 +1604,23 @@ export default function CustomerMaster() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Customer Status Change Confirmation Modal */}
+            {customerStatusTarget && (
+                <ConfirmDialog
+                    isOpen={Boolean(customerStatusTarget)}
+                    title={customerStatusTarget.currentStatus ? "Deactivate Customer Account" : "Activate Customer Account"}
+                    description={customerStatusTarget.currentStatus 
+                        ? `Are you sure you want to deactivate ${customerStatusTarget.name}? They will be archived from active sales flows, but all historical quotations, invoices, and payments remain preserved.`
+                        : `Are you sure you want to activate ${customerStatusTarget.name}? Their account will be active and available for new quotations and billing.`}
+                    confirmText={customerStatusTarget.currentStatus ? "Deactivate Customer" : "Activate Customer"}
+                    cancelText="Cancel"
+                    variant={customerStatusTarget.currentStatus ? "destructive" : "primary"}
+                    isLoading={isTogglingStatus}
+                    onConfirm={handleConfirmCustomerStatus}
+                    onCancel={() => !isTogglingStatus && setCustomerStatusTarget(null)}
+                />
             )}
 
         </div>

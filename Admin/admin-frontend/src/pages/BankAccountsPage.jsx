@@ -4,6 +4,8 @@ import { Landmark, ChevronRight, Plus, Check, MoreVertical, X, Loader2, Edit3, T
 import { getCompanyBankAccounts, createCompanyBankAccount, updateCompanyBankAccount, setDefaultCompanyBankAccount, deactivateCompanyBankAccount } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import ActionMenu from '../components/ActionMenu';
+import Modal from '../components/ui/Modal';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 
 const BankLogo = ({ bankName }) => {
     const name = (bankName || '').toLowerCase();
@@ -61,7 +63,7 @@ export default function BankAccountsPage() {
     const [editingAccount, setEditingAccount] = useState(null);
     const [formData, setFormData] = useState({
         bankName: '',
-        accountHolder: 'ACROVIX INNOVATIONS PRIVATE LIMITED',
+        accountHolder: '',
         bankAccountNumber: '',
         confirmAccountNumber: '',
         bankIfsc: '',
@@ -91,7 +93,7 @@ export default function BankAccountsPage() {
         setEditingAccount(null);
         setFormData({
             bankName: '',
-            accountHolder: 'ACROVIX INNOVATIONS PRIVATE LIMITED',
+            accountHolder: '',
             bankAccountNumber: '',
             confirmAccountNumber: '',
             bankIfsc: '',
@@ -130,13 +132,20 @@ export default function BankAccountsPage() {
         }
     };
 
-    const handleDeactivate = async (id) => {
-        if (!window.confirm('Are you sure you want to deactivate this bank account?')) return;
+    const [accountToDeactivate, setAccountToDeactivate] = useState(null);
+
+    const handleDeactivate = (acc) => {
+        setAccountToDeactivate(acc);
+    };
+
+    const handleConfirmDeactivate = async () => {
+        if (!accountToDeactivate) return;
         setActionLoading(true);
         try {
-            await deactivateCompanyBankAccount(id);
+            await deactivateCompanyBankAccount(accountToDeactivate.id);
             showToast({ type: 'success', message: 'Bank account deactivated.' });
             await loadData();
+            setAccountToDeactivate(null);
         } catch (error) {
             showToast({ type: 'error', message: error.message || 'Failed to deactivate bank account.' });
         } finally {
@@ -373,7 +382,7 @@ export default function BankAccountsPage() {
                                                 {
                                                     label: 'Deactivate Account',
                                                     danger: true,
-                                                    onClick: () => handleDeactivate(acc.id)
+                                                    onClick: () => handleDeactivate(acc)
                                                 }
                                             ]}
                                         />
@@ -422,157 +431,163 @@ export default function BankAccountsPage() {
             </div>
 
             {/* Modal for Add / Edit Bank Account */}
-            {modalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-                    <div className="bg-white dark:bg-bg-card w-full max-w-lg rounded-[20px] shadow-2xl border border-border-subtle overflow-hidden">
-                        <div className="flex items-center justify-between p-5 border-b border-border-subtle">
-                            <div className="flex items-center gap-2.5">
-                                <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center text-[#16A34A]">
-                                    <Landmark className="w-4 h-4" />
-                                </div>
-                                <h3 className="text-[16px] font-bold text-text-primary">
-                                    {editingAccount ? 'Edit Bank Account' : 'Add Bank Account'}
-                                </h3>
-                            </div>
-                            <button
-                                onClick={() => setModalOpen(false)}
-                                className="p-1 rounded-lg text-text-muted hover:text-text-primary hover:bg-slate-100 transition-colors"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
+            <Modal
+                isOpen={modalOpen}
+                onClose={() => setModalOpen(false)}
+                title={editingAccount ? 'Edit Bank Account' : 'Add Bank Account'}
+                subtitle={editingAccount ? 'Update settlement account information' : 'Register a new enterprise bank account'}
+                icon={Landmark}
+                iconClassName="text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200/50"
+                size="md"
+                isLoading={actionLoading}
+                footer={
+                    <>
+                        <button
+                            type="button"
+                            onClick={() => setModalOpen(false)}
+                            disabled={actionLoading}
+                            className="btn btn-secondary btn-md"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleFormSubmit}
+                            disabled={isSubmitDisabled() || actionLoading}
+                            className="btn btn-primary btn-md shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                        >
+                            {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                            <span>{editingAccount ? 'Save Changes' : 'Add Account'}</span>
+                        </button>
+                    </>
+                }
+            >
+                <form onSubmit={handleFormSubmit} className="space-y-4">
+                    <div>
+                        <label className="block text-[11px] font-bold text-text-muted uppercase mb-1">
+                            Bank Name *
+                        </label>
+                        <input
+                            type="text"
+                            placeholder="e.g. HDFC Bank, ICICI Bank, SBI"
+                            value={formData.bankName}
+                            onChange={(e) => handleFieldChange('bankName', e.target.value)}
+                            className={`acx-input text-[13px] ${formErrors.bankName ? '!border-red-500 focus:!ring-red-500/20' : ''}`}
+                        />
+                        {formErrors.bankName && (
+                            <p className="text-[11px] text-red-500 mt-1 font-medium">{formErrors.bankName}</p>
+                        )}
+                    </div>
+
+                    <div>
+                        <label className="block text-[11px] font-bold text-text-muted uppercase mb-1">
+                            Account Holder Name *
+                        </label>
+                        <input
+                            type="text"
+                            value={formData.accountHolder}
+                            onChange={(e) => handleFieldChange('accountHolder', e.target.value)}
+                            className={`acx-input text-[13px] ${formErrors.accountHolder ? '!border-red-500 focus:!ring-red-500/20' : ''}`}
+                        />
+                        {formErrors.accountHolder && (
+                            <p className="text-[11px] text-red-500 mt-1 font-medium">{formErrors.accountHolder}</p>
+                        )}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-[11px] font-bold text-text-muted uppercase mb-1">
+                                Account Number *
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="Full account number"
+                                value={formData.bankAccountNumber}
+                                onChange={(e) => handleFieldChange('bankAccountNumber', e.target.value)}
+                                className={`acx-input text-[13px] font-mono ${formErrors.bankAccountNumber ? '!border-red-500 focus:!ring-red-500/20' : ''}`}
+                            />
+                            {formErrors.bankAccountNumber && (
+                                <p className="text-[11px] text-red-500 mt-1 font-medium">{formErrors.bankAccountNumber}</p>
+                            )}
                         </div>
 
-                        <form onSubmit={handleFormSubmit} className="p-6 space-y-4">
-                            <div>
-                                <label className="block text-[11px] font-bold text-text-muted uppercase mb-1">
-                                    Bank Name *
-                                </label>
-                                <input
-                                    type="text"
-                                    placeholder="e.g. HDFC Bank, ICICI Bank, SBI"
-                                    value={formData.bankName}
-                                    onChange={(e) => handleFieldChange('bankName', e.target.value)}
-                                    className={`acx-input text-[13px] ${formErrors.bankName ? '!border-red-500 focus:!ring-red-500/20' : ''}`}
-                                />
-                                {formErrors.bankName && (
-                                    <p className="text-[11px] text-red-500 mt-1 font-medium">{formErrors.bankName}</p>
-                                )}
-                            </div>
-
-                            <div>
-                                <label className="block text-[11px] font-bold text-text-muted uppercase mb-1">
-                                    Account Holder Name *
-                                </label>
-                                <input
-                                    type="text"
-                                    value={formData.accountHolder}
-                                    onChange={(e) => handleFieldChange('accountHolder', e.target.value)}
-                                    className={`acx-input text-[13px] ${formErrors.accountHolder ? '!border-red-500 focus:!ring-red-500/20' : ''}`}
-                                />
-                                {formErrors.accountHolder && (
-                                    <p className="text-[11px] text-red-500 mt-1 font-medium">{formErrors.accountHolder}</p>
-                                )}
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-[11px] font-bold text-text-muted uppercase mb-1">
-                                        Account Number *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        placeholder="Full account number"
-                                        value={formData.bankAccountNumber}
-                                        onChange={(e) => handleFieldChange('bankAccountNumber', e.target.value)}
-                                        className={`acx-input text-[13px] font-mono ${formErrors.bankAccountNumber ? '!border-red-500 focus:!ring-red-500/20' : ''}`}
-                                    />
-                                    {formErrors.bankAccountNumber && (
-                                        <p className="text-[11px] text-red-500 mt-1 font-medium">{formErrors.bankAccountNumber}</p>
-                                    )}
-                                </div>
-
-                                <div>
-                                    <label className="block text-[11px] font-bold text-text-muted uppercase mb-1">
-                                        Confirm Account Number *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        placeholder="Re-enter account number"
-                                        value={formData.confirmAccountNumber}
-                                        onChange={(e) => handleFieldChange('confirmAccountNumber', e.target.value)}
-                                        className={`acx-input text-[13px] font-mono ${formErrors.confirmAccountNumber ? '!border-red-500 focus:!ring-red-500/20' : ''}`}
-                                    />
-                                    {formErrors.confirmAccountNumber && (
-                                        <p className="text-[11px] text-red-500 mt-1 font-medium">{formErrors.confirmAccountNumber}</p>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-[11px] font-bold text-text-muted uppercase mb-1">
-                                        IFSC Code *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        placeholder="e.g. HDFC0001234"
-                                        value={formData.bankIfsc}
-                                        onChange={(e) => handleFieldChange('bankIfsc', e.target.value.toUpperCase())}
-                                        className={`acx-input text-[13px] font-mono uppercase ${formErrors.bankIfsc ? '!border-red-500 focus:!ring-red-500/20' : ''}`}
-                                    />
-                                    {formErrors.bankIfsc && (
-                                        <p className="text-[11px] text-red-500 mt-1 font-medium">{formErrors.bankIfsc}</p>
-                                    )}
-                                </div>
-
-                                <div>
-                                    <label className="block text-[11px] font-bold text-text-muted uppercase mb-1">
-                                        Branch Name
-                                    </label>
-                                    <input
-                                        type="text"
-                                        placeholder="e.g. Koramangala, Bengaluru"
-                                        value={formData.bankBranch}
-                                        onChange={(e) => handleFieldChange('bankBranch', e.target.value)}
-                                        className="acx-input text-[13px]"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="pt-2">
-                                <label className="flex items-center gap-2 cursor-pointer select-none">
-                                    <input
-                                        type="checkbox"
-                                        checked={formData.isDefault}
-                                        onChange={(e) => setFormData({ ...formData, isDefault: e.target.checked })}
-                                        className="w-4 h-4 rounded text-brand-primary border-border-subtle focus:ring-brand-primary"
-                                    />
-                                    <span className="text-[13px] font-medium text-text-primary">
-                                        Set as default bank account for new documents
-                                    </span>
-                                </label>
-                            </div>
-
-                            <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-border-subtle">
-                                <button
-                                    type="button"
-                                    onClick={() => setModalOpen(false)}
-                                    className="btn btn-secondary btn-md"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={isSubmitDisabled()}
-                                    className="btn btn-primary btn-md shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                    <span>{editingAccount ? 'Save Changes' : 'Add Account'}</span>
-                                </button>
-                            </div>
-                        </form>
+                        <div>
+                            <label className="block text-[11px] font-bold text-text-muted uppercase mb-1">
+                                Confirm Account Number *
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="Re-enter account number"
+                                value={formData.confirmAccountNumber}
+                                onChange={(e) => handleFieldChange('confirmAccountNumber', e.target.value)}
+                                className={`acx-input text-[13px] font-mono ${formErrors.confirmAccountNumber ? '!border-red-500 focus:!ring-red-500/20' : ''}`}
+                            />
+                            {formErrors.confirmAccountNumber && (
+                                <p className="text-[11px] text-red-500 mt-1 font-medium">{formErrors.confirmAccountNumber}</p>
+                            )}
+                        </div>
                     </div>
-                </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-[11px] font-bold text-text-muted uppercase mb-1">
+                                IFSC Code *
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="e.g. HDFC0001234"
+                                value={formData.bankIfsc}
+                                onChange={(e) => handleFieldChange('bankIfsc', e.target.value.toUpperCase())}
+                                className={`acx-input text-[13px] font-mono uppercase ${formErrors.bankIfsc ? '!border-red-500 focus:!ring-red-500/20' : ''}`}
+                            />
+                            {formErrors.bankIfsc && (
+                                <p className="text-[11px] text-red-500 mt-1 font-medium">{formErrors.bankIfsc}</p>
+                            )}
+                        </div>
+
+                        <div>
+                            <label className="block text-[11px] font-bold text-text-muted uppercase mb-1">
+                                Branch Name
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="e.g. Koramangala, Bengaluru"
+                                value={formData.bankBranch}
+                                onChange={(e) => handleFieldChange('bankBranch', e.target.value)}
+                                className="acx-input text-[13px]"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="pt-2">
+                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                            <input
+                                type="checkbox"
+                                checked={formData.isDefault}
+                                onChange={(e) => setFormData({ ...formData, isDefault: e.target.checked })}
+                                className="w-4 h-4 rounded text-brand-primary border-border-subtle focus:ring-brand-primary"
+                            />
+                            <span className="text-[13px] font-medium text-text-primary">
+                                Set as default bank account for new documents
+                            </span>
+                        </label>
+                    </div>
+                </form>
+            </Modal>
+
+            {/* Deactivate Bank Account Confirmation Dialog */}
+            {accountToDeactivate && (
+                <ConfirmDialog
+                    isOpen={Boolean(accountToDeactivate)}
+                    title="Deactivate Bank Account"
+                    description={`Are you sure you want to deactivate ${accountToDeactivate.bankName} (${accountToDeactivate.bankAccountNumber || accountToDeactivate.maskedAccountNumber})? Historical transactions will be preserved, but it won't be used for new invoices or payments.`}
+                    confirmText="Deactivate Account"
+                    cancelText="Cancel"
+                    variant="destructive"
+                    isLoading={actionLoading}
+                    onConfirm={handleConfirmDeactivate}
+                    onCancel={() => !actionLoading && setAccountToDeactivate(null)}
+                />
             )}
         </div>
     );

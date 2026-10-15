@@ -21,7 +21,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Service
-@RequiredArgsConstructor
 public class PurchaseOrderService {
 
     private final PurchaseOrderRepository purchaseOrderRepository;
@@ -32,6 +31,44 @@ public class PurchaseOrderService {
     private final AuthorizationService authorizationService;
     private final PdfService pdfService;
     private final EmailService emailService;
+    private final com.acrovix.admin.repository.InvoiceRepository invoiceRepository;
+    private final com.acrovix.admin.repository.CompanySettingsRepository companySettingsRepository;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public PurchaseOrderService(PurchaseOrderRepository purchaseOrderRepository,
+                                QuotationRepository quotationRepository,
+                                SequenceGeneratorService sequenceGeneratorService,
+                                AdminActivityRepository activityRepository,
+                                NotificationService notificationService,
+                                AuthorizationService authorizationService,
+                                PdfService pdfService,
+                                EmailService emailService,
+                                com.acrovix.admin.repository.InvoiceRepository invoiceRepository,
+                                com.acrovix.admin.repository.CompanySettingsRepository companySettingsRepository) {
+        this.purchaseOrderRepository = purchaseOrderRepository;
+        this.quotationRepository = quotationRepository;
+        this.sequenceGeneratorService = sequenceGeneratorService;
+        this.activityRepository = activityRepository;
+        this.notificationService = notificationService;
+        this.authorizationService = authorizationService;
+        this.pdfService = pdfService;
+        this.emailService = emailService;
+        this.invoiceRepository = invoiceRepository;
+        this.companySettingsRepository = companySettingsRepository;
+    }
+
+    public PurchaseOrderService(PurchaseOrderRepository purchaseOrderRepository,
+                                QuotationRepository quotationRepository,
+                                SequenceGeneratorService sequenceGeneratorService,
+                                AdminActivityRepository activityRepository,
+                                NotificationService notificationService,
+                                AuthorizationService authorizationService,
+                                PdfService pdfService,
+                                EmailService emailService,
+                                com.acrovix.admin.repository.InvoiceRepository invoiceRepository) {
+        this(purchaseOrderRepository, quotationRepository, sequenceGeneratorService, activityRepository,
+                notificationService, authorizationService, pdfService, emailService, invoiceRepository, null);
+    }
 
     @Transactional(readOnly = true)
     public Page<PurchaseOrderResponse> getPurchaseOrders(String search, PurchaseOrderStatus status, Pageable pageable, AdminUser currentUser) {
@@ -80,7 +117,8 @@ public class PurchaseOrderService {
     @Transactional
     public PurchaseOrderResponse createPurchaseOrder(PurchaseOrderRequest request, AdminUser currentUser) {
 
-        Quotation quotation = quotationRepository.findById(request.getQuotationId())
+        Quotation quotation = quotationRepository.findByIdForUpdate(request.getQuotationId())
+                .or(() -> quotationRepository.findById(request.getQuotationId()))
                 .orElseThrow(() -> new ResourceNotFoundException("Quotation not found"));
                 
         authorizationService.checkQuotationAccess(currentUser, quotation);
@@ -106,6 +144,58 @@ public class PurchaseOrderService {
         // Authoritatively derive PO Value and currency from source quotation's persisted total
         BigDecimal authoritativePoValue = quotation.getGrandTotal();
 
+        // Resolve delivery destination
+        String deliveryAddress = request.getDeliveryAddress();
+        String deliveryContactName = request.getDeliveryContactName();
+        String deliveryContactPhone = request.getDeliveryContactPhone();
+        String deliveryDestinationType = request.getDeliveryDestinationType();
+
+        if (deliveryDestinationType == null || deliveryDestinationType.isBlank()) {
+            if (deliveryAddress != null && !deliveryAddress.isBlank()) {
+                deliveryDestinationType = "CUSTOM";
+            } else {
+                deliveryDestinationType = "COMPANY_OFFICE";
+            }
+        }
+
+        if ("COMPANY_OFFICE".equalsIgnoreCase(deliveryDestinationType)) {
+            com.acrovix.admin.entity.CompanySettings settings = null;
+            if (companySettingsRepository != null) {
+                settings = companySettingsRepository.findAll().stream().findFirst().orElse(null);
+            }
+            if (deliveryAddress == null || deliveryAddress.isBlank()) {
+                if (settings != null && settings.getRegisteredAddress() != null && !settings.getRegisteredAddress().isBlank()) {
+                    deliveryAddress = settings.getRegisteredAddress();
+                } else if (settings != null && settings.getBillingAddress() != null && !settings.getBillingAddress().isBlank()) {
+                    deliveryAddress = settings.getBillingAddress();
+                } else {
+                    deliveryAddress = "956, 3rd Floor, Vigneshwara, 6th Cross, 1st Main Kengeri, Bengaluru, Karnataka, 560060";
+                }
+            }
+            if (deliveryContactName == null || deliveryContactName.isBlank()) {
+                deliveryContactName = (settings != null && settings.getCompanyName() != null && !settings.getCompanyName().isBlank()) 
+                        ? settings.getCompanyName() : "ACROVIX INNOVATIONS PRIVATE LIMITED";
+            }
+            if (deliveryContactPhone == null || deliveryContactPhone.isBlank()) {
+                deliveryContactPhone = (settings != null && settings.getPhone() != null) ? settings.getPhone() : "8092848065";
+            }
+        } else if ("CUSTOMER_SITE".equalsIgnoreCase(deliveryDestinationType)) {
+            Customer cust = quotation.getCustomer();
+            if (deliveryAddress == null || deliveryAddress.isBlank()) {
+                if (cust != null && cust.getShippingAddress() != null && !cust.getShippingAddress().isBlank()) {
+                    deliveryAddress = cust.getShippingAddress();
+                }
+            }
+            if (deliveryContactName == null || deliveryContactName.isBlank()) {
+                deliveryContactName = (cust != null && cust.getName() != null && !cust.getName().isBlank()) 
+                        ? cust.getName() : quotation.getClientName();
+            }
+            if (deliveryContactPhone == null || deliveryContactPhone.isBlank()) {
+                deliveryContactPhone = (cust != null && cust.getPhone() != null && !cust.getPhone().isBlank()) 
+                        ? cust.getPhone() : quotation.getClientPhone();
+            }
+        }
+
         PurchaseOrder po = PurchaseOrder.builder()
                 .poNumber(poNumber)
                 .quotation(quotation)
@@ -116,6 +206,10 @@ public class PurchaseOrderService {
                 .poDocumentUrl(request.getPoDocumentUrl())
                 .receivedVia(request.getReceivedVia())
                 .remarks(request.getRemarks())
+                .deliveryAddress(deliveryAddress)
+                .deliveryContactName(deliveryContactName)
+                .deliveryContactPhone(deliveryContactPhone)
+                .deliveryDestinationType(deliveryDestinationType)
                 .status(PurchaseOrderStatus.RECEIVED)
                 .createdBy(currentUser)
                 .build();
@@ -196,6 +290,10 @@ public class PurchaseOrderService {
         
         if (oldStatus == newStatus) return mapToResponse(po);
         
+        if (oldStatus == PurchaseOrderStatus.VERIFIED) {
+            throw new IllegalStateException("Purchase Order " + po.getPoNumber() + " is in VERIFIED read-only state. Status cannot be modified directly.");
+        }
+        
         // Strict transitions check
         if (oldStatus == PurchaseOrderStatus.CANCELLED || oldStatus == PurchaseOrderStatus.FULFILLED) {
             throw new IllegalArgumentException("Cannot transition from terminal status " + oldStatus);
@@ -243,7 +341,19 @@ public class PurchaseOrderService {
             response.setQuotationNumber(po.getQuotation().getQuotationNumber());
             response.setClientName(po.getQuotation().getClientName());
             response.setClientCompany(po.getQuotation().getClientCompany());
+            response.setClientEmail(po.getQuotation().getClientEmail());
+            response.setClientPhone(po.getQuotation().getClientPhone());
             response.setQuotationValue(po.getQuotation().getGrandTotal());
+
+            if (po.getQuotation().getCustomer() != null) {
+                Customer cust = po.getQuotation().getCustomer();
+                response.setClientBillingAddress(cust.getBillingAddress());
+                response.setClientShippingAddress(cust.getShippingAddress());
+                response.setClientGstin(cust.getGstin());
+                response.setClientPan(cust.getPan());
+                response.setClientState(cust.getState());
+                response.setClientPincode(cust.getPincode());
+            }
         }
         
         response.setClientPoNumber(po.getClientPoNumber());
@@ -261,7 +371,14 @@ public class PurchaseOrderService {
         response.setPoDocumentUrl(po.getPoDocumentUrl());
         response.setReceivedVia(po.getReceivedVia());
         response.setRemarks(po.getRemarks());
+        response.setDeliveryAddress(po.getDeliveryAddress());
+        response.setDeliveryContactName(po.getDeliveryContactName());
+        response.setDeliveryContactPhone(po.getDeliveryContactPhone());
+        response.setDeliveryDestinationType(po.getDeliveryDestinationType());
         response.setStatus(po.getStatus());
+        response.setReadOnly(po.getStatus() == PurchaseOrderStatus.VERIFIED 
+                || po.getStatus() == PurchaseOrderStatus.FULFILLED 
+                || po.getStatus() == PurchaseOrderStatus.CANCELLED);
         
         if (po.getVerifiedBy() != null) {
             AdminUserResponse admin = AdminUserResponse.builder()
@@ -284,6 +401,27 @@ public class PurchaseOrderService {
         
         response.setCreatedAt(po.getCreatedAt());
         response.setUpdatedAt(po.getUpdatedAt());
+
+        if (invoiceRepository != null && po.getId() != null) {
+            BigDecimal invoiced = invoiceRepository.sumInvoicedAmountForPo(po.getId());
+            response.setInvoicedAmount(invoiced != null ? invoiced : BigDecimal.ZERO);
+            BigDecimal remaining = po.getPoValue() != null ? po.getPoValue().subtract(response.getInvoicedAmount()) : BigDecimal.ZERO;
+            if (remaining.compareTo(BigDecimal.ZERO) < 0) remaining = BigDecimal.ZERO;
+            response.setRemainingAmount(remaining);
+
+            java.util.List<Long> activeTaxInvoices = invoiceRepository.findActiveInvoiceIdsByPurchaseOrderIdAndType(po.getId(), com.acrovix.admin.entity.InvoiceType.TAX_INVOICE);
+            if (!activeTaxInvoices.isEmpty()) {
+                response.setActiveTaxInvoiceId(activeTaxInvoices.get(0));
+            }
+
+            boolean isVerifiedOrPartial = po.getStatus() == PurchaseOrderStatus.VERIFIED || po.getStatus() == PurchaseOrderStatus.PARTIALLY_FULFILLED;
+            response.setEligibleForInvoice(isVerifiedOrPartial && remaining.compareTo(BigDecimal.ZERO) > 0);
+        } else {
+            response.setInvoicedAmount(BigDecimal.ZERO);
+            response.setRemainingAmount(po.getPoValue() != null ? po.getPoValue() : BigDecimal.ZERO);
+            boolean isVerifiedOrPartial = po.getStatus() == PurchaseOrderStatus.VERIFIED || po.getStatus() == PurchaseOrderStatus.PARTIALLY_FULFILLED;
+            response.setEligibleForInvoice(isVerifiedOrPartial);
+        }
         
         return response;
     }
@@ -294,6 +432,13 @@ public class PurchaseOrderService {
                 .orElseThrow(() -> new ResourceNotFoundException("Purchase Order not found"));
 
         authorizationService.checkPurchaseOrderAccess(currentUser, po);
+
+        if (po.getStatus() == PurchaseOrderStatus.VERIFIED) {
+            throw new IllegalStateException("Cannot modify remarks of Purchase Order " + po.getPoNumber() + " in VERIFIED read-only state");
+        }
+        if (po.getStatus() == PurchaseOrderStatus.FULFILLED || po.getStatus() == PurchaseOrderStatus.CANCELLED) {
+            throw new IllegalStateException("Cannot modify remarks of Purchase Order " + po.getPoNumber() + " in terminal status " + po.getStatus());
+        }
 
         po.setRemarks(request != null ? request.getRemarks() : null);
         po = purchaseOrderRepository.save(po);

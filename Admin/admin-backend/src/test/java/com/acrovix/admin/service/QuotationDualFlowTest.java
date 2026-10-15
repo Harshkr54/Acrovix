@@ -40,6 +40,8 @@ class QuotationDualFlowTest {
     private AdminActivityRepository activityRepository;
     @Mock
     private NotificationService notificationService;
+    @Mock
+    private com.acrovix.admin.repository.CustomerRepository customerRepository;
 
     @Spy
     private AuthorizationService authorizationService = new AuthorizationService(null, null);
@@ -124,9 +126,12 @@ class QuotationDualFlowTest {
                 .clientCompany("Direct Corp")
                 .clientEmail("direct@client.com")
                 .clientPhone("+919998887770")
+                .billingAddress("123 Direct St, Tech Hub")
                 .quotationSource(QuotationSource.PHONE)
                 .sourceNotes("Client called sales hotline")
                 .build();
+
+        when(customerRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         Quotation q = quotationService.createDirectDraftQuotation(req, salesUser1);
 
@@ -139,6 +144,35 @@ class QuotationDualFlowTest {
         assertEquals("DRAFT", q.getStatus());
         assertEquals(salesUser1, q.getCreatedBy());
         verify(activityRepository).save(any());
+    }
+
+    @Test
+    void testCreateDirectDraftQuotation_MissingOrWhitespaceBillingAddress_ThrowsException() {
+        // 1. Null billing address
+        CreateDirectQuotationRequest nullAddrReq = CreateDirectQuotationRequest.builder()
+                .clientName("Direct Client")
+                .clientEmail("direct@client.com")
+                .billingAddress(null)
+                .quotationSource(QuotationSource.PHONE)
+                .build();
+
+        IllegalArgumentException ex1 = assertThrows(IllegalArgumentException.class, () ->
+                quotationService.createDirectDraftQuotation(nullAddrReq, salesUser1)
+        );
+        assertEquals("Billing address is required", ex1.getMessage());
+
+        // 2. Whitespace-only billing address
+        CreateDirectQuotationRequest whitespaceAddrReq = CreateDirectQuotationRequest.builder()
+                .clientName("Direct Client")
+                .clientEmail("direct@client.com")
+                .billingAddress("     ")
+                .quotationSource(QuotationSource.PHONE)
+                .build();
+
+        IllegalArgumentException ex2 = assertThrows(IllegalArgumentException.class, () ->
+                quotationService.createDirectDraftQuotation(whitespaceAddrReq, salesUser1)
+        );
+        assertEquals("Billing address is required", ex2.getMessage());
     }
 
     @Test

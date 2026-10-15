@@ -31,6 +31,7 @@ public class InvoiceResponse {
     private String clientEmail;
     private String clientPhone;
     private String clientAddress;
+    private String clientShippingAddress;
     private String clientGstin;
     private String placeOfSupply;
 

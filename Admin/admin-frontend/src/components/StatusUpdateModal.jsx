@@ -12,6 +12,7 @@ import {
     ArrowRight
 } from 'lucide-react';
 import StatusBadge from './ui/StatusBadge';
+import Modal from './ui/Modal';
 
 // Authoritative state machine transitions matching backend business rules
 const AUTHORITATIVE_TRANSITIONS = {
@@ -182,46 +183,58 @@ export default function StatusUpdateModal({ isOpen, onClose, lead, onSuccess }) 
 
     const isTerminalWon = currentStatus === 'WON';
 
-    return (
-        <div 
-            className="fixed inset-0 bg-text-primary/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto"
-            onClick={(e) => {
-                if (e.target === e.currentTarget && !isSubmitting) onClose();
-            }}
-        >
-            <div 
-                className="bg-bg-card border border-border-subtle rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-150"
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="status-update-modal-title"
+    const modalFooter = (
+        <div className="flex items-center justify-end gap-3 w-full">
+            <button
+                type="button"
+                onClick={onClose}
+                disabled={isSubmitting}
+                className="btn btn-secondary btn-md font-semibold"
             >
-                {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-bg-main">
-                    <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-brand-teal/10 text-brand-teal flex items-center justify-center">
+                Cancel
+            </button>
+            {!isTerminalWon && validTargets.length > 0 && (
+                <button
+                    type="submit"
+                    form="status-update-form"
+                    disabled={isSubmitting}
+                    className={`btn btn-md font-semibold flex items-center justify-center gap-1.5 min-w-[130px] ${
+                        targetStatus === 'LOST' 
+                            ? 'btn-danger' 
+                            : targetStatus === 'WON' 
+                                ? 'btn-success' 
+                                : 'btn-primary'
+                    }`}
+                >
+                    {isSubmitting ? (
+                        <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Updating...</span>
+                        </>
+                    ) : (
+                        <>
                             <RefreshCw className="w-4 h-4" />
-                        </div>
-                        <div>
-                            <h2 id="status-update-modal-title" className="text-base font-bold text-text-primary">
-                                Advance Sales Journey
-                            </h2>
-                            <p className="text-xs text-text-muted">
-                                {lead.leadNumber} — {lead.fullName} {lead.companyName ? `(${lead.companyName})` : ''}
-                            </p>
-                        </div>
-                    </div>
-                    <button 
-                        onClick={onClose} 
-                        disabled={isSubmitting}
-                        className="btn btn-ghost btn-icon text-text-muted hover:text-text-primary"
-                        aria-label="Close modal"
-                    >
-                        <X className="w-5 h-5" />
-                    </button>
-                </div>
+                            <span>Move to {STAGE_LABELS[targetStatus] || targetStatus}</span>
+                        </>
+                    )}
+                </button>
+            )}
+        </div>
+    );
 
-                {/* Body */}
-                <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+    return (
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title="Advance Sales Journey"
+            subtitle={`${lead.leadNumber} — ${lead.fullName} ${lead.companyName ? `(${lead.companyName})` : ''}`}
+            icon={RefreshCw}
+            iconClassName="text-brand-teal bg-brand-teal/10 border-brand-teal/20"
+            size="md"
+            isLoading={isSubmitting}
+            footer={modalFooter}
+        >
+            <form id="status-update-form" onSubmit={handleSubmit} className="space-y-4">
                     {serverError && (
                         <div className="p-3 bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-xs font-medium rounded-xl flex items-center gap-2">
                             <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -651,44 +664,7 @@ export default function StatusUpdateModal({ isOpen, onClose, lead, onSuccess }) 
                         </>
                     )}
 
-                    {/* Actions */}
-                    <div className="flex items-center justify-end gap-3 pt-4 border-t border-border-subtle">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            disabled={isSubmitting}
-                            className="btn btn-secondary btn-md font-semibold"
-                        >
-                            Cancel
-                        </button>
-                        {!isTerminalWon && validTargets.length > 0 && (
-                            <button
-                                type="submit"
-                                disabled={isSubmitting}
-                                className={`btn btn-md font-semibold flex items-center justify-center gap-1.5 min-w-[130px] ${
-                                    targetStatus === 'LOST' 
-                                        ? 'btn-danger' 
-                                        : targetStatus === 'WON' 
-                                            ? 'btn-success' 
-                                            : 'btn-primary'
-                                }`}
-                            >
-                                {isSubmitting ? (
-                                    <>
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                        <span>Updating...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <RefreshCw className="w-4 h-4" />
-                                        <span>Move to {STAGE_LABELS[targetStatus] || targetStatus}</span>
-                                    </>
-                                )}
-                            </button>
-                        )}
-                    </div>
-                </form>
-            </div>
-        </div>
+            </form>
+        </Modal>
     );
 }

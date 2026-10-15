@@ -4,6 +4,7 @@ import com.acrovix.admin.entity.Currency;
 import com.acrovix.admin.entity.PaymentMethod;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -27,6 +28,7 @@ public class PaymentRequest {
     @NotNull(message = "Payment Method is required")
     private PaymentMethod paymentMethod;
 
+    @Size(max = 150, message = "Transaction reference must not exceed 150 characters")
     private String transactionReference;
     private String chequeNumber;
     private String bankName;

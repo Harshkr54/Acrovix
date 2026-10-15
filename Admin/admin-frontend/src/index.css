@@ -6,24 +6,29 @@
   /* Dynamic Semantic Colors */
   --color-bg-main: var(--theme-bg-main);
   --color-bg-card: var(--theme-bg-card);
+  --color-bg-elevated: var(--theme-bg-elevated);
   --color-bg-hover: var(--theme-bg-hover);
   --color-bg-muted: var(--theme-bg-muted);
   --color-bg-highlight: var(--theme-bg-highlight);
   
   --color-border-subtle: var(--theme-border-subtle);
+  --color-border-strong: var(--theme-border-strong);
   
   --color-text-primary: var(--theme-text-primary);
   --color-text-secondary: var(--theme-text-secondary);
   --color-text-muted: var(--theme-text-muted);
   --color-text-highlight: var(--theme-text-highlight);
   
-  /* Static Brand Colors */
-  --color-brand-primary: #2563EB; /* ACROVIX Blue */
-  --color-brand-navy: #0B192C; /* Primary Navy */
-  --color-brand-teal: #0D9488; /* Teal */
-  --color-brand-success: #10B981; /* Soft green */
-  --color-brand-warning: #F59E0B; /* Soft amber */
-  --color-brand-danger: #EF4444; /* Soft red */
+  /* Dynamic Brand / Accent Colors */
+  --color-brand-primary: var(--theme-brand-primary, #2563EB);
+  --color-brand-primary-hover: var(--theme-brand-primary-hover, #1D4ED8);
+  --color-brand-primary-contrast: var(--theme-brand-primary-contrast, #FFFFFF);
+  --color-brand-navy: #0B192C;
+  --color-brand-teal: var(--theme-color-secondary-accent, #2DD4BF);
+  --color-brand-success: var(--theme-color-success, #34D399);
+  --color-brand-warning: var(--theme-color-warning, #FBBF24);
+  --color-brand-danger: var(--theme-color-error, #F87171);
+  --color-brand-info: var(--theme-color-info, #7DD3FC);
   
   /* Legacy Static Colors */
   --color-acx-teal: #14B8A6;
@@ -42,19 +47,33 @@
 }
 
 :root {
-  /* LIGHT MODE - Reference Image Matching */
+  color-scheme: light;
+
+  /* LIGHT MODE - Crisp Enterprise Surface Tokens */
   --theme-bg-main: #F3F7FA;
   --theme-bg-card: #FFFFFF;
+  --theme-bg-elevated: #FFFFFF;
   --theme-bg-hover: #F8FAFC; 
   --theme-bg-muted: #F1F5F9;
   --theme-bg-highlight: #EEF2FF;
   
   --theme-border-subtle: rgba(11, 25, 44, 0.08);
+  --theme-border-strong: #CBD5E1;
   
   --theme-text-primary: #0B192C;
   --theme-text-secondary: #475569;
   --theme-text-muted: #64748B;
   --theme-text-highlight: #0D9488;
+
+  /* Dynamic Brand Tokens (Light Default: ACROVIX Blue) */
+  --theme-brand-primary: #2563EB;
+  --theme-brand-primary-hover: #1D4ED8;
+  --theme-brand-primary-contrast: #FFFFFF;
+  --theme-color-secondary-accent: #0D9488;
+  --theme-color-success: #10B981;
+  --theme-color-warning: #F59E0B;
+  --theme-color-error: #EF4444;
+  --theme-color-info: #0284C7;
 
   /* SIDEBAR LIGHT */
   --theme-sidebar-bg: #FFFFFF;
@@ -62,10 +81,11 @@
   --theme-sidebar-item-text: #475569;
   --theme-sidebar-item-hover-bg: #F1F5F9;
   --theme-sidebar-item-hover-text: #0B192C;
-  --theme-sidebar-active-bg: #2563EB;
-  --theme-sidebar-active-text: #FFFFFF;
+  --theme-sidebar-active-bg: var(--theme-brand-primary, #2563EB);
+  --theme-sidebar-active-text: var(--theme-brand-primary-contrast, #FFFFFF);
   --theme-sidebar-icon: #64748B;
   --theme-sidebar-icon-hover: #0B192C;
+  --theme-sidebar-separator: rgba(11, 25, 44, 0.08);
 
   /* DASHBOARD THEME LIGHT */
   --theme-dashboard-card: #FFFFFF;
@@ -74,35 +94,50 @@
 }
 
 :root[data-theme="dark"] {
-  /* DARK MODE - Reference Image Matching */
-  --theme-bg-main: #0B192C;
-  --theme-bg-card: #102138;
-  --theme-bg-hover: #162E4A;
-  --theme-bg-muted: #1A3459;
+  color-scheme: dark;
+
+  /* DARK MODE - Premium Midnight Enterprise Palette */
+  --theme-bg-main: #0B1120;
+  --theme-bg-card: #151F32;
+  --theme-bg-elevated: #1B2940;
+  --theme-bg-hover: #1E2D44;
+  --theme-bg-muted: #1A263B;
   --theme-bg-highlight: #1E3A8A;
   
-  --theme-border-subtle: rgba(255, 255, 255, 0.08);
+  --theme-border-subtle: #2B3A50;
+  --theme-border-strong: #3B4D66;
   
-  --theme-text-primary: #FFFFFF;
-  --theme-text-secondary: #94A3B8;
-  --theme-text-muted: #64748B;
+  --theme-text-primary: #F1F5F9;
+  --theme-text-secondary: #A8B6C8;
+  --theme-text-muted: #8191A7;
   --theme-text-highlight: #FFFFFF;
 
+  /* Dynamic Brand Tokens (Dark Default: Accessible Electric Blue) */
+  --theme-brand-primary: #60A5FA;
+  --theme-brand-primary-hover: #3B82F6;
+  --theme-brand-primary-contrast: #0B1120;
+  --theme-color-secondary-accent: #2DD4BF;
+  --theme-color-success: #34D399;
+  --theme-color-warning: #FBBF24;
+  --theme-color-error: #F87171;
+  --theme-color-info: #7DD3FC;
+
   /* SIDEBAR DARK */
-  --theme-sidebar-bg: #0B192C;
-  --theme-sidebar-border: rgba(255, 255, 255, 0.05);
-  --theme-sidebar-item-text: #94A3B8;
-  --theme-sidebar-item-hover-bg: rgba(255, 255, 255, 0.05);
-  --theme-sidebar-item-hover-text: #FFFFFF;
-  --theme-sidebar-active-bg: #2563EB;
-  --theme-sidebar-active-text: #FFFFFF;
-  --theme-sidebar-icon: #94A3B8;
-  --theme-sidebar-icon-hover: #FFFFFF;
+  --theme-sidebar-bg: #0F172A;
+  --theme-sidebar-border: #2B3A50;
+  --theme-sidebar-item-text: #A8B6C8;
+  --theme-sidebar-item-hover-bg: #1B2940;
+  --theme-sidebar-item-hover-text: #F1F5F9;
+  --theme-sidebar-active-bg: var(--theme-brand-primary, #60A5FA);
+  --theme-sidebar-active-text: var(--theme-brand-primary-contrast, #0B1120);
+  --theme-sidebar-icon: #8191A7;
+  --theme-sidebar-icon-hover: #F1F5F9;
+  --theme-sidebar-separator: #2B3A50;
 
   /* DASHBOARD THEME DARK */
-  --theme-dashboard-card: #102138;
-  --theme-dashboard-elevated: #162E4A;
-  --theme-dashboard-border: rgba(255, 255, 255, 0.05);
+  --theme-dashboard-card: #151F32;
+  --theme-dashboard-elevated: #1B2940;
+  --theme-dashboard-border: #2B3A50;
 }
 
 @layer base {
@@ -165,11 +200,16 @@
 
   /* Variants */
   .btn-primary {
-    @apply bg-brand-primary hover:bg-[#1D4ED8] active:bg-[#1E40AF] text-white border-transparent shadow-sm;
+    background-color: var(--theme-brand-primary, #2563EB);
+    color: var(--theme-brand-primary-contrast, #FFFFFF);
+    @apply border border-transparent shadow-sm hover:opacity-95 active:opacity-90;
+  }
+  .btn-primary:hover {
+    background-color: var(--theme-brand-primary-hover, #1D4ED8);
   }
 
   .btn-secondary {
-    @apply bg-white dark:bg-bg-card hover:bg-slate-50 dark:hover:bg-bg-hover active:bg-slate-100 dark:active:bg-bg-muted text-[#0B192C] dark:text-text-primary border border-slate-200 dark:border-border-subtle shadow-sm focus-visible:ring-2 focus-visible:ring-brand-navy/20;
+    @apply bg-bg-card hover:bg-bg-hover active:bg-bg-muted text-text-primary border border-border-subtle shadow-sm focus-visible:ring-2 focus-visible:ring-brand-primary/20;
   }
 
   .btn-ghost {

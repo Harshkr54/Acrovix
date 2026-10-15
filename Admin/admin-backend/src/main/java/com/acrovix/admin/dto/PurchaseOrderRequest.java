@@ -27,4 +27,12 @@ public class PurchaseOrderRequest {
     private PurchaseOrderReceivedVia receivedVia;
 
     private String remarks;
+
+    private String deliveryAddress;
+
+    private String deliveryContactName;
+
+    private String deliveryContactPhone;
+
+    private String deliveryDestinationType;
 }

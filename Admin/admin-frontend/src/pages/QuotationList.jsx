@@ -192,14 +192,14 @@ export default function QuotationList() {
         const hasTaxInvoice = q.taxInvoiceId != null;
 
         const convertToPoItem = {
-            label: 'Convert to PO',
+            label: 'Create Purchase Order',
             icon: ShoppingCart,
             variant: 'brand',
             onClick: () => setPoModalQuotation(q)
         };
 
         const viewPoItem = {
-            label: 'View Purchase Order',
+            label: 'View Purchase Orders',
             icon: ShoppingCart,
             variant: 'brand',
             onClick: () => navigate(`/purchase-orders/${q.purchaseOrderId}`)
@@ -416,11 +416,31 @@ export default function QuotationList() {
                                                 {formatCurrency(q.grandTotal, q.currency, 2)}
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap align-top">
-                                            <span className={`inline-flex items-center text-[10px] font-bold uppercase tracking-wider ${getStatusStyle(q.status)}`}>
-                                                <span className="w-1.5 h-1.5 rounded-full bg-current "></span>
-                                                {normalizeStatus(q.status)}
-                                            </span>
+                                        <td className="px-6 py-4 align-top">
+                                            <div className="flex flex-col items-start gap-1">
+                                                <span className={`inline-flex items-center text-[10px] font-bold uppercase tracking-wider ${getStatusStyle(q.status)}`}>
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5"></span>
+                                                    {normalizeStatus(q.status)}
+                                                </span>
+                                                {q.status === 'REJECTED' && (q.responseNotes || q.responseSource) && (
+                                                    <div 
+                                                        className="text-[11px] text-brand-danger font-medium max-w-[220px] truncate" 
+                                                        title={`Rejection reason: ${q.responseNotes || 'No notes'}${q.responseSource ? ` (via ${q.responseSource})` : ''}`}
+                                                    >
+                                                        {q.responseNotes ? <span className="italic">"{q.responseNotes}"</span> : <span className="italic text-text-muted">No notes</span>}
+                                                        {q.responseSource && <span className="text-text-muted text-[10px] ml-1">({q.responseSource})</span>}
+                                                    </div>
+                                                )}
+                                                {q.status === 'ACCEPTED' && (q.responseNotes || q.responseSource) && (
+                                                    <div 
+                                                        className="text-[11px] text-brand-success font-medium max-w-[220px] truncate" 
+                                                        title={`Acceptance note: ${q.responseNotes || 'Accepted'}${q.responseSource ? ` (via ${q.responseSource})` : ''}`}
+                                                    >
+                                                        {q.responseNotes && <span className="italic mr-1">"{q.responseNotes}"</span>}
+                                                        {q.responseSource && <span className="text-text-muted text-[10px]">({q.responseSource})</span>}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-[12px] text-text-muted font-medium align-top hidden sm:table-cell">
                                             {new Date(q.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
@@ -479,39 +499,16 @@ export default function QuotationList() {
             </div>
 
             {/* Trash Confirmation Modal */}
-            {trashModalQuotation && (
-                <div className="fixed inset-0 bg-text-primary/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="acx-card p-6 md:p-8 max-w-md w-full border border-border-subtle shadow-2xl relative animate-modal-entrance">
-                        <div className="w-12 h-12 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 rounded-2xl flex items-center justify-center mb-5 text-amber-600 dark:text-amber-400">
-                            <Trash2 className="w-6 h-6" />
-                        </div>
-                        <h3 className="text-[18px] font-bold text-text-primary mb-2 tracking-tight">Move this draft to Trash?</h3>
-                        <p className="text-[13px] text-text-secondary leading-relaxed mb-6">
-                            Draft <span className="font-mono font-bold text-text-primary">{trashModalQuotation.quotationNumber}</span> for <span className="font-semibold text-text-primary">{trashModalQuotation.clientName}</span> will be moved to Trash. You can restore it anytime from the Trash page.
-                        </p>
-                        <div className="flex items-center justify-end space-x-3">
-                            <button
-                                onClick={() => setTrashModalQuotation(null)}
-                                disabled={isDeleting}
-                                className="btn btn-secondary btn-md"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleMoveToTrash}
-                                disabled={isDeleting}
-                                className="btn btn-danger btn-md"
-                            >
-                                {isDeleting ? (
-                                    <><span className="animate-spin w-3.5 h-3.5 border-b-2 border-white rounded-full "></span> Moving...</>
-                                ) : (
-                                    'Move to Trash'
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <ConfirmDialog
+                isOpen={!!trashModalQuotation}
+                onClose={() => setTrashModalQuotation(null)}
+                onConfirm={handleMoveToTrash}
+                title="Move this draft to Trash?"
+                message={`Draft ${trashModalQuotation?.quotationNumber || ''} for ${trashModalQuotation?.clientName || ''} will be moved to Trash. You can restore it anytime from the Trash page.`}
+                confirmText="Move to Trash"
+                variant="danger"
+                isLoading={isDeleting}
+            />
 
             <CreatePurchaseOrderModal 
                 isOpen={!!poModalQuotation} 

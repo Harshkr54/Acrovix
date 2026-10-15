@@ -66,6 +66,9 @@ public class Invoice {
     @Column(name = "client_address", columnDefinition = "TEXT")
     private String clientAddress;
 
+    @Column(name = "client_shipping_address", columnDefinition = "TEXT")
+    private String clientShippingAddress;
+
     @Column(name = "client_gstin", length = 50)
     private String clientGstin;
 

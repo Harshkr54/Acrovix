@@ -86,10 +86,10 @@ export default function GstinAutoLookup({
                     disabled={disabled || isVerifying || !isLengthValid}
                     className={`h-11 px-3.5 rounded-xl text-[12px] font-bold tracking-wide transition-all duration-200 shrink-0 flex items-center gap-1.5 shadow-sm select-none ${
                         isVerifying 
-                            ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+                            ? 'bg-bg-muted text-text-muted border border-border-subtle cursor-not-allowed'
                             : isLengthValid
                                 ? 'bg-brand-primary text-white hover:bg-brand-primary/90 hover:shadow active:scale-[0.98] cursor-pointer'
-                                : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-75'
+                                : 'bg-bg-muted text-text-muted border border-border-subtle cursor-not-allowed opacity-75'
                     }`}
                     title={!isLengthValid ? 'Enter 15-character GSTIN to verify' : 'Verify GSTIN via portal'}
                 >
@@ -116,13 +116,13 @@ export default function GstinAutoLookup({
             )}
 
             {!isVerifying && isVerifiedNow && (
-                <div className="mt-1.5 inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-[6px] bg-[#ECFDF5] border border-[#A7F3D0] text-[#047857] text-[11px] font-semibold tracking-wide">
+                <div className="mt-1.5 inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-[6px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-[11px] font-semibold tracking-wide">
                     <span>✓ GSTIN Verified</span>
                 </div>
             )}
 
             {!isVerifying && !isVerifiedNow && isExistingCustomer && localValue && (
-                <div className="mt-1.5 inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-[6px] bg-slate-100 border border-slate-200 text-slate-600 text-[11px] font-semibold tracking-wide">
+                <div className="mt-1.5 inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-[6px] bg-bg-muted border border-border-subtle text-text-secondary text-[11px] font-semibold tracking-wide">
                     <span>Saved Customer GSTIN (Unverified)</span>
                 </div>
             )}

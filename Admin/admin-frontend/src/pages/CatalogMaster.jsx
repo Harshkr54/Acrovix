@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { getCatalog, createCatalogItem, updateCatalogItem, deleteCatalogItem, activateCatalogItem } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { formatCurrency } from '../utils/formatters';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { 
     Package, Plus, ShieldAlert, AlertCircle, RefreshCw, X, Box, Tag, DollarSign, Percent,
     Table, LayoutGrid, Edit3, Power, Ban
@@ -91,9 +92,18 @@ export default function CatalogMaster() {
         setShowForm(true);
     };
 
-    const toggleStatus = async (id, currentStatus) => {
+    const [catalogStatusTarget, setCatalogStatusTarget] = useState(null);
+    const [isTogglingCatalogStatus, setIsTogglingCatalogStatus] = useState(false);
+
+    const toggleStatus = (id, currentStatus, name) => {
         if (!canManage) return;
-        if (!window.confirm(`Are you sure you want to ${currentStatus ? 'deactivate' : 'activate'} this item?`)) return;
+        setCatalogStatusTarget({ id, currentStatus, name: name || 'this item' });
+    };
+
+    const handleConfirmCatalogStatus = async () => {
+        if (!catalogStatusTarget) return;
+        const { id, currentStatus } = catalogStatusTarget;
+        setIsTogglingCatalogStatus(true);
         try {
             if (currentStatus) {
                 await deleteCatalogItem(id);
@@ -101,8 +111,11 @@ export default function CatalogMaster() {
                 await activateCatalogItem(id);
             }
             fetchCatalog();
+            setCatalogStatusTarget(null);
         } catch (error) {
             alert(error.message || "Failed to update status");
+        } finally {
+            setIsTogglingCatalogStatus(false);
         }
     };
 
@@ -365,7 +378,7 @@ export default function CatalogMaster() {
                                                     </button>
                                                     <button 
                                                         type="button"
-                                                        onClick={() => toggleStatus(c.id, c.active)}
+                                                        onClick={() => toggleStatus(c.id, c.active, c.name)}
                                                         className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[12px] font-semibold transition-colors border cursor-pointer ${
                                                             c.active 
                                                                 ? 'text-amber-700 dark:text-amber-400 border-amber-200/80 bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100' 
@@ -487,7 +500,7 @@ export default function CatalogMaster() {
                                         </button>
                                         <button
                                             type="button"
-                                            onClick={() => toggleStatus(c.id, c.active)}
+                                            onClick={() => toggleStatus(c.id, c.active, c.name)}
                                             className={`flex-1 inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg text-[12px] font-semibold transition-colors border cursor-pointer ${
                                                 c.active 
                                                     ? 'text-amber-700 dark:text-amber-400 border-amber-200/80 bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100' 
@@ -512,6 +525,22 @@ export default function CatalogMaster() {
                         </div>
                     ))}
                 </div>
+            )}
+            {/* Catalog Item Status Confirmation Dialog */}
+            {catalogStatusTarget && (
+                <ConfirmDialog
+                    isOpen={Boolean(catalogStatusTarget)}
+                    title={catalogStatusTarget.currentStatus ? "Deactivate Catalog Item" : "Activate Catalog Item"}
+                    description={catalogStatusTarget.currentStatus 
+                        ? `Are you sure you want to deactivate "${catalogStatusTarget.name}"? It will no longer appear in active quotation or catalog selection menus.`
+                        : `Are you sure you want to activate "${catalogStatusTarget.name}"? It will become available for new quotations and orders.`}
+                    confirmText={catalogStatusTarget.currentStatus ? "Deactivate Item" : "Activate Item"}
+                    cancelText="Cancel"
+                    variant={catalogStatusTarget.currentStatus ? "destructive" : "primary"}
+                    isLoading={isTogglingCatalogStatus}
+                    onConfirm={handleConfirmCatalogStatus}
+                    onCancel={() => !isTogglingCatalogStatus && setCatalogStatusTarget(null)}
+                />
             )}
         </div>
     );

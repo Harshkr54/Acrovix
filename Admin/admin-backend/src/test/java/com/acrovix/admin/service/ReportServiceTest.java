@@ -174,6 +174,28 @@ public class ReportServiceTest {
     }
 
     @Test
+    void testQuotationReport_ConvertedQuotationRetainsAcceptedValue() {
+        Quotation qConverted = new Quotation();
+        qConverted.setQuotationNumber("ACX/Q/26/099");
+        qConverted.setClientName("Acme");
+        qConverted.setClientEmail("info@acme.com");
+        qConverted.setCreatedBy(testAdmin);
+        qConverted.setStatus("CONVERTED");
+        qConverted.setGrandTotal(new BigDecimal("75000.00"));
+        qConverted.setCreatedAt(LocalDateTime.now());
+        quotationRepository.save(qConverted);
+
+        QuotationReportResponse resp = reportService.getQuotationReport("THIS_FINANCIAL_YEAR", null, null);
+        assertNotNull(resp);
+        // Both testQuotation (100000 ACCEPTED) and qConverted (75000 CONVERTED) must be in acceptedQuotationValue
+        assertEquals(0, new BigDecimal("175000.00").compareTo(resp.getAcceptedQuotationValue()));
+
+        ReportSummaryResponse summary = reportService.getSummaryReport("THIS_FINANCIAL_YEAR", null, null);
+        assertNotNull(summary);
+        assertEquals(0, new BigDecimal("175000.00").compareTo(summary.getAcceptedQuotationValue()));
+    }
+
+    @Test
     void testPurchaseOrderReportAggregation() {
         PurchaseOrder po1 = new PurchaseOrder();
         po1.setPoNumber("ACX/PO/26/001");

@@ -39,6 +39,12 @@ public class QuotationRequest {
     private String bankIfsc;
     private String bankBranch;
     private Long companyBankAccountId;
+
+    private String billingAddress;
+    private String shippingAddress;
+    private String state;
+    private String pincode;
+    private String gstin;
     
     @Valid
     private List<QuotationItemRequest> items;

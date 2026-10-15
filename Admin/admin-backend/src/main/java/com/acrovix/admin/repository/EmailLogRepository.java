@@ -15,6 +15,7 @@ import org.springframework.data.repository.query.Param;
 public interface EmailLogRepository extends JpaRepository<EmailLog, Long> {
     List<EmailLog> findByRecipient(String recipient);
     List<EmailLog> findByEmailType(EmailType emailType);
+    List<EmailLog> findByRelatedEntityTypeAndRelatedEntityIdOrderBySentAtDesc(String relatedEntityType, Long relatedEntityId);
     
     boolean existsByEmailTypeAndRelatedEntityTypeAndRelatedEntityIdAndRecipient(
             EmailType emailType, 
@@ -27,6 +28,13 @@ public interface EmailLogRepository extends JpaRepository<EmailLog, Long> {
             EmailType emailType, 
             String relatedEntityType, 
             Long relatedEntityId
+    );
+
+    boolean existsByEmailTypeAndRelatedEntityTypeAndRelatedEntityIdAndStatus(
+            EmailType emailType, 
+            String relatedEntityType, 
+            Long relatedEntityId,
+            com.acrovix.admin.entity.EmailStatus status
     );
     
     @Query("SELECT e FROM EmailLog e WHERE e.recipient = :recipient OR " +

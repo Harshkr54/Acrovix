@@ -9,13 +9,16 @@ import com.acrovix.admin.repository.AdminUserRepository;
 import com.acrovix.admin.repository.QuotationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import jakarta.persistence.criteria.Predicate;
-
 import com.acrovix.admin.exception.ResourceNotFoundException;
+import com.acrovix.admin.exception.ResourceConflictException;
+import com.acrovix.admin.repository.PurchaseOrderRepository;
+import com.acrovix.admin.repository.InvoiceRepository;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -28,7 +31,6 @@ import java.util.Map;
 import com.acrovix.admin.entity.Currency;
 
 @Service
-@RequiredArgsConstructor
 public class QuotationService {
 
     private final QuotationRepository quotationRepository;
@@ -41,6 +43,56 @@ public class QuotationService {
     private final EmailService emailService;
     private final com.acrovix.admin.repository.CustomerRepository customerRepository;
     private final com.acrovix.admin.repository.ProductServiceRepository productServiceRepository;
+    private final com.acrovix.admin.repository.CrmLeadRepository crmLeadRepository;
+    private final PurchaseOrderRepository purchaseOrderRepository;
+    private final InvoiceRepository invoiceRepository;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public QuotationService(
+            QuotationRepository quotationRepository,
+            AdminEnquiryRepository enquiryRepository,
+            AdminUserRepository userRepository,
+            SequenceGeneratorService sequenceGenerator,
+            AdminActivityRepository activityRepository,
+            NotificationService notificationService,
+            AuthorizationService authorizationService,
+            EmailService emailService,
+            com.acrovix.admin.repository.CustomerRepository customerRepository,
+            com.acrovix.admin.repository.ProductServiceRepository productServiceRepository,
+            com.acrovix.admin.repository.CrmLeadRepository crmLeadRepository,
+            PurchaseOrderRepository purchaseOrderRepository,
+            InvoiceRepository invoiceRepository) {
+        this.quotationRepository = quotationRepository;
+        this.enquiryRepository = enquiryRepository;
+        this.userRepository = userRepository;
+        this.sequenceGenerator = sequenceGenerator;
+        this.activityRepository = activityRepository;
+        this.notificationService = notificationService;
+        this.authorizationService = authorizationService;
+        this.emailService = emailService;
+        this.customerRepository = customerRepository;
+        this.productServiceRepository = productServiceRepository;
+        this.crmLeadRepository = crmLeadRepository;
+        this.purchaseOrderRepository = purchaseOrderRepository;
+        this.invoiceRepository = invoiceRepository;
+    }
+
+    public QuotationService(
+            QuotationRepository quotationRepository,
+            AdminEnquiryRepository enquiryRepository,
+            AdminUserRepository userRepository,
+            SequenceGeneratorService sequenceGenerator,
+            AdminActivityRepository activityRepository,
+            NotificationService notificationService,
+            AuthorizationService authorizationService,
+            EmailService emailService,
+            com.acrovix.admin.repository.CustomerRepository customerRepository,
+            com.acrovix.admin.repository.ProductServiceRepository productServiceRepository,
+            com.acrovix.admin.repository.CrmLeadRepository crmLeadRepository) {
+        this(quotationRepository, enquiryRepository, userRepository, sequenceGenerator, activityRepository,
+             notificationService, authorizationService, emailService, customerRepository, productServiceRepository,
+             crmLeadRepository, null, null);
+    }
 
     public List<Quotation> getQuotationsByEnquiryId(Long enquiryId, AdminUser currentUser) {
         AdminEnquiry enquiry = enquiryRepository.findById(enquiryId)
@@ -130,6 +182,67 @@ public class QuotationService {
     }
 
     @Transactional
+    public Quotation createDraftQuotationFromLead(Long leadId, AdminUser admin) {
+        com.acrovix.admin.entity.CrmLead lead = crmLeadRepository.findById(leadId)
+                .orElseThrow(() -> new ResourceNotFoundException("CRM Lead not found #" + leadId));
+
+        if (admin != null && admin.getRole() == Role.SALES) {
+            if (lead.getAssignedTo() != null && !lead.getAssignedTo().getId().equals(admin.getId())) {
+                throw new org.springframework.security.access.AccessDeniedException("Access denied: Lead is assigned to another sales representative");
+            }
+        }
+
+        Quotation quotation = Quotation.builder()
+                .quotationNumber(sequenceGenerator.generateNextQuotationNumber())
+                .enquiry(lead.getEnquiry())
+                .customer(lead.getCustomer())
+                .clientName(lead.getFullName())
+                .clientCompany(lead.getCompanyName())
+                .clientEmail(lead.getBusinessEmail())
+                .clientPhone(lead.getPhoneNumber())
+                .quotationSource(QuotationSource.CRM_LEAD)
+                .sourceNotes("Generated from CRM Lead #" + lead.getLeadNumber())
+                .status("DRAFT")
+                .currency(lead.getCurrency() != null ? lead.getCurrency() : Currency.INR)
+                .subtotal(BigDecimal.ZERO)
+                .discountAmount(BigDecimal.ZERO)
+                .taxAmount(BigDecimal.ZERO)
+                .grandTotal(BigDecimal.ZERO)
+                .createdBy(admin)
+                .validUntil(LocalDate.now().plusDays(30))
+                .build();
+
+        Quotation saved = quotationRepository.save(quotation);
+        saved.setColumnConfigs(createDefaultColumnConfigs(saved));
+        saved.setBaseQuotationId(saved.getId());
+        saved = quotationRepository.save(saved);
+
+        if (lead.getStatus() == com.acrovix.admin.entity.LeadStatus.NEW || 
+            lead.getStatus() == com.acrovix.admin.entity.LeadStatus.CONTACTED || 
+            lead.getStatus() == com.acrovix.admin.entity.LeadStatus.QUALIFIED) {
+            lead.setStatus(com.acrovix.admin.entity.LeadStatus.PROPOSAL);
+            crmLeadRepository.save(lead);
+            activityRepository.save(AdminActivity.builder()
+                    .adminUserId(admin.getId())
+                    .action("LEAD_STATUS_CHANGED")
+                    .entityType("CRM_LEAD")
+                    .entityId(lead.getId())
+                    .description("Advanced stage to PROPOSAL upon generating Quotation " + saved.getQuotationNumber())
+                    .build());
+        }
+
+        activityRepository.save(AdminActivity.builder()
+                .adminUserId(admin.getId())
+                .action("QUOTATION_CREATED")
+                .entityType("Quotation")
+                .entityId(saved.getId())
+                .description("Created draft Quotation " + saved.getQuotationNumber() + " for CRM Lead #" + lead.getLeadNumber())
+                .build());
+
+        return saved;
+    }
+
+    @Transactional
     public Quotation createDraftQuotation(Long enquiryId, Long adminId) {
         AdminUser admin = userRepository.findById(adminId)
                 .orElseThrow(() -> new ResourceNotFoundException("Admin not found"));
@@ -140,6 +253,12 @@ public class QuotationService {
     public Quotation createDirectDraftQuotation(com.acrovix.admin.dto.CreateDirectQuotationRequest request, AdminUser admin) {
         if (admin == null) {
             throw new org.springframework.security.access.AccessDeniedException("Access denied: Unauthenticated user");
+        }
+        if (request == null) {
+            throw new IllegalArgumentException("Request cannot be null");
+        }
+        if (request.getBillingAddress() == null || request.getBillingAddress().trim().isEmpty()) {
+            throw new IllegalArgumentException("Billing address is required");
         }
 
         Quotation quotation = Quotation.builder()
@@ -162,15 +281,35 @@ public class QuotationService {
                 .build();
 
         if (request.getCustomerId() != null) {
-            quotation.setCustomer(customerRepository.findById(request.getCustomerId()).orElse(null));
+            Customer cust = customerRepository.findById(request.getCustomerId()).orElse(null);
+            if (cust != null) {
+                if (request.getBillingAddress() != null && !request.getBillingAddress().isBlank()) {
+                    cust.setBillingAddress(request.getBillingAddress().trim());
+                }
+                if (request.getShippingAddress() != null && !request.getShippingAddress().isBlank()) {
+                    cust.setShippingAddress(request.getShippingAddress().trim());
+                }
+                if (request.getState() != null && !request.getState().isBlank()) {
+                    cust.setState(request.getState().trim());
+                }
+                if (request.getPincode() != null && !request.getPincode().isBlank()) {
+                    cust.setPincode(request.getPincode().trim());
+                }
+                cust = customerRepository.save(cust);
+            }
+            quotation.setCustomer(cust);
         } else if ((request.getGstin() != null && !request.getGstin().trim().isEmpty()) ||
                    (request.getBillingAddress() != null && !request.getBillingAddress().trim().isEmpty()) ||
                    (request.getShippingAddress() != null && !request.getShippingAddress().trim().isEmpty()) ||
-                   (request.getState() != null && !request.getState().trim().isEmpty())) {
+                   (request.getState() != null && !request.getState().trim().isEmpty()) ||
+                   (request.getPincode() != null && !request.getPincode().trim().isEmpty())) {
             
             Customer cust = null;
             if (request.getGstin() != null && !request.getGstin().trim().isEmpty()) {
                 cust = customerRepository.findByGstin(request.getGstin().trim()).orElse(null);
+            }
+            if (cust == null && request.getClientEmail() != null && !request.getClientEmail().trim().isEmpty()) {
+                cust = customerRepository.findByEmail(request.getClientEmail().trim()).orElse(null);
             }
             
             if (cust == null) {
@@ -180,15 +319,27 @@ public class QuotationService {
                         .companyName(request.getClientCompany())
                         .email(request.getClientEmail())
                         .phone(request.getClientPhone())
-                        .gstin(request.getGstin())
-                        .billingAddress(request.getBillingAddress())
-                        .shippingAddress(request.getShippingAddress())
-                        .state(request.getState())
+                        .gstin(request.getGstin() != null ? request.getGstin().trim() : null)
+                        .billingAddress(request.getBillingAddress() != null ? request.getBillingAddress().trim() : null)
+                        .shippingAddress(request.getShippingAddress() != null ? request.getShippingAddress().trim() : null)
+                        .state(request.getState() != null ? request.getState().trim() : null)
+                        .pincode(request.getPincode() != null ? request.getPincode().trim() : null)
                         .currency(request.getCurrency() != null ? request.getCurrency() : Currency.INR)
                         .active(true)
                         .createdBy(admin.getId())
                         .build();
                 cust = customerRepository.save(newCust);
+            } else {
+                if (request.getBillingAddress() != null && !request.getBillingAddress().isBlank()) {
+                    cust.setBillingAddress(request.getBillingAddress().trim());
+                }
+                if (request.getState() != null && !request.getState().isBlank()) {
+                    cust.setState(request.getState().trim());
+                }
+                if (request.getPincode() != null && !request.getPincode().isBlank()) {
+                    cust.setPincode(request.getPincode().trim());
+                }
+                cust = customerRepository.save(cust);
             }
             quotation.setCustomer(cust);
         }
@@ -217,7 +368,7 @@ public class QuotationService {
         authorizationService.checkQuotationAccess(admin, quotation);
 
         if (!"DRAFT".equals(quotation.getStatus())) {
-            throw new IllegalArgumentException("Only DRAFT quotations can be modified");
+            throw new ResourceConflictException("Cannot modify quotation with status " + quotation.getStatus() + ". Only DRAFT quotations can be modified.");
         }
 
         quotation.setClientName(request.getClientName());
@@ -246,8 +397,39 @@ public class QuotationService {
             quotation.setValidUntil(request.getValidUntil());
         }
         
+        Customer cust = null;
         if (request.getCustomerId() != null) {
-            quotation.setCustomer(customerRepository.findById(request.getCustomerId()).orElse(null));
+            cust = customerRepository.findById(request.getCustomerId()).orElse(null);
+        } else if (quotation.getCustomer() != null) {
+            cust = quotation.getCustomer();
+        }
+
+        if (cust != null) {
+            if (request.getBillingAddress() != null) cust.setBillingAddress(request.getBillingAddress().trim());
+            if (request.getShippingAddress() != null) cust.setShippingAddress(request.getShippingAddress().trim());
+            if (request.getState() != null) cust.setState(request.getState().trim());
+            if (request.getPincode() != null) cust.setPincode(request.getPincode().trim());
+            if (request.getGstin() != null) cust.setGstin(request.getGstin().trim());
+            cust = customerRepository.save(cust);
+            quotation.setCustomer(cust);
+        } else if (request.getBillingAddress() != null && !request.getBillingAddress().trim().isEmpty()) {
+            Customer newCust = Customer.builder()
+                    .customerCode("CUST-" + System.currentTimeMillis())
+                    .name(request.getClientName())
+                    .companyName(request.getClientCompany())
+                    .email(request.getClientEmail())
+                    .phone(request.getClientPhone())
+                    .gstin(request.getGstin() != null ? request.getGstin().trim() : null)
+                    .billingAddress(request.getBillingAddress().trim())
+                    .shippingAddress(request.getShippingAddress() != null ? request.getShippingAddress().trim() : null)
+                    .state(request.getState() != null ? request.getState().trim() : null)
+                    .pincode(request.getPincode() != null ? request.getPincode().trim() : null)
+                    .currency(request.getCurrency() != null ? request.getCurrency() : Currency.INR)
+                    .active(true)
+                    .createdBy(admin.getId())
+                    .build();
+            cust = customerRepository.save(newCust);
+            quotation.setCustomer(cust);
         } else {
             quotation.setCustomer(null);
         }
@@ -330,6 +512,10 @@ public class QuotationService {
     public void sendQuotation(Long id, String overrideRecipientEmail, AdminUser admin) {
         Quotation quotation = getQuotationById(id, admin);
         
+        if (!"DRAFT".equals(quotation.getStatus())) {
+            throw new ResourceConflictException("Cannot send quotation with status " + quotation.getStatus() + ". Only DRAFT quotations can be sent.");
+        }
+
         String finalRecipient = null;
         if (overrideRecipientEmail != null) {
             String trimmed = overrideRecipientEmail.trim();
@@ -407,6 +593,10 @@ public class QuotationService {
 
         Quotation quotation = getQuotationById(id, admin);
 
+        if (!"DRAFT".equals(quotation.getStatus())) {
+            throw new ResourceConflictException("Cannot send quotation with status " + quotation.getStatus() + ". Only DRAFT quotations can be sent.");
+        }
+
         // Generate a secure unique client token if not already set
         if (quotation.getClientToken() == null) {
             String token = java.util.UUID.randomUUID().toString().replace("-", "") +
@@ -431,6 +621,10 @@ public class QuotationService {
         
         authorizationService.checkQuotationAccess(admin, quotation);
 
+        if (!"DRAFT".equals(quotation.getStatus())) {
+            throw new ResourceConflictException("Cannot mark quotation as SENT from status " + quotation.getStatus() + ". Only DRAFT quotations can be sent.");
+        }
+
         quotation.setStatus("SENT");
         quotationRepository.save(quotation);
         
@@ -454,6 +648,16 @@ public class QuotationService {
         AdminUser admin = userRepository.findById(adminId)
                 .orElseThrow(() -> new ResourceNotFoundException("Admin not found"));
         markAsSent(quotationId, admin);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void markAsExpired(Long quotationId) {
+        quotationRepository.findById(quotationId).ifPresent(q -> {
+            if (!"EXPIRED".equals(q.getStatus())) {
+                q.setStatus("EXPIRED");
+                quotationRepository.save(q);
+            }
+        });
     }
 
     @Transactional(readOnly = true)
@@ -584,6 +788,18 @@ public class QuotationService {
     }
 
     public Quotation buildTransientPreviewQuotation(com.acrovix.admin.dto.QuotationPreviewRequest request, AdminUser admin) {
+        if (request == null) {
+            throw new IllegalArgumentException("Quotation preview request cannot be null");
+        }
+        if (request.getTermsAndConditions() == null || request.getTermsAndConditions().trim().isEmpty()) {
+            throw new IllegalArgumentException("Terms & Conditions are mandatory before previewing the quotation PDF.");
+        }
+        boolean hasBank = request.getCompanyBankAccountId() != null 
+                || (request.getBankAccountNumber() != null && !request.getBankAccountNumber().trim().isEmpty());
+        if (!hasBank) {
+            throw new IllegalArgumentException("Bank Account is mandatory before previewing the quotation PDF.");
+        }
+
         Quotation transientQ = new Quotation();
         transientQ.setClientName(request.getClientName());
         transientQ.setClientCompany(request.getClientCompany());
@@ -602,8 +818,40 @@ public class QuotationService {
             transientQ.setValidUntil(request.getValidUntil());
         }
         
+        Customer cust = null;
         if (request.getCustomerId() != null) {
-            transientQ.setCustomer(customerRepository.findById(request.getCustomerId()).orElse(null));
+            cust = customerRepository.findById(request.getCustomerId()).orElse(null);
+        }
+        if (cust == null && request.getQuotationId() != null) {
+            Quotation existing = quotationRepository.findById(request.getQuotationId()).orElse(null);
+            if (existing != null && existing.getCustomer() != null) {
+                cust = existing.getCustomer();
+            }
+        }
+        if (cust == null && ((request.getBillingAddress() != null && !request.getBillingAddress().isBlank()) || 
+                             (request.getClientName() != null && !request.getClientName().isBlank()))) {
+            cust = new Customer();
+            cust.setName(request.getClientName());
+            cust.setCompanyName(request.getClientCompany());
+            cust.setEmail(request.getClientEmail());
+            cust.setPhone(request.getClientPhone());
+        }
+
+        if (cust != null) {
+            Customer previewCust = Customer.builder()
+                    .id(cust.getId())
+                    .customerCode(cust.getCustomerCode())
+                    .name(request.getClientName() != null ? request.getClientName() : cust.getName())
+                    .companyName(request.getClientCompany() != null ? request.getClientCompany() : cust.getCompanyName())
+                    .email(request.getClientEmail() != null ? request.getClientEmail() : cust.getEmail())
+                    .phone(request.getClientPhone() != null ? request.getClientPhone() : cust.getPhone())
+                    .billingAddress(request.getBillingAddress() != null ? request.getBillingAddress() : cust.getBillingAddress())
+                    .shippingAddress(request.getShippingAddress() != null ? request.getShippingAddress() : cust.getShippingAddress())
+                    .state(request.getState() != null ? request.getState() : cust.getState())
+                    .pincode(request.getPincode() != null ? request.getPincode() : cust.getPincode())
+                    .gstin(request.getGstin() != null ? request.getGstin() : cust.getGstin())
+                    .build();
+            transientQ.setCustomer(previewCust);
         }
         
         // Always safe to initialize these for transient processing
@@ -769,6 +1017,14 @@ public class QuotationService {
             throw new com.acrovix.admin.exception.ResourceConflictException("Cannot create revision from a DRAFT quotation. Send it first.");
         }
 
+        if (purchaseOrderRepository != null && purchaseOrderRepository.existsByQuotationIdAndDeletedAtIsNull(original.getId())) {
+            throw new ResourceConflictException("Cannot create revision for quotation " + original.getQuotationNumber() + " because an active Purchase Order already exists for it.");
+        }
+
+        if (invoiceRepository != null && invoiceRepository.existsByQuotationIdAndStatusNot(original.getId(), com.acrovix.admin.entity.InvoiceStatus.CANCELLED)) {
+            throw new ResourceConflictException("Cannot create revision for quotation " + original.getQuotationNumber() + " because active Invoice records already exist for it.");
+        }
+
         Long baseId = original.getBaseQuotationId() != null ? original.getBaseQuotationId() : original.getId();
 
         // Transaction safe increment
@@ -853,9 +1109,10 @@ public class QuotationService {
         return saved;
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = {IllegalStateException.class})
     public Quotation updateStatus(Long quotationId, com.acrovix.admin.dto.QuotationStatusUpdateRequest request, AdminUser admin) {
-        Quotation quotation = quotationRepository.findById(quotationId)
+        Quotation quotation = quotationRepository.findByIdForUpdate(quotationId)
+                .or(() -> quotationRepository.findById(quotationId))
                 .orElseThrow(() -> new ResourceNotFoundException("Quotation not found"));
 
         if (quotation.getDeletedAt() != null) {
@@ -899,6 +1156,14 @@ public class QuotationService {
             throw new com.acrovix.admin.exception.ResourceConflictException("Invalid status transition from " + currentStatus + " to " + newStatus);
         }
 
+        if ("ACCEPTED".equals(newStatus)) {
+            if (quotation.getValidUntil() != null && quotation.getValidUntil().isBefore(LocalDate.now())) {
+                quotation.setStatus("EXPIRED");
+                quotationRepository.save(quotation);
+                throw new IllegalStateException("Quotation expired on " + quotation.getValidUntil() + " and cannot be accepted.");
+            }
+        }
+
         if ("ACCEPTED".equals(newStatus) || "REJECTED".equals(newStatus)) {
             if (request.getResponseSource() == null) {
                 throw new IllegalArgumentException("responseSource is required when manually accepting or rejecting a quotation.");
@@ -913,6 +1178,9 @@ public class QuotationService {
         String activityMessage = "Quotation status updated to " + newStatus + ": " + quotation.getQuotationNumber();
         if ("ACCEPTED".equals(newStatus) || "REJECTED".equals(newStatus)) {
             activityMessage = "QUOTATION_" + newStatus + " via " + request.getResponseSource();
+            if (request.getResponseNotes() != null && !request.getResponseNotes().trim().isEmpty()) {
+                activityMessage += " - Note: " + request.getResponseNotes().trim();
+            }
             try {
                 emailService.sendQuotationResponseAsync(saved);
             } catch (Exception e) {

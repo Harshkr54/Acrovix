@@ -41,9 +41,15 @@ public class PaymentWebhookController {
     @Transactional
     public ResponseEntity<String> handleRazorpayWebhook(
             @RequestBody String payload,
-            @RequestHeader("X-Razorpay-Signature") String signature) {
+            @RequestHeader(value = "X-Razorpay-Signature", required = false) String signature,
+            @RequestHeader(value = "X-Razorpay-Event-Id", required = false) String eventHeader) {
             
         try {
+            if (signature == null || signature.isBlank()) {
+                log.warn("Missing Razorpay webhook signature header");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Missing signature");
+            }
+
             if (webhookSecret == null || webhookSecret.isBlank()) {
                 log.error("Razorpay webhook secret is not configured");
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -57,10 +63,24 @@ public class PaymentWebhookController {
             }
 
             JSONObject data = new JSONObject(payload);
-            String event = data.getString("event");
+            String event = data.optString("event", null);
+            if (event == null || event.isBlank()) {
+                log.warn("Webhook payload missing 'event' property");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Missing event property");
+            }
 
             if ("payment_link.paid".equals(event) || "payment.captured".equals(event)) {
-                JSONObject entity = data.getJSONObject("payload").getJSONObject(event.equals("payment_link.paid") ? "payment_link" : "payment").getJSONObject("entity");
+                if (!data.has("payload")) {
+                    log.warn("Webhook received without 'payload' object");
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Missing payload object");
+                }
+                JSONObject payloadObj = data.getJSONObject("payload");
+                String entityKey = event.equals("payment_link.paid") ? "payment_link" : "payment";
+                if (!payloadObj.has(entityKey) || !payloadObj.getJSONObject(entityKey).has("entity")) {
+                    log.warn("Webhook received without entity object for event: {}", event);
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Missing entity object");
+                }
+                JSONObject entity = payloadObj.getJSONObject(entityKey).getJSONObject("entity");
                 
                 String referenceId = null;
                 String paymentId = null;
@@ -68,18 +88,26 @@ public class PaymentWebhookController {
 
                 if ("payment_link.paid".equals(event)) {
                     referenceId = entity.optString("reference_id", null);
-                    // Extract payment id if available from payment link payload
-                    paymentId = entity.optString("id", null); // Just use link id or try to get order/payment id
+                    // 1. If payload contains payment entity, prefer the canonical payment id
+                    if (payloadObj.has("payment") && payloadObj.getJSONObject("payment").has("entity")) {
+                        paymentId = payloadObj.getJSONObject("payment").getJSONObject("entity").optString("id", null);
+                    }
+                    // 2. Fall back to payment link ID
+                    if (paymentId == null || paymentId.isBlank()) {
+                        paymentId = entity.optString("id", null);
+                    }
                     amountInRupees = new BigDecimal(entity.getLong("amount")).divide(new BigDecimal("100"));
                 } else if ("payment.captured".equals(event)) {
-                    referenceId = entity.getJSONObject("notes").optString("reference_id", null);
-                    if (referenceId == null) {
+                    if (entity.has("notes")) {
+                        referenceId = entity.getJSONObject("notes").optString("reference_id", null);
+                    }
+                    if (referenceId == null || referenceId.isBlank()) {
                         referenceId = entity.optString("description", "");
                         if (referenceId.startsWith("Payment for Invoice ")) {
                             referenceId = referenceId.replace("Payment for Invoice ", "");
                         }
                     }
-                    paymentId = entity.getString("id");
+                    paymentId = entity.optString("id", null);
                     amountInRupees = new BigDecimal(entity.getLong("amount")).divide(new BigDecimal("100"));
                 }
 
@@ -88,11 +116,17 @@ public class PaymentWebhookController {
                     return ResponseEntity.ok("No reference_id found");
                 }
 
+                // A valid financial ledger entry requires a verified provider payment or link ID.
+                // Webhook event IDs are delivery envelope identifiers, not monetary transaction references.
+                if (paymentId == null || paymentId.isBlank()) {
+                    log.warn("Webhook rejected: missing verified payment identifier for reference: {}", referenceId);
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Missing payment identifier");
+                }
+                String txnRef = paymentId.trim();
+
                 final String finalReferenceId = referenceId;
-                // Find Invoice
-                Optional<Invoice> invoiceOpt = invoiceRepository.findAll().stream()
-                        .filter(inv -> finalReferenceId.equals(inv.getInvoiceNumber()))
-                        .findFirst();
+                // Acquire pessimistic write lock on target invoice to serialize concurrent webhook processing
+                Optional<Invoice> invoiceOpt = invoiceRepository.findByInvoiceNumberForUpdate(finalReferenceId);
 
                 if (invoiceOpt.isEmpty()) {
                     log.warn("Invoice not found for reference_id: {}", finalReferenceId);
@@ -101,17 +135,17 @@ public class PaymentWebhookController {
 
                 Invoice invoice = invoiceOpt.get();
 
-                // Idempotency Check: Did we already record this payment?
-                // We map transactionReference to paymentId (if available) or the payment_link id + "_auto".
-                String txnRef = paymentId != null ? paymentId : "rzp_auto_" + finalReferenceId + "_" + System.currentTimeMillis();
-                
-                final String finalPaymentId = paymentId;
-                // Better idempotency: if paymentId exists in DB, ignore
-                if (finalPaymentId != null) {
-                    if (paymentRepository.existsByTransactionReference(finalPaymentId)) {
-                        log.info("Payment {} already recorded.", finalPaymentId);
-                        return ResponseEntity.ok("Already processed");
-                    }
+                // Idempotency Check 1: Did we already record this payment ID?
+                if (paymentRepository.existsByTransactionReference(txnRef)) {
+                    log.info("Payment with reference {} already recorded.", txnRef);
+                    return ResponseEntity.ok("Already processed");
+                }
+
+                // Idempotency Check 2: Is the invoice already fully paid?
+                // Prevents cross-event double crediting if different webhook events refer to the same checkout.
+                if (invoice.getStatus() == InvoiceStatus.PAID && invoice.getBalanceDue() != null && invoice.getBalanceDue().compareTo(BigDecimal.ZERO) <= 0) {
+                    log.info("Invoice {} is already fully paid. Ignoring duplicate webhook event {}.", invoice.getInvoiceNumber(), event);
+                    return ResponseEntity.ok("Already processed");
                 }
 
                 // We need an AdminUser for 'recordedBy'. System user or first super admin.
@@ -134,7 +168,7 @@ public class PaymentWebhookController {
                 payment.setRecordedBy(systemUser);
 
                 try {
-                    paymentRepository.save(payment);
+                    paymentRepository.saveAndFlush(payment);
                 } catch (org.springframework.dao.DataIntegrityViolationException e) {
                     log.warn("Concurrent duplicate payment webhook detected for ref {}. Ignoring.", txnRef);
                     return ResponseEntity.ok("Already processed concurrently");

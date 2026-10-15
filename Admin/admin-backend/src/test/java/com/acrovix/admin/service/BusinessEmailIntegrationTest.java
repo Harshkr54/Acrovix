@@ -120,13 +120,15 @@ class BusinessEmailIntegrationTest {
                 quotationRepository, enquiryRepository, userRepository,
                 sequenceGeneratorService, activityRepository, notificationService,
                 authorizationService, emailService, customerRepository,
-                productServiceRepositoryMock()
+                productServiceRepositoryMock(), crmLeadRepository
         );
 
         crmService = new CrmService(
                 crmLeadRepository, crmFollowUpRepositoryMock(), enquiryRepository,
                 customerRepository, userRepository, activityRepository,
-                notificationService, sequenceGeneratorService, emailService
+                quotationRepository,
+                notificationService, sequenceGeneratorService, emailService,
+                invoiceRepository, paymentRepository
         );
     }
 

@@ -56,6 +56,18 @@ public class PurchaseOrder {
     @Column(name = "received_via", length = 50)
     private PurchaseOrderReceivedVia receivedVia;
 
+    @Column(name = "delivery_address", columnDefinition = "TEXT")
+    private String deliveryAddress;
+
+    @Column(name = "delivery_contact_name", length = 150)
+    private String deliveryContactName;
+
+    @Column(name = "delivery_contact_phone", length = 50)
+    private String deliveryContactPhone;
+
+    @Column(name = "delivery_destination_type", length = 50)
+    private String deliveryDestinationType;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "verified_by")
     private AdminUser verifiedBy;

@@ -34,6 +34,7 @@ const CrmFollowUps = lazy(() => import('./pages/CrmFollowUps'));
 const CompanyBankOverview = lazy(() => import('./pages/CompanyBankOverview'));
 const CompanyDetailsPage = lazy(() => import('./pages/CompanyDetailsPage'));
 const BankAccountsPage = lazy(() => import('./pages/BankAccountsPage'));
+const AutomationCenter = lazy(() => import('./pages/AutomationCenter'));
 import SessionManager from './components/SessionManager';
 import ForcePasswordChangeModal from './components/ForcePasswordChangeModal';
 
@@ -119,6 +120,7 @@ function App() {
                     <Route path="quotations" element={<QuotationList />} />
                     <Route path="quotations/new/:enquiryId" element={<QuotationBuilder />} />
                     <Route path="quotations/edit/:quotationId" element={<QuotationBuilder />} />
+                    <Route path="quotations/:quotationId" element={<QuotationBuilder />} />
                     <Route path="customers" element={<CustomerMaster />} />
                     <Route path="customers/:id/360" element={<Customer360 />} />
                     <Route path="catalog" element={<CatalogMaster />} />
@@ -135,6 +137,7 @@ function App() {
                     <Route path="company-bank-details" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><CompanyBankOverview /></RoleRoute>} />
                     <Route path="company-bank-details/company" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><CompanyDetailsPage /></RoleRoute>} />
                     <Route path="company-bank-details/bank-accounts" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><BankAccountsPage /></RoleRoute>} />
+                    <Route path="automation" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><AutomationCenter /></RoleRoute>} />
                     <Route path="settings" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><Settings /></RoleRoute>} />
                 </Route>
             </Routes>

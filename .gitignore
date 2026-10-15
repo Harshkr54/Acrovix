@@ -39,3 +39,5 @@ Admin/test.csv
 Admin/admin-frontend/fix_*.py
 Admin/admin-backend/test_retry.sh
 
+# Backups
+backups/

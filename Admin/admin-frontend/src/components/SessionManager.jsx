@@ -215,7 +215,7 @@ export default function SessionManager({ children }) {
             {children}
 
             {showWarning && (
-                <div className="fixed inset-0 bg-text-primary/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+                <div className="fixed inset-0 bg-black/65 backdrop-blur-xs z-[9999] flex items-center justify-center p-4">
                     <div className="bg-bg-card border border-border-subtle rounded-2xl shadow-xl w-full max-w-sm p-8 flex flex-col items-center text-center animate-modal-entrance">
                         <div className="w-14 h-14 bg-brand-primary/10 border border-brand-primary/20 rounded-full flex items-center justify-center mb-6">
                             <Timer className="w-7 h-7 text-brand-primary" />

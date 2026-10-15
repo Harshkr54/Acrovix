@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Mail, AlertCircle, Loader2 } from 'lucide-react';
+import Modal from './ui/Modal';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -180,36 +181,50 @@ export default function SendQuotationModal({ isOpen, onClose, initialEmail, onSe
         onSend(finalRecipients);
     };
 
-    return (
-        <div 
-            className="fixed inset-0 bg-text-primary/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="send-quotation-modal-title"
-        >
-            <div className="acx-card p-6 md:p-8 max-w-lg w-full border border-border-subtle shadow-2xl relative animate-modal-entrance bg-bg-card rounded-2xl">
-                {/* Close Button */}
-                <button
-                    onClick={handleClose}
-                    disabled={isSending}
-                    className="btn btn-secondary btn-icon absolute top-5 right-5 text-text-muted hover:text-text-primary"
-                    aria-label="Close modal"
-                >
-                    <X className="w-5 h-5" />
-                </button>
-
-                {/* Modal Title */}
-                <div className="mb-6">
-                    <h2 id="send-quotation-modal-title" className="text-xl font-bold text-text-primary tracking-tight flex items-center gap-2">
-                        <Mail className="w-5 h-5 text-brand-teal" />
+    const modalFooter = (
+        <div className="flex items-center justify-end gap-3 w-full">
+            <button
+                type="button"
+                onClick={handleClose}
+                disabled={isSending}
+                className="btn btn-secondary btn-md text-xs font-semibold"
+            >
+                Cancel
+            </button>
+            <button
+                type="button"
+                onClick={handleSend}
+                disabled={isSending || (recipients.length === 0 && !inputValue.trim())}
+                className="btn btn-primary btn-md text-xs font-semibold flex items-center gap-1.5 shadow-sm"
+            >
+                {isSending ? (
+                    <>
+                        <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                        Sending Email...
+                    </>
+                ) : (
+                    <>
                         Send Quotation
-                    </h2>
-                    <p className="text-xs text-text-muted mt-1">
-                        Send quotation with attached PDF to one or more customer recipients
-                    </p>
-                </div>
+                        <span aria-hidden="true">&rarr;</span>
+                    </>
+                )}
+            </button>
+        </div>
+    );
 
-                <div className="space-y-4">
+    return (
+        <Modal
+            isOpen={isOpen}
+            onClose={handleClose}
+            title="Send Quotation"
+            subtitle="Send quotation with attached PDF to one or more customer recipients"
+            icon={Mail}
+            iconClassName="text-brand-teal bg-brand-teal/10 border-brand-teal/20"
+            size="md"
+            isLoading={isSending}
+            footer={modalFooter}
+        >
+            <div className="space-y-4">
                     <div>
                         <div className="flex items-center justify-between mb-1.5">
                             <label className="block text-xs font-bold text-text-secondary uppercase tracking-wider">
@@ -298,37 +313,6 @@ export default function SendQuotationModal({ isOpen, onClose, initialEmail, onSe
                         </p>
                     </div>
                 </div>
-
-                {/* Footer Buttons */}
-                <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-border-subtle">
-                    <button
-                        type="button"
-                        onClick={handleClose}
-                        disabled={isSending}
-                        className="btn btn-secondary btn-md text-xs font-semibold"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        type="button"
-                        onClick={handleSend}
-                        disabled={isSending || (recipients.length === 0 && !inputValue.trim())}
-                        className="btn btn-primary btn-md text-xs font-semibold flex items-center gap-1.5 shadow-sm"
-                    >
-                        {isSending ? (
-                            <>
-                                <Loader2 className="w-4 h-4 animate-spin shrink-0" />
-                                Sending Email...
-                            </>
-                        ) : (
-                            <>
-                                Send Quotation
-                                <span aria-hidden="true">&rarr;</span>
-                            </>
-                        )}
-                    </button>
-                </div>
-            </div>
-        </div>
+        </Modal>
     );
 }

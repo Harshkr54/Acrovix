@@ -1,8 +1,24 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getPurchaseOrderById, verifyPurchaseOrder, updatePurchaseOrderStatus, updatePurchaseOrderRemarks, createInvoiceFromPurchaseOrder, fetchApi, getCompanySettings } from '../services/api';
+import { 
+    getPurchaseOrderById, 
+    verifyPurchaseOrder, 
+    updatePurchaseOrderStatus, 
+    updatePurchaseOrderRemarks, 
+    createInvoiceFromPurchaseOrder, 
+    getInvoices,
+    fetchApi, 
+    getCompanySettings 
+} from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { ArrowLeft, Clock, CheckCircle, Package, XCircle, FileText, Download, AlertTriangle, Eye, X, Building2, MapPin, Mail, Phone, Hash, CalendarDays, Receipt, UserSquare2, Loader2, Link, ShoppingCart, User, FileDigit, Activity, Edit3 } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
+import { 
+    ArrowLeft, Clock, CheckCircle, Package, XCircle, FileText, Download, 
+    AlertTriangle, Eye, X, Building2, MapPin, Mail, Phone, Hash, 
+    CalendarDays, Receipt, UserSquare2, Loader2, Link, ShoppingCart, 
+    User, FileDigit, Activity, Edit3, Lock, ShieldCheck, AlertCircle, 
+    ExternalLink, Check, ChevronRight, DollarSign, Truck 
+} from 'lucide-react';
 import { API_BASE_URL } from '../services/api';
 import { formatCurrency } from '../utils/formatters';
 
@@ -10,16 +26,42 @@ export default function PurchaseOrderDetail() {
     const { id } = useParams();
     const navigate = useNavigate();
     const { user } = useAuth();
+    const { showToast } = useToast();
     const isSuperAdmin = user?.role === 'SUPER_ADMIN';
     
     const [order, setOrder] = useState(null);
     const [quotation, setQuotation] = useState(null);
+    const [customer, setCustomer] = useState(null);
     const [companySettings, setCompanySettings] = useState(null);
+    const [relatedInvoices, setRelatedInvoices] = useState([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
+    
+    // Status Modal
     const [statusModalOpen, setStatusModalOpen] = useState(false);
     const [newStatus, setNewStatus] = useState('');
     const [remarks, setRemarks] = useState('');
+
+    // Verify Modal
+    const [verifyModalOpen, setVerifyModalOpen] = useState(false);
+
+    // Create Invoice Modal & Form
+    const [isCreateInvoiceModalOpen, setIsCreateInvoiceModalOpen] = useState(false);
+    const [isCreatingInvoice, setIsCreatingInvoice] = useState(false);
+    const [invoiceFormError, setInvoiceFormError] = useState(null);
+    const [invoiceForm, setInvoiceForm] = useState({
+        invoiceDate: '',
+        dueDate: '',
+        paymentTerms: '',
+        termsAndConditions: '',
+        placeOfSupply: '',
+        clientName: '',
+        clientCompany: '',
+        clientEmail: '',
+        clientPhone: '',
+        clientAddress: '',
+        clientGstin: ''
+    });
 
     const [isEditingRemarks, setIsEditingRemarks] = useState(false);
     const [editedRemarks, setEditedRemarks] = useState('');
@@ -141,15 +183,27 @@ export default function PurchaseOrderDetail() {
             setOrder(poData);
             setEditedRemarks(poData.remarks || '');
             
-            const [qData, cData] = await Promise.all([
+            const [qData, cData, invRes] = await Promise.all([
                 fetchApi(`/quotations/${poData.quotationId}`).catch(() => null),
-                getCompanySettings().catch(() => null)
+                getCompanySettings().catch(() => null),
+                getInvoices({ purchaseOrderId: id }).catch(() => null)
             ]);
             setQuotation(qData);
             setCompanySettings(cData);
+            if (invRes?.content) {
+                setRelatedInvoices(invRes.content);
+            }
+
+            if (qData?.customer) {
+                setCustomer(qData.customer);
+            } else if (qData?.customerId) {
+                const custData = await fetchApi(`/customers/${qData.customerId}`).catch(() => null);
+                if (custData) setCustomer(custData);
+            }
             
         } catch (error) {
             console.error('Failed to fetch PO data', error);
+            showToast({ type: 'error', message: error.message || 'Failed to fetch Purchase Order details' });
         } finally {
             setLoading(false);
         }
@@ -166,39 +220,113 @@ export default function PurchaseOrderDetail() {
             setOrder(updated);
             setEditedRemarks(updated.remarks || '');
             setIsEditingRemarks(false);
+            showToast({ type: 'success', message: 'Remarks updated successfully' });
         } catch (err) {
             console.error('Failed to update remarks', err);
-            alert(err.message || 'Failed to update remarks');
+            showToast({ type: 'error', message: err.message || 'Failed to update remarks' });
         } finally {
             setSavingRemarks(false);
         }
     };
 
     const handleVerify = async () => {
-        if (!window.confirm('Are you sure you want to verify this Purchase Order?')) return;
         try {
             setActionLoading(true);
             await verifyPurchaseOrder(id);
+            showToast({ type: 'success', message: 'Purchase Order verified successfully!' });
+            setVerifyModalOpen(false);
             await fetchOrderData();
         } catch (error) {
             console.error('Failed to verify PO', error);
-            alert(error.message || 'Failed to verify PO');
+            showToast({ type: 'error', message: error.message || 'Failed to verify PO' });
         } finally {
             setActionLoading(false);
         }
     };
 
-    const handleCreateTaxInvoice = async () => {
-        if (!window.confirm('Create a Tax Invoice from this Purchase Order?')) return;
+    const handleOpenCreateTaxInvoiceModal = () => {
+        if (!order) return;
+
+        if (!['VERIFIED', 'PARTIALLY_FULFILLED'].includes(order.status)) {
+            showToast({
+                type: 'warning',
+                message: `Tax Invoice can only be created from VERIFIED or PARTIALLY_FULFILLED Purchase Orders (Current: ${order.status}).`
+            });
+            return;
+        }
+
+        const activeInvoices = relatedInvoices.filter(i => i.status !== 'CANCELLED');
+        const totalInvoiced = activeInvoices.reduce((sum, i) => sum + (Number(i.grandTotal) || 0), 0);
+
+        if (order.poValue != null && totalInvoiced >= Number(order.poValue) && activeInvoices.length > 0) {
+            showToast({
+                type: 'info',
+                message: 'This Purchase Order is already fully invoiced. Over-invoicing is not permitted.'
+            });
+            return;
+        }
+
+        const defaultDate = new Date().toISOString().split('T')[0];
+        const defaultDueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        
+        setInvoiceForm({
+            invoiceDate: defaultDate,
+            dueDate: defaultDueDate,
+            paymentTerms: customer?.paymentTerms || quotation?.termsAndConditions || 'Net 30',
+            termsAndConditions: quotation?.termsAndConditions || order.remarks || 'Payment due within 30 days of invoice date.',
+            placeOfSupply: customer?.state || quotation?.customer?.state || companySettings?.state || '',
+            clientName: quotation?.clientName || customer?.name || order.clientName || '',
+            clientCompany: quotation?.clientCompany || customer?.companyName || order.clientCompany || '',
+            clientEmail: quotation?.clientEmail || customer?.email || order.clientEmail || '',
+            clientPhone: quotation?.clientPhone || customer?.phone || order.clientPhone || '',
+            clientAddress: customer?.billingAddress || quotation?.clientAddress || '',
+            clientGstin: customer?.gstin || quotation?.clientGstin || ''
+        });
+
+        setInvoiceFormError(null);
+        setIsCreateInvoiceModalOpen(true);
+    };
+
+    const handleCreateTaxInvoiceSubmit = async (e) => {
+        if (e) e.preventDefault();
+        if (isCreatingInvoice) return;
+
         try {
-            setActionLoading(true);
-            const invoice = await createInvoiceFromPurchaseOrder(id, 'TAX_INVOICE');
+            setIsCreatingInvoice(true);
+            setInvoiceFormError(null);
+
+            const payload = {
+                invoiceType: 'TAX_INVOICE',
+                invoiceDate: invoiceForm.invoiceDate || new Date().toISOString().split('T')[0],
+                dueDate: invoiceForm.dueDate || null,
+                paymentTerms: invoiceForm.paymentTerms || null,
+                termsAndConditions: invoiceForm.termsAndConditions || null,
+                placeOfSupply: invoiceForm.placeOfSupply || null,
+                clientName: invoiceForm.clientName || null,
+                clientCompany: invoiceForm.clientCompany || null,
+                clientEmail: invoiceForm.clientEmail || null,
+                clientPhone: invoiceForm.clientPhone || null,
+                clientAddress: invoiceForm.clientAddress || null,
+                clientGstin: invoiceForm.clientGstin || null
+            };
+
+            const invoice = await createInvoiceFromPurchaseOrder(id, 'TAX_INVOICE', payload);
+            showToast({
+                type: 'success',
+                message: 'Tax Invoice created successfully as DRAFT. You can now review and issue it.'
+            });
+            setIsCreateInvoiceModalOpen(false);
+            await fetchOrderData();
             navigate(`/invoices/${invoice.id}`);
         } catch (error) {
             console.error('Failed to create Tax Invoice', error);
-            alert(error.message || 'Failed to create Tax Invoice');
+            setInvoiceFormError(error.message || 'Failed to create Tax Invoice');
+            showToast({
+                type: 'error',
+                message: error.message || 'Failed to create Tax Invoice'
+            });
         } finally {
-            setActionLoading(false);
+            setIsCreatingInvoice(false);
         }
     };
 
@@ -209,10 +337,11 @@ export default function PurchaseOrderDetail() {
             await updatePurchaseOrderStatus(id, { status: newStatus, remarks });
             setStatusModalOpen(false);
             setRemarks('');
+            showToast({ type: 'success', message: `Status updated to ${newStatus}` });
             await fetchOrderData();
         } catch (error) {
             console.error('Failed to update status', error);
-            alert(error.message || 'Failed to update status');
+            showToast({ type: 'error', message: error.message || 'Failed to update status' });
         } finally {
             setActionLoading(false);
         }
@@ -303,8 +432,38 @@ export default function PurchaseOrderDetail() {
         }
     };
 
+    const defaultConfigs = [
+        { columnKey: "rowNumber", displayName: "#", columnType: "NUMBER", visible: true, sortOrder: 0 },
+        { columnKey: "sku", displayName: "SKU", columnType: "TEXT", visible: true, sortOrder: 1 },
+        { columnKey: "description", displayName: "Description", columnType: "TEXT", visible: true, sortOrder: 2 },
+        { columnKey: "hsnSac", displayName: "HSN/SAC", columnType: "TEXT", visible: true, sortOrder: 3 },
+        { columnKey: "quantity", displayName: "Quantity", columnType: "NUMBER", visible: true, sortOrder: 4 },
+        { columnKey: "listPrice", displayName: "List Price", columnType: "CURRENCY", visible: true, sortOrder: 5 },
+        { columnKey: "discountPercent", displayName: "Discount %", columnType: "NUMBER", visible: true, sortOrder: 6 },
+        { columnKey: "unitPrice", displayName: "Unit Price", columnType: "CURRENCY", visible: true, sortOrder: 7 },
+        { columnKey: "taxPercent", displayName: "Tax %", columnType: "NUMBER", visible: true, sortOrder: 8 },
+        { columnKey: "taxAmount", displayName: "Tax Amount", columnType: "CURRENCY", visible: true, sortOrder: 9 },
+        { columnKey: "total", displayName: "Total", columnType: "CURRENCY", visible: true, sortOrder: 10 }
+    ];
+
     const getColumnValue = (item, colKey) => {
-        if (colKey === "rowNumber") return item.sortOrder + 1;
+        if (colKey === "rowNumber") return (item.sortOrder ?? 0) + 1;
+        if (colKey === "taxAmount") {
+            if (item.taxAmount !== undefined && item.taxAmount !== null && item.taxAmount !== '') return item.taxAmount;
+            const qty = parseFloat(item.quantity) || 0;
+            const up = parseFloat(item.unitPrice) || 0;
+            const taxPct = parseFloat(item.taxPercent) || 0;
+            return (qty * up) * (taxPct / 100);
+        }
+        if (colKey === "total" || colKey === "lineTotal") {
+            if (item.lineTotal !== undefined && item.lineTotal !== null && item.lineTotal !== '') return item.lineTotal;
+            if (item.total !== undefined && item.total !== null && item.total !== '') return item.total;
+            const qty = parseFloat(item.quantity) || 0;
+            const up = parseFloat(item.unitPrice) || 0;
+            const taxPct = parseFloat(item.taxPercent) || 0;
+            const net = qty * up;
+            return net + (net * (taxPct / 100));
+        }
         if (["sku", "description", "hsnSac", "quantity", "listPrice", "discountPercent", "unitPrice", "taxPercent"].includes(colKey)) {
             return item[colKey];
         }
@@ -312,36 +471,56 @@ export default function PurchaseOrderDetail() {
     };
 
     const getColumnClass = (col) => {
-        let classes = "px-5 py-3 text-[13px] text-text-primary";
-        if (col.columnType === 'CURRENCY' || col.columnKey.toLowerCase().includes('total') || col.columnKey.toLowerCase().includes('price') || col.columnKey.toLowerCase().includes('percent')) {
+        let classes = "px-4 py-3.5 text-[13px] text-text-primary border-b border-border-subtle/40";
+        if (col.columnType === 'CURRENCY' || ['total', 'lineTotal', 'taxAmount', 'listPrice', 'unitPrice'].includes(col.columnKey) || col.columnKey.toLowerCase().includes('price')) {
+            classes += " text-right whitespace-nowrap font-mono font-medium";
+        } else if (col.columnKey.toLowerCase().includes('percent') || col.columnKey === 'discountPercent' || col.columnKey === 'taxPercent') {
             classes += " text-right whitespace-nowrap font-mono";
-        } else if (col.columnKey === 'quantity') {
-            classes += " text-center whitespace-nowrap";
-        } else if (col.columnKey === 'hsnSac') {
-            classes += " whitespace-nowrap";
+        } else if (col.columnKey === 'quantity' || col.columnKey === 'rowNumber') {
+            classes += " text-center whitespace-nowrap font-medium";
+        } else if (col.columnKey === 'hsnSac' || col.columnKey === 'sku') {
+            classes += " whitespace-nowrap font-mono text-[12px] text-text-secondary";
+        } else if (col.columnKey === 'description') {
+            classes += " min-w-[220px] leading-relaxed break-words font-medium";
         }
         return classes;
     };
     
     const getHeaderClass = (col) => {
-        let classes = "px-5 py-3 text-[11px] font-bold text-text-secondary uppercase tracking-wider";
-        if (col.columnType === 'CURRENCY' || col.columnKey.toLowerCase().includes('total') || col.columnKey.toLowerCase().includes('price') || col.columnKey.toLowerCase().includes('percent')) {
+        let classes = "px-4 py-3 text-[11px] font-bold text-text-secondary uppercase tracking-wider select-none";
+        if (col.columnType === 'CURRENCY' || ['total', 'lineTotal', 'taxAmount', 'listPrice', 'unitPrice'].includes(col.columnKey) || col.columnKey.toLowerCase().includes('price')) {
             classes += " text-right whitespace-nowrap";
-        } else if (col.columnKey === 'quantity') {
+        } else if (col.columnKey.toLowerCase().includes('percent') || col.columnKey === 'discountPercent' || col.columnKey === 'taxPercent') {
+            classes += " text-right whitespace-nowrap";
+        } else if (col.columnKey === 'quantity' || col.columnKey === 'rowNumber') {
             classes += " text-center whitespace-nowrap";
-        } else if (col.columnKey === 'hsnSac') {
+        } else if (col.columnKey === 'hsnSac' || col.columnKey === 'sku') {
             classes += " whitespace-nowrap";
+        } else if (col.columnKey === 'description') {
+            classes += " min-w-[220px]";
         }
         return classes;
     };
 
     const renderColumnContent = (item, col) => {
         const value = getColumnValue(item, col.columnKey);
-        if (col.columnType === "CURRENCY") {
+        if (value === null || value === undefined || value === '') {
+            return <span className="text-text-muted">-</span>;
+        }
+        if (col.columnType === "CURRENCY" || ['total', 'lineTotal', 'taxAmount', 'listPrice', 'unitPrice'].includes(col.columnKey)) {
             return formatCurrency(value, order.currency);
         }
-        if (col.columnType === "NUMBER" && col.columnKey.includes("Percent")) {
-            return `${value}%`;
+        if ((col.columnType === "NUMBER" && col.columnKey.includes("Percent")) || col.columnKey === 'discountPercent' || col.columnKey === 'taxPercent') {
+            const num = parseFloat(value);
+            return isNaN(num) ? '-' : `${num}%`;
+        }
+        if (col.columnKey === 'quantity') {
+            return (
+                <span>
+                    {value}
+                    {item.unit ? <span className="text-text-muted text-[11px] ml-1 font-normal">{item.unit}</span> : null}
+                </span>
+            );
         }
         return value;
     };
@@ -352,16 +531,16 @@ export default function PurchaseOrderDetail() {
         let tax = 0;
         let discount = 0;
 
-        if(quotation && quotation.items) {
+        if (quotation && quotation.items) {
             quotation.items.forEach(item => {
                 const qty = parseFloat(item.quantity) || 0;
                 const lp = parseFloat(item.listPrice) || 0;
                 const up = parseFloat(item.unitPrice) || 0;
                 const taxPct = parseFloat(item.taxPercent) || 0;
     
-                const lineGross = qty * lp;
+                const lineGross = qty * (lp > 0 ? lp : up);
                 const lineNet = qty * up;
-                const lineDisc = lineGross - lineNet;
+                const lineDisc = Math.max(0, lineGross - lineNet);
                 const lineTax = lineNet * (taxPct / 100);
     
                 subtotalBeforeTax += lineGross;
@@ -374,13 +553,15 @@ export default function PurchaseOrderDetail() {
     };
 
     const totals = calculateTotals();
-    const visibleColumns = quotation?.columnConfigs?.filter(c => c.visible).sort((a,b)=>a.sortOrder-b.sortOrder) || [];
+    const visibleColumns = (quotation?.columnConfigs && quotation.columnConfigs.length > 0)
+        ? quotation.columnConfigs.filter(c => c.visible).sort((a,b) => a.sortOrder - b.sortOrder)
+        : defaultConfigs;
 
-    // Helper to format Bill To Company Address lines (Address lines, City, State, PIN code)
+    // Helper to format Bill To Company Address lines
     const getCompanyAddressLines = () => {
         const rawAddress = companySettings?.registeredAddress || companySettings?.billingAddress || '';
         if (rawAddress.trim()) {
-            const lines = rawAddress.split('\n').map(l => l.trim()).filter(Boolean);
+            const lines = rawAddress.split(/\r?\n|\\n/).map(l => l.trim()).filter(Boolean);
             const separateLoc = [
                 companySettings?.city,
                 companySettings?.state,
@@ -409,6 +590,99 @@ export default function PurchaseOrderDetail() {
 
     const companyAddressLines = getCompanyAddressLines();
 
+    // Helper to format Client Address lines
+    const getClientAddressLines = (rawAddress, state, pincode) => {
+        if (!rawAddress && !state && !pincode) return [];
+        const lines = [];
+        if (rawAddress && rawAddress.trim()) {
+            const splitLines = rawAddress.split(/\r?\n|\\n/).map(l => l.trim()).filter(Boolean);
+            lines.push(...splitLines);
+            
+            const fullRaw = rawAddress.toLowerCase();
+            const stateNeedsAdd = state && !fullRaw.includes(state.toLowerCase());
+            const pinNeedsAdd = pincode && !fullRaw.includes(pincode.toString().toLowerCase());
+            
+            if (stateNeedsAdd || pinNeedsAdd) {
+                const locParts = [stateNeedsAdd ? state : null, pinNeedsAdd ? pincode : null].filter(Boolean);
+                lines.push(locParts.join(' - '));
+            }
+        } else {
+            const locParts = [state, pincode].filter(Boolean);
+            if (locParts.length > 0) {
+                lines.push(locParts.join(' - '));
+            }
+        }
+        return lines;
+    };
+
+    // Client Details Resolution (Order Snapshot -> Quotation Snapshot -> Customer Master)
+    const clientCompany = order?.clientCompany || quotation?.clientCompany || customer?.companyName || '';
+    const clientContact = order?.clientName || quotation?.clientName || customer?.name || '';
+    const clientEmail = order?.clientEmail || quotation?.clientEmail || customer?.email || '';
+    const clientPhone = order?.clientPhone || quotation?.clientPhone || customer?.phone || '';
+    const clientAltPhone = quotation?.alternatePhone || customer?.alternatePhone || '';
+    const clientGstin = quotation?.gstin || customer?.gstin || '';
+    const clientPan = quotation?.pan || customer?.pan || '';
+    const clientCode = customer?.customerCode || quotation?.customerCode || '';
+    const clientPaymentTerms = quotation?.paymentTerms || customer?.paymentTerms || '';
+    
+    // Address Resolution
+    const clientBillingAddressRaw = quotation?.billingAddress || customer?.billingAddress || '';
+    const clientBillingState = quotation?.state || customer?.state || '';
+    const clientBillingPin = quotation?.pincode || customer?.pincode || '';
+    const clientBillingLines = getClientAddressLines(clientBillingAddressRaw, clientBillingState, clientBillingPin);
+
+    const clientShippingAddressRaw = quotation?.shippingAddress || customer?.shippingAddress || '';
+    const clientShippingLines = getClientAddressLines(clientShippingAddressRaw, null, null);
+    
+    // Check if shipping address is distinct from billing address
+    const hasDistinctShippingAddress = Boolean(
+        clientShippingLines.length > 0 &&
+        clientBillingLines.length > 0 &&
+        clientShippingLines.join(' ').trim().toLowerCase() !== clientBillingLines.join(' ').trim().toLowerCase()
+    );
+
+    // Delivery Destination Resolution
+    const rawDestType = order?.deliveryDestinationType;
+    const rawDeliveryAddress = order?.deliveryAddress;
+    
+    let resolvedDestType = rawDestType;
+    if (!resolvedDestType) {
+        if (rawDeliveryAddress && rawDeliveryAddress.trim()) {
+            const compAddr = (companySettings?.registeredAddress || companySettings?.billingAddress || '').toLowerCase();
+            resolvedDestType = (compAddr && rawDeliveryAddress.toLowerCase().includes(compAddr))
+                ? 'COMPANY_OFFICE'
+                : 'CUSTOM';
+        } else {
+            resolvedDestType = 'NOT_SPECIFIED';
+        }
+    }
+
+    const deliveryDestinationType = resolvedDestType;
+    let deliveryContactName = 'Not Specified';
+    let deliveryContactPhone = '';
+    let deliveryAddressRaw = '';
+
+    if (deliveryDestinationType === 'NOT_SPECIFIED') {
+        deliveryContactName = order?.deliveryContactName || 'Not Specified';
+        deliveryContactPhone = order?.deliveryContactPhone || '';
+        deliveryAddressRaw = '';
+    } else if (deliveryDestinationType === 'CUSTOMER_SITE') {
+        deliveryContactName = order?.deliveryContactName || clientContact || 'Site Contact';
+        deliveryContactPhone = order?.deliveryContactPhone || clientPhone || '';
+        deliveryAddressRaw = order?.deliveryAddress || clientShippingAddressRaw || '';
+    } else if (deliveryDestinationType === 'CUSTOM') {
+        deliveryContactName = order?.deliveryContactName || 'Designated Contact';
+        deliveryContactPhone = order?.deliveryContactPhone || '';
+        deliveryAddressRaw = order?.deliveryAddress || '';
+    } else {
+        // COMPANY_OFFICE
+        deliveryContactName = order?.deliveryContactName || 'ACROVIX Operations';
+        deliveryContactPhone = order?.deliveryContactPhone || companySettings?.phone || '';
+        deliveryAddressRaw = order?.deliveryAddress || companySettings?.registeredAddress || companySettings?.billingAddress || '';
+    }
+    const deliveryAddressLines = deliveryAddressRaw ? getClientAddressLines(deliveryAddressRaw, null, null) : [];
+
     return (
         <div className="space-y-6 max-w-[1600px] mx-auto pb-24">
             {/* Top Action Bar */}
@@ -434,10 +708,23 @@ export default function PurchaseOrderDetail() {
                         </div>
                         <p className="text-[13px] font-mono text-text-muted flex items-center mt-1 flex-wrap gap-2">
                             {order.poNumber}
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-bg-muted border border-border-subtle uppercase tracking-wider gap-1.5 text-text-secondary">
-                                {getStatusIcon(order.status)}
-                                {order.status}
-                            </span>
+                            {order.status === 'VERIFIED' ? (
+                                <>
+                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 uppercase tracking-wider gap-1.5 shadow-sm">
+                                        <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+                                        VERIFIED
+                                    </span>
+                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-bg-muted border border-border-subtle uppercase tracking-wider gap-1 text-text-secondary">
+                                        <Lock className="w-3 h-3 text-text-muted" />
+                                        Read-Only
+                                    </span>
+                                </>
+                            ) : (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-bg-muted border border-border-subtle uppercase tracking-wider gap-1.5 text-text-secondary">
+                                    {getStatusIcon(order.status)}
+                                    {order.status}
+                                </span>
+                            )}
                         </p>
                     </div>
                 </div>
@@ -458,11 +745,35 @@ export default function PurchaseOrderDetail() {
                         <Download className="w-4 h-4 mr-2" /> PDF
                     </button>
                     
+                    {/* View Tax Invoice shortcut if an active tax invoice exists */}
+                    {relatedInvoices.some(i => i.invoiceType === 'TAX_INVOICE' && i.status !== 'CANCELLED') && (
+                        <button 
+                            onClick={() => {
+                                const taxInv = relatedInvoices.find(i => i.invoiceType === 'TAX_INVOICE' && i.status !== 'CANCELLED');
+                                navigate(`/invoices/${taxInv.id}`);
+                            }}
+                            className="btn btn-secondary btn-md flex items-center text-blue-600 dark:text-blue-400 border-blue-500/20 hover:bg-blue-500/5 shadow-sm"
+                            title="View Tax Invoice"
+                        >
+                            <FileText className="w-4 h-4 mr-2" /> View Tax Invoice
+                        </button>
+                    )}
+
                     {isSuperAdmin && ['VERIFIED', 'PARTIALLY_FULFILLED'].includes(order.status) && (
                         <button 
-                            onClick={handleCreateTaxInvoice}
-                            disabled={actionLoading}
-                            className="btn btn-secondary btn-md flex items-center text-brand-teal border-brand-teal/20 hover:bg-brand-teal/5 shadow-sm"
+                            onClick={handleOpenCreateTaxInvoiceModal}
+                            disabled={actionLoading || (
+                                order.poValue != null && 
+                                relatedInvoices.filter(i => i.status !== 'CANCELLED').reduce((sum, i) => sum + (Number(i.grandTotal) || 0), 0) >= Number(order.poValue) &&
+                                relatedInvoices.some(i => i.status !== 'CANCELLED')
+                            )}
+                            className={`btn btn-secondary btn-md flex items-center shadow-sm ${
+                                order.poValue != null && 
+                                relatedInvoices.filter(i => i.status !== 'CANCELLED').reduce((sum, i) => sum + (Number(i.grandTotal) || 0), 0) >= Number(order.poValue) &&
+                                relatedInvoices.some(i => i.status !== 'CANCELLED')
+                                    ? 'opacity-50 cursor-not-allowed text-text-muted border-border-subtle'
+                                    : 'text-brand-teal border-brand-teal/20 hover:bg-brand-teal/5'
+                            }`}
                         >
                             <FileText className="w-4 h-4 mr-2" /> Create Tax Invoice
                         </button>
@@ -470,7 +781,7 @@ export default function PurchaseOrderDetail() {
                     
                     {isSuperAdmin && order.status === 'RECEIVED' && (
                         <button 
-                            onClick={handleVerify}
+                            onClick={() => setVerifyModalOpen(true)}
                             disabled={actionLoading}
                             className="btn btn-primary btn-md flex items-center shadow-sm"
                         >
@@ -479,7 +790,7 @@ export default function PurchaseOrderDetail() {
                         </button>
                     )}
 
-                    {isSuperAdmin && ['VERIFIED', 'PARTIALLY_FULFILLED'].includes(order.status) && (
+                    {isSuperAdmin && order.status === 'PARTIALLY_FULFILLED' && (
                         <button 
                             onClick={() => { setNewStatus(''); setStatusModalOpen(true); }}
                             className="btn btn-secondary btn-md flex items-center"
@@ -489,6 +800,40 @@ export default function PurchaseOrderDetail() {
                     )}
                 </div>
             </div>
+
+            {/* Verified Read-Only Banner */}
+            {(order.status === 'VERIFIED' || order.readOnly) && (
+                <div className="p-4 bg-emerald-500/10 border border-emerald-500/25 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-modal-entrance">
+                    <div className="flex items-start sm:items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5 sm:mt-0">
+                            <ShieldCheck className="w-5 h-5 text-emerald-500" />
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <h3 className="text-[14px] font-bold text-emerald-800 dark:text-emerald-300">
+                                    Verified Purchase Order — Read-Only Mode
+                                </h3>
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">
+                                    <Lock className="w-2.5 h-2.5 mr-1" /> Locked
+                                </span>
+                            </div>
+                            <p className="text-[12px] text-emerald-700/90 dark:text-emerald-400/90 mt-0.5">
+                                This purchase order is verified{order.verifiedBy?.name ? ` by ${order.verifiedBy.name}` : ''}{order.verifiedAt ? ` on ${new Date(order.verifiedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}` : ''}. All line items, prices, discounts, and terms are protected from direct alteration.
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                        <button
+                            type="button"
+                            onClick={() => navigate(`/invoices?search=${order.poNumber}`)}
+                            className="btn btn-secondary btn-sm flex items-center gap-1.5 text-xs bg-bg-card border-emerald-500/30 hover:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 shadow-sm"
+                        >
+                            <FileText className="w-3.5 h-3.5" />
+                            View Related Invoices
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* PO Summary Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -556,305 +901,257 @@ export default function PurchaseOrderDetail() {
                 </div>
             )}
 
-            {/* Main Content 2-Column */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
-                
-                {/* LEFT COLUMN: Bill To, Ship To, Details, Terms */}
-                <div className="xl:col-span-2 space-y-6">
-                    
-                    {/* Bill To & Ship To Side-by-Side */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="acx-card p-6 border-t-4 border-t-[var(--color-brand-primary)] flex flex-col">
-                            <h3 className="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-4 flex items-center">
-                                <Building2 className="w-3.5 h-3.5 mr-2" /> BILL TO (ACROVIX)
-                            </h3>
-                            <div className="space-y-4 flex-1">
-                                <div>
-                                    <p className="text-[14px] font-bold text-text-primary">{companySettings?.companyName || 'ACROVIX INNOVATIONS PRIVATE LIMITED'}</p>
-                                </div>
-
-                                {companyAddressLines.length > 0 && (
-                                    <div className="flex items-start text-[13px] text-text-secondary">
-                                        <MapPin className="w-4 h-4 mr-2 mt-0.5 shrink-0 text-text-muted" />
-                                        <div className="leading-relaxed break-words space-y-0.5">
-                                            {companyAddressLines.map((line, idx) => (
-                                                <p key={idx}>{line}</p>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                                
-                                {((companySettings?.gstin) || (companySettings?.pan)) && (
-                                    <div className="pt-3 border-t border-border-subtle/50 flex flex-wrap gap-x-8 gap-y-3">
-                                        {companySettings?.gstin && (
-                                            <div>
-                                                <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">GSTIN</p>
-                                                <p className="text-[12px] font-mono text-text-primary">{companySettings.gstin}</p>
-                                            </div>
-                                        )}
-                                        {companySettings?.pan && (
-                                            <div>
-                                                <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">PAN</p>
-                                                <p className="text-[12px] font-mono text-text-primary">{companySettings.pan}</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                                
-                                {((companySettings?.email) || (companySettings?.phone)) && (
-                                    <div className="pt-3 border-t border-border-subtle/50 space-y-2">
-                                        {companySettings?.email && (
-                                            <div className="flex items-center text-[12px] text-text-secondary break-all">
-                                                <Mail className="w-3.5 h-3.5 mr-2 text-text-muted shrink-0" /> {companySettings.email}
-                                            </div>
-                                        )}
-                                        {companySettings?.phone && (
-                                            <div className="flex items-center text-[12px] text-text-secondary">
-                                                <Phone className="w-3.5 h-3.5 mr-2 text-text-muted shrink-0" /> {companySettings.phone}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="acx-card p-6 border-t-4 border-t-brand-teal flex flex-col">
-                            <h3 className="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-4 flex items-center">
-                                <UserSquare2 className="w-3.5 h-3.5 mr-2" /> SHIP TO / VENDOR
-                            </h3>
-                            <div className="space-y-4 flex-1">
-                                <div>
-                                    <p className="text-[14px] font-bold text-text-primary">{order.clientCompany || order.clientName}</p>
-                                    {order.clientCompany && order.clientName !== order.clientCompany && (
-                                        <p className="text-[12px] text-text-secondary flex items-center mt-1">
-                                            <User className="w-3 h-3 mr-1.5" /> Attn: {order.clientName}
-                                        </p>
-                                    )}
-                                </div>
-                                {quotation?.customer?.billingAddress && (
-                                    <div className="flex items-start text-[13px] text-text-secondary">
-                                        <MapPin className="w-4 h-4 mr-2 mt-0.5 shrink-0 text-text-muted" />
-                                        <p className="leading-relaxed">{quotation.customer.billingAddress}</p>
-                                    </div>
-                                )}
-                                
-                                {quotation?.customer?.gstin && (
-                                    <div className="pt-3 border-t border-border-subtle/50">
-                                        <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">Vendor GSTIN</p>
-                                        <p className="text-[12px] font-mono text-text-primary">{quotation.customer.gstin}</p>
-                                    </div>
-                                )}
-                                
-                                {((quotation?.clientEmail) || (quotation?.clientPhone)) && (
-                                    <div className="pt-3 border-t border-border-subtle/50 space-y-2">
-                                        {quotation?.clientEmail && (
-                                            <div className="flex items-center text-[12px] text-text-secondary">
-                                                <Mail className="w-3.5 h-3.5 mr-2 text-text-muted" /> {quotation.clientEmail}
-                                            </div>
-                                        )}
-                                        {quotation?.clientPhone && (
-                                            <div className="flex items-center text-[12px] text-text-secondary">
-                                                <Phone className="w-3.5 h-3.5 mr-2 text-text-muted" /> {quotation.clientPhone}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Order Details Table */}
-                    <div className="acx-card overflow-hidden">
-                        <div className="px-6 py-5 border-b border-border-subtle bg-bg-card">
-                            <h3 className="text-[14px] font-bold text-text-primary tracking-tight flex items-center">
-                                <ShoppingCart className="w-4 h-4 mr-2 text-brand-teal" /> Order Details
-                                <span className="ml-3 text-[11px] font-normal text-text-muted tracking-wide">Line Items</span>
-                            </h3>
-                        </div>
-                        <div ref={tableContainerRef} className="overflow-x-auto w-full no-scrollbar table-wrapper">
-                            <table className="w-full text-left border-collapse min-w-[900px]">
-                                <thead>
-                                    <tr className="bg-bg-muted border-b border-border-subtle">
-                                        {visibleColumns.map((col) => (
-                                            <th key={col.columnKey} className={getHeaderClass(col)}>
-                                                {col.displayName}
-                                            </th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {quotation?.items?.map((item, idx) => (
-                                        <tr key={idx} className="border-b border-border-subtle/40 hover:bg-bg-hover transition-colors">
-                                            {visibleColumns.map((col) => (
-                                                <td key={col.columnKey} className={getColumnClass(col)}>
-                                                    {renderColumnContent(item, col)}
-                                                </td>
-                                            ))}
-                                        </tr>
-                                    ))}
-                                    {!quotation?.items?.length && (
-                                        <tr>
-                                            <td colSpan={visibleColumns.length || 1} className="px-5 py-8 text-center text-text-muted text-[13px]">
-                                                No line items found.
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                        
-                        {/* Thin Synchronized Horizontal Scrollbar (4–6px) */}
-                        {isTableOverflowing && (
-                            <div className="w-full px-6 py-2.5 bg-bg-muted/30 border-t border-border-subtle/40 select-none">
-                                <div
-                                    ref={scrollTrackRef}
-                                    onClick={handleTrackClick}
-                                    className="relative w-full h-[5px] bg-border-subtle/60 dark:bg-slate-800 rounded-full cursor-pointer overflow-hidden transition-colors hover:bg-border-subtle"
-                                    title="Drag or click to scroll horizontally"
-                                >
-                                    <div
-                                        onMouseDown={handleThumbMouseDown}
-                                        style={{
-                                            width: `${Math.max(8, Math.min(100, (scrollMetrics.clientWidth / scrollMetrics.scrollWidth) * 100))}%`,
-                                            left: `${(scrollMetrics.scrollLeft / maxTableScroll) * (100 - Math.max(8, Math.min(100, (scrollMetrics.clientWidth / scrollMetrics.scrollWidth) * 100)))}%`
-                                        }}
-                                        className="absolute top-0 bottom-0 bg-[var(--color-brand-primary,#2563EB)] hover:brightness-110 active:brightness-95 rounded-full cursor-grab active:cursor-grabbing shadow-sm transition-transform duration-75"
-                                    />
-                                </div>
-                            </div>
-                        )}
-                        
-                        {/* Summary / Totals inside Table Card Footer */}
-                        <div className="bg-bg-muted/30 p-6 border-t border-border-subtle">
-                            <div className="w-full sm:w-[320px] ml-auto space-y-3">
-                                <div className="flex justify-between text-[13px] text-text-secondary">
-                                    <span className="font-medium">Subtotal</span>
-                                    <span className="font-mono font-semibold text-text-primary">{formatCurrency(totals.subtotalBeforeTax, order.currency)}</span>
-                                </div>
-                                {totals.discount > 0 && (
-                                    <div className="flex justify-between text-[13px]">
-                                        <span className="font-medium text-text-secondary">Discount</span>
-                                        <span className="text-brand-danger font-mono font-semibold">-{formatCurrency(totals.discount, order.currency)}</span>
-                                    </div>
-                                )}
-                                <div className="flex justify-between text-[13px] text-text-secondary">
-                                    <span className="font-medium">Taxable Amount</span>
-                                    <span className="font-mono font-semibold text-text-primary">{formatCurrency(totals.taxableAmount, order.currency)}</span>
-                                </div>
-                                <div className="flex justify-between text-[13px] text-text-secondary pb-4 border-b border-border-subtle">
-                                    <span className="font-medium">Total Tax</span>
-                                    <span className="font-mono font-semibold text-text-primary">{formatCurrency(totals.tax, order.currency)}</span>
-                                </div>
-                                <div className="flex justify-between items-end pt-2">
-                                    <span className="text-[14px] font-bold text-text-primary uppercase tracking-wide">Grand Total</span>
-                                    <span className="text-[26px] font-bold text-brand-teal font-mono tracking-tight leading-none">
-                                        {formatCurrency(totals.grandTotal, order.currency)}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Terms & Remarks - Full Width */}
-                    <div className="space-y-6">
-                        {quotation?.termsAndConditions && (
-                            <div className="acx-card p-8">
-                                <h3 className="text-[12px] font-bold text-text-secondary uppercase tracking-wider mb-5 pb-3 border-b border-border-subtle">Terms & Conditions</h3>
-                                <div className="text-[13px] text-text-secondary whitespace-pre-wrap leading-relaxed font-normal">
-                                    {quotation.termsAndConditions}
-                                </div>
-                            </div>
-                        )}
-                        {/* Remarks / Additional Notes */}
-                        <div className="acx-card p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-2">
-                                    <FileText className="w-4 h-4 text-brand-primary" />
-                                    <h3 className="text-[12px] font-bold text-text-primary uppercase tracking-wider">
-                                        Remarks / Additional Notes
-                                    </h3>
-                                </div>
-                                {isSuperAdmin && !isEditingRemarks && (
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setEditedRemarks(order.remarks || '');
-                                            setIsEditingRemarks(true);
-                                        }}
-                                        className="text-xs font-semibold text-brand-primary hover:text-brand-primary/80 flex items-center gap-1.5 transition-colors"
-                                    >
-                                        <Edit3 className="w-3.5 h-3.5" />
-                                        {order.remarks ? 'Edit Notes' : 'Add Notes'}
-                                    </button>
-                                )}
-                            </div>
-
-                            {isEditingRemarks ? (
-                                <div className="space-y-3">
-                                    <textarea
-                                        rows="3"
-                                        maxLength={2000}
-                                        value={editedRemarks}
-                                        onChange={(e) => setEditedRemarks(e.target.value)}
-                                        placeholder="Add delivery instructions, special requirements, or other notes..."
-                                        className="w-full bg-bg-main border border-border-subtle rounded-lg px-4 py-2.5 text-sm text-text-primary focus:border-brand-primary placeholder:text-text-muted/60"
-                                    />
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-[11px] text-text-muted">
-                                            {(editedRemarks || '').length} / 2000
-                                        </span>
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setEditedRemarks(order.remarks || '');
-                                                    setIsEditingRemarks(false);
-                                                }}
-                                                className="btn btn-secondary btn-sm"
-                                                disabled={savingRemarks}
-                                            >
-                                                Cancel
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={handleSaveRemarks}
-                                                className="btn btn-primary btn-sm flex items-center gap-1.5"
-                                                disabled={savingRemarks}
-                                            >
-                                                {savingRemarks && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                                                Save Notes
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <p className="text-[11px] text-text-muted">
-                                        These notes are rendered on the Purchase Order PDF in a dedicated Remarks panel, kept separate from Terms & Conditions.
-                                    </p>
-                                </div>
-                            ) : order.remarks ? (
-                                <div className="text-[13px] text-text-secondary whitespace-pre-wrap leading-relaxed bg-brand-primary/5 p-4 rounded-xl border border-brand-primary/10">
-                                    {order.remarks}
-                                </div>
-                            ) : (
-                                <p className="text-[13px] text-text-muted italic">
-                                    No additional notes or instructions specified. Click &ldquo;Add Notes&rdquo; to include remarks on this PO.
+            {/* Upper Information Section */}
+            {/* Row 1: Buyer, Supplier/Vendor & Delivery Destination in 3 Columns */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+                {/* 1. BUYER / BILL TO (ACROVIX) */}
+                <div className="acx-card p-6 border-t-4 border-t-[var(--color-brand-primary)] flex flex-col justify-between">
+                    <div>
+                        <h3 className="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-4 flex items-center">
+                            <Building2 className="w-3.5 h-3.5 mr-2 text-brand-primary" /> BUYER / BILL TO
+                        </h3>
+                        <div className="space-y-4">
+                            <div>
+                                <p className="text-[15px] font-bold text-text-primary tracking-tight">
+                                    {companySettings?.companyName || 'ACROVIX INNOVATIONS PRIVATE LIMITED'}
                                 </p>
+                            </div>
+
+                            <div className="pt-2">
+                                <div className="flex items-start text-[13px] text-text-secondary">
+                                    <MapPin className="w-4 h-4 mr-2 mt-0.5 shrink-0 text-text-muted" />
+                                    <div>
+                                        <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">Registered Address</p>
+                                        {companyAddressLines.length > 0 ? (
+                                            <div className="leading-relaxed space-y-0.5 text-text-secondary">
+                                                {companyAddressLines.map((line, idx) => (
+                                                    <p key={idx}>{line}</p>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="text-[12px] text-text-muted italic">Registered address not specified</p>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {((companySettings?.gstin) || (companySettings?.pan)) && (
+                                <div className="pt-3 border-t border-border-subtle/50 flex flex-wrap gap-x-6 gap-y-3">
+                                    {companySettings?.gstin && (
+                                        <div>
+                                            <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">GSTIN</p>
+                                            <p className="text-[12px] font-mono font-medium text-text-primary bg-bg-muted/70 px-2 py-0.5 rounded border border-border-subtle/50 inline-block">{companySettings.gstin}</p>
+                                        </div>
+                                    )}
+                                    {companySettings?.pan && (
+                                        <div>
+                                            <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">PAN</p>
+                                            <p className="text-[12px] font-mono font-medium text-text-primary bg-bg-muted/70 px-2 py-0.5 rounded border border-border-subtle/50 inline-block">{companySettings.pan}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            
+                            {((companySettings?.email) || (companySettings?.phone)) && (
+                                <div className="pt-3 border-t border-border-subtle/50 space-y-2">
+                                    {companySettings?.email && (
+                                        <div className="flex items-center text-[12px] text-text-secondary break-all">
+                                            <Mail className="w-3.5 h-3.5 mr-2 text-text-muted shrink-0" />
+                                            <a href={`mailto:${companySettings.email}`} className="hover:text-brand-primary hover:underline transition-colors">
+                                                {companySettings.email}
+                                            </a>
+                                        </div>
+                                    )}
+                                    {companySettings?.phone && (
+                                        <div className="flex items-center text-[12px] text-text-secondary">
+                                            <Phone className="w-3.5 h-3.5 mr-2 text-text-muted shrink-0" />
+                                            <a href={`tel:${companySettings.phone}`} className="hover:text-brand-primary transition-colors">
+                                                {companySettings.phone}
+                                            </a>
+                                        </div>
+                                    )}
+                                </div>
                             )}
                         </div>
                     </div>
                 </div>
 
-                {/* RIGHT COLUMN: Quotation, Timeline */}
-                <div className="space-y-6">
-                    {/* Source Quotation */}
-                    <div className="acx-card p-5">
+                {/* 2. SUPPLIER / VENDOR */}
+                <div className="acx-card p-6 border-t-4 border-t-amber-500 flex flex-col justify-between">
+                    <div>
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-[11px] font-bold text-text-secondary uppercase tracking-wider flex items-center">
+                                <UserSquare2 className="w-3.5 h-3.5 mr-2 text-amber-500" /> SUPPLIER / VENDOR
+                            </h3>
+                            {clientCode && (
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-bg-muted border border-border-subtle text-text-secondary font-semibold">
+                                    Code: {clientCode}
+                                </span>
+                            )}
+                        </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <p className="text-[15px] font-bold text-text-primary tracking-tight">
+                                    {clientCompany || clientContact || 'Vendor / Supplier Not Specified'}
+                                </p>
+                                {clientCompany && clientContact && clientContact !== clientCompany && (
+                                    <p className="text-[12px] text-text-secondary flex items-center mt-1">
+                                        <User className="w-3 h-3 mr-1.5 text-text-muted" /> Attn: <span className="font-semibold text-text-primary ml-1">{clientContact}</span>
+                                    </p>
+                                )}
+                            </div>
+
+                            <div className="pt-2">
+                                <div className="flex items-start text-[13px] text-text-secondary">
+                                    <MapPin className="w-4 h-4 mr-2 mt-0.5 shrink-0 text-text-muted" />
+                                    <div>
+                                        <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">Billing / Registered Address</p>
+                                        {clientBillingLines.length > 0 ? (
+                                            <div className="leading-relaxed space-y-0.5 text-text-secondary">
+                                                {clientBillingLines.map((line, idx) => (
+                                                    <p key={idx}>{line}</p>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="text-[12px] text-text-muted italic">No address recorded</p>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {(clientGstin || clientPan || clientPaymentTerms) && (
+                                <div className="pt-3 border-t border-border-subtle/50 flex flex-wrap gap-x-6 gap-y-3">
+                                    {clientGstin && (
+                                        <div>
+                                            <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">GSTIN</p>
+                                            <p className="text-[12px] font-mono font-medium text-text-primary bg-bg-muted/70 px-2 py-0.5 rounded border border-border-subtle/50 inline-block">{clientGstin}</p>
+                                        </div>
+                                    )}
+                                    {clientPan && (
+                                        <div>
+                                            <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">PAN</p>
+                                            <p className="text-[12px] font-mono font-medium text-text-primary bg-bg-muted/70 px-2 py-0.5 rounded border border-border-subtle/50 inline-block">{clientPan}</p>
+                                        </div>
+                                    )}
+                                    {clientPaymentTerms && (
+                                        <div>
+                                            <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">Payment Terms</p>
+                                            <p className="text-[12px] text-text-secondary">{clientPaymentTerms}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {(clientEmail || clientPhone || clientAltPhone) && (
+                                <div className="pt-3 border-t border-border-subtle/50 space-y-2">
+                                    {clientEmail && (
+                                        <div className="flex items-center text-[12px] text-text-secondary break-all">
+                                            <Mail className="w-3.5 h-3.5 mr-2 text-text-muted shrink-0" />
+                                            <a href={`mailto:${clientEmail}`} className="hover:text-brand-primary hover:underline transition-colors">
+                                                {clientEmail}
+                                            </a>
+                                        </div>
+                                    )}
+                                    {(clientPhone || clientAltPhone) && (
+                                        <div className="flex items-center text-[12px] text-text-secondary flex-wrap gap-y-1">
+                                            <Phone className="w-3.5 h-3.5 mr-2 text-text-muted shrink-0" />
+                                            {clientPhone && (
+                                                <a href={`tel:${clientPhone}`} className="hover:text-brand-primary transition-colors">
+                                                    {clientPhone}
+                                                </a>
+                                            )}
+                                            {clientPhone && clientAltPhone && (
+                                                <span className="text-text-muted mx-2">|</span>
+                                            )}
+                                            {clientAltPhone && (
+                                                <span className="text-text-secondary">
+                                                    <span className="text-text-muted text-[11px] mr-1">Alt:</span>
+                                                    <a href={`tel:${clientAltPhone}`} className="hover:text-brand-primary transition-colors">
+                                                        {clientAltPhone}
+                                                    </a>
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* 3. SHIP TO / DELIVERY DESTINATION */}
+                <div className="acx-card p-6 border-t-4 border-t-brand-teal flex flex-col justify-between">
+                    <div>
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-[11px] font-bold text-text-secondary uppercase tracking-wider flex items-center">
+                                <Truck className="w-3.5 h-3.5 mr-2 text-brand-teal" /> SHIP TO / DELIVERY DESTINATION
+                            </h3>
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-brand-teal/10 border border-brand-teal/20 text-brand-teal">
+                                {deliveryDestinationType === 'CUSTOMER_SITE' ? 'Client Project Site' : (deliveryDestinationType === 'COMPANY_OFFICE' ? 'ACROVIX Office' : (deliveryDestinationType === 'NOT_SPECIFIED' ? 'Not Specified' : 'Designated Site'))}
+                            </span>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <p className="text-[15px] font-bold text-text-primary tracking-tight">
+                                    {deliveryContactName || 'ACROVIX Receiving / Operations'}
+                                </p>
+                                {deliveryContactName && deliveryDestinationType === 'CUSTOMER_SITE' && (
+                                    <p className="text-[12px] text-text-secondary flex items-center mt-1">
+                                        <Building2 className="w-3 h-3 mr-1.5 text-text-muted" /> Direct Drop-Ship: <span className="font-semibold text-text-primary ml-1">{clientCompany || clientContact}</span>
+                                    </p>
+                                )}
+                            </div>
+
+                            <div className="pt-2">
+                                <div className="flex items-start text-[13px] text-text-secondary">
+                                    <MapPin className="w-4 h-4 mr-2 mt-0.5 shrink-0 text-brand-teal" />
+                                    <div>
+                                        <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">Delivery Destination Address</p>
+                                        {deliveryAddressLines.length > 0 ? (
+                                            <div className="leading-relaxed space-y-0.5 text-text-secondary">
+                                                {deliveryAddressLines.map((line, idx) => (
+                                                    <p key={idx}>{line}</p>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="text-[12px] text-text-muted italic">Delivery address not specified</p>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {(deliveryContactPhone || companySettings?.phone) && (
+                                <div className="pt-3 border-t border-border-subtle/50 space-y-2">
+                                    <div className="flex items-center text-[12px] text-text-secondary">
+                                        <Phone className="w-3.5 h-3.5 mr-2 text-text-muted shrink-0" />
+                                        <span>Receiving Contact: </span>
+                                        <span className="font-semibold text-text-primary ml-1.5">
+                                            {deliveryContactPhone || companySettings?.phone}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Row 2: Source Quotation & Timeline Side-by-Side */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+                {/* Source Quotation */}
+                <div className="acx-card p-6 flex flex-col justify-between">
+                    <div>
                         <h3 className="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-4 flex items-center">
-                            <FileDigit className="w-3.5 h-3.5 mr-2" /> Source Quotation
+                            <FileDigit className="w-3.5 h-3.5 mr-2 text-brand-primary" /> Source Quotation
                         </h3>
                         <div className="space-y-4">
                             <div className="bg-bg-muted/50 rounded-xl p-3 border border-border-subtle flex justify-between items-center">
                                 <div>
                                     <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">Ref Number</p>
                                     <button 
+                                        type="button"
                                         onClick={() => navigate(`/quotations?search=${order.quotationNumber}`)}
                                         className="text-[13px] font-mono font-bold text-[var(--color-brand-primary)] hover:underline flex items-center"
                                     >
@@ -865,19 +1162,31 @@ export default function PurchaseOrderDetail() {
                                     <FileDigit className="w-4 h-4" />
                                 </div>
                             </div>
-                            <div>
-                                <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-1">Quotation Value</p>
-                                <p className="text-[16px] font-mono font-semibold text-text-primary tracking-tight">
-                                    {formatCurrency(order.quotationValue, order.currency)}
-                                </p>
+                            <div className="flex items-center justify-between pt-1">
+                                <div>
+                                    <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-1">Quotation Value</p>
+                                    <p className="text-[16px] font-mono font-semibold text-text-primary tracking-tight">
+                                        {formatCurrency(order.quotationValue, order.currency)}
+                                    </p>
+                                </div>
+                                {quotation?.validUntil && (
+                                    <div className="text-right">
+                                        <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-1">Valid Until</p>
+                                        <p className="text-[13px] font-medium text-text-secondary">
+                                            {new Date(quotation.validUntil).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    {/* Timeline */}
-                    <div className="acx-card p-5">
+                {/* Timeline */}
+                <div className="acx-card p-6 flex flex-col justify-between">
+                    <div>
                         <h3 className="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-5 flex items-center">
-                            <Activity className="w-3.5 h-3.5 mr-2" /> Timeline
+                            <Activity className="w-3.5 h-3.5 mr-2 text-brand-teal" /> Timeline
                         </h3>
                         <div className="relative border-l-2 border-border-subtle ml-2.5 space-y-6 pb-2">
                             <div className="relative pl-6">
@@ -910,6 +1219,343 @@ export default function PurchaseOrderDetail() {
                         </div>
                     </div>
                 </div>
+            </div>
+
+            {/* Full-Width Order Details Table */}
+            <div className="acx-card overflow-hidden w-full">
+                <div className="px-6 py-5 border-b border-border-subtle bg-bg-card flex items-center justify-between">
+                    <h3 className="text-[14px] font-bold text-text-primary tracking-tight flex items-center">
+                        <ShoppingCart className="w-4 h-4 mr-2 text-brand-teal" /> Order Details
+                        <span className="ml-3 text-[11px] font-semibold text-text-muted tracking-wide uppercase px-2 py-0.5 rounded bg-bg-muted border border-border-subtle">
+                            {quotation?.items?.length || 0} {quotation?.items?.length === 1 ? 'Line Item' : 'Line Items'}
+                        </span>
+                    </h3>
+                </div>
+                <div ref={tableContainerRef} className="overflow-x-auto w-full no-scrollbar table-wrapper">
+                    <table className="w-full text-left border-collapse min-w-full">
+                        <thead>
+                            <tr className="bg-bg-muted border-b border-border-subtle">
+                                {visibleColumns.map((col) => (
+                                    <th key={col.columnKey} className={getHeaderClass(col)}>
+                                        {col.displayName}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {quotation?.items?.map((item, idx) => (
+                                <tr key={idx} className="border-b border-border-subtle/40 hover:bg-bg-hover transition-colors">
+                                    {visibleColumns.map((col) => (
+                                        <td key={col.columnKey} className={getColumnClass(col)}>
+                                            {renderColumnContent(item, col)}
+                                        </td>
+                                    ))}
+                                </tr>
+                            ))}
+                            {!quotation?.items?.length && (
+                                <tr>
+                                    <td colSpan={visibleColumns.length || 1} className="px-5 py-8 text-center text-text-muted text-[13px]">
+                                        No line items found.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+                
+                {/* Thin Synchronized Horizontal Scrollbar (4–6px) */}
+                {isTableOverflowing && (
+                    <div className="w-full px-6 py-2.5 bg-bg-muted/30 border-t border-border-subtle/40 select-none">
+                        <div
+                            ref={scrollTrackRef}
+                            onClick={handleTrackClick}
+                            className="relative w-full h-[5px] bg-border-subtle/60 dark:bg-slate-800 rounded-full cursor-pointer overflow-hidden transition-colors hover:bg-border-subtle"
+                            title="Drag or click to scroll horizontally"
+                        >
+                            <div
+                                onMouseDown={handleThumbMouseDown}
+                                style={{
+                                    width: `${Math.max(8, Math.min(100, (scrollMetrics.clientWidth / scrollMetrics.scrollWidth) * 100))}%`,
+                                    left: `${(scrollMetrics.scrollLeft / maxTableScroll) * (100 - Math.max(8, Math.min(100, (scrollMetrics.clientWidth / scrollMetrics.scrollWidth) * 100)))}%`
+                                }}
+                                className="absolute top-0 bottom-0 bg-[var(--color-brand-primary,#2563EB)] hover:brightness-110 active:brightness-95 rounded-full cursor-grab active:cursor-grabbing shadow-sm transition-transform duration-75"
+                            />
+                        </div>
+                    </div>
+                )}
+                
+                {/* Summary / Totals inside Table Card Footer */}
+                <div className="bg-bg-muted/30 p-6 border-t border-border-subtle">
+                    <div className="w-full sm:w-[340px] ml-auto space-y-3">
+                        <div className="flex justify-between text-[13px] text-text-secondary">
+                            <span className="font-medium">Subtotal</span>
+                            <span className="font-mono font-semibold text-text-primary">{formatCurrency(totals.subtotalBeforeTax, order.currency)}</span>
+                        </div>
+                        {totals.discount > 0 && (
+                            <div className="flex justify-between text-[13px]">
+                                <span className="font-medium text-text-secondary">Discount</span>
+                                <span className="text-brand-danger font-mono font-semibold">-{formatCurrency(totals.discount, order.currency)}</span>
+                            </div>
+                        )}
+                        <div className="flex justify-between text-[13px] text-text-secondary">
+                            <span className="font-medium">Taxable Amount</span>
+                            <span className="font-mono font-semibold text-text-primary">{formatCurrency(totals.taxableAmount, order.currency)}</span>
+                        </div>
+                        <div className="flex justify-between text-[13px] text-text-secondary pb-4 border-b border-border-subtle">
+                            <span className="font-medium">Total Tax</span>
+                            <span className="font-mono font-semibold text-text-primary">{formatCurrency(totals.tax, order.currency)}</span>
+                        </div>
+                        <div className="flex justify-between items-end pt-2">
+                            <span className="text-[14px] font-bold text-text-primary uppercase tracking-wide">Grand Total</span>
+                            <span className="text-[26px] font-bold text-brand-teal font-mono tracking-tight leading-none">
+                                {formatCurrency(totals.grandTotal, order.currency)}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Terms & Remarks Row */}
+            <div className={`grid grid-cols-1 ${quotation?.termsAndConditions ? 'lg:grid-cols-2' : ''} gap-6`}>
+                {quotation?.termsAndConditions && (
+                    <div className="acx-card p-6">
+                        <h3 className="text-[12px] font-bold text-text-secondary uppercase tracking-wider mb-4 pb-3 border-b border-border-subtle">
+                            Terms & Conditions
+                        </h3>
+                        <div className="text-[13px] text-text-secondary whitespace-pre-wrap leading-relaxed font-normal">
+                            {quotation.termsAndConditions}
+                        </div>
+                    </div>
+                )}
+                
+                {/* Remarks / Additional Notes */}
+                <div className="acx-card p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-brand-primary" />
+                            <h3 className="text-[12px] font-bold text-text-primary uppercase tracking-wider">
+                                Remarks / Additional Notes
+                            </h3>
+                        </div>
+                        {isSuperAdmin && !isEditingRemarks && order.status !== 'VERIFIED' && !order.readOnly ? (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setEditedRemarks(order.remarks || '');
+                                    setIsEditingRemarks(true);
+                                }}
+                                className="text-xs font-semibold text-brand-primary hover:text-brand-primary/80 flex items-center gap-1.5 transition-colors"
+                            >
+                                <Edit3 className="w-3.5 h-3.5" />
+                                {order.remarks ? 'Edit Notes' : 'Add Notes'}
+                            </button>
+                        ) : (order.status === 'VERIFIED' || order.readOnly) ? (
+                            <span className="text-[11px] font-semibold text-text-muted flex items-center gap-1 bg-bg-muted px-2 py-0.5 rounded border border-border-subtle">
+                                <Lock className="w-3 h-3 text-text-muted" /> Read-Only
+                            </span>
+                        ) : null}
+                    </div>
+
+                    {isEditingRemarks ? (
+                        <div className="space-y-3">
+                            <textarea
+                                rows="3"
+                                maxLength={2000}
+                                value={editedRemarks}
+                                onChange={(e) => setEditedRemarks(e.target.value)}
+                                placeholder="Add delivery instructions, special requirements, or other notes..."
+                                className="w-full bg-bg-main border border-border-subtle rounded-lg px-4 py-2.5 text-sm text-text-primary focus:border-brand-primary placeholder:text-text-muted/60"
+                            />
+                            <div className="flex items-center justify-between">
+                                <span className="text-[11px] text-text-muted">
+                                    {(editedRemarks || '').length} / 2000
+                                </span>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setEditedRemarks(order.remarks || '');
+                                            setIsEditingRemarks(false);
+                                        }}
+                                        className="btn btn-secondary btn-sm"
+                                        disabled={savingRemarks}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleSaveRemarks}
+                                        className="btn btn-primary btn-sm flex items-center gap-1.5"
+                                        disabled={savingRemarks}
+                                    >
+                                        {savingRemarks && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                                        Save Notes
+                                    </button>
+                                </div>
+                            </div>
+                            <p className="text-[11px] text-text-muted">
+                                These notes are rendered on the Purchase Order PDF in a dedicated Remarks panel, kept separate from Terms & Conditions.
+                            </p>
+                        </div>
+                    ) : order.remarks ? (
+                        <div className="text-[13px] text-text-secondary whitespace-pre-wrap leading-relaxed bg-brand-primary/5 p-4 rounded-xl border border-brand-primary/10">
+                            {order.remarks}
+                        </div>
+                    ) : (
+                        <p className="text-[13px] text-text-muted italic">
+                            {order.status === 'VERIFIED' || order.readOnly
+                                ? 'No additional notes or instructions recorded for this purchase order.'
+                                : 'No additional notes or instructions specified. Click “Add Notes” to include remarks on this PO.'}
+                        </p>
+                    )}
+                </div>
+            </div>
+
+            {/* Invoices & Billing Section */}
+            <div className="acx-card p-6 border border-border-subtle shadow-sm bg-bg-card">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-border-subtle gap-4">
+                    <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 rounded-xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary shrink-0">
+                            <Receipt className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h2 className="text-[16px] font-bold text-text-primary tracking-tight">Invoices & Billing</h2>
+                            <p className="text-[12px] text-text-secondary mt-0.5">
+                                Track downstream Tax Invoices linked to this Purchase Order
+                            </p>
+                        </div>
+                    </div>
+                    {isSuperAdmin && ['VERIFIED', 'PARTIALLY_FULFILLED'].includes(order.status) && (
+                        <button
+                            type="button"
+                            onClick={handleOpenCreateTaxInvoiceModal}
+                            disabled={actionLoading || (
+                                order.poValue != null && 
+                                relatedInvoices.filter(i => i.status !== 'CANCELLED').reduce((sum, i) => sum + (Number(i.grandTotal) || 0), 0) >= Number(order.poValue) &&
+                                relatedInvoices.some(i => i.status !== 'CANCELLED')
+                            )}
+                            className="btn btn-primary btn-sm flex items-center self-start sm:self-auto shadow-sm"
+                        >
+                            <FileText className="w-3.5 h-3.5 mr-1.5" />
+                            Create Tax Invoice
+                        </button>
+                    )}
+                </div>
+
+                {/* Billing Summary Bar */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 my-5 p-4 rounded-xl bg-bg-muted/40 border border-border-subtle">
+                    <div>
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted block">Authorized PO Value</span>
+                        <span className="text-[16px] font-bold font-mono text-text-primary mt-1 block">
+                            {formatCurrency(order.poValue, order.currency)}
+                        </span>
+                    </div>
+                    <div>
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted block">Total Invoiced Amount</span>
+                        <span className="text-[16px] font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1 block">
+                            {formatCurrency(
+                                relatedInvoices.filter(i => i.status !== 'CANCELLED').reduce((sum, i) => sum + (Number(i.grandTotal) || 0), 0),
+                                order.currency
+                            )}
+                        </span>
+                    </div>
+                    <div>
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted block">Remaining Invoicable</span>
+                        <span className="text-[16px] font-bold font-mono text-brand-primary mt-1 block">
+                            {formatCurrency(
+                                Math.max(0, (Number(order.poValue) || 0) - relatedInvoices.filter(i => i.status !== 'CANCELLED').reduce((sum, i) => sum + (Number(i.grandTotal) || 0), 0)),
+                                order.currency
+                            )}
+                        </span>
+                    </div>
+                </div>
+
+                {/* Related Invoices Table or Empty State */}
+                {relatedInvoices.length > 0 ? (
+                    <div className="overflow-x-auto border border-border-subtle rounded-xl">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-bg-muted/70 text-[11px] font-bold uppercase tracking-wider text-text-secondary border-b border-border-subtle">
+                                <tr>
+                                    <th className="py-3 px-4">Invoice #</th>
+                                    <th className="py-3 px-4">Type</th>
+                                    <th className="py-3 px-4">Invoice Date</th>
+                                    <th className="py-3 px-4">Due Date</th>
+                                    <th className="py-3 px-4 text-center">Status</th>
+                                    <th className="py-3 px-4 text-right">Grand Total</th>
+                                    <th className="py-3 px-4 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border-subtle/60">
+                                {relatedInvoices.map((inv) => (
+                                    <tr key={inv.id} className="hover:bg-bg-hover/50 transition-colors">
+                                        <td className="py-3 px-4 font-mono font-bold text-text-primary">
+                                            {inv.invoiceNumber || (
+                                                <span className="text-amber-600 dark:text-amber-400 font-normal">
+                                                    Draft #{inv.id}
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="py-3 px-4">
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20">
+                                                {inv.invoiceType === 'TAX_INVOICE' ? 'Tax Invoice' : 'Proforma'}
+                                            </span>
+                                        </td>
+                                        <td className="py-3 px-4 text-text-secondary">
+                                            {inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                                        </td>
+                                        <td className="py-3 px-4 text-text-secondary">
+                                            {inv.dueDate ? new Date(inv.dueDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                                        </td>
+                                        <td className="py-3 px-4 text-center">
+                                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider ${
+                                                inv.status === 'PAID' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' :
+                                                inv.status === 'ISSUED' ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30' :
+                                                inv.status === 'PARTIALLY_PAID' ? 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30' :
+                                                inv.status === 'CANCELLED' ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30' :
+                                                'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                                            }`}>
+                                                {inv.status}
+                                            </span>
+                                        </td>
+                                        <td className="py-3 px-4 font-mono font-bold text-right text-text-primary">
+                                            {formatCurrency(inv.grandTotal, inv.currency || order.currency)}
+                                        </td>
+                                        <td className="py-3 px-4 text-right">
+                                            <button
+                                                type="button"
+                                                onClick={() => navigate(`/invoices/${inv.id}`)}
+                                                className="btn btn-secondary btn-sm inline-flex items-center text-xs"
+                                            >
+                                                <Eye className="w-3.5 h-3.5 mr-1" />
+                                                View
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                ) : (
+                    <div className="text-center py-8 px-4 rounded-xl bg-bg-muted/30 border border-dashed border-border-subtle">
+                        <FileText className="w-8 h-8 mx-auto text-text-muted mb-2 opacity-50" />
+                        <p className="text-[13px] font-semibold text-text-primary">No invoices created yet</p>
+                        <p className="text-[12px] text-text-muted mt-1 max-w-md mx-auto">
+                            {order.status === 'VERIFIED'
+                                ? `This verified Purchase Order has an unbilled value of ${formatCurrency(order.poValue, order.currency)} ready to be invoiced.`
+                                : 'Invoices can be created once this Purchase Order is verified.'}
+                        </p>
+                        {isSuperAdmin && ['VERIFIED', 'PARTIALLY_FULFILLED'].includes(order.status) && (
+                            <button
+                                type="button"
+                                onClick={handleOpenCreateTaxInvoiceModal}
+                                className="btn btn-primary btn-sm inline-flex items-center mt-4 shadow-sm"
+                            >
+                                <FileText className="w-3.5 h-3.5 mr-1.5" />
+                                Create Tax Invoice Now
+                            </button>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Status Update Modal */}
@@ -994,6 +1640,355 @@ export default function PurchaseOrderDetail() {
                                     Failed to load PDF preview
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Create Tax Invoice Modal */}
+            {isCreateInvoiceModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-modal-entrance overflow-y-auto">
+                    <div className="bg-bg-card border border-border-subtle rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden relative">
+                        {/* Modal Header */}
+                        <div className="p-5 border-b border-border-subtle flex justify-between items-center bg-bg-muted/40 shrink-0">
+                            <div className="flex items-center space-x-3">
+                                <div className="w-10 h-10 rounded-xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary shrink-0">
+                                    <Receipt className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h2 className="text-[18px] font-bold text-text-primary tracking-tight leading-none">
+                                        Create Tax Invoice
+                                    </h2>
+                                    <p className="text-[12px] text-text-secondary mt-1">
+                                        From Purchase Order <span className="font-mono font-bold text-text-primary">{order.poNumber}</span>
+                                        {order.clientPoNumber ? ` (Client PO: ${order.clientPoNumber})` : ''}
+                                    </p>
+                                </div>
+                            </div>
+                            <button 
+                                onClick={() => !isCreatingInvoice && setIsCreateInvoiceModalOpen(false)} 
+                                disabled={isCreatingInvoice}
+                                className="btn btn-ghost btn-icon text-text-muted hover:text-text-primary"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Modal Scrollable Body */}
+                        <form onSubmit={handleCreateTaxInvoiceSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
+                            {/* Summary banner */}
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-xl bg-brand-primary/5 border border-brand-primary/15">
+                                <div>
+                                    <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted block">PO Number</span>
+                                    <span className="text-[13px] font-bold font-mono text-text-primary block mt-0.5 truncate">{order.poNumber}</span>
+                                </div>
+                                <div>
+                                    <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted block">Authorized PO Total</span>
+                                    <span className="text-[13px] font-bold font-mono text-text-primary block mt-0.5">
+                                        {formatCurrency(order.poValue, order.currency)}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted block">Already Invoiced</span>
+                                    <span className="text-[13px] font-bold font-mono text-emerald-600 dark:text-emerald-400 block mt-0.5">
+                                        {formatCurrency(
+                                            relatedInvoices.filter(i => i.status !== 'CANCELLED').reduce((sum, i) => sum + (Number(i.grandTotal) || 0), 0),
+                                            order.currency
+                                        )}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted block">Invoice Type</span>
+                                    <span className="inline-flex items-center px-2 py-0.5 mt-0.5 rounded text-[11px] font-bold bg-brand-teal/15 text-brand-teal border border-brand-teal/30 uppercase tracking-wider">
+                                        TAX INVOICE
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Error Alert */}
+                            {invoiceFormError && (
+                                <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl flex items-start gap-3">
+                                    <AlertCircle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+                                    <div>
+                                        <h4 className="text-[13px] font-bold text-rose-700 dark:text-rose-300">Invoice Creation Error</h4>
+                                        <p className="text-[12px] text-rose-600 dark:text-rose-400 mt-0.5 leading-relaxed">{invoiceFormError}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Section 1: Invoice Configuration */}
+                            <div className="space-y-4">
+                                <h3 className="text-[13px] font-bold text-text-primary uppercase tracking-wider border-b border-border-subtle pb-2 flex items-center gap-2">
+                                    <CalendarDays className="w-4 h-4 text-brand-primary" />
+                                    Invoice Dates & Terms
+                                </h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-1.5">
+                                            Invoice Date *
+                                        </label>
+                                        <input
+                                            type="date"
+                                            required
+                                            value={invoiceForm.invoiceDate}
+                                            onChange={(e) => setInvoiceForm({ ...invoiceForm, invoiceDate: e.target.value })}
+                                            className="acx-input w-full text-xs font-mono"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-1.5">
+                                            Due Date
+                                        </label>
+                                        <input
+                                            type="date"
+                                            value={invoiceForm.dueDate}
+                                            onChange={(e) => setInvoiceForm({ ...invoiceForm, dueDate: e.target.value })}
+                                            className="acx-input w-full text-xs font-mono"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-1.5">
+                                            Payment Terms
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. Net 30, Due on Receipt"
+                                            value={invoiceForm.paymentTerms}
+                                            onChange={(e) => setInvoiceForm({ ...invoiceForm, paymentTerms: e.target.value })}
+                                            className="acx-input w-full text-xs"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-1.5">
+                                            Place of Supply
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. State code or name"
+                                            value={invoiceForm.placeOfSupply}
+                                            onChange={(e) => setInvoiceForm({ ...invoiceForm, placeOfSupply: e.target.value })}
+                                            className="acx-input w-full text-xs"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Section 2: Client & Billing Information */}
+                            <div className="space-y-4">
+                                <h3 className="text-[13px] font-bold text-text-primary uppercase tracking-wider border-b border-border-subtle pb-2 flex items-center gap-2">
+                                    <Building2 className="w-4 h-4 text-brand-primary" />
+                                    Customer & Billing Snapshot
+                                </h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-1.5">
+                                            Client Name
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={invoiceForm.clientName}
+                                            onChange={(e) => setInvoiceForm({ ...invoiceForm, clientName: e.target.value })}
+                                            className="acx-input w-full text-xs"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-1.5">
+                                            Company Name
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={invoiceForm.clientCompany}
+                                            onChange={(e) => setInvoiceForm({ ...invoiceForm, clientCompany: e.target.value })}
+                                            className="acx-input w-full text-xs"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-1.5">
+                                            Client Email
+                                        </label>
+                                        <input
+                                            type="email"
+                                            value={invoiceForm.clientEmail}
+                                            onChange={(e) => setInvoiceForm({ ...invoiceForm, clientEmail: e.target.value })}
+                                            className="acx-input w-full text-xs font-mono"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-1.5">
+                                            Client GSTIN
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. 29ABCDE1234F1Z5"
+                                            value={invoiceForm.clientGstin}
+                                            onChange={(e) => setInvoiceForm({ ...invoiceForm, clientGstin: e.target.value })}
+                                            className="acx-input w-full text-xs font-mono uppercase"
+                                        />
+                                    </div>
+                                    <div className="sm:col-span-2">
+                                        <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-1.5">
+                                            Billing Address
+                                        </label>
+                                        <textarea
+                                            rows="2"
+                                            value={invoiceForm.clientAddress}
+                                            onChange={(e) => setInvoiceForm({ ...invoiceForm, clientAddress: e.target.value })}
+                                            className="acx-input w-full text-xs"
+                                            placeholder="Complete registered billing address"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Section 3: Line Items Preview */}
+                            <div className="space-y-3">
+                                <h3 className="text-[13px] font-bold text-text-primary uppercase tracking-wider border-b border-border-subtle pb-2 flex items-center justify-between">
+                                    <span className="flex items-center gap-2">
+                                        <Package className="w-4 h-4 text-brand-primary" />
+                                        Line Items Preview ({quotation?.items?.length || 0} items)
+                                    </span>
+                                    <span className="text-[11px] text-text-muted lowercase font-normal">
+                                        prefilled from source quotation
+                                    </span>
+                                </h3>
+                                <div className="border border-border-subtle rounded-xl overflow-hidden">
+                                    <table className="w-full text-left text-xs">
+                                        <thead className="bg-bg-muted/70 uppercase text-[10px] font-bold text-text-secondary tracking-wider">
+                                            <tr>
+                                                <th className="py-2.5 px-3">#</th>
+                                                <th className="py-2.5 px-3">Description</th>
+                                                <th className="py-2.5 px-3 text-right">Qty</th>
+                                                <th className="py-2.5 px-3 text-right">Unit Price</th>
+                                                <th className="py-2.5 px-3 text-right">Disc %</th>
+                                                <th className="py-2.5 px-3 text-right">Tax %</th>
+                                                <th className="py-2.5 px-3 text-right">Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-border-subtle/50">
+                                            {quotation?.items?.map((item, idx) => {
+                                                const qty = Number(item.quantity) || 0;
+                                                const unitPrice = Number(item.unitPrice) || 0;
+                                                const disc = Number(item.discountPercent) || 0;
+                                                const tax = Number(item.taxPercent) || 0;
+                                                const taxable = qty * unitPrice * (1 - disc / 100);
+                                                const lineTotal = taxable * (1 + tax / 100);
+                                                return (
+                                                    <tr key={idx} className="hover:bg-bg-hover/30">
+                                                        <td className="py-2.5 px-3 text-text-muted font-mono">{idx + 1}</td>
+                                                        <td className="py-2.5 px-3 font-medium text-text-primary">
+                                                            {item.description}
+                                                            {item.hsnSac && (
+                                                                <span className="text-[10px] text-text-muted font-mono block">HSN/SAC: {item.hsnSac}</span>
+                                                            )}
+                                                        </td>
+                                                        <td className="py-2.5 px-3 text-right font-mono">{qty} {item.unit || ''}</td>
+                                                        <td className="py-2.5 px-3 text-right font-mono">{formatCurrency(unitPrice, order.currency)}</td>
+                                                        <td className="py-2.5 px-3 text-right font-mono">{disc}%</td>
+                                                        <td className="py-2.5 px-3 text-right font-mono">{tax}%</td>
+                                                        <td className="py-2.5 px-3 text-right font-mono font-bold text-text-primary">
+                                                            {formatCurrency(lineTotal, order.currency)}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                        <tfoot className="bg-bg-muted/40 font-bold border-t border-border-subtle">
+                                            <tr>
+                                                <td colSpan="6" className="py-3 px-3 text-right uppercase text-[11px] text-text-secondary">
+                                                    Calculated Total:
+                                                </td>
+                                                <td className="py-3 px-3 text-right font-mono text-[13px] text-emerald-600 dark:text-emerald-400">
+                                                    {formatCurrency(quotation?.grandTotal || order.poValue, order.currency)}
+                                                </td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+
+                            {/* Section 4: Terms & Conditions */}
+                            <div className="space-y-2">
+                                <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-wider">
+                                    Terms & Conditions
+                                </label>
+                                <textarea
+                                    rows="2"
+                                    value={invoiceForm.termsAndConditions}
+                                    onChange={(e) => setInvoiceForm({ ...invoiceForm, termsAndConditions: e.target.value })}
+                                    className="acx-input w-full text-xs"
+                                    placeholder="Commercial terms, payment details, notes..."
+                                />
+                            </div>
+
+                            {/* Modal Actions Footer */}
+                            <div className="pt-4 border-t border-border-subtle flex items-center justify-between gap-3 shrink-0">
+                                <span className="text-[11px] text-text-muted hidden sm:inline">
+                                    Invoice will be generated in <strong>DRAFT</strong> mode and can be reviewed before issuing.
+                                </span>
+                                <div className="flex items-center gap-3 ml-auto">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsCreateInvoiceModalOpen(false)}
+                                        disabled={isCreatingInvoice}
+                                        className="btn btn-secondary btn-md"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={isCreatingInvoice}
+                                        className="btn btn-primary btn-md flex items-center shadow-sm"
+                                    >
+                                        {isCreatingInvoice ? (
+                                            <>
+                                                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                                Creating Tax Invoice...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <FileText className="w-4 h-4 mr-2" />
+                                                Create Tax Invoice
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Verify PO Confirmation Modal */}
+            {verifyModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-modal-entrance">
+                    <div className="bg-bg-card border border-border-subtle rounded-2xl shadow-xl w-full max-w-md p-6 relative">
+                        <div className="w-12 h-12 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-4">
+                            <ShieldCheck className="w-6 h-6" />
+                        </div>
+                        <h3 className="text-[18px] font-bold text-text-primary tracking-tight">
+                            Verify Purchase Order?
+                        </h3>
+                        <p className="text-[13px] text-text-secondary mt-2 leading-relaxed">
+                            Verifying this Purchase Order (<span className="font-mono font-bold text-text-primary">{order.poNumber}</span>) will place it in <strong>Read-Only Mode</strong> and enable downstream Tax Invoice creation.
+                        </p>
+                        <div className="mt-6 flex justify-end gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setVerifyModalOpen(false)}
+                                disabled={actionLoading}
+                                className="btn btn-secondary btn-md"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleVerify}
+                                disabled={actionLoading}
+                                className="btn btn-primary btn-md flex items-center shadow-sm"
+                            >
+                                {actionLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}
+                                Confirm Verification
+                            </button>
                         </div>
                     </div>
                 </div>

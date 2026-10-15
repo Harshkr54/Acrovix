@@ -145,7 +145,8 @@ public class InvoiceServiceTest {
         pItem.setDescription("PItem");
         proforma.setItems(new ArrayList<>(List.of(pItem)));
 
-        when(invoiceRepository.findByIdWithDetails(50L)).thenReturn(Optional.of(proforma));
+        when(invoiceRepository.findByIdForUpdate(50L)).thenReturn(Optional.of(proforma));
+        when(invoiceRepository.existsByPaymentLinkId("CONVERTED_FROM_PROFORMA:50")).thenReturn(false);
         when(invoiceRepository.save(any(Invoice.class))).thenAnswer(inv -> {
             Invoice i = inv.getArgument(0);
             i.setId(51L);
@@ -286,7 +287,8 @@ public class InvoiceServiceTest {
         proforma.setPaymentTerms("50% Advance");
         proforma.setGrandTotal(new BigDecimal("5000.00"));
 
-        when(invoiceRepository.findByIdWithDetails(50L)).thenReturn(Optional.of(proforma));
+        when(invoiceRepository.findByIdForUpdate(50L)).thenReturn(Optional.of(proforma));
+        when(invoiceRepository.existsByPaymentLinkId("CONVERTED_FROM_PROFORMA:50")).thenReturn(false);
         when(invoiceRepository.save(any(Invoice.class))).thenAnswer(inv -> {
             Invoice i = inv.getArgument(0);
             i.setId(52L);

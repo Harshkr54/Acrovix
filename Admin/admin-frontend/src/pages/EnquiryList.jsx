@@ -520,7 +520,7 @@ export default function EnquiryList() {
                                                 className={`action-menu-trigger w-10 h-10 flex items-center justify-center rounded-xl border transition-colors ${
                                                     activeActionMenuId === enq.id
                                                         ? 'bg-brand-primary/10 border-border-subtle text-[var(--color-brand-primary)]'
-                                                        : 'bg-white border-border-subtle text-text-secondary hover:bg-bg-hover hover:text-text-primary'
+                                                        : 'bg-bg-card border-border-subtle text-text-secondary hover:bg-bg-hover hover:text-text-primary'
                                                 }`}
                                                 title="Actions"
                                                 aria-label="Actions"

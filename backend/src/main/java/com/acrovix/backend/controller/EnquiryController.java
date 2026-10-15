@@ -5,17 +5,19 @@ import com.acrovix.backend.dto.EnquiryRequest;
 import com.acrovix.backend.dto.EnquiryResponseData;
 import com.acrovix.backend.service.EnquiryService;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/enquiries")
-@RequiredArgsConstructor
 public class EnquiryController {
 
     private final EnquiryService enquiryService;
+
+    public EnquiryController(EnquiryService enquiryService) {
+        this.enquiryService = enquiryService;
+    }
 
     @PostMapping
     public ResponseEntity<ApiResponse<EnquiryResponseData>> submitEnquiry(@Valid @RequestBody EnquiryRequest request) {

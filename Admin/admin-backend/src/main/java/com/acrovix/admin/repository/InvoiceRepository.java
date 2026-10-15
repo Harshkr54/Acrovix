@@ -14,6 +14,7 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long>, JpaSpec
     Page<Invoice> findByInvoiceType(InvoiceType type, Pageable pageable);
 
     Page<Invoice> findByCustomerIdOrderByCreatedAtDesc(Long customerId, Pageable pageable);
+    java.util.List<Invoice> findByCustomerId(Long customerId);
 
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {
         "customer",
@@ -28,6 +29,11 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long>, JpaSpec
 
     @Query("SELECT i.id FROM Invoice i WHERE i.quotation.id = :quotationId AND i.invoiceType = :type AND i.status != 'CANCELLED' ORDER BY i.createdAt DESC")
     java.util.List<Long> findActiveInvoiceIdsByQuotationIdAndType(@Param("quotationId") Long quotationId, @Param("type") InvoiceType type);
+
+    @Query("SELECT i.id FROM Invoice i WHERE i.purchaseOrder.id = :poId AND i.invoiceType = :type AND i.status != 'CANCELLED' ORDER BY i.createdAt DESC")
+    java.util.List<Long> findActiveInvoiceIdsByPurchaseOrderIdAndType(@Param("poId") Long poId, @Param("type") InvoiceType type);
+
+    boolean existsByQuotationIdAndStatusNot(Long quotationId, com.acrovix.admin.entity.InvoiceStatus status);
 
 
     @Query("SELECT i FROM Invoice i WHERE " +
@@ -48,6 +54,9 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long>, JpaSpec
     @Query("SELECT COALESCE(SUM(i.grandTotal), 0) FROM Invoice i WHERE i.purchaseOrder.id = :poId AND i.status != 'CANCELLED'")
     java.math.BigDecimal sumInvoicedAmountForPo(@Param("poId") Long poId);
 
+    @Query("SELECT COALESCE(SUM(i.grandTotal), 0) FROM Invoice i WHERE i.invoiceType = 'TAX_INVOICE' AND i.status != 'CANCELLED' AND (:salesUserId IS NULL OR i.createdBy.id = :salesUserId)")
+    java.math.BigDecimal sumActiveInvoicedAmountWithFilter(@Param("salesUserId") Long salesUserId);
+
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT i FROM Invoice i WHERE i.id = :id")
     java.util.Optional<Invoice> findByIdForUpdate(@Param("id") Long id);
@@ -56,6 +65,19 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long>, JpaSpec
     java.util.List<Invoice> findOverdueInvoices(@Param("now") java.time.LocalDate now);
 
     @org.springframework.data.jpa.repository.Modifying
-    @Query("UPDATE Invoice i SET i.reminderLevel = :newLevel, i.lastReminderSentAt = CURRENT_TIMESTAMP WHERE i.id = :id AND i.reminderLevel < :newLevel")
+    @Query("UPDATE Invoice i SET i.reminderLevel = :newLevel, i.lastReminderSentAt = CURRENT_TIMESTAMP WHERE i.id = :id AND (i.reminderLevel IS NULL OR i.reminderLevel < :newLevel)")
     int updateReminderLevelSafely(@Param("id") Long id, @Param("newLevel") int newLevel);
+
+    boolean existsByPaymentLinkId(String paymentLinkId);
+    java.util.Optional<Invoice> findByPaymentLinkId(String paymentLinkId);
+
+    // D-2: Targeted invoice lookup by invoice number for webhook resolution.
+    // Replaces the O(N) findAll() + stream filter in PaymentWebhookController.
+    java.util.Optional<Invoice> findByInvoiceNumber(String invoiceNumber);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT i FROM Invoice i WHERE i.invoiceNumber = :invoiceNumber")
+    java.util.Optional<Invoice> findByInvoiceNumberForUpdate(@Param("invoiceNumber") String invoiceNumber);
 }
+
+

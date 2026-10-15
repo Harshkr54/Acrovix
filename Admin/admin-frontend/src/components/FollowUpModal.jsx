@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createCrmFollowUp, updateCrmFollowUp, completeCrmFollowUp, cancelCrmFollowUp } from '../services/api';
 import { X, Loader2, AlertCircle, Calendar, Phone, Mail, MessageSquare, Users, FileText, CheckCircle2, XCircle } from 'lucide-react';
+import Modal from './ui/Modal';
 
 const FOLLOW_UP_TYPES = [
     { value: 'CALL', label: 'Phone Call', icon: Phone },
@@ -96,26 +97,51 @@ export default function FollowUpModal({ isOpen, onClose, mode = 'CREATE', leadId
         }
     };
 
-    return (
-        <div className="fixed inset-0 bg-text-primary/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-bg-card border border-border-subtle rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
-                <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-bg-main">
-                    <div className="flex items-center gap-2.5">
-                        {mode === 'COMPLETE' ? (
-                            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                        ) : mode === 'CANCEL' ? (
-                            <XCircle className="w-5 h-5 text-rose-500" />
-                        ) : (
-                            <Calendar className="w-5 h-5 text-brand-teal" />
-                        )}
-                        <h2 className="text-lg font-bold text-text-primary">{getTitle()}</h2>
-                    </div>
-                    <button onClick={onClose} className="btn btn-ghost btn-icon">
-                        <X className="w-5 h-5" />
-                    </button>
-                </div>
+    const modalFooter = (
+        <div className="flex justify-end gap-3 w-full">
+            <button
+                type="button"
+                onClick={onClose}
+                disabled={isLoading}
+                className="btn btn-secondary btn-md"
+            >
+                Cancel
+            </button>
+            <button
+                type="submit"
+                form="follow-up-form"
+                disabled={isLoading}
+                className={`btn btn-md flex-1 sm:flex-none ${
+                    mode === 'CANCEL' ? 'btn-danger' : 
+                    mode === 'COMPLETE' ? 'btn-success' : 'btn-primary'
+                }`}
+            >
+                {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                {mode === 'CREATE' && 'Schedule Follow-up'}
+                {mode === 'EDIT' && 'Save Changes'}
+                {mode === 'COMPLETE' && 'Complete Follow-up'}
+                {mode === 'CANCEL' && 'Confirm Cancellation'}
+            </button>
+        </div>
+    );
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+    const ModalIcon = mode === 'COMPLETE' ? CheckCircle2 : mode === 'CANCEL' ? XCircle : Calendar;
+    const iconColor = mode === 'COMPLETE' ? 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20' : 
+                      mode === 'CANCEL' ? 'text-rose-500 bg-rose-500/10 border-rose-500/20' : 
+                      'text-brand-teal bg-brand-teal/10 border-brand-teal/20';
+
+    return (
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title={getTitle()}
+            icon={ModalIcon}
+            iconClassName={iconColor}
+            size="sm"
+            isLoading={isLoading}
+            footer={modalFooter}
+        >
+            <form id="follow-up-form" onSubmit={handleSubmit} className="space-y-4">
                     {error && (
                         <div className="p-3 bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-xs font-medium rounded-xl flex items-center gap-2">
                             <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -198,31 +224,7 @@ export default function FollowUpModal({ isOpen, onClose, mode = 'CREATE', leadId
                         </div>
                     )}
 
-                    <div className="flex justify-end gap-3 pt-4 border-t border-border-subtle">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="btn btn-secondary btn-md"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={isLoading}
-                            className={`btn btn-md flex-1 sm:flex-none ${
-                                mode === 'CANCEL' ? 'btn-danger' : 
-                                mode === 'COMPLETE' ? 'btn-success' : 'btn-primary'
-                            }`}
-                        >
-                            {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                            {mode === 'CREATE' && 'Schedule Follow-up'}
-                            {mode === 'EDIT' && 'Save Changes'}
-                            {mode === 'COMPLETE' && 'Complete Follow-up'}
-                            {mode === 'CANCEL' && 'Confirm Cancellation'}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+            </form>
+        </Modal>
     );
 }

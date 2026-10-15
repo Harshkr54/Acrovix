@@ -29,7 +29,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @TestPropertySource(properties = {
     "razorpay.key-id=test_key",
     "razorpay.key-secret=test_secret",
-    "razorpay.webhook-secret=test_webhook_secret"
+    "razorpay.webhook-secret=test_webhook_secret",
+    "app.demo-mode=true"
 })
 public class ConcurrencyIntegrationTest {
 
@@ -66,6 +67,7 @@ public class ConcurrencyIntegrationTest {
 
         invoice.setClientCompany("Test Company");
         invoice.setClientName("Test Customer");
+        invoice.setClientEmail("customer@example.com");
         invoiceRepository.save(invoice);
 
         int threads = 5;

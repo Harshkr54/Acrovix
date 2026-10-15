@@ -151,18 +151,30 @@ export default function UserList() {
         }
     };
 
-    const changeRole = async (id, newRole) => {
-        if (!window.confirm(`Change role to ${newRole}?`)) return;
+    const [pendingRoleChange, setPendingRoleChange] = useState(null);
+    const [isUpdatingRole, setIsUpdatingRole] = useState(false);
+
+    const changeRole = (id, name, newRole) => {
+        setPendingRoleChange({ id, name, newRole });
+    };
+
+    const handleConfirmRoleChange = async () => {
+        if (!pendingRoleChange) return;
+        const { id, newRole } = pendingRoleChange;
+        setIsUpdatingRole(true);
         setActionMessage(null);
         try {
             await fetchApi(`/users/${id}/role`, {
                 method: 'PATCH',
                 body: JSON.stringify({ role: newRole })
             });
-            setActionMessage({ type: 'success', text: `User role updated to ${newRole}.` });
+            setActionMessage({ type: 'success', text: `User role updated to ${newRole === 'SUPER_ADMIN' ? 'Super Admin' : 'Sales'}.` });
             fetchUsers();
+            setPendingRoleChange(null);
         } catch (err) {
             setActionMessage({ type: 'error', text: err.message || "Failed to update role." });
+        } finally {
+            setIsUpdatingRole(false);
         }
     };
 
@@ -472,7 +484,7 @@ export default function UserList() {
                                             {u.enabled ? (
                                                 <select 
                                                     value={u.role} 
-                                                    onChange={(e) => changeRole(u.id, e.target.value)}
+                                                    onChange={(e) => changeRole(u.id, u.name, e.target.value)}
                                                     disabled={u.email === currentUser?.email}
                                                     className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md border border-border-subtle bg-bg-main text-text-primary appearance-none outline-none focus:border-brand-teal disabled:opacity-50 disabled:border-transparent transition-colors cursor-pointer"
                                                 >
@@ -594,6 +606,21 @@ export default function UserList() {
                     user={userToRecover}
                     onClose={() => setUserToRecover(null)}
                     onUserUpdated={fetchUsers}
+                />
+            )}
+
+            {/* Change Role Confirmation Modal */}
+            {pendingRoleChange && (
+                <ConfirmDialog
+                    isOpen={Boolean(pendingRoleChange)}
+                    title="Change User Role"
+                    description={`Are you sure you want to change the role of ${pendingRoleChange.name || 'this user'} to ${pendingRoleChange.newRole === 'SUPER_ADMIN' ? 'Super Admin' : 'Sales'}?`}
+                    confirmText="Change Role"
+                    cancelText="Cancel"
+                    isLoading={isUpdatingRole}
+                    variant="primary"
+                    onConfirm={handleConfirmRoleChange}
+                    onCancel={() => !isUpdatingRole && setPendingRoleChange(null)}
                 />
             )}
         </div>

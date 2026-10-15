@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { fetchApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { Trash2, RotateCcw, AlertTriangle, AlertCircle, ChevronLeft, ChevronRight, File, ShieldAlert } from 'lucide-react';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 
 export default function TrashList() {
     const { user } = useAuth();
@@ -206,39 +207,16 @@ export default function TrashList() {
             </div>
 
             {/* Permanent Delete Modal */}
-            {permanentModalQuotation && (
-                <div className="fixed inset-0 bg-text-primary/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="acx-card p-6 md:p-8 max-w-md w-full border border-border-subtle shadow-2xl relative animate-modal-entrance">
-                        <div className="w-12 h-12 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/50 rounded-2xl flex items-center justify-center mb-5 text-red-600 dark:text-red-400">
-                            <AlertTriangle className="w-6 h-6" />
-                        </div>
-                        <h3 className="text-[18px] font-bold text-text-primary mb-2 tracking-tight">Permanently delete this quotation?</h3>
-                        <p className="text-[13px] text-text-secondary leading-relaxed mb-6">
-                            This action cannot be undone. Quotation <span className="font-mono font-bold text-text-primary">{permanentModalQuotation.quotationNumber}</span> and all its line items will be permanently deleted from the database.
-                        </p>
-                        <div className="flex items-center justify-end space-x-3">
-                            <button
-                                onClick={() => setPermanentModalQuotation(null)}
-                                disabled={isDeletingPermanently}
-                                className="btn btn-secondary btn-md"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handlePermanentDelete}
-                                disabled={isDeletingPermanently}
-                                className="btn btn-danger btn-md"
-                            >
-                                {isDeletingPermanently ? (
-                                    <><span className="animate-spin w-3.5 h-3.5 border-b-2 border-white rounded-full "></span> Deleting...</>
-                                ) : (
-                                    'Delete Permanently'
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <ConfirmDialog
+                isOpen={!!permanentModalQuotation}
+                onClose={() => setPermanentModalQuotation(null)}
+                onConfirm={handlePermanentDelete}
+                title="Permanently delete this quotation?"
+                message={`This action cannot be undone. Quotation ${permanentModalQuotation?.quotationNumber || ''} and all its line items will be permanently deleted from the database.`}
+                confirmText="Delete Permanently"
+                variant="danger"
+                isLoading={isDeletingPermanently}
+            />
         </div>
     );
 }

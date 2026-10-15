@@ -263,6 +263,7 @@ public class QuotationBankDetailsTest {
         QuotationPreviewRequest request = new QuotationPreviewRequest();
         request.setClientName("Preview Client");
         request.setClientEmail("preview@client.com");
+        request.setTermsAndConditions("Payment within 30 days of invoice date.");
         request.setBankName("Axis Bank");
         request.setBankAccountHolder("Acrovix Innovations");
         request.setBankAccountNumber("998877665544");
@@ -278,6 +279,37 @@ public class QuotationBankDetailsTest {
         assertEquals("UTIB0000001", transientQ.getBankIfsc());
         assertEquals("Bandra, Mumbai", transientQ.getBankBranch());
         assertEquals(99L, transientQ.getCompanyBankAccountId());
+        assertEquals("Payment within 30 days of invoice date.", transientQ.getTermsAndConditions());
+    }
+
+    @Test
+    void testBuildTransientPreviewQuotationMissingTermsThrowsException() {
+        QuotationPreviewRequest request = new QuotationPreviewRequest();
+        request.setClientName("Preview Client");
+        request.setClientEmail("preview@client.com");
+        request.setBankName("Axis Bank");
+        request.setBankAccountNumber("998877665544");
+        request.setCompanyBankAccountId(99L);
+        // termsAndConditions is null
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+            quotationService.buildTransientPreviewQuotation(request, testAdmin);
+        });
+        assertTrue(ex.getMessage().contains("Terms & Conditions are mandatory"));
+    }
+
+    @Test
+    void testBuildTransientPreviewQuotationMissingBankThrowsException() {
+        QuotationPreviewRequest request = new QuotationPreviewRequest();
+        request.setClientName("Preview Client");
+        request.setClientEmail("preview@client.com");
+        request.setTermsAndConditions("Payment within 30 days");
+        // bank account is omitted
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+            quotationService.buildTransientPreviewQuotation(request, testAdmin);
+        });
+        assertTrue(ex.getMessage().contains("Bank Account is mandatory"));
     }
 
     @Test

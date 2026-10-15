@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { LayoutDashboard, MessageSquare, LogOut, FileText, Shield, Menu, X, ChevronLeft, ChevronRight, Sun, Moon, Search, Bell, Settings, Trash2, PanelLeftClose, PanelLeftOpen, ArrowLeft, UsersRound, Package, ShoppingCart, CreditCard, DollarSign, BarChart3, Target, TrendingUp, Clock, Calendar, Building2 } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, LogOut, FileText, Shield, Menu, X, ChevronLeft, ChevronRight, Sun, Moon, Search, Bell, Settings, Trash2, PanelLeftClose, PanelLeftOpen, ArrowLeft, UsersRound, Package, ShoppingCart, CreditCard, DollarSign, BarChart3, Target, TrendingUp, Clock, Calendar, Building2, Zap } from 'lucide-react';
 import HeaderControls from './HeaderControls';
 import { getInitials } from '../utils/userUtils';
 import { fetchApi } from '../services/api';
@@ -169,6 +169,7 @@ export default function Layout() {
     const managementItems = [];
     if (user?.role === 'SUPER_ADMIN') {
         managementItems.push({ path: '/users', name: 'Users', icon: Shield });
+        managementItems.push({ path: '/automation', name: 'Automation Center', icon: Zap });
     }
 
     const systemItems = [
@@ -181,14 +182,14 @@ export default function Layout() {
             {/* Mobile Sidebar Overlay */}
             {isSidebarOpen && (
                 <div
-                    className="fixed inset-0 bg-text-primary/20 backdrop-blur-sm z-40 lg:hidden"
+                    className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 lg:hidden"
                     onClick={() => setIsSidebarOpen(false)}
                 />
             )}
 
             {/* Sidebar */}
             <div className={`sidebar fixed inset-y-0 left-0 z-50 flex flex-col shrink-0 lg:relative lg:translate-x-0 lg:h-screen ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isCollapsed ? 'w-[72px]' : 'w-[260px]'}`}>
-                <div className="w-full h-[81px] bg-white flex items-center justify-center shrink-0 shadow-sm relative z-10">
+                <div className="w-full h-[81px] bg-white dark:bg-bg-card flex items-center justify-center shrink-0 shadow-sm relative z-10 border-b border-border-subtle/50">
                     {!isCollapsed && (
                         <img
                             src={theme === 'dark' ? logoDarkExpanded : logoLightExpanded}

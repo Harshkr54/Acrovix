@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class InvoiceService {
 
     private final InvoiceRepository invoiceRepository;
@@ -39,6 +38,56 @@ public class InvoiceService {
     private final PdfService pdfService;
     private final EmailService emailService;
     private final AuthorizationService authorizationService;
+    private final PaymentRepository paymentRepository;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public InvoiceService(
+            InvoiceRepository invoiceRepository,
+            CustomerRepository customerRepository,
+            QuotationRepository quotationRepository,
+            PurchaseOrderRepository purchaseOrderRepository,
+            ProductServiceRepository productServiceRepository,
+            CompanySettingsRepository companySettingsRepository,
+            SequenceGeneratorService sequenceGeneratorService,
+            AdminActivityRepository activityRepository,
+            NotificationService notificationService,
+            PdfService pdfService,
+            EmailService emailService,
+            AuthorizationService authorizationService,
+            PaymentRepository paymentRepository) {
+        this.invoiceRepository = invoiceRepository;
+        this.customerRepository = customerRepository;
+        this.quotationRepository = quotationRepository;
+        this.purchaseOrderRepository = purchaseOrderRepository;
+        this.productServiceRepository = productServiceRepository;
+        this.companySettingsRepository = companySettingsRepository;
+        this.sequenceGeneratorService = sequenceGeneratorService;
+        this.activityRepository = activityRepository;
+        this.notificationService = notificationService;
+        this.pdfService = pdfService;
+        this.emailService = emailService;
+        this.authorizationService = authorizationService;
+        this.paymentRepository = paymentRepository;
+    }
+
+    public InvoiceService(
+            InvoiceRepository invoiceRepository,
+            CustomerRepository customerRepository,
+            QuotationRepository quotationRepository,
+            PurchaseOrderRepository purchaseOrderRepository,
+            ProductServiceRepository productServiceRepository,
+            CompanySettingsRepository companySettingsRepository,
+            SequenceGeneratorService sequenceGeneratorService,
+            AdminActivityRepository activityRepository,
+            NotificationService notificationService,
+            PdfService pdfService,
+            EmailService emailService,
+            AuthorizationService authorizationService) {
+        this(invoiceRepository, customerRepository, quotationRepository,
+                purchaseOrderRepository, productServiceRepository, companySettingsRepository,
+                sequenceGeneratorService, activityRepository, notificationService,
+                pdfService, emailService, authorizationService, null);
+    }
 
     @Transactional(readOnly = true)
     public void sendInvoiceEmail(Long id, String overrideEmail, AdminUser admin) {
@@ -66,6 +115,11 @@ public class InvoiceService {
 
     @Transactional(readOnly = true)
     public Page<InvoiceResponse> searchInvoices(InvoiceType type, InvoiceStatus status, String search, Pageable pageable, AdminUser currentUser) {
+        return searchInvoices(type, status, search, null, pageable, currentUser);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<InvoiceResponse> searchInvoices(InvoiceType type, InvoiceStatus status, String search, Long purchaseOrderId, Pageable pageable, AdminUser currentUser) {
         Specification<Invoice> spec = Specification.where(null);
 
         if (type != null) {
@@ -76,13 +130,22 @@ public class InvoiceService {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), status));
         }
 
+        if (purchaseOrderId != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("purchaseOrder").get("id"), purchaseOrderId));
+        }
+
         if (search != null && !search.trim().isEmpty()) {
             String s = "%" + search.trim().toLowerCase() + "%";
-            spec = spec.and((root, query, cb) -> cb.or(
+            spec = spec.and((root, query, cb) -> {
+                var poJoin = root.join("purchaseOrder", jakarta.persistence.criteria.JoinType.LEFT);
+                return cb.or(
                     cb.like(cb.lower(root.get("invoiceNumber")), s),
                     cb.like(cb.lower(root.get("clientName")), s),
-                    cb.like(cb.lower(root.get("clientCompany")), s)
-            ));
+                    cb.like(cb.lower(root.get("clientCompany")), s),
+                    cb.like(cb.lower(poJoin.get("poNumber")), s),
+                    cb.like(cb.lower(poJoin.get("clientPoNumber")), s)
+                );
+            });
         }
 
         if (currentUser.getRole() == Role.SALES) {
@@ -174,6 +237,7 @@ public class InvoiceService {
             invoice.setClientEmail(customer.getEmail());
             invoice.setClientPhone(customer.getPhone());
             invoice.setClientAddress(customer.getBillingAddress());
+            invoice.setClientShippingAddress(customer.getShippingAddress());
             invoice.setClientGstin(customer.getGstin());
             if (invoice.getPlaceOfSupply() == null || invoice.getPlaceOfSupply().isEmpty()) {
                 invoice.setPlaceOfSupply(customer.getState());
@@ -186,6 +250,7 @@ public class InvoiceService {
         if (request.getClientEmail() != null) invoice.setClientEmail(request.getClientEmail());
         if (request.getClientPhone() != null) invoice.setClientPhone(request.getClientPhone());
         if (request.getClientAddress() != null) invoice.setClientAddress(request.getClientAddress());
+        if (request.getClientShippingAddress() != null) invoice.setClientShippingAddress(request.getClientShippingAddress());
         if (request.getClientGstin() != null) invoice.setClientGstin(request.getClientGstin());
 
         // Snapshot Supplier
@@ -218,6 +283,11 @@ public class InvoiceService {
                 throw new IllegalStateException("Invoice can only be created from VERIFIED or PARTIALLY_FULFILLED Purchase Order");
             }
             invoice.setPurchaseOrder(po);
+            // Only adopt PO delivery address if goods/services were drop-shipped to a customer site.
+            // Never copy ACROVIX office address into client shipping address on a sales invoice.
+            if (request.getClientShippingAddress() == null && ("CUSTOMER_SITE".equalsIgnoreCase(po.getDeliveryDestinationType()) || "CUSTOM".equalsIgnoreCase(po.getDeliveryDestinationType())) && po.getDeliveryAddress() != null && !po.getDeliveryAddress().isBlank()) {
+                invoice.setClientShippingAddress(po.getDeliveryAddress());
+            }
         }
 
         calculateAndSetTotals(invoice, request.getItems());
@@ -263,6 +333,7 @@ public class InvoiceService {
         if (request.getClientEmail() != null) invoice.setClientEmail(request.getClientEmail());
         if (request.getClientPhone() != null) invoice.setClientPhone(request.getClientPhone());
         if (request.getClientAddress() != null) invoice.setClientAddress(request.getClientAddress());
+        if (request.getClientShippingAddress() != null) invoice.setClientShippingAddress(request.getClientShippingAddress());
         if (request.getClientGstin() != null) invoice.setClientGstin(request.getClientGstin());
 
         calculateAndSetTotals(invoice, request.getItems());
@@ -317,9 +388,28 @@ public class InvoiceService {
 
     @Transactional
     public InvoiceResponse cancelInvoice(Long id, AdminUser admin) {
-        Invoice invoice = getInvoiceById(id, admin);
+        Invoice invoice = invoiceRepository.findByIdForUpdate(id)
+                .or(() -> invoiceRepository.findById(id))
+                .orElseThrow(() -> new IllegalArgumentException("Invoice not found"));
+        authorizationService.checkInvoiceAccess(admin, invoice);
+
         if (invoice.getStatus() == InvoiceStatus.CANCELLED) {
             throw new IllegalStateException("Invoice is already cancelled");
+        }
+
+        List<Payment> payments = paymentRepository.findByInvoiceIdOrderByCreatedAtDesc(id);
+        List<Payment> activePayments = payments.stream()
+                .filter(p -> p.getStatus() == PaymentStatus.RECORDED)
+                .toList();
+
+        if (!activePayments.isEmpty()) {
+            BigDecimal activeTotal = activePayments.stream()
+                    .map(Payment::getAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            throw new IllegalStateException("Cannot cancel invoice " + 
+                    (invoice.getInvoiceNumber() != null ? invoice.getInvoiceNumber() : invoice.getId()) + 
+                    " with " + activePayments.size() + " active recorded payment(s) totaling " + activeTotal + 
+                    ". Active payments must be cancelled/refunded first.");
         }
         
         invoice.setStatus(InvoiceStatus.CANCELLED);
@@ -337,7 +427,7 @@ public class InvoiceService {
         if (itemRequests != null) {
             invoice.getItems().clear();
 
-            BigDecimal subtotal = BigDecimal.ZERO;
+            BigDecimal grossSubtotal = BigDecimal.ZERO;
             BigDecimal totalDiscount = BigDecimal.ZERO;
             BigDecimal totalTaxable = BigDecimal.ZERO;
             BigDecimal totalCgst = BigDecimal.ZERO;
@@ -383,8 +473,9 @@ public class InvoiceService {
                 if (taxPct.compareTo(BigDecimal.ZERO) > 0) {
                     if (isIntraState) {
                         BigDecimal halfTax = lineTax.divide(new BigDecimal("2"), 2, RoundingMode.HALF_UP);
+                        BigDecimal otherHalfTax = lineTax.subtract(halfTax);
                         item.setCgstAmount(halfTax);
-                        item.setSgstAmount(halfTax);
+                        item.setSgstAmount(otherHalfTax);
                         item.setIgstAmount(BigDecimal.ZERO);
                     } else {
                         item.setCgstAmount(BigDecimal.ZERO);
@@ -396,7 +487,7 @@ public class InvoiceService {
                 item.setLineTotal(taxable.add(lineTax));
                 invoice.getItems().add(item);
 
-                subtotal = subtotal.add(taxable);
+                grossSubtotal = grossSubtotal.add(grossLineAmount);
                 totalDiscount = totalDiscount.add(lineDiscount);
                 totalTaxable = totalTaxable.add(taxable);
                 totalCgst = totalCgst.add(item.getCgstAmount());
@@ -405,7 +496,7 @@ public class InvoiceService {
                 totalTax = totalTax.add(item.getTaxAmount());
             }
 
-            invoice.setSubtotal(totalTaxable);
+            invoice.setSubtotal(grossSubtotal);
             invoice.setDiscountAmount(totalDiscount);
             invoice.setTaxableAmount(totalTaxable);
             invoice.setCgstAmount(totalCgst);
@@ -428,8 +519,9 @@ public class InvoiceService {
                 if (lineTax.compareTo(BigDecimal.ZERO) > 0) {
                     if (isIntraState) {
                         BigDecimal halfTax = lineTax.divide(new BigDecimal("2"), 2, RoundingMode.HALF_UP);
+                        BigDecimal otherHalfTax = lineTax.subtract(halfTax);
                         item.setCgstAmount(halfTax);
-                        item.setSgstAmount(halfTax);
+                        item.setSgstAmount(otherHalfTax);
                         item.setIgstAmount(BigDecimal.ZERO);
                     } else {
                         item.setCgstAmount(BigDecimal.ZERO);
@@ -465,9 +557,29 @@ public class InvoiceService {
 
     @Transactional
     public InvoiceResponse convertProformaToTaxInvoice(Long proformaId, AdminUser admin) {
-        Invoice proforma = getInvoiceById(proformaId, admin);
+        Invoice proforma = invoiceRepository.findByIdForUpdate(proformaId)
+                .or(() -> invoiceRepository.findById(proformaId))
+                .orElseThrow(() -> new IllegalArgumentException("Invoice not found"));
+        authorizationService.checkInvoiceAccess(admin, proforma);
+
         if (proforma.getInvoiceType() != InvoiceType.PROFORMA) {
             throw new IllegalStateException("Can only convert a PROFORMA invoice");
+        }
+
+        if (proforma.getStatus() == InvoiceStatus.CANCELLED) {
+            throw new IllegalStateException("Cannot convert a CANCELLED proforma invoice");
+        }
+
+        // Primary gate: the proforma's own marker is written last inside the same transaction
+        // and is NEVER touched by payment-gateway code, making it the most reliable idempotency signal.
+        // Secondary gate: existsByPaymentLinkId checks the tax invoice side as defence-in-depth.
+        // Both checks remain because a partial rollback (proforma marker not yet written) could
+        // result in only the tax-invoice marker existing; keeping both prevents re-conversion in that edge case.
+        if ((proforma.getPaymentLinkId() != null && proforma.getPaymentLinkId().startsWith("CONVERTED_TO_TAX_INVOICE:"))
+                || invoiceRepository.existsByPaymentLinkId("CONVERTED_FROM_PROFORMA:" + proforma.getId())) {
+            throw new com.acrovix.admin.exception.ResourceConflictException("Proforma invoice " + 
+                (proforma.getInvoiceNumber() != null ? proforma.getInvoiceNumber() : proforma.getId()) + 
+                " has already been converted to Tax Invoice.");
         }
         
         Invoice taxInvoice = new Invoice();
@@ -487,6 +599,7 @@ public class InvoiceService {
         taxInvoice.setClientEmail(proforma.getClientEmail());
         taxInvoice.setClientPhone(proforma.getClientPhone());
         taxInvoice.setClientAddress(proforma.getClientAddress());
+        taxInvoice.setClientShippingAddress(proforma.getClientShippingAddress());
         taxInvoice.setClientGstin(proforma.getClientGstin());
         taxInvoice.setPlaceOfSupply(proforma.getPlaceOfSupply());
         
@@ -513,6 +626,9 @@ public class InvoiceService {
         taxInvoice.setBalanceDue(proforma.getGrandTotal());
         taxInvoice.setAmountInWords(proforma.getAmountInWords());
         
+        // Persist linkage
+        taxInvoice.setPaymentLinkId("CONVERTED_FROM_PROFORMA:" + proforma.getId());
+
         // Copy Items
         if (proforma.getItems() != null) {
             for (InvoiceItem pItem : proforma.getItems()) {
@@ -544,6 +660,12 @@ public class InvoiceService {
         }
         
         Invoice saved = invoiceRepository.save(taxInvoice);
+
+        // Mark proforma as converted and lock it
+        proforma.setPaymentLinkId("CONVERTED_TO_TAX_INVOICE:" + saved.getId());
+        proforma.setLocked(true);
+        invoiceRepository.save(proforma);
+
         logActivity(admin.getId(), "Converted Proforma " + proforma.getInvoiceNumber() + " to Tax Invoice Draft", "Invoice", saved.getId());
         
         notificationService.createInvoiceCreatedNotification(admin, saved.getInvoiceNumber() != null ? saved.getInvoiceNumber() : "Draft", saved.getId());
@@ -595,6 +717,11 @@ public class InvoiceService {
     
     @Transactional
     public InvoiceResponse createInvoiceFromPurchaseOrder(Long poId, InvoiceType type, AdminUser admin) {
+        return createInvoiceFromPurchaseOrder(poId, type, null, admin);
+    }
+
+    @Transactional
+    public InvoiceResponse createInvoiceFromPurchaseOrder(Long poId, InvoiceType type, InvoiceRequest customRequest, AdminUser admin) {
         PurchaseOrder po = purchaseOrderRepository.findById(poId)
                 .orElseThrow(() -> new IllegalArgumentException("Purchase Order not found"));
                 
@@ -604,38 +731,54 @@ public class InvoiceService {
         
         Quotation quotation = po.getQuotation();
         
-        InvoiceRequest request = new InvoiceRequest();
-        request.setInvoiceType(type);
-        request.setInvoiceDate(LocalDate.now());
+        InvoiceRequest request = customRequest != null ? customRequest : new InvoiceRequest();
+        if (request.getInvoiceType() == null) {
+            request.setInvoiceType(type != null ? type : InvoiceType.TAX_INVOICE);
+        }
+        if (request.getInvoiceDate() == null) {
+            request.setInvoiceDate(LocalDate.now());
+        }
         request.setPurchaseOrderId(poId);
         if (quotation != null) {
-            request.setQuotationId(quotation.getId());
-            if (quotation.getCustomer() != null) {
+            if (request.getQuotationId() == null) {
+                request.setQuotationId(quotation.getId());
+            }
+            if (request.getCustomerId() == null && quotation.getCustomer() != null) {
                 request.setCustomerId(quotation.getCustomer().getId());
             }
-            request.setTermsAndConditions(quotation.getTermsAndConditions());
-        }
-        
-        List<InvoiceItemRequest> itemRequests = new ArrayList<>();
-        if (quotation != null && quotation.getItems() != null) {
-            int i = 0;
-            for (QuotationItem qItem : quotation.getItems()) {
-                InvoiceItemRequest iReq = new InvoiceItemRequest();
-                iReq.setProductServiceId(qItem.getProductService() != null ? qItem.getProductService().getId() : null);
-                iReq.setSku(qItem.getSku());
-                iReq.setDescription(qItem.getDescription());
-                iReq.setHsnSac(qItem.getHsnSac());
-                iReq.setQuantity(qItem.getQuantity());
-                iReq.setUnit(qItem.getUnit());
-                iReq.setListPrice(qItem.getListPrice());
-                iReq.setUnitPrice(qItem.getUnitPrice());
-                iReq.setDiscountPercent(qItem.getDiscountPercent());
-                iReq.setTaxPercent(qItem.getTaxPercent());
-                iReq.setSortOrder(qItem.getSortOrder() != null ? qItem.getSortOrder() : i++);
-                itemRequests.add(iReq);
+            if (request.getTermsAndConditions() == null) {
+                request.setTermsAndConditions(quotation.getTermsAndConditions());
+            }
+            if (request.getPaymentTerms() == null && quotation.getCustomer() != null) {
+                request.setPaymentTerms(quotation.getCustomer().getPaymentTerms());
+            }
+            if (request.getPlaceOfSupply() == null && quotation.getCustomer() != null) {
+                request.setPlaceOfSupply(quotation.getCustomer().getState());
             }
         }
-        request.setItems(itemRequests);
+        
+        if (request.getItems() == null || request.getItems().isEmpty()) {
+            List<InvoiceItemRequest> itemRequests = new ArrayList<>();
+            if (quotation != null && quotation.getItems() != null) {
+                int i = 0;
+                for (QuotationItem qItem : quotation.getItems()) {
+                    InvoiceItemRequest iReq = new InvoiceItemRequest();
+                    iReq.setProductServiceId(qItem.getProductService() != null ? qItem.getProductService().getId() : null);
+                    iReq.setSku(qItem.getSku());
+                    iReq.setDescription(qItem.getDescription());
+                    iReq.setHsnSac(qItem.getHsnSac());
+                    iReq.setQuantity(qItem.getQuantity());
+                    iReq.setUnit(qItem.getUnit());
+                    iReq.setListPrice(qItem.getListPrice());
+                    iReq.setUnitPrice(qItem.getUnitPrice());
+                    iReq.setDiscountPercent(qItem.getDiscountPercent());
+                    iReq.setTaxPercent(qItem.getTaxPercent());
+                    iReq.setSortOrder(qItem.getSortOrder() != null ? qItem.getSortOrder() : i++);
+                    itemRequests.add(iReq);
+                }
+            }
+            request.setItems(itemRequests);
+        }
         
         return createDraftInvoice(request, admin);
     }
@@ -704,6 +847,7 @@ public class InvoiceService {
         response.setClientEmail(invoice.getClientEmail());
         response.setClientPhone(invoice.getClientPhone());
         response.setClientAddress(invoice.getClientAddress());
+        response.setClientShippingAddress(invoice.getClientShippingAddress());
         response.setClientGstin(invoice.getClientGstin());
         response.setPlaceOfSupply(invoice.getPlaceOfSupply());
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
-import { fetchApi, getCustomers, getCatalog, getCompanyBankAccounts } from '../services/api';
-import { formatCurrency } from '../utils/formatters';
+import { fetchApi, getCustomers, getCatalog, getCompanyBankAccounts, createInvoiceFromQuotation } from '../services/api';
+import { formatCurrency, formatDate, formatDateTime } from '../utils/formatters';
 import { 
     VALIDITY_PERIOD_OPTIONS, 
     getIssueDateStr, 
@@ -9,14 +9,23 @@ import {
     determineValidityPeriod, 
     isDateBeforeIssueDate 
 } from '../utils/validityUtils';
-import { Plus, Trash2, Send, Save, Wand2, Calculator, User, Hash, AlertCircle, RefreshCw, Download, Settings, Eye, Loader2, Landmark, Building2, CheckCircle2, ExternalLink } from 'lucide-react';
+import { 
+    Plus, Trash2, Send, Save, Wand2, Calculator, User, Hash, AlertCircle, RefreshCw, 
+    Download, Settings, Eye, Loader2, Landmark, Building2, CheckCircle2, ExternalLink, 
+    ChevronDown, MapPin, ArrowLeft, LayoutDashboard, Clock, FileText, CheckCircle, 
+    XCircle, Mail, AlertTriangle, FileCheck, Lock, ShoppingCart, X
+} from 'lucide-react';
 import SendQuotationModal from '../components/SendQuotationModal';
 import QuotationColumnConfigModal from '../components/QuotationColumnConfigModal';
 import QuotationPreviewModal from '../components/QuotationPreviewModal';
+import AcceptRejectQuotationModal from '../components/AcceptRejectQuotationModal';
+import CreatePurchaseOrderModal from '../components/CreatePurchaseOrderModal';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 import GstinAutoLookup from '../components/GstinAutoLookup';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { parseQuotationText, normalizeLineItem, extractJsonFromText } from '../utils/quotationTextParser';
+import { formatStateDisplay, extractStateCode, searchGstStates, GST_STATES } from '../utils/gstStateUtils';
 
 const defaultConfigs = [
     { columnKey: "rowNumber", displayName: "#", columnType: "TEXT", visible: true, sortOrder: 0, isCustom: false },
@@ -33,7 +42,8 @@ const defaultConfigs = [
 ];
 
 export default function QuotationBuilder() {
-    const { enquiryId, quotationId } = useParams();
+    const { enquiryId, quotationId: routeQuotationId, id: routeId } = useParams();
+    const targetQuotationId = routeQuotationId || routeId;
     const navigate = useNavigate();
     const location = useLocation();
     const { showToast } = useToast();
@@ -54,6 +64,28 @@ export default function QuotationBuilder() {
     const [validUntil, setValidUntil] = useState('');
     const [termsAndConditions, setTermsAndConditions] = useState('');
     const [gstin, setGstin] = useState('');
+    const [billingAddress, setBillingAddress] = useState('');
+    const [shippingAddress, setShippingAddress] = useState('');
+    const [state, setState] = useState('');
+    const [pincode, setPincode] = useState('');
+    const [isStateDropdownOpen, setIsStateDropdownOpen] = useState(false);
+    const [billingAddressError, setBillingAddressError] = useState('');
+
+    const filteredStates = React.useMemo(() => {
+        return searchGstStates(state);
+    }, [state]);
+
+    const handleStateBlur = () => {
+        setTimeout(() => {
+            setIsStateDropdownOpen(false);
+            if (state) {
+                const formatted = formatStateDisplay(state);
+                if (formatted) {
+                    setState(formatted);
+                }
+            }
+        }, 200);
+    };
 
     const [roughText, setRoughText] = useState('');
     const [isParsing, setIsParsing] = useState(false);
@@ -66,6 +98,39 @@ export default function QuotationBuilder() {
     const [columnConfigs, setColumnConfigs] = useState(defaultConfigs);
     const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
     const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
+    const [acceptRejectModalInfo, setAcceptRejectModalInfo] = useState(null);
+
+    // Quotation Details & Email Delivery States
+    const [quotationStatus, setQuotationStatus] = useState('DRAFT');
+    const [quotationCreatedAt, setQuotationCreatedAt] = useState(null);
+    const [quotationGrandTotal, setQuotationGrandTotal] = useState(0);
+    const [responseSource, setResponseSource] = useState(null);
+    const [responseNotes, setResponseNotes] = useState('');
+    const [emailDeliveryStatus, setEmailDeliveryStatus] = useState(null);
+    const [emailSentAt, setEmailSentAt] = useState(null);
+    const [emailRecipient, setEmailRecipient] = useState('');
+    const [emailErrorMessage, setEmailErrorMessage] = useState('');
+    const [lastSendError, setLastSendError] = useState(null);
+    const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+    const [isCreatingRevision, setIsCreatingRevision] = useState(false);
+
+    // Derived persisted read-only flags
+    const isReadOnly = Boolean(currentQuotationId && quotationStatus && quotationStatus !== 'DRAFT');
+    const isAccepted = quotationStatus === 'ACCEPTED' || quotationStatus === 'CONVERTED';
+
+    const { currentUser } = useAuth();
+    const isSuperAdmin = currentUser?.role === 'SUPER_ADMIN';
+
+    // Downstream document IDs (Purchase Order, Invoices)
+    const [purchaseOrderId, setPurchaseOrderId] = useState(null);
+    const [proformaId, setProformaId] = useState(null);
+    const [taxInvoiceId, setTaxInvoiceId] = useState(null);
+    const [isPoModalOpen, setIsPoModalOpen] = useState(false);
+    const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+    const [isViewInvoicesDialogOpen, setIsViewInvoicesDialogOpen] = useState(false);
+    const [selectedInvoiceType, setSelectedInvoiceType] = useState('TAX_INVOICE');
+    const [isCreatingInvoice, setIsCreatingInvoice] = useState(false);
+    const [invoiceCreationError, setInvoiceCreationError] = useState(null);
 
     // Customer Selector State
     const [customerId, setCustomerId] = useState(null);
@@ -86,13 +151,15 @@ export default function QuotationBuilder() {
     const [selectedBank, setSelectedBank] = useState(null);
     const [isLoadingBankAccounts, setIsLoadingBankAccounts] = useState(false);
     
-    // Preview State
+    // Preview & Form Validation State
     const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
     const [isPreviewLoading, setIsPreviewLoading] = useState(false);
     const [previewPdfUrl, setPreviewPdfUrl] = useState(null);
     const [previewEmailDetails, setPreviewEmailDetails] = useState(null);
     const [previewError, setPreviewError] = useState(null);
     const [validationError, setValidationError] = useState(null);
+    const [termsError, setTermsError] = useState(null);
+    const [bankError, setBankError] = useState(null);
 
     // Cleanup Blob URL to prevent memory leaks
     useEffect(() => {
@@ -130,11 +197,18 @@ export default function QuotationBuilder() {
                 setIsLoadingBankAccounts(false);
             }
 
-            if (isEditMode && quotationId) {
-                // EDIT MODE: Load existing quotation
-                const q = await fetchApi(`/quotations/${quotationId}`);
+            if (targetQuotationId) {
+                // LOAD EXISTING QUOTATION (supports /quotations/:id and /quotations/edit/:id)
+                const q = await fetchApi(`/quotations/${targetQuotationId}`);
                 setCurrentQuotationId(q.id);
                 setQuotationNumber(q.quotationNumber);
+                setQuotationStatus(q.status || 'DRAFT');
+                setQuotationCreatedAt(q.createdAt || null);
+                setQuotationGrandTotal(q.grandTotal || 0);
+                setEmailDeliveryStatus(q.emailDeliveryStatus || (q.status === 'SENT' ? 'SENT' : null));
+                setEmailSentAt(q.emailSentAt || null);
+                setEmailRecipient(q.emailRecipient || q.clientEmail || '');
+                setEmailErrorMessage(q.emailErrorMessage || '');
                 
                 setClientName(q.clientName || '');
                 setClientCompany(q.clientCompany || '');
@@ -144,11 +218,25 @@ export default function QuotationBuilder() {
                 setCustomerId(q.customerId || null);
                 setQuotationSource(q.quotationSource || (q.enquiry ? 'ENQUIRY' : 'DIRECT'));
                 setSourceNotes(q.sourceNotes || '');
+                setResponseSource(q.responseSource || null);
+                setResponseNotes(q.responseNotes || '');
+                setPurchaseOrderId(q.purchaseOrderId || null);
+                setProformaId(q.proformaId || null);
+                setTaxInvoiceId(q.taxInvoiceId || null);
                 const qIssueDate = getIssueDateStr(q.createdAt);
                 setIssueDate(qIssueDate);
                 setValidUntil(q.validUntil || '');
                 setValidityPeriod(determineValidityPeriod(qIssueDate, q.validUntil));
                 setTermsAndConditions(q.termsAndConditions || '');
+                const rawBillAddr = q.billingAddress || (q.customer && q.customer.billingAddress) || '';
+                setBillingAddress(rawBillAddr);
+                setState(formatStateDisplay(q.state || (q.customer && q.customer.state) || '', q.gstin || (q.customer && q.customer.gstin) || ''));
+                const resolvedPin = q.pincode || (q.customer && q.customer.pincode) || ((rawBillAddr.match(/\b(\d{6})\b/) || [])[1] || '');
+                setPincode(resolvedPin);
+                setShippingAddress(q.shippingAddress || (q.customer && q.customer.shippingAddress) || '');
+                if (q.gstin || (q.customer && q.customer.gstin)) {
+                    setGstin(q.gstin || q.customer.gstin);
+                }
 
                 // Resolve quotation bank account
                 let chosenAccount = null;
@@ -179,7 +267,7 @@ export default function QuotationBuilder() {
                     setSelectedBankAccountId(String(chosenAccount.id));
                     setSelectedBank(chosenAccount);
                 } else {
-                    setSelectedBankAccountId('NONE');
+                    setSelectedBankAccountId('');
                     setSelectedBank(null);
                 }
 
@@ -217,7 +305,7 @@ export default function QuotationBuilder() {
                     setItems([]);
                 }
 
-            } else if (!isEditMode && enquiryId) {
+            } else if (enquiryId) {
                 // NEW MODE: Load enquiry details, but DO NOT create a draft in DB on mount!
                 const enqData = await fetchApi(`/enquiries/${enquiryId}`);
                 setEnquiry(enqData);
@@ -235,6 +323,13 @@ export default function QuotationBuilder() {
                 setItems([]);
                 setCurrentQuotationId(null);
                 setQuotationNumber('');
+                setQuotationStatus('DRAFT');
+                setQuotationCreatedAt(null);
+                setQuotationGrandTotal(0);
+                setEmailDeliveryStatus(null);
+                setEmailSentAt(null);
+                setEmailRecipient('');
+                setEmailErrorMessage('');
 
                 // Pre-select default bank account for new quotation
                 const defaultAcc = accounts.find(a => a.isDefault) || (accounts.length > 0 ? accounts[0] : null);
@@ -242,7 +337,7 @@ export default function QuotationBuilder() {
                     setSelectedBankAccountId(String(defaultAcc.id));
                     setSelectedBank(defaultAcc);
                 } else {
-                    setSelectedBankAccountId('NONE');
+                    setSelectedBankAccountId('');
                     setSelectedBank(null);
                 }
             } else {
@@ -254,7 +349,7 @@ export default function QuotationBuilder() {
         } finally {
             setIsInitializing(false);
         }
-    }, [enquiryId, quotationId, isEditMode]);
+    }, [enquiryId, targetQuotationId]);
 
     useEffect(() => {
         initializeBuilder();
@@ -280,6 +375,26 @@ export default function QuotationBuilder() {
         }
     }, [catalogSearch, isCatalogDropdownOpen]);
 
+    useEffect(() => {
+        if (!isInvoiceModalOpen && !isViewInvoicesDialogOpen) return;
+
+        const prevOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                if (isInvoiceModalOpen && !isCreatingInvoice) setIsInvoiceModalOpen(false);
+                if (isViewInvoicesDialogOpen) setIsViewInvoicesDialogOpen(false);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            document.body.style.overflow = prevOverflow;
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [isInvoiceModalOpen, isViewInvoicesDialogOpen, isCreatingInvoice]);
+
     const selectCustomer = (c) => {
         setCustomerId(c.id);
         setClientName(c.name || '');
@@ -287,6 +402,12 @@ export default function QuotationBuilder() {
         setClientEmail(c.email || '');
         setClientPhone(c.phone || '');
         setGstin(c.gstin || '');
+        setBillingAddress(c.billingAddress || '');
+        setState(formatStateDisplay(c.state || '', c.gstin || ''));
+        const extractedPin = c.pincode || (c.billingAddress ? ((c.billingAddress.match(/\b(\d{6})\b/) || [])[1] || '') : '');
+        setPincode(extractedPin);
+        setShippingAddress(c.shippingAddress || '');
+        setBillingAddressError('');
         setCustomerSearch('');
         setIsCustomerDropdownOpen(false);
     };
@@ -298,6 +419,11 @@ export default function QuotationBuilder() {
         setClientEmail('');
         setClientPhone('');
         setGstin('');
+        setBillingAddress('');
+        setState('');
+        setPincode('');
+        setShippingAddress('');
+        setBillingAddressError('');
         setCustomerSearch('');
     };
 
@@ -489,6 +615,22 @@ export default function QuotationBuilder() {
         ]);
     };
 
+    const handleCreateRevision = async () => {
+        if (!currentQuotationId || isCreatingRevision) return;
+        setIsCreatingRevision(true);
+        try {
+            const revision = await fetchApi(`/quotations/${currentQuotationId}/revisions`, {
+                method: 'POST'
+            });
+            showToast({ type: 'success', message: `Created revision ${revision.quotationNumber || ''}` });
+            navigate(`/quotations/edit/${revision.id}`);
+        } catch (err) {
+            showToast({ type: 'error', message: err.message || 'Failed to create revision' });
+        } finally {
+            setIsCreatingRevision(false);
+        }
+    };
+
     const handleDownloadTemplate = () => {
         const headers = ['SKU', 'Description', 'HSN/SAC', 'Qty', 'List Price', 'Disc%', 'Unit Price', 'Tax%'];
         const rows = [
@@ -589,6 +731,21 @@ export default function QuotationBuilder() {
         } else {
             const found = bankAccounts.find(a => String(a.id) === String(val));
             setSelectedBank(found || null);
+            setBankError(null);
+            if (validationError && (validationError.toLowerCase().includes('bank') || validationError.toLowerCase().includes('account'))) {
+                setValidationError(null);
+            }
+        }
+    };
+
+    const handleTermsChange = (e) => {
+        const val = e.target.value;
+        setTermsAndConditions(val);
+        if (val.trim()) {
+            setTermsError(null);
+            if (validationError && validationError.toLowerCase().includes('terms')) {
+                setValidationError(null);
+            }
         }
     };
 
@@ -622,36 +779,36 @@ export default function QuotationBuilder() {
         });
     };
 
-    const handlePreview = async () => {
+    const validateMandatoryQuotationFields = () => {
         setValidationError(null);
-        
+
         if (!clientName?.trim()) {
-            const msg = "Please enter a Client Name before previewing.";
+            const msg = "Please enter a Client Name before proceeding.";
             setValidationError(msg);
             showToast({ type: 'error', message: msg });
-            return;
+            return false;
         }
 
         if (isDateInvalid) {
             const msg = `Valid Until date (${validUntil}) cannot be earlier than quotation issue date (${issueDate}).`;
             setValidationError(msg);
             showToast({ type: 'error', message: msg });
-            return;
+            return false;
         }
 
         if (!items || items.length === 0) {
-            const msg = "Add at least one line item before previewing the quotation.";
+            const msg = "Add at least one line item before proceeding.";
             setValidationError(msg);
             showToast({ type: 'error', message: msg });
-            return;
+            return false;
         }
 
         const missingDescIndex = items.findIndex(item => !item.description?.trim());
         if (missingDescIndex !== -1) {
-            const msg = `Please enter a description for line item ${missingDescIndex + 1} before previewing.`;
+            const msg = `Please enter a description for line item ${missingDescIndex + 1} before proceeding.`;
             setValidationError(msg);
             showToast({ type: 'error', message: msg });
-            return;
+            return false;
         }
 
         const invalidQtyIndex = items.findIndex(item => parseFloat(item.quantity) <= 0 || isNaN(parseFloat(item.quantity)));
@@ -659,7 +816,7 @@ export default function QuotationBuilder() {
             const msg = `Quantity for line item ${invalidQtyIndex + 1} must be greater than 0.`;
             setValidationError(msg);
             showToast({ type: 'error', message: msg });
-            return;
+            return false;
         }
 
         const invalidPriceIndex = items.findIndex(item => parseFloat(item.unitPrice) < 0 || isNaN(parseFloat(item.unitPrice)));
@@ -667,6 +824,49 @@ export default function QuotationBuilder() {
             const msg = `Unit Price for line item ${invalidPriceIndex + 1} cannot be negative or invalid.`;
             setValidationError(msg);
             showToast({ type: 'error', message: msg });
+            return false;
+        }
+
+        // Mandatory Billing Address Check
+        if (!billingAddress || !billingAddress.trim()) {
+            const msg = "Billing Address is required before saving or previewing the quotation.";
+            setValidationError(msg);
+            setBillingAddressError("Billing address is required.");
+            showToast({ type: 'error', message: msg });
+            const addrEl = document.getElementById('quotation-billing-address');
+            if (addrEl) addrEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return false;
+        }
+
+        // Mandatory Terms & Conditions Check
+        if (!termsAndConditions || !termsAndConditions.trim()) {
+            const msg = "Terms & Conditions are mandatory before saving or previewing the quotation.";
+            setValidationError(msg);
+            setTermsError("Terms & Conditions are mandatory.");
+            showToast({ type: 'error', message: msg });
+            const termsEl = document.getElementById('quotation-terms-section');
+            if (termsEl) termsEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return false;
+        }
+
+        // Mandatory Bank Account Check
+        if (!selectedBank || !selectedBank.bankAccountNumber || !selectedBankAccountId || selectedBankAccountId === 'NONE') {
+            const msg = bankAccounts.length === 0
+                ? "A bank account is mandatory. Please configure bank accounts in Company Settings first before previewing or saving."
+                : "Please select a bank account for this quotation before previewing or saving.";
+            setValidationError(msg);
+            setBankError(bankAccounts.length === 0 ? "Bank account must be configured in Company Settings." : "Please select a bank account.");
+            showToast({ type: 'error', message: msg });
+            const bankEl = document.getElementById('quotation-bank-section');
+            if (bankEl) bankEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return false;
+        }
+
+        return true;
+    };
+
+    const handlePreview = async () => {
+        if (!validateMandatoryQuotationFields()) {
             return;
         }
 
@@ -688,6 +888,11 @@ export default function QuotationBuilder() {
                 sourceNotes: sourceNotes,
                 validUntil: validUntil || null,
                 termsAndConditions: termsAndConditions,
+                billingAddress: billingAddress.trim(),
+                shippingAddress: shippingAddress?.trim() || null,
+                state: extractStateCode(state) || state?.trim() || null,
+                pincode: pincode?.trim() || null,
+                gstin: gstin?.trim() || null,
                 columnConfigs: columnConfigs,
                 items: serializeItems(items),
                 bankName: selectedBank ? selectedBank.bankName : null,
@@ -723,9 +928,11 @@ export default function QuotationBuilder() {
 
     const handleSaveDraft = async () => {
         if (isSaving || isSending) return;
-        if (isDateInvalid) {
-            const msg = `Valid Until date (${validUntil}) cannot be earlier than quotation issue date (${issueDate}).`;
-            showToast({ type: 'error', message: msg });
+        if (isReadOnly) {
+            showToast({ type: 'error', message: 'This quotation is in read-only mode and cannot be modified.' });
+            return;
+        }
+        if (!validateMandatoryQuotationFields()) {
             return;
         }
         setIsSaving(true);
@@ -758,6 +965,11 @@ export default function QuotationBuilder() {
                 sourceNotes: sourceNotes,
                 validUntil: validUntil || null,
                 termsAndConditions: termsAndConditions,
+                billingAddress: billingAddress.trim(),
+                shippingAddress: shippingAddress?.trim() || null,
+                state: extractStateCode(state) || state?.trim() || null,
+                pincode: pincode?.trim() || null,
+                gstin: gstin?.trim() || null,
                 columnConfigs: columnConfigs,
                 items: serializeItems(items),
                 bankName: selectedBank ? selectedBank.bankName : null,
@@ -768,46 +980,95 @@ export default function QuotationBuilder() {
                 companyBankAccountId: selectedBank && !isNaN(Number(selectedBank.id)) ? Number(selectedBank.id) : null
             };
 
-            await fetchApi(`/quotations/${activeQuotationId}`, {
+            const saved = await fetchApi(`/quotations/${activeQuotationId}`, {
                 method: 'PUT',
                 body: JSON.stringify(payload)
             });
+            if (saved) {
+                if (saved.status) setQuotationStatus(saved.status);
+                if (saved.grandTotal !== undefined) setQuotationGrandTotal(saved.grandTotal);
+                if (saved.createdAt) setQuotationCreatedAt(saved.createdAt);
+                if (saved.quotationNumber) setQuotationNumber(saved.quotationNumber);
+            }
+            showToast({ type: 'success', message: 'Quotation saved successfully.' });
             setTimeout(() => {
                 setIsSaving(false);
             }, 500); // brief delay for UX
         } catch (error) {
             console.error("Save Draft Error:", error);
-            alert(error.message || "Failed to save draft");
+            showToast({ type: 'error', message: error.message || "Failed to save draft" });
             setIsSaving(false);
+        }
+    };
+
+    const handleDownloadPdf = async () => {
+        if (!currentQuotationId) {
+            showToast({ type: 'warning', message: 'Please save the quotation before downloading PDF.' });
+            return;
+        }
+        try {
+            setIsDownloadingPdf(true);
+            const token = localStorage.getItem('token');
+            const headers = {};
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+            const res = await fetch(`/api/quotations/${currentQuotationId}/pdf`, {
+                headers
+            });
+            if (!res.ok) {
+                throw new Error('Failed to download quotation PDF.');
+            }
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Quotation_${quotationNumber || currentQuotationId}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+            showToast({ type: 'success', message: 'PDF downloaded successfully.' });
+        } catch (err) {
+            console.error("PDF Download error:", err);
+            showToast({ type: 'error', message: err.message || 'Failed to download PDF.' });
+        } finally {
+            setIsDownloadingPdf(false);
         }
     };
 
     const handleSend = () => {
         if (isSending || isSaving) return;
-        if (isDateInvalid) {
-            const msg = `Valid Until date (${validUntil}) cannot be earlier than quotation issue date (${issueDate}).`;
-            showToast({ type: 'error', message: msg });
+        if (isReadOnly) {
+            showToast({ type: 'error', message: 'This quotation is in read-only mode and cannot be sent.' });
+            return;
+        }
+        if (!validateMandatoryQuotationFields()) {
             return;
         }
         setIsSendModalOpen(true);
     };
 
     const executeSendQuotation = async (confirmedEmail) => {
-        if (isDateInvalid) {
-            const msg = `Valid Until date (${validUntil}) cannot be earlier than quotation issue date (${issueDate}).`;
-            showToast({ type: 'error', message: msg });
+        if (isSending || isSaving) return;
+        if (isReadOnly) {
+            showToast({ type: 'error', message: 'This quotation is in read-only mode and cannot be sent.' });
+            return;
+        }
+        if (!validateMandatoryQuotationFields()) {
             return;
         }
         setIsSending(true);
-        setError(null);
+        setLastSendError(null);
 
+        let activeQuotationId = currentQuotationId;
+        let activeQuotationNumber = quotationNumber;
+
+        // Step 1: Save quotation draft first
         try {
-            let activeQuotationId = currentQuotationId;
-
             // If draft has not been persisted in DB yet:
             if (!activeQuotationId && enquiryId) {
                 const q = await fetchApi(`/quotations/enquiry/${enquiryId}`, { method: 'POST' });
                 activeQuotationId = q.id;
+                activeQuotationNumber = q.quotationNumber;
                 setCurrentQuotationId(q.id);
                 setQuotationNumber(q.quotationNumber);
                 navigate(`/quotations/edit/${q.id}`, { replace: true });
@@ -828,6 +1089,11 @@ export default function QuotationBuilder() {
                 sourceNotes: sourceNotes,
                 validUntil: validUntil || null,
                 termsAndConditions: termsAndConditions,
+                billingAddress: billingAddress.trim(),
+                shippingAddress: shippingAddress?.trim() || null,
+                state: extractStateCode(state) || state?.trim() || null,
+                pincode: pincode?.trim() || null,
+                gstin: gstin?.trim() || null,
                 columnConfigs: columnConfigs,
                 items: serializeItems(items),
                 bankName: selectedBank ? selectedBank.bankName : null,
@@ -838,30 +1104,84 @@ export default function QuotationBuilder() {
                 companyBankAccountId: selectedBank && !isNaN(Number(selectedBank.id)) ? Number(selectedBank.id) : null
             };
 
-            // Ensure latest state is saved
-            await fetchApi(`/quotations/${activeQuotationId}`, {
+            // Ensure latest state is saved in DB
+            const saved = await fetchApi(`/quotations/${activeQuotationId}`, {
                 method: 'PUT',
                 body: JSON.stringify(payload)
             });
+            if (saved) {
+                if (saved.status) setQuotationStatus(saved.status);
+                if (saved.grandTotal !== undefined) setQuotationGrandTotal(saved.grandTotal);
+                if (saved.createdAt) setQuotationCreatedAt(saved.createdAt);
+                if (saved.quotationNumber) {
+                    activeQuotationNumber = saved.quotationNumber;
+                    setQuotationNumber(saved.quotationNumber);
+                }
+            }
+        } catch (saveError) {
+            console.error("Save Quotation before send failed:", saveError);
+            setIsSending(false);
+            showToast({ 
+                type: 'error', 
+                message: `Failed to save quotation before sending: ${saveError.message || "Unknown save error."}` 
+            });
+            return; // Stay on the form, preserve all user-entered data!
+        }
 
-            // Send email
-            const recipientList = Array.isArray(confirmedEmail) ? confirmedEmail : [confirmedEmail];
+        // Step 2: Send email
+        const recipientList = Array.isArray(confirmedEmail) 
+            ? confirmedEmail 
+            : (confirmedEmail ? [confirmedEmail] : [clientEmail].filter(Boolean));
+        const primaryRecipient = recipientList[0] || clientEmail || '';
+
+        try {
             await fetchApi(`/quotations/${activeQuotationId}/send`, {
                 method: 'POST',
                 body: JSON.stringify({ 
                     recipientEmails: recipientList,
-                    recipientEmail: recipientList[0] || ''
+                    recipientEmail: primaryRecipient
                 })
             });
 
             setIsSendModalOpen(false);
             window.dispatchEvent(new Event('notification-update'));
+
             const recipientDisplay = recipientList.join(', ');
-            showToast({ type: 'success', message: `Quotation sent successfully to ${recipientDisplay}` });
-            navigate('/enquiries');
-        } catch (error) {
-            console.error("Send Quotation Error:", error);
-            showToast({ type: 'error', message: error.message || "Failed to send quotation." });
+            const qNum = activeQuotationNumber || quotationNumber || `#${activeQuotationId}`;
+
+            // Update UI state to SENT
+            setQuotationStatus('SENT');
+            setEmailDeliveryStatus('SENT');
+            setEmailSentAt(new Date().toISOString());
+            setEmailRecipient(recipientDisplay);
+            setEmailErrorMessage('');
+            setLastSendError(null);
+
+            showToast({ 
+                type: 'success', 
+                message: `Quotation ${qNum} saved and sent successfully to ${recipientDisplay}!` 
+            });
+
+            // Navigate to saved quotation's details page using existing route conventions
+            navigate(`/quotations/edit/${activeQuotationId}`);
+        } catch (sendError) {
+            console.error("Send Email Error:", sendError);
+            setIsSendModalOpen(false);
+            setEmailDeliveryStatus('FAILED');
+            const errorMsg = sendError.message || "Email provider failed to deliver the quotation message.";
+            setEmailErrorMessage(errorMsg);
+            setLastSendError(errorMsg);
+
+            // DO NOT display false success message!
+            showToast({ 
+                type: 'error', 
+                message: `Quotation ${activeQuotationNumber || activeQuotationId} was saved, but email sending failed: ${errorMsg}` 
+            });
+
+            // Ensure route points to the saved quotation
+            if (location.pathname !== `/quotations/edit/${activeQuotationId}`) {
+                navigate(`/quotations/edit/${activeQuotationId}`);
+            }
         } finally {
             setIsSending(false);
         }
@@ -913,15 +1233,47 @@ export default function QuotationBuilder() {
     return (
         <div className="space-y-6 max-w-[1600px] mx-auto pb-12">
             
+            {/* Top Navigation & Breadcrumbs */}
+            <div className="flex items-center justify-between text-xs text-text-muted mb-1">
+                <div className="flex items-center space-x-2">
+                    <button 
+                        onClick={() => navigate('/quotations')} 
+                        className="inline-flex items-center hover:text-text-primary transition-colors text-text-secondary font-medium"
+                    >
+                        <ArrowLeft className="w-3.5 h-3.5 mr-1" />
+                        <span>Back to Quotations</span>
+                    </button>
+                    <span>/</span>
+                    <span className="text-text-primary font-medium">{quotationNumber || 'Create Quotation'}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                    <button 
+                        onClick={() => navigate('/dashboard')} 
+                        className="inline-flex items-center hover:text-text-primary transition-colors text-text-secondary"
+                    >
+                        <LayoutDashboard className="w-3.5 h-3.5 mr-1" />
+                        <span>Return to Dashboard</span>
+                    </button>
+                </div>
+            </div>
+
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-2">
                 <div>
                     <div className="flex items-center space-x-3 mb-1">
                         <h1 className="text-[28px] font-bold text-text-primary tracking-tight leading-tight">
                             {quotationNumber || 'Create Quotation'}
                         </h1>
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-bg-muted text-text-secondary uppercase tracking-wider">
-                            DRAFT
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${
+                            quotationStatus === 'SENT' 
+                                ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/20' 
+                                : quotationStatus === 'ACCEPTED'
+                                ? 'bg-blue-50 text-blue-800 border border-blue-300 dark:bg-blue-500/15 dark:text-blue-400 dark:border-blue-500/20'
+                                : quotationStatus === 'REJECTED'
+                                ? 'bg-rose-50 text-rose-800 border border-rose-300 dark:bg-rose-500/15 dark:text-rose-400 dark:border-rose-500/20'
+                                : 'bg-amber-50 text-amber-800 border border-amber-300 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/20'
+                        }`}>
+                            {quotationStatus || 'DRAFT'}
                         </span>
                     </div>
                     <p className="text-[13px] text-text-muted flex items-center mt-1">
@@ -932,38 +1284,528 @@ export default function QuotationBuilder() {
                         )}
                     </p>
                 </div>
-                <div className="flex items-center justify-end w-full md:w-auto">
-                    <div className="flex items-center space-x-3 ml-auto">
-                        <button 
-                            onClick={handleSaveDraft} 
-                            disabled={isSaving || isSending}
-                            className="btn btn-secondary btn-md flex items-center"
+                <div className="flex flex-wrap items-center gap-2">
+                    <button 
+                        onClick={() => navigate('/quotations')} 
+                        className="btn btn-secondary btn-sm flex items-center"
+                        title="View All Quotations"
+                    >
+                        <FileText className="mr-1.5 h-3.5 w-3.5" /> View All Quotations
+                    </button>
+                    <button 
+                        onClick={() => navigate('/dashboard')} 
+                        className="btn btn-secondary btn-sm flex items-center"
+                        title="Return to Dashboard"
+                    >
+                        <LayoutDashboard className="mr-1.5 h-3.5 w-3.5" /> Dashboard
+                    </button>
+                    <button 
+                        onClick={handleDownloadPdf} 
+                        disabled={!currentQuotationId || isDownloadingPdf}
+                        className="btn btn-secondary btn-sm flex items-center"
+                        title="Download PDF"
+                    >
+                        {isDownloadingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Download className="mr-1.5 h-3.5 w-3.5" />}
+                        Download PDF
+                    </button>
+                    <button 
+                        onClick={handlePreview} 
+                        disabled={isSaving || isSending}
+                        className="btn btn-secondary btn-sm flex items-center"
+                    >
+                        <Eye className="mr-1.5 h-3.5 w-3.5" /> Preview PDF
+                    </button>
+                    {!isReadOnly && (
+                        <>
+                            <button 
+                                id="save-draft-btn"
+                                onClick={handleSaveDraft} 
+                                disabled={isSaving || isSending}
+                                className="btn btn-secondary btn-sm flex items-center"
+                            >
+                                {isSaving ? <><Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> Saving...</> : <><Save className="mr-1.5 h-3.5 w-3.5" /> Save Draft</>}
+                            </button>
+                            <button 
+                                id="send-quotation-btn"
+                                onClick={handleSend} 
+                                disabled={isSending || isSaving}
+                                className="btn btn-primary btn-sm flex items-center"
+                            >
+                                {isSending ? <><Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> Sending...</> : <><Send className="mr-1.5 h-3.5 w-3.5" /> Send Quotation</>}
+                            </button>
+                        </>
+                    )}
+                    {isReadOnly && (
+                        <button
+                            type="button"
+                            onClick={handleCreateRevision}
+                            disabled={isCreatingRevision}
+                            className="btn btn-secondary btn-sm flex items-center"
+                            title="Create a new draft revision from this quotation"
                         >
-                            {isSaving ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Saving...</> : <><Save className="mr-2 h-4 w-4" /> Save Draft</>}
+                            <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${isCreatingRevision ? 'animate-spin' : ''}`} />
+                            Create Revision
                         </button>
-                        <button 
-                            onClick={handlePreview} 
-                            disabled={isSaving || isSending}
-                            className="btn btn-secondary btn-md flex items-center"
-                        >
-                            <Eye className="mr-2 h-4 w-4" /> Preview PDF
-                        </button>
-                        <button 
-                            onClick={handleSend} 
-                            disabled={isSending || isSaving}
-                            className="btn btn-primary btn-md flex items-center"
-                        >
-                            {isSending ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Sending...</> : <><Send className="mr-2 h-4 w-4" /> Send Quotation</>}
-                        </button>
-                    </div>
+                    )}
+                    {(quotationStatus === 'ACCEPTED' || quotationStatus === 'CONVERTED') && (
+                        <>
+                            {!purchaseOrderId && quotationStatus === 'ACCEPTED' ? (
+                                <button
+                                    id="create-po-btn"
+                                    type="button"
+                                    onClick={() => setIsPoModalOpen(true)}
+                                    className="btn btn-brand btn-sm flex items-center"
+                                    title="Create a Purchase Order from this quotation"
+                                >
+                                    <ShoppingCart className="mr-1.5 h-3.5 w-3.5" /> Create Purchase Order
+                                </button>
+                            ) : purchaseOrderId ? (
+                                <button
+                                    id="view-po-btn"
+                                    type="button"
+                                    onClick={() => navigate(`/purchase-orders/${purchaseOrderId}`)}
+                                    className="btn btn-secondary btn-sm flex items-center"
+                                    title="View related Purchase Order"
+                                >
+                                    <ShoppingCart className="mr-1.5 h-3.5 w-3.5" /> View Purchase Orders
+                                </button>
+                            ) : null}
+
+                            {(!taxInvoiceId && !proformaId) ? (
+                                isSuperAdmin && (
+                                    <button
+                                        id="create-invoice-btn"
+                                        type="button"
+                                        onClick={() => {
+                                            setInvoiceCreationError(null);
+                                            setSelectedInvoiceType('TAX_INVOICE');
+                                            setIsInvoiceModalOpen(true);
+                                        }}
+                                        disabled={isCreatingInvoice}
+                                        className="btn btn-secondary btn-sm flex items-center text-brand-teal hover:text-brand-teal"
+                                        title="Create an invoice from this quotation"
+                                    >
+                                        {isCreatingInvoice ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <FileText className="mr-1.5 h-3.5 w-3.5" />}
+                                        Create Invoice
+                                    </button>
+                                )
+                            ) : (
+                                <button
+                                    id="view-invoices-btn"
+                                    type="button"
+                                    onClick={() => {
+                                        if (taxInvoiceId && proformaId) {
+                                            setIsViewInvoicesDialogOpen(true);
+                                        } else {
+                                            navigate(`/invoices/${taxInvoiceId || proformaId}`);
+                                        }
+                                    }}
+                                    className="btn btn-secondary btn-sm flex items-center"
+                                    title="View related invoice(s)"
+                                >
+                                    <FileText className="mr-1.5 h-3.5 w-3.5" /> View Invoices
+                                </button>
+                            )}
+                        </>
+                    )}
                 </div>
             </div>
+
+            {/* Quotation Details Summary Card */}
+            {currentQuotationId && (
+                <div className="acx-card p-4 md:p-5 border border-border-light/60 bg-bg-surface/50 rounded-2xl shadow-sm mb-4">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-3 border-b border-border-light/40">
+                        <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+                            <div>
+                                <span className="text-[10px] uppercase tracking-wider text-text-muted font-bold block">Quotation No.</span>
+                                <span className="text-[14px] font-mono font-bold text-text-primary">{quotationNumber || `#${currentQuotationId}`}</span>
+                            </div>
+                            <div>
+                                <span className="text-[10px] uppercase tracking-wider text-text-muted font-bold block">Customer / Company</span>
+                                <span className="text-[13px] font-semibold text-text-primary">{clientCompany || clientName || '—'}</span>
+                            </div>
+                            <div>
+                                <span className="text-[10px] uppercase tracking-wider text-text-muted font-bold block">Total Amount</span>
+                                <span className="text-[15px] font-bold text-brand-teal">
+                                    {formatCurrency(totals.grandTotal || quotationGrandTotal || 0, currency)}
+                                </span>
+                            </div>
+                            <div>
+                                <span className="text-[10px] uppercase tracking-wider text-text-muted font-bold block">Currency</span>
+                                <span className="text-[13px] font-mono font-medium text-text-secondary">{currency || 'INR'}</span>
+                            </div>
+                            <div>
+                                <span className="text-[10px] uppercase tracking-wider text-text-muted font-bold block">Quotation Status</span>
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold ${
+                                    quotationStatus === 'SENT' 
+                                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/20' 
+                                        : quotationStatus === 'ACCEPTED'
+                                        ? 'bg-blue-50 text-blue-800 border border-blue-300 dark:bg-blue-500/15 dark:text-blue-400 dark:border-blue-500/20'
+                                        : quotationStatus === 'REJECTED'
+                                        ? 'bg-rose-50 text-rose-800 border border-rose-300 dark:bg-rose-500/15 dark:text-rose-400 dark:border-rose-500/20'
+                                        : 'bg-amber-50 text-amber-800 border border-amber-300 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/20'
+                                }`}>
+                                    {quotationStatus || 'DRAFT'}
+                                </span>
+                            </div>
+                            <div>
+                                <span className="text-[10px] uppercase tracking-wider text-text-muted font-bold block">Creation Date</span>
+                                <span className="text-[13px] text-text-secondary">
+                                    {formatDate(quotationCreatedAt || issueDate)}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        {/* Delivery Status Indicator */}
+                        <div className="flex items-center shrink-0">
+                            {emailDeliveryStatus === 'SENT' ? (
+                                <div className="flex items-center text-xs font-semibold text-emerald-800 bg-emerald-50 border border-emerald-300 px-3 py-1.5 rounded-lg dark:text-emerald-400 dark:bg-emerald-500/10 dark:border-emerald-500/20">
+                                    <CheckCircle className="w-4 h-4 mr-1.5 text-emerald-600 dark:text-emerald-400" />
+                                    <span>Sent via Email {emailSentAt ? `(${formatDateTime(emailSentAt)})` : ''}</span>
+                                </div>
+                            ) : emailDeliveryStatus === 'FAILED' ? (
+                                <div className="flex items-center text-xs font-semibold text-rose-800 bg-rose-50 border border-rose-300 px-3 py-1.5 rounded-lg dark:text-rose-400 dark:bg-rose-500/10 dark:border-rose-500/20">
+                                    <XCircle className="w-4 h-4 mr-1.5 text-rose-600 dark:text-rose-400" />
+                                    <span>Email Delivery Failed</span>
+                                </div>
+                            ) : (
+                                <div className="flex items-center text-xs font-medium text-text-muted bg-bg-muted/40 px-3 py-1.5 rounded-lg">
+                                    <Clock className="w-4 h-4 mr-1.5 text-text-muted" />
+                                    <span>Not Sent Yet</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Persisted Client Response row (Accepted or Rejected) */}
+                    {(responseSource || responseNotes) && (
+                        <div id="quotation-summary-response-row" className="mt-3 pt-3 border-t border-border-light/40 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs">
+                            <div>
+                                <span className="text-[10px] uppercase tracking-wider text-text-muted font-bold block">Response Source</span>
+                                <span className="font-semibold text-text-primary uppercase">{responseSource || 'N/A'}</span>
+                            </div>
+                            {responseNotes && (
+                                <div className="flex-1 min-w-[200px]">
+                                    <span className="text-[10px] uppercase tracking-wider text-text-muted font-bold block">
+                                        {quotationStatus === 'REJECTED' ? 'Rejection Reason' : 'Response Notes'}
+                                    </span>
+                                    <span className="italic text-text-primary font-medium">"{responseNotes}"</span>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Downstream Linked Records row */}
+                    {(purchaseOrderId || taxInvoiceId || proformaId) && (
+                        <div id="quotation-summary-downstream-records" className="mt-3 pt-3 border-t border-border-light/40 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs">
+                            {purchaseOrderId && (
+                                <div>
+                                    <span className="text-[10px] uppercase tracking-wider text-text-muted font-bold block">Purchase Order</span>
+                                    <Link to={`/purchase-orders/${purchaseOrderId}`} className="font-semibold text-brand-teal hover:underline flex items-center gap-1 mt-0.5">
+                                        <ShoppingCart className="w-3 h-3" /> View Purchase Order
+                                    </Link>
+                                </div>
+                            )}
+                            {taxInvoiceId && (
+                                <div>
+                                    <span className="text-[10px] uppercase tracking-wider text-text-muted font-bold block">Tax Invoice</span>
+                                    <Link to={`/invoices/${taxInvoiceId}`} className="font-semibold text-brand-teal hover:underline flex items-center gap-1 mt-0.5">
+                                        <FileText className="w-3 h-3" /> View Tax Invoice
+                                    </Link>
+                                </div>
+                            )}
+                            {proformaId && (
+                                <div>
+                                    <span className="text-[10px] uppercase tracking-wider text-text-muted font-bold block">Proforma Invoice</span>
+                                    <Link to={`/invoices/${proformaId}`} className="font-semibold text-brand-teal hover:underline flex items-center gap-1 mt-0.5">
+                                        <FileText className="w-3 h-3" /> View Proforma
+                                    </Link>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Failed Email Delivery Banner & Safe Retry Action */}
+                    {(emailDeliveryStatus === 'FAILED' || lastSendError) && (
+                        <div className="mt-3 p-3.5 bg-rose-50 border border-rose-300 dark:bg-rose-500/10 dark:border-rose-500/30 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-modal-entrance">
+                            <div className="flex items-start gap-2.5">
+                                <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                                <div>
+                                    <p className="text-xs font-semibold text-rose-900 dark:text-rose-300">
+                                        Email delivery failed or is unconfirmed: {emailErrorMessage || lastSendError}
+                                    </p>
+                                    <p className="text-[11px] text-rose-700 dark:text-rose-200/80 mt-0.5">
+                                        Your quotation was saved safely. You can retry sending without creating duplicate quotations.
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={handleSend}
+                                disabled={isSending || isSaving}
+                                className="btn btn-sm bg-rose-600 hover:bg-rose-700 text-white font-medium shrink-0 flex items-center shadow-sm"
+                            >
+                                {isSending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <RefreshCw className="w-3.5 h-3.5 mr-1.5" />}
+                                Retry Send
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Validation Error Banner */}
             {validationError && (
                 <div className="p-4 bg-brand-danger/10 border border-brand-danger/30 rounded-2xl flex items-center gap-3 shadow-sm animate-modal-entrance">
                     <AlertCircle className="w-5 h-5 text-brand-danger shrink-0" />
                     <p className="text-[14px] font-semibold text-brand-danger">{validationError}</p>
+                </div>
+            )}
+
+            {/* Lifecycle Read-Only & Lock Banners */}
+            {(quotationStatus === 'ACCEPTED' || quotationStatus === 'CONVERTED') && (
+                <div id="quotation-locked-banner" className="p-4 md:p-5 rounded-2xl border border-blue-200 bg-blue-50/90 dark:border-blue-500/30 dark:bg-blue-950/30 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm animate-modal-entrance">
+                    <div className="flex items-start md:items-center gap-3.5">
+                        <div className="w-10 h-10 rounded-xl bg-blue-100 border border-blue-200 dark:bg-blue-500/20 dark:border-blue-500/30 flex items-center justify-center text-blue-700 dark:text-blue-400 shrink-0">
+                            <Lock className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h3 className="text-sm font-bold text-blue-950 dark:text-blue-100">
+                                {quotationStatus === 'CONVERTED' 
+                                    ? 'This quotation has been converted to downstream records and is locked against editing.'
+                                    : 'This quotation has been accepted and is locked against editing.'}
+                            </h3>
+                            <p className="text-xs text-blue-800/90 dark:text-blue-300/90 mt-0.5">
+                                {quotationStatus === 'CONVERTED'
+                                    ? 'Downstream Purchase Order and/or Invoice records are linked.'
+                                    : 'Client acceptance has been recorded. Downstream Purchase Order and Invoice generation are available.'}
+                            </p>
+                            {(responseSource || responseNotes) && (
+                                <div id="quotation-acceptance-reason" className="mt-2.5 text-xs text-blue-950 dark:text-blue-100 bg-blue-100/80 dark:bg-blue-900/40 rounded-lg p-2.5 border border-blue-300 dark:border-blue-800/50 flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2">
+                                    <span className="font-bold text-blue-900 dark:text-blue-200">Acceptance Response:</span>
+                                    {responseSource && (
+                                        <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded bg-blue-200 text-blue-900 dark:bg-blue-800 dark:text-blue-100 uppercase tracking-wider">
+                                            via {responseSource}
+                                        </span>
+                                    )}
+                                    {responseNotes && (
+                                        <span className="italic text-blue-950 dark:text-blue-50 font-medium">"{responseNotes}"</span>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 shrink-0">
+                        {!purchaseOrderId && quotationStatus === 'ACCEPTED' ? (
+                            <button
+                                type="button"
+                                onClick={() => setIsPoModalOpen(true)}
+                                className="btn btn-sm flex items-center bg-blue-600 hover:bg-blue-700 text-white font-medium border-transparent shadow-sm dark:bg-blue-600 dark:hover:bg-blue-500"
+                            >
+                                <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />
+                                Create Purchase Order
+                            </button>
+                        ) : purchaseOrderId ? (
+                            <button
+                                type="button"
+                                onClick={() => navigate(`/purchase-orders/${purchaseOrderId}`)}
+                                className="btn btn-sm flex items-center bg-blue-600 hover:bg-blue-700 text-white font-medium border-transparent shadow-sm dark:bg-blue-600 dark:hover:bg-blue-500"
+                            >
+                                <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />
+                                View Purchase Orders
+                            </button>
+                        ) : null}
+
+                        {(!taxInvoiceId && !proformaId) ? (
+                            isSuperAdmin && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setInvoiceCreationError(null);
+                                        setSelectedInvoiceType('TAX_INVOICE');
+                                        setIsInvoiceModalOpen(true);
+                                    }}
+                                    disabled={isCreatingInvoice}
+                                    className="btn btn-sm flex items-center bg-blue-600 hover:bg-blue-700 text-white font-medium border-transparent shadow-sm dark:bg-blue-600 dark:hover:bg-blue-500"
+                                >
+                                    <FileText className="mr-1.5 h-3.5 w-3.5" />
+                                    Create Invoice
+                                </button>
+                            )
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (taxInvoiceId && proformaId) {
+                                        setIsViewInvoicesDialogOpen(true);
+                                    } else {
+                                        navigate(`/invoices/${taxInvoiceId || proformaId}`);
+                                    }
+                                }}
+                                className="btn btn-sm flex items-center bg-blue-600 hover:bg-blue-700 text-white font-medium border-transparent shadow-sm dark:bg-blue-600 dark:hover:bg-blue-500"
+                            >
+                                <FileText className="mr-1.5 h-3.5 w-3.5" />
+                                View Invoices
+                            </button>
+                        )}
+
+                        <button
+                            type="button"
+                            onClick={handleCreateRevision}
+                            disabled={isCreatingRevision}
+                            className="btn btn-sm flex items-center bg-blue-700 hover:bg-blue-800 text-white font-medium border-transparent shadow-sm dark:bg-blue-700 dark:hover:bg-blue-600"
+                        >
+                            <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${isCreatingRevision ? 'animate-spin' : ''}`} />
+                            Create Revision
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {quotationStatus === 'SENT' && (
+                <div id="quotation-sent-banner" className="p-4 md:p-5 rounded-2xl border border-emerald-300 bg-emerald-50/90 dark:border-emerald-500/30 dark:bg-emerald-950/30 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm animate-modal-entrance">
+                    <div className="flex items-start md:items-center gap-3.5">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-100 border border-emerald-300 dark:bg-emerald-500/20 dark:border-emerald-500/30 flex items-center justify-center text-emerald-800 dark:text-emerald-400 shrink-0">
+                            <Clock className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h3 className="text-sm font-bold text-emerald-950 dark:text-emerald-100">
+                                This quotation has been sent to the client and is in read-only mode.
+                            </h3>
+                            <p className="text-xs text-emerald-800/90 dark:text-emerald-300/90 mt-0.5">
+                                Direct modifications are prohibited while awaiting client response. To adjust pricing or terms, create a new revision.
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 shrink-0">
+                        <button
+                            type="button"
+                            onClick={() => setAcceptRejectModalInfo({ 
+                                quotation: { id: currentQuotationId, quotationNumber }, 
+                                type: 'ACCEPT' 
+                            })}
+                            className="btn btn-sm flex items-center bg-emerald-600 hover:bg-emerald-700 text-white font-semibold border-transparent shadow-sm dark:bg-emerald-600 dark:hover:bg-emerald-500"
+                        >
+                            <CheckCircle className="mr-1.5 h-3.5 w-3.5" />
+                            Accept Quotation
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setAcceptRejectModalInfo({ 
+                                quotation: { id: currentQuotationId, quotationNumber }, 
+                                type: 'REJECT' 
+                            })}
+                            className="btn btn-sm flex items-center bg-rose-600 hover:bg-rose-700 text-white font-semibold border-transparent shadow-sm dark:bg-rose-600 dark:hover:bg-rose-500"
+                        >
+                            <XCircle className="mr-1.5 h-3.5 w-3.5" />
+                            Reject Quotation
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleCreateRevision}
+                            disabled={isCreatingRevision}
+                            className="btn btn-secondary btn-sm flex items-center"
+                        >
+                            <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${isCreatingRevision ? 'animate-spin' : ''}`} />
+                            Create Revision
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {quotationStatus === 'REJECTED' && (
+                <div id="quotation-rejected-banner" className="p-4 md:p-5 rounded-2xl border border-rose-300 bg-rose-50/90 dark:border-rose-500/30 dark:bg-rose-950/30 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm animate-modal-entrance">
+                    <div className="flex items-start md:items-center gap-3.5">
+                        <div className="w-10 h-10 rounded-xl bg-rose-100 border border-rose-300 dark:bg-rose-500/20 dark:border-rose-500/30 flex items-center justify-center text-rose-800 dark:text-rose-400 shrink-0">
+                            <XCircle className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h3 className="text-sm font-bold text-rose-950 dark:text-rose-100">
+                                This quotation was rejected and is retained as a read-only historical record.
+                            </h3>
+                            <p className="text-xs text-rose-800/90 dark:text-rose-300/90 mt-0.5">
+                                You can create a new revision with revised terms or pricing.
+                            </p>
+                            {(responseSource || responseNotes) && (
+                                <div id="quotation-rejection-reason" className="mt-2.5 text-xs text-rose-950 dark:text-rose-100 bg-rose-100/80 dark:bg-rose-900/40 rounded-lg p-2.5 border border-rose-300 dark:border-rose-800/50 flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2">
+                                    <span className="font-bold text-rose-900 dark:text-rose-200">Rejection Reason:</span>
+                                    {responseSource && (
+                                        <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded bg-rose-200 text-rose-900 dark:bg-rose-800 dark:text-rose-100 uppercase tracking-wider">
+                                            via {responseSource}
+                                        </span>
+                                    )}
+                                    {responseNotes ? (
+                                        <span className="italic text-rose-950 dark:text-rose-50 font-medium">"{responseNotes}"</span>
+                                    ) : (
+                                        <span className="text-rose-700 dark:text-rose-300 italic">No notes provided</span>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={handleCreateRevision}
+                        disabled={isCreatingRevision}
+                        className="btn btn-sm flex items-center bg-rose-600 hover:bg-rose-700 text-white font-semibold border-transparent shadow-sm dark:bg-rose-600 dark:hover:bg-rose-500"
+                    >
+                        <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${isCreatingRevision ? 'animate-spin' : ''}`} />
+                        Create Revision
+                    </button>
+                </div>
+            )}
+
+            {quotationStatus === 'EXPIRED' && (
+                <div id="quotation-expired-banner" className="p-4 rounded-2xl border border-amber-300 bg-amber-50/90 dark:border-amber-500/30 dark:bg-amber-950/30 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm animate-modal-entrance">
+                    <div className="flex items-center gap-3.5">
+                        <div className="w-10 h-10 rounded-xl bg-amber-100 border border-amber-300 dark:bg-amber-500/20 dark:border-amber-500/30 flex items-center justify-center text-amber-800 dark:text-amber-400 shrink-0">
+                            <AlertTriangle className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h3 className="text-sm font-bold text-amber-950 dark:text-amber-100">
+                                This quotation has expired and is retained as a read-only historical record.
+                            </h3>
+                            <p className="text-xs text-amber-800/90 dark:text-amber-300/90 mt-0.5">
+                                Validity period has elapsed. Create a new revision to renew pricing and validity.
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={handleCreateRevision}
+                        disabled={isCreatingRevision}
+                        className="btn btn-sm flex items-center bg-amber-600 hover:bg-amber-700 text-white font-semibold border-transparent shadow-sm dark:bg-amber-600 dark:hover:bg-amber-500"
+                    >
+                        <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${isCreatingRevision ? 'animate-spin' : ''}`} />
+                        Create Revision
+                    </button>
+                </div>
+            )}
+
+            {quotationStatus === 'CONVERTED' && (
+                <div id="quotation-converted-banner" className="p-4 rounded-2xl border border-blue-300 bg-blue-50/90 dark:border-blue-500/30 dark:bg-blue-950/30 flex items-center gap-3.5 shadow-sm animate-modal-entrance">
+                    <div className="w-10 h-10 rounded-xl bg-blue-100 border border-blue-300 dark:bg-blue-500/20 dark:border-blue-500/30 flex items-center justify-center text-blue-800 dark:text-blue-400 shrink-0">
+                        <CheckCircle className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <h3 className="text-sm font-bold text-blue-950 dark:text-blue-100">
+                            This quotation has been converted to a Purchase Order and is locked against editing.
+                        </h3>
+                        <p className="text-xs text-blue-800/90 dark:text-blue-300/90 mt-0.5">
+                            Downstream fulfillment and billing workflows are active.
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {quotationStatus === 'REVISED' && (
+                <div id="quotation-revised-banner" className="p-4 rounded-2xl border border-purple-300 bg-purple-50/90 dark:border-purple-500/30 dark:bg-purple-950/30 flex items-center gap-3.5 shadow-sm animate-modal-entrance">
+                    <div className="w-10 h-10 rounded-xl bg-purple-100 border border-purple-300 dark:bg-purple-500/20 dark:border-purple-500/30 flex items-center justify-center text-purple-800 dark:text-purple-400 shrink-0">
+                        <FileCheck className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <h3 className="text-sm font-bold text-purple-950 dark:text-purple-100">
+                            This quotation has been superseded by a newer revision and is a read-only historical record.
+                        </h3>
+                    </div>
                 </div>
             )}
 
@@ -984,92 +1826,124 @@ export default function QuotationBuilder() {
                         </span>
                     )}
                 </div>
-                <details className="mb-6 group">
-                    <summary className="text-[11px] font-bold text-text-secondary uppercase tracking-wider cursor-pointer flex items-center select-none outline-none">
-                        <span className="border-b border-dashed border-text-muted hover:text-text-primary pb-0.5">Edit / Change Customer Source (Optional)</span>
-                    </summary>
-                    {customerId ? (
-                        <div className="flex items-center justify-between p-3.5 bg-brand-primary/5 dark:bg-brand-primary/10 border border-brand-primary/20 rounded-xl mt-4">
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-xs border border-emerald-500/20">
-                                    ✓
+                {!isReadOnly && (
+                    <details className="mb-6 group">
+                        <summary className="text-[11px] font-bold text-text-secondary uppercase tracking-wider cursor-pointer flex items-center select-none outline-none">
+                            <span className="border-b border-dashed border-text-muted hover:text-text-primary pb-0.5">Edit / Change Customer Source (Optional)</span>
+                        </summary>
+                        {customerId ? (
+                            <div className="flex items-center justify-between p-3.5 bg-brand-primary/5 dark:bg-brand-primary/10 border border-brand-primary/20 rounded-xl mt-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-xs border border-emerald-500/20">
+                                        ✓
+                                    </div>
+                                    <div>
+                                        <div className="text-[13px] font-bold text-text-primary flex items-center gap-2">
+                                            {clientName} {clientCompany ? `(${clientCompany})` : ''}
+                                            <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-500/20">
+                                                Saved Customer
+                                            </span>
+                                        </div>
+                                        <div className="text-[11px] text-text-muted mt-0.5">
+                                            {clientEmail || 'No email'} · {clientPhone || 'No phone'} · GSTIN: <span className="font-mono">{gstin || 'N/A'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={clearSelectedCustomer}
+                                    className="px-3 py-1.5 text-xs font-semibold text-text-secondary hover:text-red-600 bg-bg-card border border-border-subtle rounded-lg shadow-sm transition-colors"
+                                >
+                                    Change / Clear
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 p-4 border border-border-subtle rounded-xl bg-bg-muted/30">
+                                <div>
+                                    <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Load from Customer Master</p>
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            placeholder="Search existing customer..."
+                                            value={customerSearch}
+                                            onChange={(e) => {
+                                                setCustomerSearch(e.target.value);
+                                                setIsCustomerDropdownOpen(true);
+                                            }}
+                                            onFocus={() => setIsCustomerDropdownOpen(true)}
+                                            onBlur={() => setTimeout(() => setIsCustomerDropdownOpen(false), 200)}
+                                            className="w-full bg-bg-main border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
+                                        />
+                                        {isCustomerDropdownOpen && (
+                                            <div className="absolute z-50 w-full mt-1 bg-bg-card border border-border-subtle rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                                                {isLoadingCustomers ? (
+                                                    <div className="p-3 text-[12px] text-text-muted text-center">Loading...</div>
+                                                ) : customers.length === 0 ? (
+                                                    <div className="p-3 text-[12px] text-text-muted text-center">No customers found</div>
+                                                ) : (
+                                                    customers.map(c => (
+                                                        <div 
+                                                            key={c.id}
+                                                            onMouseDown={(e) => e.preventDefault()}
+                                                            onClick={() => selectCustomer(c)}
+                                                            className="px-4 py-2 hover:bg-bg-hover cursor-pointer border-b border-border-subtle/40 last:border-0"
+                                                        >
+                                                            <div className="text-[13px] font-bold text-text-primary">{c.name} {c.companyName ? `(${c.companyName})` : ''}</div>
+                                                            <div className="text-[11px] text-text-muted">{c.email} | {c.phone}</div>
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                                 <div>
-                                    <div className="text-[13px] font-bold text-text-primary flex items-center gap-2">
-                                        {clientName} {clientCompany ? `(${clientCompany})` : ''}
-                                        <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-500/20">
-                                            Saved Customer
-                                        </span>
-                                    </div>
-                                    <div className="text-[11px] text-text-muted mt-0.5">
-                                        {clientEmail || 'No email'} · {clientPhone || 'No phone'} · GSTIN: <span className="font-mono">{gstin || 'N/A'}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={clearSelectedCustomer}
-                                className="px-3 py-1.5 text-xs font-semibold text-text-secondary hover:text-red-600 bg-bg-card border border-border-subtle rounded-lg shadow-sm transition-colors"
-                            >
-                                Change / Clear
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 p-4 border border-border-subtle rounded-xl bg-bg-muted/30">
-                            <div>
-                                <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Load from Customer Master</p>
-                                <div className="relative">
-                                    <input
-                                        type="text"
-                                        placeholder="Search existing customer..."
-                                        value={customerSearch}
-                                        onChange={(e) => {
-                                            setCustomerSearch(e.target.value);
-                                            setIsCustomerDropdownOpen(true);
+                                    <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Or Verify New Customer GSTIN</p>
+                                    <GstinAutoLookup 
+                                        value={gstin}
+                                        onChange={setGstin}
+                                        isExistingCustomer={false}
+                                        onVerified={(data) => {
+                                            setCustomerId(null);
+                                            setClientName(data.tradeName || data.legalName || clientName);
+                                            setClientCompany(data.legalName || clientCompany);
+                                            if (data.billingAddress) {
+                                                setBillingAddress(data.billingAddress);
+                                                setBillingAddressError('');
+                                            }
+                                            if (data.state) {
+                                                setState(formatStateDisplay(data.state, data.gstin || gstin));
+                                            }
+                                            if (data.pincode) {
+                                                setPincode(data.pincode);
+                                            }
                                         }}
-                                        onFocus={() => setIsCustomerDropdownOpen(true)}
-                                        onBlur={() => setTimeout(() => setIsCustomerDropdownOpen(false), 200)}
-                                        className="w-full bg-bg-main border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
                                     />
-                                    {isCustomerDropdownOpen && (
-                                        <div className="absolute z-50 w-full mt-1 bg-bg-card border border-border-subtle rounded-xl shadow-lg max-h-48 overflow-y-auto">
-                                            {isLoadingCustomers ? (
-                                                <div className="p-3 text-[12px] text-text-muted text-center">Loading...</div>
-                                            ) : customers.length === 0 ? (
-                                                <div className="p-3 text-[12px] text-text-muted text-center">No customers found</div>
-                                            ) : (
-                                                customers.map(c => (
-                                                    <div 
-                                                        key={c.id}
-                                                        onMouseDown={(e) => e.preventDefault()}
-                                                        onClick={() => selectCustomer(c)}
-                                                        className="px-4 py-2 hover:bg-bg-hover cursor-pointer border-b border-border-subtle/40 last:border-0"
-                                                    >
-                                                        <div className="text-[13px] font-bold text-text-primary">{c.name} {c.companyName ? `(${c.companyName})` : ''}</div>
-                                                        <div className="text-[11px] text-text-muted">{c.email} | {c.phone}</div>
-                                                    </div>
-                                                ))
-                                            )}
-                                        </div>
-                                    )}
                                 </div>
                             </div>
+                        )}
+                    </details>
+                )}
+                {isReadOnly && customerId && (
+                    <div className="flex items-center justify-between p-3.5 bg-brand-primary/5 dark:bg-brand-primary/10 border border-brand-primary/20 rounded-xl mb-6">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-xs border border-emerald-500/20">
+                                ✓
+                            </div>
                             <div>
-                                <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Or Verify New Customer GSTIN</p>
-                                <GstinAutoLookup 
-                                    value={gstin}
-                                    onChange={setGstin}
-                                    isExistingCustomer={false}
-                                    onVerified={(data) => {
-                                        setCustomerId(null);
-                                        setClientName(data.tradeName || data.legalName || clientName);
-                                        setClientCompany(data.legalName || clientCompany);
-                                    }}
-                                />
+                                <div className="text-[13px] font-bold text-text-primary flex items-center gap-2">
+                                    {clientName} {clientCompany ? `(${clientCompany})` : ''}
+                                    <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-500/20">
+                                        Saved Customer
+                                    </span>
+                                </div>
+                                <div className="text-[11px] text-text-muted mt-0.5">
+                                    {clientEmail || 'No email'} · {clientPhone || 'No phone'} · GSTIN: <span className="font-mono">{gstin || 'N/A'}</span>
+                                </div>
                             </div>
                         </div>
-                    )}
-                </details>
+                    </div>
+                )}
                 <div className="quotation-client-grid">
                     <div className="min-w-0">
                         <label htmlFor="quotation-currency" className="block text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5 truncate">
@@ -1078,8 +1952,9 @@ export default function QuotationBuilder() {
                         <select
                             id="quotation-currency"
                             value={currency}
+                            disabled={isReadOnly}
                             onChange={(e) => setCurrency(e.target.value)}
-                            className="w-full h-10 bg-bg-main border border-border-subtle focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/20 rounded-xl px-3 text-[13px] font-medium text-text-primary outline-none transition-colors cursor-pointer"
+                            className="w-full h-10 bg-bg-main border border-border-subtle focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/20 rounded-xl px-3 text-[13px] font-medium text-text-primary outline-none transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                             <option value="INR">INR (₹)</option>
                             <option value="USD">USD ($)</option>
@@ -1093,8 +1968,9 @@ export default function QuotationBuilder() {
                             id="quotation-client-name"
                             type="text"
                             value={clientName}
+                            disabled={isReadOnly}
                             onChange={(e) => setClientName(e.target.value)}
-                            className="w-full h-10 bg-bg-main border border-border-subtle focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/20 rounded-xl px-3 text-[13px] font-medium text-text-primary outline-none transition-colors"
+                            className="w-full h-10 bg-bg-main border border-border-subtle focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/20 rounded-xl px-3 text-[13px] font-medium text-text-primary outline-none transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                             placeholder="Client Name"
                         />
                     </div>
@@ -1106,8 +1982,9 @@ export default function QuotationBuilder() {
                             id="quotation-client-company"
                             type="text"
                             value={clientCompany}
+                            disabled={isReadOnly}
                             onChange={(e) => setClientCompany(e.target.value)}
-                            className="w-full h-10 bg-bg-main border border-border-subtle focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/20 rounded-xl px-3 text-[13px] font-medium text-text-primary outline-none transition-colors"
+                            className="w-full h-10 bg-bg-main border border-border-subtle focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/20 rounded-xl px-3 text-[13px] font-medium text-text-primary outline-none transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                             placeholder="Company Name"
                         />
                     </div>
@@ -1119,8 +1996,9 @@ export default function QuotationBuilder() {
                             id="quotation-client-email"
                             type="email"
                             value={clientEmail}
+                            disabled={isReadOnly}
                             onChange={(e) => setClientEmail(e.target.value)}
-                            className="w-full h-10 bg-bg-main border border-border-subtle focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/20 rounded-xl px-3 text-[13px] font-medium text-text-primary outline-none transition-colors"
+                            className="w-full h-10 bg-bg-main border border-border-subtle focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/20 rounded-xl px-3 text-[13px] font-medium text-text-primary outline-none transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                             placeholder="client@email.com"
                         />
                     </div>
@@ -1132,8 +2010,9 @@ export default function QuotationBuilder() {
                             id="quotation-client-phone"
                             type="text"
                             value={clientPhone}
+                            disabled={isReadOnly}
                             onChange={(e) => setClientPhone(e.target.value)}
-                            className="w-full h-10 bg-bg-main border border-border-subtle focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/20 rounded-xl px-3 text-[13px] font-medium text-text-primary outline-none transition-colors"
+                            className="w-full h-10 bg-bg-main border border-border-subtle focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/20 rounded-xl px-3 text-[13px] font-medium text-text-primary outline-none transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                             placeholder="+91..."
                         />
                     </div>
@@ -1144,8 +2023,9 @@ export default function QuotationBuilder() {
                         <select
                             id="validity-period-select"
                             value={validityPeriod}
+                            disabled={isReadOnly}
                             onChange={handleValidityPeriodChange}
-                            className="w-full h-10 bg-bg-main border border-border-subtle focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/20 rounded-xl px-3 text-[13px] font-medium text-text-primary outline-none transition-colors cursor-pointer"
+                            className="w-full h-10 bg-bg-main border border-border-subtle focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/20 rounded-xl px-3 text-[13px] font-medium text-text-primary outline-none transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                             {VALIDITY_PERIOD_OPTIONS.map(opt => (
                                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -1161,10 +2041,11 @@ export default function QuotationBuilder() {
                             type="date"
                             value={validUntil}
                             min={issueDate}
+                            disabled={isReadOnly}
                             onChange={handleValidUntilChange}
                             className={`w-full h-10 bg-bg-main border ${
                                 isDateInvalid ? 'border-red-500 focus:border-red-500 text-red-500' : 'border-border-subtle focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/20 text-text-primary'
-                            } rounded-xl px-3 text-[13px] font-medium outline-none transition-colors`}
+                            } rounded-xl px-3 text-[13px] font-medium outline-none transition-colors disabled:opacity-60 disabled:cursor-not-allowed`}
                         />
                         <div className="mt-1 min-h-[16px]">
                             {isDateInvalid ? (
@@ -1180,6 +2061,131 @@ export default function QuotationBuilder() {
                     </div>
                 </div>
 
+                {/* Billing Address & Location Details Row */}
+                <div className="mt-5 pt-4 border-t border-border-subtle/60">
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-1.5 text-[11px] font-bold text-text-secondary uppercase tracking-wider">
+                            <MapPin className="w-3.5 h-3.5 text-brand-teal" />
+                            <span>Billing Address &amp; Location Details</span>
+                        </div>
+                        <span className="text-[11px] text-text-muted hidden sm:inline">Auto-filled from client, printed on quotation PDF</span>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                        {/* Billing Address */}
+                        <div className="md:col-span-6 min-w-0">
+                            <label htmlFor="quotation-billing-address" className="block text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">
+                                Billing Address <span className="text-red-500 font-bold">*</span>
+                            </label>
+                            <textarea
+                                id="quotation-billing-address"
+                                rows={2}
+                                value={billingAddress}
+                                disabled={isReadOnly}
+                                onChange={(e) => {
+                                    setBillingAddress(e.target.value);
+                                    if (billingAddressError) setBillingAddressError('');
+                                }}
+                                placeholder="Street address, building, suite, or area..."
+                                className={`w-full bg-bg-main border ${
+                                    billingAddressError 
+                                        ? 'border-red-500 focus:border-red-500 ring-1 ring-red-500/20' 
+                                        : 'border-border-subtle focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/20'
+                                } rounded-xl p-2.5 text-[13px] font-medium text-text-primary outline-none transition-colors resize-none disabled:opacity-60 disabled:cursor-not-allowed`}
+                            />
+                            {billingAddressError && (
+                                <p className="text-[11px] text-red-500 font-medium mt-1 flex items-center gap-1">
+                                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                                    <span>{billingAddressError}</span>
+                                </p>
+                            )}
+                        </div>
+
+                        {/* State Code - State Name */}
+                        <div className="md:col-span-3 min-w-0 relative">
+                            <label htmlFor="quotation-billing-state" className="block text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5 truncate">
+                                State / Place of Supply
+                            </label>
+                            <div className="relative">
+                                <input
+                                    id="quotation-billing-state"
+                                    type="text"
+                                    value={state}
+                                    disabled={isReadOnly}
+                                    onChange={(e) => {
+                                        setState(e.target.value);
+                                        setIsStateDropdownOpen(true);
+                                    }}
+                                    onFocus={() => !isReadOnly && setIsStateDropdownOpen(true)}
+                                    onBlur={handleStateBlur}
+                                    placeholder="e.g. 20 - Jharkhand"
+                                    autoComplete="off"
+                                    className="w-full h-10 bg-bg-main border border-border-subtle focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/20 rounded-xl px-3 pr-8 text-[13px] font-medium text-text-primary outline-none transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                                />
+                                {!isReadOnly && (
+                                    <button
+                                        type="button"
+                                        tabIndex={-1}
+                                        onClick={() => setIsStateDropdownOpen(prev => !prev)}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary p-1 transition-colors"
+                                    >
+                                        <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isStateDropdownOpen ? 'rotate-180' : ''}`} />
+                                    </button>
+                                )}
+                            </div>
+                            {isStateDropdownOpen && (
+                                <div className="absolute z-50 left-0 right-0 mt-1 bg-bg-card border border-border-subtle rounded-xl shadow-xl max-h-48 overflow-y-auto py-1">
+                                    {filteredStates.length === 0 ? (
+                                        <div className="px-3 py-2 text-[12px] text-text-muted text-center">
+                                            No matching state found
+                                        </div>
+                                    ) : (
+                                        filteredStates.map(st => {
+                                            const itemVal = `${st.code} - ${st.name}`;
+                                            const isSelected = state === itemVal || extractStateCode(state) === st.code;
+                                            return (
+                                                <div
+                                                    key={st.code}
+                                                    onMouseDown={(e) => e.preventDefault()}
+                                                    onClick={() => {
+                                                        setState(itemVal);
+                                                        setIsStateDropdownOpen(false);
+                                                    }}
+                                                    className={`px-3 py-2 text-[13px] hover:bg-brand-teal/10 cursor-pointer flex items-center justify-between transition-colors ${
+                                                        isSelected ? 'bg-brand-teal/15 text-brand-teal font-semibold' : 'text-text-primary'
+                                                    }`}
+                                                >
+                                                    <span className="font-medium truncate">{itemVal}</span>
+                                                    <span className="text-[11px] font-mono font-bold text-brand-teal bg-brand-teal/10 px-1.5 py-0.5 rounded ml-2 shrink-0">
+                                                        {st.code}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* PIN Code */}
+                        <div className="md:col-span-3 min-w-0">
+                            <label htmlFor="quotation-billing-pincode" className="block text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5 truncate">
+                                PIN Code
+                            </label>
+                            <input
+                                id="quotation-billing-pincode"
+                                type="text"
+                                maxLength={10}
+                                value={pincode}
+                                disabled={isReadOnly}
+                                onChange={(e) => setPincode(e.target.value)}
+                                placeholder="e.g. 834001"
+                                className="w-full h-10 bg-bg-main border border-border-subtle focus:border-brand-teal focus:ring-1 focus:ring-brand-teal/20 rounded-xl px-3 text-[13px] font-medium text-text-primary outline-none transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                            />
+                        </div>
+                    </div>
+                </div>
+
                 {sourceNotes && (
                     <div className="mt-4 pt-4 border-t border-border-subtle/50">
                         <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1">Source Notes</p>
@@ -1189,36 +2195,38 @@ export default function QuotationBuilder() {
             </div>
 
             {/* Gemini Import */}
-            <div className="acx-card p-6 md:p-8 border border-[#7C3AED]/20 relative overflow-hidden group">
-                <div className="absolute -right-8 -top-8 text-purple-600/5 pointer-events-none transition-transform group-hover:scale-110 duration-700">
-                    <Wand2 className="w-48 h-48" />
-                </div>
-                <h2 className="text-[14px] font-bold text-text-primary mb-4 flex items-center relative z-10 tracking-tight">
-                    <Wand2 className="h-4 w-4 text-purple-600 mr-2" />
-                    AI Auto-Extraction
-                </h2>
-                <div className="flex flex-col sm:flex-row gap-4 relative z-10">
-                    <textarea 
-                        className="flex-1 acx-input h-24 resize-none rounded-xl text-[13px] bg-bg-main" 
-                        placeholder="Paste rough requirements... (e.g., 'We need 2 DELL servers at 60k each and a Cisco router for 5k')"
-                        value={roughText}
-                        onChange={(e) => setRoughText(e.target.value)}
-                    ></textarea>
-                    <div className="sm:w-48 flex items-end">
-                        <button 
-                            onClick={handleParseText}
-                            disabled={isParsing || !roughText.trim()}
-                            className="btn btn-primary w-full py-2.5 text-[13px] flex items-center justify-center gap-2"
-                        >
-                            {isParsing ? (
-                                <><span className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-current"></span> Parsing...</>
-                            ) : (
-                                'Extract to Rows'
-                            )}
-                        </button>
+            {!isReadOnly && (
+                <div className="acx-card p-6 md:p-8 border border-[#7C3AED]/20 relative overflow-hidden group">
+                    <div className="absolute -right-8 -top-8 text-purple-600/5 pointer-events-none transition-transform group-hover:scale-110 duration-700">
+                        <Wand2 className="w-48 h-48" />
+                    </div>
+                    <h2 className="text-[14px] font-bold text-text-primary mb-4 flex items-center relative z-10 tracking-tight">
+                        <Wand2 className="h-4 w-4 text-purple-600 mr-2" />
+                        AI Auto-Extraction
+                    </h2>
+                    <div className="flex flex-col sm:flex-row gap-4 relative z-10">
+                        <textarea 
+                            className="flex-1 acx-input h-24 resize-none rounded-xl text-[13px] bg-bg-main" 
+                            placeholder="Paste rough requirements... (e.g., 'We need 2 DELL servers at 60k each and a Cisco router for 5k')"
+                            value={roughText}
+                            onChange={(e) => setRoughText(e.target.value)}
+                        ></textarea>
+                        <div className="sm:w-48 flex items-end">
+                            <button 
+                                onClick={handleParseText}
+                                disabled={isParsing || !roughText.trim()}
+                                className="btn btn-primary w-full py-2.5 text-[13px] flex items-center justify-center gap-2"
+                            >
+                                {isParsing ? (
+                                    <><span className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-current"></span> Parsing...</>
+                                ) : (
+                                    'Extract to Rows'
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* Item Editor */}
             <div className="acx-card overflow-hidden flex flex-col">
@@ -1242,49 +2250,51 @@ export default function QuotationBuilder() {
                     </div>
                 </div>
 
-                <div className="px-6 py-4 border-b border-border-subtle bg-bg-main relative">
-                    <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Quick Add from Catalog</p>
-                    <div className="relative w-full sm:w-96">
-                        <input
-                            type="text"
-                            placeholder="Search product/service..."
-                            value={catalogSearch}
-                            onChange={(e) => {
-                                setCatalogSearch(e.target.value);
-                                setIsCatalogDropdownOpen(true);
-                            }}
-                            onFocus={() => setIsCatalogDropdownOpen(true)}
-                            onBlur={() => setTimeout(() => setIsCatalogDropdownOpen(false), 200)}
-                            className="w-full bg-bg-card border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
-                        />
-                        {isCatalogDropdownOpen && (
-                            <div className="absolute z-50 w-full mt-1 bg-bg-card border border-border-subtle rounded-xl shadow-lg max-h-48 overflow-y-auto">
-                                {isLoadingCatalog ? (
-                                    <div className="p-3 text-[12px] text-text-muted text-center">Loading...</div>
-                                ) : catalogItems.length === 0 ? (
-                                    <div className="p-3 text-[12px] text-text-muted text-center">No catalog items found</div>
-                                ) : (
-                                    catalogItems.map(item => (
-                                        <div 
-                                            key={item.id}
-                                            onMouseDown={(e) => e.preventDefault()}
-                                            onClick={() => addCatalogItem(item)}
-                                            className="px-4 py-2 hover:bg-bg-hover cursor-pointer border-b border-border-subtle/40 last:border-0 flex justify-between items-center"
-                                        >
-                                            <div>
-                                                <div className="text-[13px] font-bold text-text-primary">{item.name}</div>
-                                                <div className="text-[11px] text-text-muted">{item.sku} | HSN: {item.hsnSac}</div>
+                {!isReadOnly && (
+                    <div className="px-6 py-4 border-b border-border-subtle bg-bg-main relative">
+                        <p className="text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1.5">Quick Add from Catalog</p>
+                        <div className="relative w-full sm:w-96">
+                            <input
+                                type="text"
+                                placeholder="Search product/service..."
+                                value={catalogSearch}
+                                onChange={(e) => {
+                                    setCatalogSearch(e.target.value);
+                                    setIsCatalogDropdownOpen(true);
+                                }}
+                                onFocus={() => setIsCatalogDropdownOpen(true)}
+                                onBlur={() => setTimeout(() => setIsCatalogDropdownOpen(false), 200)}
+                                className="w-full bg-bg-card border border-border-subtle focus:border-brand-teal rounded-xl px-3 py-2 text-[13px] font-semibold text-text-primary outline-none transition-colors"
+                            />
+                            {isCatalogDropdownOpen && (
+                                <div className="absolute z-50 w-full mt-1 bg-bg-card border border-border-subtle rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                                    {isLoadingCatalog ? (
+                                        <div className="p-3 text-[12px] text-text-muted text-center">Loading...</div>
+                                    ) : catalogItems.length === 0 ? (
+                                        <div className="p-3 text-[12px] text-text-muted text-center">No catalog items found</div>
+                                    ) : (
+                                        catalogItems.map(item => (
+                                            <div 
+                                                key={item.id}
+                                                onMouseDown={(e) => e.preventDefault()}
+                                                onClick={() => addCatalogItem(item)}
+                                                className="px-4 py-2 hover:bg-bg-hover cursor-pointer border-b border-border-subtle/40 last:border-0 flex justify-between items-center"
+                                            >
+                                                <div>
+                                                    <div className="text-[13px] font-bold text-text-primary">{item.name}</div>
+                                                    <div className="text-[11px] text-text-muted">{item.sku} | HSN: {item.hsnSac}</div>
+                                                </div>
+                                                <div className="text-[12px] font-mono font-semibold text-brand-teal">
+                                                    ₹{item.listPrice}
+                                                </div>
                                             </div>
-                                            <div className="text-[12px] font-mono font-semibold text-brand-teal">
-                                                ₹{item.listPrice}
-                                            </div>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        )}
+                                        ))
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     </div>
-                </div>
+                )}
                 
                 <div className="acx-table-container">
                     <table className="min-w-[900px] w-full">
@@ -1295,14 +2305,16 @@ export default function QuotationBuilder() {
                                         {config.displayName}
                                     </th>
                                 ))}
-                                <th className="px-2 py-4 text-center text-[11px] font-bold text-text-muted uppercase tracking-wider w-[5%] bg-bg-card">Actions</th>
+                                {!isReadOnly && (
+                                    <th className="px-2 py-4 text-center text-[11px] font-bold text-text-muted uppercase tracking-wider w-[5%] bg-bg-card">Actions</th>
+                                )}
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border-subtle/40 bg-bg-card">
                             {items.length === 0 ? (
                                 <tr>
                                     <td 
-                                        colSpan={columnConfigs.filter(c => c.visible).length + 1}
+                                        colSpan={columnConfigs.filter(c => c.visible).length + (isReadOnly ? 0 : 1)}
                                         className="px-6 py-14 text-center bg-bg-card"
                                     >
                                         <div className="flex flex-col items-center justify-center max-w-sm mx-auto text-center">
@@ -1310,18 +2322,22 @@ export default function QuotationBuilder() {
                                                 <Hash className="w-5 h-5 text-text-muted/60" />
                                             </div>
                                             <p className="text-[13px] font-semibold text-text-secondary mb-1">
-                                                No items added yet. Click &ldquo;+ Add Item&rdquo; or use AI Auto-Extraction.
+                                                {isReadOnly ? 'No items in this quotation.' : 'No items added yet. Click \u201c+ Add Item\u201d or use AI Auto-Extraction.'}
                                             </p>
-                                            <p className="text-[12px] text-text-muted mb-4">
-                                                Add line items manually, extract from rough requirements, or select from the catalog.
-                                            </p>
-                                            <button 
-                                                type="button" 
-                                                onClick={addItem} 
-                                                className="btn btn-secondary btn-sm flex items-center gap-1.5 shadow-sm"
-                                            >
-                                                <Plus className="w-3.5 h-3.5" /> Add Item
-                                            </button>
+                                            {!isReadOnly && (
+                                                <>
+                                                    <p className="text-[12px] text-text-muted mb-4">
+                                                        Add line items manually, extract from rough requirements, or select from the catalog.
+                                                    </p>
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={addItem} 
+                                                        className="btn btn-secondary btn-sm flex items-center gap-1.5 shadow-sm"
+                                                    >
+                                                        <Plus className="w-3.5 h-3.5" /> Add Item
+                                                    </button>
+                                                </>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
@@ -1346,9 +2362,10 @@ export default function QuotationBuilder() {
                                                             <input 
                                                                 type={config.columnType === 'NUMBER' || config.columnType === 'CURRENCY' ? 'number' : 'text'}
                                                                 step="any"
+                                                                disabled={isReadOnly}
                                                                 value={(item.customValues && item.customValues[config.columnKey]) || ''} 
                                                                 onChange={(e) => updateItem(item.id, `custom_${config.columnKey}`, e.target.value)} 
-                                                                className={`w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary transition-all outline-none ${config.columnType === 'CURRENCY' || config.columnType === 'NUMBER' ? 'text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none' : ''}`}
+                                                                className={`w-full bg-transparent border border-transparent ${isReadOnly ? 'cursor-default' : 'hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main'} rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary transition-all outline-none ${config.columnType === 'CURRENCY' || config.columnType === 'NUMBER' ? 'text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none' : ''}`}
                                                                 placeholder={config.displayName}
                                                             />
                                                         </td>
@@ -1367,9 +2384,10 @@ export default function QuotationBuilder() {
                                                             <td key={config.columnKey} className="px-3 py-3 align-top">
                                                                 <input 
                                                                     type="text" 
+                                                                    disabled={isReadOnly}
                                                                     value={item.sku || ''} 
                                                                     onChange={(e) => updateItem(item.id, 'sku', e.target.value)} 
-                                                                    className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary transition-all outline-none uppercase font-mono tracking-tight placeholder:normal-case placeholder:font-sans placeholder:text-text-muted/60" 
+                                                                    className={`w-full bg-transparent border border-transparent ${isReadOnly ? 'cursor-default' : 'hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main'} rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary transition-all outline-none uppercase font-mono tracking-tight placeholder:normal-case placeholder:font-sans placeholder:text-text-muted/60`} 
                                                                     placeholder="e.g. SKU-001" 
                                                                 />
                                                             </td>
@@ -1378,10 +2396,11 @@ export default function QuotationBuilder() {
                                                         return (
                                                             <td key={config.columnKey} className="px-3 py-3 align-top min-w-[240px]">
                                                                 <textarea
+                                                                    disabled={isReadOnly}
                                                                     value={item.description || ''}
                                                                     onChange={(e) => updateItem(item.id, 'description', e.target.value)}
                                                                     rows={1}
-                                                                    className="w-full min-h-[38px] bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-3 text-[13px] font-semibold text-text-primary transition-colors outline-none resize-y leading-relaxed placeholder:font-normal placeholder:text-text-muted/60"
+                                                                    className={`w-full min-h-[38px] bg-transparent border border-transparent ${isReadOnly ? 'cursor-default resize-none' : 'hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main resize-y'} rounded-lg py-2 px-3 text-[13px] font-semibold text-text-primary transition-colors outline-none leading-relaxed placeholder:font-normal placeholder:text-text-muted/60`}
                                                                     placeholder="Enter item description"
                                                                 />
                                                                 {item.sourceText && (
@@ -1396,9 +2415,10 @@ export default function QuotationBuilder() {
                                                             <td key={config.columnKey} className="px-3 py-3 align-top">
                                                                 <input 
                                                                     type="text" 
+                                                                    disabled={isReadOnly}
                                                                     value={item.hsnSac || ''} 
                                                                     onChange={(e) => updateItem(item.id, 'hsnSac', e.target.value)} 
-                                                                    className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary transition-all outline-none font-mono tracking-tight placeholder:font-sans placeholder:text-text-muted/60" 
+                                                                    className={`w-full bg-transparent border border-transparent ${isReadOnly ? 'cursor-default' : 'hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main'} rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary transition-all outline-none font-mono tracking-tight placeholder:font-sans placeholder:text-text-muted/60`} 
                                                                     placeholder="e.g. 998314" 
                                                                 />
                                                             </td>
@@ -1410,9 +2430,10 @@ export default function QuotationBuilder() {
                                                                     type="number" 
                                                                     step="any" 
                                                                     min="0" 
+                                                                    disabled={isReadOnly}
                                                                     value={item.quantity === '' || item.quantity === null || item.quantity === undefined ? '' : item.quantity} 
                                                                     onChange={(e) => updateItem(item.id, 'quantity', e.target.value)} 
-                                                                    className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary text-right transition-all outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-text-muted/60" 
+                                                                    className={`w-full bg-transparent border border-transparent ${isReadOnly ? 'cursor-default' : 'hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main'} rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary text-right transition-all outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-text-muted/60`} 
                                                                     placeholder="e.g. 1" 
                                                                 />
                                                             </td>
@@ -1424,9 +2445,10 @@ export default function QuotationBuilder() {
                                                                     type="number" 
                                                                     step="any" 
                                                                     min="0" 
+                                                                    disabled={isReadOnly}
                                                                     value={item.listPrice === '' || item.listPrice === null || item.listPrice === undefined ? '' : item.listPrice} 
                                                                     onChange={(e) => updateItem(item.id, 'listPrice', e.target.value)} 
-                                                                    className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary text-right transition-all outline-none font-mono tracking-tight [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:font-sans placeholder:text-text-muted/60" 
+                                                                    className={`w-full bg-transparent border border-transparent ${isReadOnly ? 'cursor-default' : 'hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main'} rounded-lg py-2 px-2 text-[13px] font-medium text-text-primary text-right transition-all outline-none font-mono tracking-tight [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:font-sans placeholder:text-text-muted/60`} 
                                                                     placeholder="e.g. 1000.00" 
                                                                 />
                                                             </td>
@@ -1439,9 +2461,10 @@ export default function QuotationBuilder() {
                                                                     step="any" 
                                                                     min="0" 
                                                                     max="100" 
+                                                                    disabled={isReadOnly}
                                                                     value={item.discountPercent === '' || item.discountPercent === null || item.discountPercent === undefined ? '' : item.discountPercent} 
                                                                     onChange={(e) => updateItem(item.id, 'discountPercent', e.target.value)} 
-                                                                    className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-1 text-[13px] font-medium text-text-primary text-right transition-all outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-text-muted/60" 
+                                                                    className={`w-full bg-transparent border border-transparent ${isReadOnly ? 'cursor-default' : 'hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main'} rounded-lg py-2 px-1 text-[13px] font-medium text-text-primary text-right transition-all outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-text-muted/60`} 
                                                                     placeholder="e.g. 0" 
                                                                 />
                                                             </td>
@@ -1453,9 +2476,10 @@ export default function QuotationBuilder() {
                                                                     type="number" 
                                                                     step="any" 
                                                                     min="0" 
+                                                                    disabled={isReadOnly}
                                                                     value={item.unitPrice === '' || item.unitPrice === null || item.unitPrice === undefined ? '' : item.unitPrice} 
                                                                     onChange={(e) => updateItem(item.id, 'unitPrice', e.target.value)} 
-                                                                    className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-2 text-[13px] font-bold text-text-primary text-right transition-all outline-none font-mono tracking-tight [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:font-sans placeholder:font-normal placeholder:text-text-muted/60" 
+                                                                    className={`w-full bg-transparent border border-transparent ${isReadOnly ? 'cursor-default' : 'hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main'} rounded-lg py-2 px-2 text-[13px] font-bold text-text-primary text-right transition-all outline-none font-mono tracking-tight [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:font-sans placeholder:font-normal placeholder:text-text-muted/60`} 
                                                                     placeholder="0.00" 
                                                                 />
                                                             </td>
@@ -1468,9 +2492,10 @@ export default function QuotationBuilder() {
                                                                     step="any" 
                                                                     min="0" 
                                                                     max="100" 
+                                                                    disabled={isReadOnly}
                                                                     value={item.taxPercent === '' || item.taxPercent === null || item.taxPercent === undefined ? '' : item.taxPercent} 
                                                                     onChange={(e) => updateItem(item.id, 'taxPercent', e.target.value)} 
-                                                                    className="w-full bg-transparent border border-transparent hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main rounded-lg py-2 px-1 text-[13px] font-medium text-text-primary text-right transition-all outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-text-muted/60" 
+                                                                    className={`w-full bg-transparent border border-transparent ${isReadOnly ? 'cursor-default' : 'hover:border-border-subtle focus:border-brand-teal focus:bg-bg-main'} rounded-lg py-2 px-1 text-[13px] font-medium text-text-primary text-right transition-all outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-text-muted/60`} 
                                                                     placeholder="18" 
                                                                 />
                                                             </td>
@@ -1495,11 +2520,13 @@ export default function QuotationBuilder() {
                                                         return <td key={config.columnKey}></td>;
                                                 }
                                             })}
-                                            <td className="px-2 py-3 align-top text-center">
-                                                <div className="flex flex-col items-center justify-center space-y-1.5 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <button type="button" onClick={() => removeItem(item.id)} className="btn btn-danger btn-icon" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
-                                                </div>
-                                            </td>
+                                            {!isReadOnly && (
+                                                <td className="px-2 py-3 align-top text-center">
+                                                    <div className="flex flex-col items-center justify-center space-y-1.5 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <button type="button" onClick={() => removeItem(item.id)} className="btn btn-danger btn-icon" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
+                                                    </div>
+                                                </td>
+                                            )}
                                         </tr>
                                     );
                                 })
@@ -1509,35 +2536,48 @@ export default function QuotationBuilder() {
                 </div>
                 
                 {/* Add Item & Clear All Row */}
-                <div className="p-5 border-t border-border-subtle/50 bg-bg-card rounded-b-[24px] flex justify-between items-center">
-                    <button type="button" onClick={addItem} className="btn btn-secondary btn-sm flex items-center gap-1.5">
-                        <Plus className="w-4 h-4" /> Add Item
-                    </button>
-                    <button 
-                        type="button"
-                        disabled={items.length === 0}
-                        onClick={() => setIsClearConfirmOpen(true)}
-                        className="flex items-center bg-white border border-brand-danger/30 text-brand-danger hover:bg-brand-danger/5 disabled:opacity-40 disabled:cursor-not-allowed h-[38px] md:h-[40px] px-3 md:px-4 rounded-[10px] md:rounded-[12px] text-[13px] md:text-[14px] font-medium transition-colors"
-                    >
-                        <Trash2 className="w-4 h-4 mr-1.5" /> Clear All
-                    </button>
-                </div>
+                {!isReadOnly && (
+                    <div className="p-5 border-t border-border-subtle/50 bg-bg-card rounded-b-[24px] flex justify-between items-center">
+                        <button type="button" onClick={addItem} className="btn btn-secondary btn-sm flex items-center gap-1.5">
+                            <Plus className="w-4 h-4" /> Add Item
+                        </button>
+                        <button 
+                            type="button"
+                            disabled={items.length === 0}
+                            onClick={() => setIsClearConfirmOpen(true)}
+                            className="flex items-center bg-bg-card border border-brand-danger/30 text-brand-danger hover:bg-brand-danger/10 disabled:opacity-40 disabled:cursor-not-allowed h-[38px] md:h-[40px] px-3 md:px-4 rounded-[10px] md:rounded-[12px] text-[13px] md:text-[14px] font-medium transition-colors"
+                        >
+                            <Trash2 className="w-4 h-4 mr-1.5" /> Clear All
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Terms & Conditions Box */}
-            <div className="acx-card mb-6 overflow-hidden">
+            <div id="quotation-terms-section" className={`acx-card mb-6 overflow-hidden transition-all duration-200 ${termsError ? 'ring-2 ring-brand-danger/40 border-brand-danger shadow-sm' : ''}`}>
                 <div className="px-5 py-4 border-b border-border-subtle bg-bg-card flex justify-between items-center">
                     <h3 className="text-[13px] font-bold text-text-primary uppercase tracking-wider flex items-center">
-                        Terms & Conditions
+                        Terms & Conditions {isReadOnly ? '' : <span className="text-red-500 ml-1 font-bold">*</span>}
                     </h3>
+                    <span className="text-[11px] font-semibold text-text-muted">
+                        {isReadOnly ? 'Locked quotation terms' : 'Mandatory for quotation PDF & saving'}
+                    </span>
                 </div>
                 <div className="p-5 bg-bg-main">
                     <textarea 
+                        id="quotation-terms-conditions"
+                        disabled={isReadOnly}
                         value={termsAndConditions} 
-                        onChange={(e) => setTermsAndConditions(e.target.value)} 
-                        className="acx-input w-full min-h-[140px] resize-y leading-relaxed text-[13px]" 
-                        placeholder="Enter quotation terms and conditions..."
+                        onChange={handleTermsChange} 
+                        className={`acx-input w-full min-h-[140px] resize-y leading-relaxed text-[13px] ${isReadOnly ? 'bg-bg-card cursor-default' : ''} ${termsError ? 'border-brand-danger focus:border-brand-danger ring-1 ring-brand-danger/20' : ''}`} 
+                        placeholder={isReadOnly ? 'No terms and conditions specified.' : 'Enter quotation terms and conditions (e.g. payment terms, delivery timelines, validity, warranty)... *'}
                     ></textarea>
+                    {termsError && (
+                        <p className="text-[12px] text-brand-danger font-medium mt-2 flex items-center gap-1.5 animate-modal-entrance">
+                            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                            <span>{termsError}</span>
+                        </p>
+                    )}
                 </div>
             </div>
 
@@ -1545,21 +2585,26 @@ export default function QuotationBuilder() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start mb-8">
                 {/* Bank Account Selection Panel */}
                 <div className="lg:col-span-7">
-                    <div className="acx-card overflow-hidden">
+                    <div id="quotation-bank-section" className={`acx-card overflow-hidden transition-all duration-200 ${bankError ? 'ring-2 ring-brand-danger/40 border-brand-danger shadow-sm' : ''}`}>
                         <div className="px-5 py-4 border-b border-border-subtle bg-bg-card flex justify-between items-center">
                             <div className="flex items-center gap-2.5">
                                 <div className="w-7 h-7 rounded-lg bg-[var(--color-brand-primary)]/10 flex items-center justify-center text-[var(--color-brand-primary)]">
                                     <Landmark className="w-4 h-4 text-brand-teal" />
                                 </div>
                                 <div>
-                                    <h3 className="text-[13px] font-bold text-text-primary uppercase tracking-wider">
-                                        Bank Account for This Quotation
+                                    <h3 className="text-[13px] font-bold text-text-primary uppercase tracking-wider flex items-center">
+                                        Bank Account for This Quotation {isReadOnly ? '' : <span className="text-red-500 ml-1 font-bold">*</span>}
                                     </h3>
                                     <p className="text-[11px] text-text-muted mt-0.5">
-                                        Selected account will be rendered in the customer quotation PDF Bank Details panel
+                                        {isReadOnly ? 'Bank details associated with this quotation' : 'Mandatory account details to be printed on the customer quotation PDF'}
                                     </p>
                                 </div>
                             </div>
+                            {!isReadOnly && (
+                                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-red-500/10 text-red-600 dark:text-red-400">
+                                    Required *
+                                </span>
+                            )}
                         </div>
 
                         <div className="p-5">
@@ -1569,15 +2614,18 @@ export default function QuotationBuilder() {
                                     <span>Loading company bank accounts...</span>
                                 </div>
                             ) : bankAccounts.length === 0 ? (
-                                <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 sm:p-5">
+                                <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-4 sm:p-5">
                                     <div className="flex items-start gap-3">
-                                        <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                                        <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
                                         <div className="space-y-1.5">
-                                            <div className="text-[13px] font-semibold text-text-primary">
+                                            <div className="text-[13px] font-semibold text-text-primary flex items-center gap-2">
                                                 No Bank Accounts Configured
+                                                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-red-500/10 text-red-600">
+                                                    Action Required
+                                                </span>
                                             </div>
                                             <p className="text-[12px] text-text-secondary leading-relaxed">
-                                                Bank details must first be configured in <strong className="text-text-primary">Company Settings</strong> before they can be selected and included on quotation PDFs.
+                                                A bank account is <strong>mandatory</strong> to create quotations and preview PDFs. Bank details must first be configured in <strong className="text-text-primary">Company Settings</strong> before you can proceed.
                                             </p>
                                             <div className="pt-1.5">
                                                 <Link
@@ -1594,15 +2642,16 @@ export default function QuotationBuilder() {
                                 <div className="space-y-4">
                                     <div>
                                         <label htmlFor="quotation-bank-select" className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">
-                                            Select Bank Account
+                                            Select Bank Account {isReadOnly ? '' : <span className="text-red-500">*</span>}
                                         </label>
                                         <select
                                             id="quotation-bank-select"
+                                            disabled={isReadOnly}
                                             value={selectedBankAccountId}
                                             onChange={handleBankAccountChange}
-                                            className="acx-input w-full text-[13px] font-medium bg-bg-main"
+                                            className={`acx-input w-full text-[13px] font-medium ${isReadOnly ? 'bg-bg-card cursor-default opacity-80' : 'bg-bg-main'} ${bankError ? 'border-brand-danger focus:border-brand-danger ring-1 ring-brand-danger/20' : ''}`}
                                         >
-                                            <option value="NONE">-- No Bank Account on PDF --</option>
+                                            <option value="">-- Select Bank Account (Mandatory) * --</option>
                                             {bankAccounts.map((acc) => {
                                                 const masked = acc.maskedAccountNumber || (acc.bankAccountNumber && acc.bankAccountNumber.length > 4 ? `•••• ${acc.bankAccountNumber.slice(-4)}` : acc.bankAccountNumber);
                                                 return (
@@ -1612,6 +2661,12 @@ export default function QuotationBuilder() {
                                                 );
                                             })}
                                         </select>
+                                        {bankError && (
+                                            <p className="text-[12px] text-brand-danger font-medium mt-1.5 flex items-center gap-1 animate-modal-entrance">
+                                                <AlertCircle className="w-3.5 h-3.5" />
+                                                <span>{bankError}</span>
+                                            </p>
+                                        )}
                                     </div>
 
                                     {selectedBank ? (
@@ -1670,9 +2725,9 @@ export default function QuotationBuilder() {
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className="p-3.5 rounded-xl border border-dashed border-border-subtle bg-bg-main/30 text-[12px] text-text-muted flex items-center gap-2">
-                                            <AlertCircle className="w-4 h-4 text-text-muted shrink-0" />
-                                            <span>No bank account selected. The Bank Details section on the quotation PDF will be omitted.</span>
+                                        <div className="p-3.5 rounded-xl border border-red-500/20 bg-red-500/5 text-[12px] text-red-600 dark:text-red-400 flex items-center gap-2">
+                                            <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+                                            <span>Please select a bank account above. Bank details are mandatory for quotation creation and PDF generation.</span>
                                         </div>
                                     )}
                                 </div>
@@ -1701,7 +2756,7 @@ export default function QuotationBuilder() {
                         </h3>
                         <div className="space-y-4 relative z-10">
                             <div className="flex justify-between text-[13px] text-text-secondary">
-                                <span className="font-medium">Subtotal (Before Tax)</span>
+                                <span className="font-medium">Subtotal (Gross)</span>
                                 <span className="font-mono font-semibold text-text-primary tracking-tight">{formatCurrency(totals.subtotalBeforeTax, currency, 2)}</span>
                             </div>
                             <div className="flex justify-between text-[13px]">
@@ -1766,6 +2821,240 @@ export default function QuotationBuilder() {
                 }}
                 onCancel={() => setIsClearConfirmOpen(false)}
             />
+
+            <AcceptRejectQuotationModal
+                isOpen={!!acceptRejectModalInfo}
+                onClose={() => setAcceptRejectModalInfo(null)}
+                quotation={acceptRejectModalInfo?.quotation}
+                type={acceptRejectModalInfo?.type}
+                onSuccess={(updated) => {
+                    if (updated) {
+                        if (updated.status) setQuotationStatus(updated.status);
+                        if (updated.responseSource) setResponseSource(updated.responseSource);
+                        if (updated.responseNotes !== undefined) setResponseNotes(updated.responseNotes || '');
+                    }
+                    initializeBuilder();
+                }}
+            />
+
+            <CreatePurchaseOrderModal
+                isOpen={isPoModalOpen}
+                onClose={() => setIsPoModalOpen(false)}
+                quotation={{
+                    id: currentQuotationId,
+                    quotationNumber: quotationNumber,
+                    clientName: clientName || clientCompany,
+                    grandTotal: totals?.grandTotal || quotationGrandTotal || 0,
+                    currency: currency || 'INR'
+                }}
+                onSuccess={() => {
+                    setIsPoModalOpen(false);
+                    initializeBuilder();
+                }}
+            />
+
+            {/* Create Invoice Dialog */}
+            {isInvoiceModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-xs animate-fade-in">
+                    <div className="acx-card p-0 border border-border-subtle rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-modal-entrance bg-bg-card">
+                        <div className="p-5 border-b border-border-subtle flex justify-between items-center bg-bg-surface/50">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary shrink-0">
+                                    <FileText className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h2 className="text-base font-bold text-text-primary tracking-tight">Create Invoice</h2>
+                                    <p className="text-xs text-text-muted mt-0.5">Generate client billing document</p>
+                                </div>
+                            </div>
+                            <button 
+                                type="button"
+                                onClick={() => setIsInvoiceModalOpen(false)} 
+                                disabled={isCreatingInvoice}
+                                aria-label="Close dialog"
+                                className="w-8 h-8 rounded-lg flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-hover active:bg-bg-muted transition-colors border border-transparent hover:border-border-subtle"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                        
+                        <div className="p-6 space-y-4">
+                            <div className="p-4 rounded-xl bg-blue-50/70 dark:bg-blue-950/20 border border-blue-200/70 dark:border-blue-800/40">
+                                <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/50 px-2 py-0.5 rounded mb-1">
+                                    Source Quotation
+                                </span>
+                                <div className="text-[13px] font-bold text-text-primary font-mono mt-0.5">
+                                    {quotationNumber || `#${currentQuotationId}`}
+                                </div>
+                                <div className="text-xs text-text-secondary mt-0.5">
+                                    {clientName} {clientCompany ? `(${clientCompany})` : ''}
+                                </div>
+                                <div className="text-xs text-text-muted mt-2 pt-2 border-t border-blue-200/50 dark:border-blue-800/30 flex justify-between items-center">
+                                    <span>Total Amount:</span>
+                                    <span className="font-bold text-blue-700 dark:text-blue-400 font-mono text-sm">
+                                        {formatCurrency(totals?.grandTotal || quotationGrandTotal || 0, currency, 2)}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-2">Select Invoice Type</label>
+                                <div className="space-y-2.5">
+                                    <label className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${selectedInvoiceType === 'TAX_INVOICE' ? 'border-brand-primary bg-brand-primary/5 shadow-xs ring-1 ring-brand-primary/20' : 'border-border-subtle hover:border-border-light bg-bg-main/30'}`}>
+                                        <input 
+                                            type="radio" 
+                                            name="invoiceType" 
+                                            value="TAX_INVOICE" 
+                                            checked={selectedInvoiceType === 'TAX_INVOICE'} 
+                                            onChange={() => setSelectedInvoiceType('TAX_INVOICE')}
+                                            className="mt-0.5 text-brand-primary focus:ring-brand-primary"
+                                        />
+                                        <div>
+                                            <span className="text-sm font-bold text-text-primary block">Tax Invoice</span>
+                                            <span className="text-xs text-text-muted leading-relaxed">Standard official GST tax invoice for billing the client.</span>
+                                        </div>
+                                    </label>
+
+                                    <label className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${selectedInvoiceType === 'PROFORMA' ? 'border-brand-primary bg-brand-primary/5 shadow-xs ring-1 ring-brand-primary/20' : 'border-border-subtle hover:border-border-light bg-bg-main/30'}`}>
+                                        <input 
+                                            type="radio" 
+                                            name="invoiceType" 
+                                            value="PROFORMA" 
+                                            checked={selectedInvoiceType === 'PROFORMA'} 
+                                            onChange={() => setSelectedInvoiceType('PROFORMA')}
+                                            className="mt-0.5 text-brand-primary focus:ring-brand-primary"
+                                        />
+                                        <div>
+                                            <span className="text-sm font-bold text-text-primary block">Proforma Invoice</span>
+                                            <span className="text-xs text-text-muted leading-relaxed">Preliminary commercial estimate document sent before final supply or payment.</span>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            {invoiceCreationError && (
+                                <div className="p-3.5 bg-brand-danger/10 border border-brand-danger/30 rounded-xl flex items-start gap-2.5">
+                                    <AlertCircle className="w-4 h-4 text-brand-danger shrink-0 mt-0.5" />
+                                    <p className="text-xs text-brand-danger font-medium leading-relaxed">{invoiceCreationError}</p>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="p-4 border-t border-border-subtle/60 bg-bg-surface/30 flex justify-end gap-2.5">
+                            <button 
+                                type="button" 
+                                onClick={() => setIsInvoiceModalOpen(false)} 
+                                disabled={isCreatingInvoice}
+                                className="btn btn-secondary btn-sm"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                type="button" 
+                                onClick={async () => {
+                                    if (!currentQuotationId || isCreatingInvoice) return;
+                                    setIsCreatingInvoice(true);
+                                    setInvoiceCreationError(null);
+                                    try {
+                                        const invoice = await createInvoiceFromQuotation(currentQuotationId, selectedInvoiceType);
+                                        showToast({
+                                            type: 'success',
+                                            message: `${selectedInvoiceType === 'PROFORMA' ? 'Proforma Invoice' : 'Tax Invoice'} created successfully!`
+                                        });
+                                        setIsInvoiceModalOpen(false);
+                                        navigate(`/invoices/${invoice.id}`);
+                                    } catch (err) {
+                                        console.error("Create Invoice Error:", err);
+                                        setInvoiceCreationError(err.message || 'Failed to create invoice from quotation.');
+                                        showToast({
+                                            type: 'error',
+                                            message: err.message || 'Failed to create invoice from quotation.'
+                                        });
+                                    } finally {
+                                        setIsCreatingInvoice(false);
+                                    }
+                                }} 
+                                disabled={isCreatingInvoice}
+                                className="btn btn-primary btn-sm flex items-center"
+                            >
+                                {isCreatingInvoice ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <FileText className="w-3.5 h-3.5 mr-1.5" />}
+                                Create {selectedInvoiceType === 'PROFORMA' ? 'Proforma Invoice' : 'Tax Invoice'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* View Invoices Picker Dialog */}
+            {isViewInvoicesDialogOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-xs animate-fade-in">
+                    <div className="acx-card p-0 border border-border-subtle rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-modal-entrance bg-bg-card">
+                        <div className="p-5 border-b border-border-subtle flex justify-between items-center bg-bg-surface/50">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary shrink-0">
+                                    <FileText className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h2 className="text-base font-bold text-text-primary tracking-tight">Related Invoices</h2>
+                                    <p className="text-xs text-text-muted mt-0.5">Select an invoice to inspect</p>
+                                </div>
+                            </div>
+                            <button 
+                                type="button"
+                                onClick={() => setIsViewInvoicesDialogOpen(false)} 
+                                aria-label="Close dialog"
+                                className="w-8 h-8 rounded-lg flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-hover active:bg-bg-muted transition-colors border border-transparent hover:border-border-subtle"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <div className="p-5 space-y-3">
+                            <p className="text-xs text-text-secondary leading-relaxed">Multiple invoices exist for this quotation. Choose a document to view:</p>
+                            {taxInvoiceId && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsViewInvoicesDialogOpen(false);
+                                        navigate(`/invoices/${taxInvoiceId}`);
+                                    }}
+                                    className="w-full flex items-center justify-between p-3.5 rounded-xl border border-border-subtle hover:border-brand-primary hover:bg-brand-primary/5 text-left transition-all group"
+                                >
+                                    <div>
+                                        <span className="text-sm font-bold text-text-primary block group-hover:text-brand-primary transition-colors">Tax Invoice</span>
+                                        <span className="text-xs text-text-muted">Standard GST Tax Invoice</span>
+                                    </div>
+                                    <ExternalLink className="w-4 h-4 text-brand-primary shrink-0" />
+                                </button>
+                            )}
+                            {proformaId && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsViewInvoicesDialogOpen(false);
+                                        navigate(`/invoices/${proformaId}`);
+                                    }}
+                                    className="w-full flex items-center justify-between p-3.5 rounded-xl border border-border-subtle hover:border-brand-primary hover:bg-brand-primary/5 text-left transition-all group"
+                                >
+                                    <div>
+                                        <span className="text-sm font-bold text-text-primary block group-hover:text-brand-primary transition-colors">Proforma Invoice</span>
+                                        <span className="text-xs text-text-muted">Proforma / Estimate Document</span>
+                                    </div>
+                                    <ExternalLink className="w-4 h-4 text-brand-primary shrink-0" />
+                                </button>
+                            )}
+                        </div>
+                        <div className="p-4 border-t border-border-subtle/60 bg-bg-surface/30 flex justify-end">
+                            <button
+                                type="button"
+                                onClick={() => setIsViewInvoicesDialogOpen(false)}
+                                className="btn btn-secondary btn-sm"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

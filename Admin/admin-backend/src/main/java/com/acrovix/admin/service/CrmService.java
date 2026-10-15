@@ -39,6 +39,8 @@ public class CrmService {
     private final NotificationService notificationService;
     private final SequenceGeneratorService sequenceGeneratorService;
     private final EmailService emailService;
+    private final InvoiceRepository invoiceRepository;
+    private final PaymentRepository paymentRepository;
 
     @org.springframework.beans.factory.annotation.Autowired
     public CrmService(
@@ -51,7 +53,9 @@ public class CrmService {
             QuotationRepository quotationRepository,
             NotificationService notificationService,
             SequenceGeneratorService sequenceGeneratorService,
-            EmailService emailService
+            EmailService emailService,
+            InvoiceRepository invoiceRepository,
+            PaymentRepository paymentRepository
     ) {
         this.crmLeadRepository = crmLeadRepository;
         this.crmFollowUpRepository = crmFollowUpRepository;
@@ -63,6 +67,8 @@ public class CrmService {
         this.notificationService = notificationService;
         this.sequenceGeneratorService = sequenceGeneratorService;
         this.emailService = emailService;
+        this.invoiceRepository = invoiceRepository;
+        this.paymentRepository = paymentRepository;
     }
 
     public CrmService(
@@ -77,7 +83,7 @@ public class CrmService {
             EmailService emailService
     ) {
         this(crmLeadRepository, crmFollowUpRepository, enquiryRepository, customerRepository,
-                userRepository, activityRepository, null, notificationService, sequenceGeneratorService, emailService);
+                userRepository, activityRepository, null, notificationService, sequenceGeneratorService, emailService, null, null);
     }
 
     // --- LEAD LIFECYCLE & CRUD ---
@@ -456,6 +462,15 @@ public class CrmService {
                 .orElseThrow(() -> new ResourceNotFoundException("CRM Lead not found #" + id));
         checkLeadAccess(currentUser, lead);
 
+        if (currentUser != null && currentUser.getRole() == Role.SALES) {
+            if (lead.getAssignedTo() != null && !lead.getAssignedTo().getId().equals(currentUser.getId())) {
+                throw new org.springframework.security.access.AccessDeniedException("Access denied: Only SUPER_ADMIN can reassign leads");
+            }
+            if (!assigneeId.equals(currentUser.getId())) {
+                throw new org.springframework.security.access.AccessDeniedException("Access denied: Sales representatives can only assign leads to themselves");
+            }
+        }
+
         AdminUser assignee = userRepository.findById(assigneeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Assignee user not found #" + assigneeId));
 
@@ -686,6 +701,8 @@ public class CrmService {
             wonValueByCurrency.put(c, crmLeadRepository.sumEstimatedValueByStatusAndCurrencyWithFilter(LeadStatus.WON, c, salesUserId));
         }
 
+        long totalLeads = crmLeadRepository.countTotalWithFilter(salesUserId);
+
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime startToday = LocalDate.now().atStartOfDay();
         LocalDateTime endToday = LocalDate.now().atTime(LocalTime.MAX);
@@ -698,12 +715,35 @@ public class CrmService {
                 FollowUpStatus.PENDING, now, salesUserId
         );
 
+        long upcomingFollowUps = crmFollowUpRepository.countByStatusAndScheduledAtBetweenWithFilter(
+                FollowUpStatus.PENDING, endToday, now.plusDays(7), salesUserId
+        );
+
+        long staleOpportunities = crmLeadRepository.countStaleLeadsWithFilter(
+                List.of(LeadStatus.NEW, LeadStatus.CONTACTED, LeadStatus.QUALIFIED, LeadStatus.PROPOSAL, LeadStatus.NEGOTIATION),
+                now.minusDays(14),
+                salesUserId
+        );
+
+        BigDecimal invoicedRevenue = (invoiceRepository != null)
+                ? invoiceRepository.sumActiveInvoicedAmountWithFilter(salesUserId)
+                : BigDecimal.ZERO;
+
+        BigDecimal collectedRevenue = (paymentRepository != null)
+                ? paymentRepository.sumRecordedPaymentsWithFilter(salesUserId)
+                : BigDecimal.ZERO;
+
+        double winRate = (wonCount + lostCount) > 0
+                ? Math.round(((double) wonCount / (wonCount + lostCount) * 100.0) * 10.0) / 10.0
+                : 0.0;
+
         Map<String, Long> statusBreakdown = new LinkedHashMap<>();
         for (LeadStatus st : LeadStatus.values()) {
             statusBreakdown.put(st.name(), crmLeadRepository.countByStatusWithFilter(st, salesUserId));
         }
 
         return CrmDashboardSummaryResponse.builder()
+                .totalLeads(totalLeads)
                 .totalOpenLeads(openLeads)
                 .newLeads(newLeads)
                 .qualifiedLeads(qualifiedLeads)
@@ -711,14 +751,28 @@ public class CrmService {
                 .negotiationCount(negotiationCount)
                 .wonCount(wonCount)
                 .lostCount(lostCount)
+                .staleOpportunitiesCount(staleOpportunities)
                 .openPipelineValue(openPipelineVal)
                 .wonValue(wonVal)
+                .invoicedRevenue(invoicedRevenue)
+                .collectedRevenue(collectedRevenue)
+                .winRatePercent(winRate)
                 .openPipelineValueByCurrency(openPipelineValueByCurrency)
                 .wonValueByCurrency(wonValueByCurrency)
                 .followUpsDueToday(dueToday)
                 .overdueFollowUps(overdue)
+                .upcomingFollowUpsCount(upcomingFollowUps)
                 .statusBreakdown(statusBreakdown)
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CrmFollowUpResponse> getOverdueFollowUps(AdminUser currentUser) {
+        LocalDateTime now = LocalDateTime.now();
+        Long assignedId = (currentUser != null && currentUser.getRole() == Role.SALES) ? currentUser.getId() : null;
+
+        return crmFollowUpRepository.findOverdueBefore(now, assignedId)
+                .stream().map(this::mapToFollowUpResponse).collect(Collectors.toList());
     }
 
     // --- HELPER & SECURITY RULES ---

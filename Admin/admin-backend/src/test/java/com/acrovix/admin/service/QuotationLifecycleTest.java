@@ -29,6 +29,10 @@ class QuotationLifecycleTest {
     private AuthorizationService authorizationService;
     @Mock
     private AdminActivityRepository activityRepository;
+    @Mock
+    private com.acrovix.admin.repository.PurchaseOrderRepository purchaseOrderRepository;
+    @Mock
+    private com.acrovix.admin.repository.InvoiceRepository invoiceRepository;
 
     @InjectMocks
     private QuotationService quotationService;
@@ -220,5 +224,175 @@ class QuotationLifecycleTest {
 
         Quotation updated = quotationService.saveQuotationDraft(10L, req, adminUser);
         assertEquals(java.time.LocalDate.of(2026, 4, 9), updated.getValidUntil());
+    }
+
+    @Test
+    void testModifySentQuotationThrowsConflict() {
+        when(quotationRepository.findById(20L)).thenReturn(Optional.of(sentQuotation));
+
+        com.acrovix.admin.dto.QuotationRequest req = new com.acrovix.admin.dto.QuotationRequest();
+        req.setClientName("Updated Client");
+
+        ResourceConflictException ex = assertThrows(ResourceConflictException.class, () -> {
+            quotationService.saveQuotationDraft(20L, req, adminUser);
+        });
+        assertTrue(ex.getMessage().contains("Cannot modify quotation with status SENT"));
+    }
+
+    @Test
+    void testModifyAcceptedQuotationThrowsConflict() {
+        Quotation acceptedQ = Quotation.builder().id(30L).status("ACCEPTED").build();
+        when(quotationRepository.findById(30L)).thenReturn(Optional.of(acceptedQ));
+
+        com.acrovix.admin.dto.QuotationRequest req = new com.acrovix.admin.dto.QuotationRequest();
+        req.setClientName("Updated Client");
+
+        ResourceConflictException ex = assertThrows(ResourceConflictException.class, () -> {
+            quotationService.saveQuotationDraft(30L, req, adminUser);
+        });
+        assertTrue(ex.getMessage().contains("Cannot modify quotation with status ACCEPTED"));
+    }
+
+    @Test
+    void testModifyRejectedAndExpiredQuotationsThrowsConflict() {
+        Quotation rejectedQ = Quotation.builder().id(41L).status("REJECTED").build();
+        when(quotationRepository.findById(41L)).thenReturn(Optional.of(rejectedQ));
+
+        com.acrovix.admin.dto.QuotationRequest req = new com.acrovix.admin.dto.QuotationRequest();
+        assertThrows(ResourceConflictException.class, () -> {
+            quotationService.saveQuotationDraft(41L, req, adminUser);
+        });
+
+        Quotation expiredQ = Quotation.builder().id(42L).status("EXPIRED").build();
+        when(quotationRepository.findById(42L)).thenReturn(Optional.of(expiredQ));
+
+        assertThrows(ResourceConflictException.class, () -> {
+            quotationService.saveQuotationDraft(42L, req, adminUser);
+        });
+    }
+
+    @Test
+    void testSendNonDraftQuotationThrowsConflict() {
+        when(quotationRepository.findWithDetailsById(20L)).thenReturn(Optional.of(sentQuotation));
+
+        ResourceConflictException ex = assertThrows(ResourceConflictException.class, () -> {
+            quotationService.sendQuotation(20L, "test@client.com", adminUser);
+        });
+        assertTrue(ex.getMessage().contains("Cannot send quotation with status SENT"));
+    }
+
+    @Test
+    void testCreateRevisionBlockedWhenDownstreamPoExists() {
+        Quotation acceptedQ = Quotation.builder()
+                .id(60L)
+                .quotationNumber("ACX-Q-2026-0060")
+                .status("ACCEPTED")
+                .version(0)
+                .build();
+        when(quotationRepository.findWithDetailsById(60L)).thenReturn(Optional.of(acceptedQ));
+        when(purchaseOrderRepository.existsByQuotationIdAndDeletedAtIsNull(60L)).thenReturn(true);
+
+        ResourceConflictException ex = assertThrows(ResourceConflictException.class, () -> {
+            quotationService.createRevision(60L, adminUser);
+        });
+        assertTrue(ex.getMessage().contains("Purchase Order already exists"));
+    }
+
+    @Test
+    void testCreateRevisionBlockedWhenDownstreamInvoiceExists() {
+        Quotation acceptedQ = Quotation.builder()
+                .id(61L)
+                .quotationNumber("ACX-Q-2026-0061")
+                .status("ACCEPTED")
+                .version(0)
+                .build();
+        when(quotationRepository.findWithDetailsById(61L)).thenReturn(Optional.of(acceptedQ));
+        when(purchaseOrderRepository.existsByQuotationIdAndDeletedAtIsNull(61L)).thenReturn(false);
+        when(invoiceRepository.existsByQuotationIdAndStatusNot(61L, com.acrovix.admin.entity.InvoiceStatus.CANCELLED)).thenReturn(true);
+
+        ResourceConflictException ex = assertThrows(ResourceConflictException.class, () -> {
+            quotationService.createRevision(61L, adminUser);
+        });
+        assertTrue(ex.getMessage().contains("active Invoice records already exist"));
+    }
+
+    @Test
+    void testTerminalStatesCannotTransition() {
+        Quotation rejQ = Quotation.builder().id(71L).status("REJECTED").build();
+        when(quotationRepository.findById(71L)).thenReturn(Optional.of(rejQ));
+
+        com.acrovix.admin.dto.QuotationStatusUpdateRequest rejReq = new com.acrovix.admin.dto.QuotationStatusUpdateRequest();
+        rejReq.setStatus("DRAFT");
+        assertThrows(ResourceConflictException.class, () -> quotationService.updateStatus(71L, rejReq, adminUser));
+
+        Quotation expQ = Quotation.builder().id(72L).status("EXPIRED").build();
+        when(quotationRepository.findById(72L)).thenReturn(Optional.of(expQ));
+
+        com.acrovix.admin.dto.QuotationStatusUpdateRequest expReq = new com.acrovix.admin.dto.QuotationStatusUpdateRequest();
+        expReq.setStatus("SENT");
+        assertThrows(ResourceConflictException.class, () -> quotationService.updateStatus(72L, expReq, adminUser));
+    }
+
+    @Test
+    void testRejectQuotationWithNotePriceIsHigh() {
+        when(quotationRepository.findById(20L)).thenReturn(Optional.of(sentQuotation));
+        when(quotationRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        com.acrovix.admin.dto.QuotationStatusUpdateRequest req = new com.acrovix.admin.dto.QuotationStatusUpdateRequest();
+        req.setStatus("REJECTED");
+        req.setResponseSource(com.acrovix.admin.entity.QuotationResponseSource.PHONE);
+        req.setResponseNotes("Price is high");
+
+        Quotation rejected = quotationService.updateStatus(20L, req, adminUser);
+
+        assertNotNull(rejected);
+        assertEquals("REJECTED", rejected.getStatus());
+        assertEquals(com.acrovix.admin.entity.QuotationResponseSource.PHONE, rejected.getResponseSource());
+        assertEquals("Price is high", rejected.getResponseNotes());
+
+        // Verify audit log includes response source and note
+        verify(activityRepository).save(argThat(activity -> 
+            activity.getAction().contains("QUOTATION_REJECTED via PHONE - Note: Price is high")
+        ));
+    }
+
+    @Test
+    void testRejectQuotationWithEmptyOptionalNote() {
+        when(quotationRepository.findById(20L)).thenReturn(Optional.of(sentQuotation));
+        when(quotationRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        com.acrovix.admin.dto.QuotationStatusUpdateRequest req = new com.acrovix.admin.dto.QuotationStatusUpdateRequest();
+        req.setStatus("REJECTED");
+        req.setResponseSource(com.acrovix.admin.entity.QuotationResponseSource.PHONE);
+        req.setResponseNotes(""); // Empty optional note
+
+        Quotation rejected = quotationService.updateStatus(20L, req, adminUser);
+
+        assertNotNull(rejected);
+        assertEquals("REJECTED", rejected.getStatus());
+        assertEquals(com.acrovix.admin.entity.QuotationResponseSource.PHONE, rejected.getResponseSource());
+        assertEquals("", rejected.getResponseNotes());
+    }
+
+    @Test
+    void testAcceptQuotationWithNoteAndSource() {
+        when(quotationRepository.findById(20L)).thenReturn(Optional.of(sentQuotation));
+        when(quotationRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        com.acrovix.admin.dto.QuotationStatusUpdateRequest req = new com.acrovix.admin.dto.QuotationStatusUpdateRequest();
+        req.setStatus("ACCEPTED");
+        req.setResponseSource(com.acrovix.admin.entity.QuotationResponseSource.EMAIL);
+        req.setResponseNotes("Client approved payment terms");
+
+        Quotation accepted = quotationService.updateStatus(20L, req, adminUser);
+
+        assertNotNull(accepted);
+        assertEquals("ACCEPTED", accepted.getStatus());
+        assertEquals(com.acrovix.admin.entity.QuotationResponseSource.EMAIL, accepted.getResponseSource());
+        assertEquals("Client approved payment terms", accepted.getResponseNotes());
+
+        verify(activityRepository).save(argThat(activity -> 
+            activity.getAction().contains("QUOTATION_ACCEPTED via EMAIL - Note: Client approved payment terms")
+        ));
     }
 }

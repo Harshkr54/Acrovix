@@ -18,6 +18,9 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
     @Query("SELECT COALESCE(SUM(p.amount), 0) FROM Payment p WHERE p.invoice.id = :invoiceId AND p.status = 'RECORDED'")
     BigDecimal sumActivePaymentsForInvoice(@Param("invoiceId") Long invoiceId);
 
+    @Query("SELECT COALESCE(SUM(p.amount), 0) FROM Payment p WHERE p.status = 'RECORDED' AND (:salesUserId IS NULL OR p.recordedBy.id = :salesUserId)")
+    BigDecimal sumRecordedPaymentsWithFilter(@Param("salesUserId") Long salesUserId);
+
     List<Payment> findByInvoiceIdOrderByCreatedAtDesc(Long invoiceId);
 
     Page<Payment> findByCustomerIdOrderByCreatedAtDesc(Long customerId, Pageable pageable);
@@ -43,5 +46,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long>, JpaSpec
     );
 
     boolean existsByTransactionReference(String transactionReference);
+
+    boolean existsByInvoiceIdAndTransactionReferenceAndStatus(Long invoiceId, String transactionReference, PaymentStatus status);
 }
 

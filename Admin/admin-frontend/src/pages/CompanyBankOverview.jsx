@@ -4,6 +4,7 @@ import { Building2, Landmark, Plus, ArrowRight, MoreVertical, Check, ExternalLin
 import { getCompanySettings, getCompanyBankAccounts, setDefaultCompanyBankAccount, deactivateCompanyBankAccount } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import ActionMenu from '../components/ActionMenu';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 
 // Known bank logos/badges for authentic visual appearance
 const BankLogo = ({ bankName }) => {
@@ -103,13 +104,20 @@ export default function CompanyBankOverview() {
         }
     };
 
-    const handleDeactivate = async (accId) => {
-        if (!window.confirm('Are you sure you want to deactivate this bank account?')) return;
+    const [accountToDeactivate, setAccountToDeactivate] = useState(null);
+
+    const handleDeactivate = (acc) => {
+        setAccountToDeactivate(acc);
+    };
+
+    const handleConfirmDeactivate = async () => {
+        if (!accountToDeactivate) return;
         setActionLoading(true);
         try {
-            await deactivateCompanyBankAccount(accId);
+            await deactivateCompanyBankAccount(accountToDeactivate.id);
             showToast({ type: 'success', message: 'Bank account deactivated successfully.' });
             await loadData();
+            setAccountToDeactivate(null);
         } catch (error) {
             showToast({ type: 'error', message: error.message || 'Failed to deactivate bank account.' });
         } finally {
@@ -159,43 +167,49 @@ export default function CompanyBankOverview() {
                         </div>
 
                         {/* Summary Key-Value List */}
-                        <div className="space-y-3.5 py-2 text-[13px]">
-                            <div className="flex items-baseline">
-                                <span className="w-36 text-text-secondary font-medium shrink-0">Company Name</span>
-                                <span className="text-text-muted mx-2">:</span>
-                                <span className="font-bold text-text-primary tracking-tight">
-                                    {company?.companyName || 'ACROVIX INNOVATIONS PRIVATE LIMITED'}
-                                </span>
+                        {company?.companyName ? (
+                            <div className="space-y-3.5 py-2 text-[13px]">
+                                <div className="flex items-baseline">
+                                    <span className="w-36 text-text-secondary font-medium shrink-0">Company Name</span>
+                                    <span className="text-text-muted mx-2">:</span>
+                                    <span className="font-bold text-text-primary tracking-tight">
+                                        {company.companyName}
+                                    </span>
+                                </div>
+                                <div className="flex items-baseline">
+                                    <span className="w-36 text-text-secondary font-medium shrink-0">GSTIN</span>
+                                    <span className="text-text-muted mx-2">:</span>
+                                    <span className="font-mono text-text-primary font-semibold">
+                                        {company.gstin || '—'}
+                                    </span>
+                                </div>
+                                <div className="flex items-baseline">
+                                    <span className="w-36 text-text-secondary font-medium shrink-0">PAN</span>
+                                    <span className="text-text-muted mx-2">:</span>
+                                    <span className="font-mono text-text-primary font-semibold">
+                                        {company.pan || '—'}
+                                    </span>
+                                </div>
+                                <div className="flex items-baseline">
+                                    <span className="w-36 text-text-secondary font-medium shrink-0">Phone</span>
+                                    <span className="text-text-muted mx-2">:</span>
+                                    <span className="text-text-primary font-medium">
+                                        {company.phone || '—'}
+                                    </span>
+                                </div>
+                                <div className="flex items-baseline">
+                                    <span className="w-36 text-text-secondary font-medium shrink-0">Email</span>
+                                    <span className="text-text-muted mx-2">:</span>
+                                    <span className="text-text-primary font-medium">
+                                        {company.email || '—'}
+                                    </span>
+                                </div>
                             </div>
-                            <div className="flex items-baseline">
-                                <span className="w-36 text-text-secondary font-medium shrink-0">GSTIN</span>
-                                <span className="text-text-muted mx-2">:</span>
-                                <span className="font-mono text-text-primary font-semibold">
-                                    {company?.gstin || '29ABCFA2588C1Z8'}
-                                </span>
+                        ) : (
+                            <div className="text-center py-8 text-text-muted text-[13px] border border-dashed border-border-subtle rounded-xl my-2">
+                                Company details not configured yet.
                             </div>
-                            <div className="flex items-baseline">
-                                <span className="w-36 text-text-secondary font-medium shrink-0">PAN</span>
-                                <span className="text-text-muted mx-2">:</span>
-                                <span className="font-mono text-text-primary font-semibold">
-                                    {company?.pan || 'ABCFA2588C'}
-                                </span>
-                            </div>
-                            <div className="flex items-baseline">
-                                <span className="w-36 text-text-secondary font-medium shrink-0">Phone</span>
-                                <span className="text-text-muted mx-2">:</span>
-                                <span className="text-text-primary font-medium">
-                                    {company?.phone || '+91 98765 43210'}
-                                </span>
-                            </div>
-                            <div className="flex items-baseline">
-                                <span className="w-36 text-text-secondary font-medium shrink-0">Email</span>
-                                <span className="text-text-muted mx-2">:</span>
-                                <span className="text-text-primary font-medium">
-                                    {company?.email || 'contact@acrovix.com'}
-                                </span>
-                            </div>
-                        </div>
+                        )}
                     </div>
 
                     {/* Action Button */}
@@ -204,7 +218,7 @@ export default function CompanyBankOverview() {
                             onClick={() => navigate('/company-bank-details/company')}
                             className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-bg-hover hover:bg-slate-50 border border-[#2563EB]/30 hover:border-[#2563EB] text-[#2563EB] rounded-xl text-[13px] font-semibold transition-all shadow-xs"
                         >
-                            <span>View / Edit Details</span>
+                            <span>{company?.companyName ? 'View / Edit Details' : 'Configure Company Details'}</span>
                             <ArrowRight className="w-4 h-4" />
                         </button>
                     </div>
@@ -303,7 +317,7 @@ export default function CompanyBankOverview() {
                                                         ...(acc.isActive ? [{
                                                             label: 'Deactivate',
                                                             danger: true,
-                                                            onClick: () => handleDeactivate(acc.id)
+                                                            onClick: () => handleDeactivate(acc)
                                                         }] : [])
                                                     ]}
                                                 />
@@ -327,6 +341,20 @@ export default function CompanyBankOverview() {
                     </div>
                 </div>
             </div>
+            {/* Deactivate Bank Account Confirmation Dialog */}
+            {accountToDeactivate && (
+                <ConfirmDialog
+                    isOpen={Boolean(accountToDeactivate)}
+                    title="Deactivate Bank Account"
+                    description={`Are you sure you want to deactivate ${accountToDeactivate.bankName} (${accountToDeactivate.bankAccountNumber || accountToDeactivate.maskedAccountNumber})? Historical transactions will be preserved, but it won't be used for new invoices or payments.`}
+                    confirmText="Deactivate Account"
+                    cancelText="Cancel"
+                    variant="destructive"
+                    isLoading={actionLoading}
+                    onConfirm={handleConfirmDeactivate}
+                    onCancel={() => !actionLoading && setAccountToDeactivate(null)}
+                />
+            )}
         </div>
     );
 }

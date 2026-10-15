@@ -24,10 +24,13 @@ import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/admin/customers")
-@RequiredArgsConstructor
 public class CustomerController {
 
     private final CustomerService customerService;
+
+    public CustomerController(CustomerService customerService) {
+        this.customerService = customerService;
+    }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
@@ -72,7 +75,7 @@ public class CustomerController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<Void> deleteCustomer(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser adminUser) {
@@ -81,7 +84,7 @@ public class CustomerController {
     }
     
     @PatchMapping("/{id}/activate")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<Void> activateCustomer(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser adminUser) {
@@ -90,7 +93,7 @@ public class CustomerController {
     }
 
     @PostMapping("/bulk-status")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<BulkCustomerOperationResponse> bulkUpdateStatus(
             @Valid @RequestBody BulkCustomerStatusRequest request,
             @AuthenticationPrincipal AdminUser adminUser) {

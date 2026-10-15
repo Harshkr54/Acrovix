@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createCrmLead, getAdminUsers } from '../services/api';
-import { X, Loader2, AlertCircle, Target, User, Building, Mail, Phone, DollarSign, Calendar, FileText } from 'lucide-react';
+import { Loader2, AlertCircle, Target, User, Building, Mail, Phone, DollarSign, Calendar, FileText } from 'lucide-react';
+import Modal from './ui/Modal';
 
 const LEAD_SOURCE_OPTIONS = [
     { value: 'WEBSITE', label: 'Website' },
@@ -122,22 +123,40 @@ export default function CreateLeadModal({ isOpen, onClose, onSuccess, initialEnq
         }
     };
 
-    return (
-        <div className="fixed inset-0 bg-text-primary/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-            <div className="bg-bg-card border border-border-subtle rounded-2xl shadow-xl w-full max-w-2xl my-8 overflow-hidden">
-                <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-bg-main">
-                    <div className="flex items-center gap-2.5">
-                        <Target className="w-5 h-5 text-brand-teal" />
-                        <h2 className="text-lg font-bold text-text-primary">
-                            {initialEnquiry ? `Convert Enquiry #${initialEnquiry.referenceId || initialEnquiry.id} to Lead` : 'Create New CRM Lead'}
-                        </h2>
-                    </div>
-                    <button onClick={onClose} className="btn btn-ghost btn-icon">
-                        <X className="w-5 h-5" />
-                    </button>
-                </div>
+    const modalFooter = (
+        <div className="flex justify-end gap-3 w-full">
+            <button
+                type="button"
+                onClick={onClose}
+                disabled={isLoading}
+                className="btn btn-secondary btn-md"
+            >
+                Cancel
+            </button>
+            <button
+                type="submit"
+                form="create-lead-form"
+                disabled={isLoading}
+                className="btn btn-primary btn-md flex items-center gap-2"
+            >
+                {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                <span>Create Lead</span>
+            </button>
+        </div>
+    );
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto hide-scrollbar">
+    return (
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title={initialEnquiry ? `Convert Enquiry #${initialEnquiry.referenceId || initialEnquiry.id} to Lead` : 'Create New CRM Lead'}
+            icon={Target}
+            iconClassName="text-brand-teal bg-brand-teal/10 border-brand-teal/20"
+            size="lg"
+            isLoading={isLoading}
+            footer={modalFooter}
+        >
+            <form id="create-lead-form" onSubmit={handleSubmit} className="space-y-4">
                     {error && (
                         <div className="p-3 bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-xs font-medium rounded-xl flex items-center gap-2">
                             <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -330,27 +349,8 @@ export default function CreateLeadModal({ isOpen, onClose, onSuccess, initialEnq
                             placeholder="Add client requirements, background context, or meeting notes..."
                             className="w-full px-3 py-2 text-sm bg-bg-main border border-border-subtle rounded-xl text-text-primary focus:outline-none focus:ring-2 focus:ring-[#0D9488]"
                         />
-                    </div>
-
-                    <div className="flex justify-end gap-3 pt-4 border-t border-border-subtle">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="btn btn-secondary btn-md"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={isLoading}
-                            className="btn btn-primary btn-md"
-                        >
-                            {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                            Create Lead
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+                </div>
+            </form>
+        </Modal>
     );
 }

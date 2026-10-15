@@ -141,7 +141,7 @@ public class ReportService {
         );
 
         BigDecimal acceptedQuotationValue = getScalarSum(
-            "SELECT COALESCE(SUM(q.grandTotal), 0) FROM Quotation q WHERE q.deletedAt IS NULL AND q.status = 'ACCEPTED' AND q.createdAt BETWEEN :start AND :end",
+            "SELECT COALESCE(SUM(q.grandTotal), 0) FROM Quotation q WHERE q.deletedAt IS NULL AND q.status IN ('ACCEPTED', 'CONVERTED') AND q.createdAt BETWEEN :start AND :end",
             range.startDateTime, range.endDateTime
         );
 
@@ -232,7 +232,7 @@ public class ReportService {
                 case "ACCEPTED": accepted += cnt; acceptedVal = acceptedVal.add(val); break;
                 case "REJECTED": rejected += cnt; rejectedVal = rejectedVal.add(val); break;
                 case "REVISED": revised += cnt; break;
-                case "CONVERTED": converted += cnt; break;
+                case "CONVERTED": converted += cnt; acceptedVal = acceptedVal.add(val); break;
             }
         }
 

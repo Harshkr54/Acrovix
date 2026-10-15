@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { assignCrmLead, getAdminUsers } from '../services/api';
-import { X, Loader2, AlertCircle, UserCheck } from 'lucide-react';
+import { Loader2, AlertCircle, UserCheck } from 'lucide-react';
+import Modal from './ui/Modal';
 
 export default function LeadAssignmentModal({ isOpen, onClose, lead, onSuccess }) {
     const [assignedToId, setAssignedToId] = useState('');
@@ -41,65 +42,67 @@ export default function LeadAssignmentModal({ isOpen, onClose, lead, onSuccess }
         }
     };
 
+    const modalFooter = (
+        <div className="flex justify-end gap-3 w-full">
+            <button
+                type="button"
+                onClick={onClose}
+                disabled={isLoading}
+                className="btn btn-secondary btn-md"
+            >
+                Cancel
+            </button>
+            <button
+                type="submit"
+                form="lead-assignment-form"
+                disabled={isLoading}
+                className="btn btn-primary btn-md flex items-center gap-1.5"
+            >
+                {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                <span>Save Assignment</span>
+            </button>
+        </div>
+    );
+
     return (
-        <div className="fixed inset-0 bg-text-primary/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-bg-card border border-border-subtle rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
-                <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-bg-main">
-                    <div className="flex items-center gap-2.5">
-                        <UserCheck className="w-5 h-5 text-brand-teal" />
-                        <h2 className="text-lg font-bold text-text-primary">Assign Sales Representative</h2>
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title="Assign Sales Representative"
+            subtitle={`${lead.leadNumber} — ${lead.fullName}`}
+            icon={UserCheck}
+            iconClassName="text-brand-teal bg-brand-teal/10 border-brand-teal/20"
+            size="sm"
+            isLoading={isLoading}
+            footer={modalFooter}
+        >
+            <form id="lead-assignment-form" onSubmit={handleSubmit} className="space-y-4">
+                {error && (
+                    <div className="p-3 bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-xs font-medium rounded-xl flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                        {error}
                     </div>
-                    <button onClick={onClose} className="btn btn-ghost btn-icon">
-                        <X className="w-5 h-5" />
-                    </button>
+                )}
+
+                <div>
+                    <span className="block text-xs font-semibold uppercase text-text-muted mb-1">Lead Reference</span>
+                    <p className="text-sm font-bold text-text-primary">{lead.leadNumber} ({lead.fullName})</p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    {error && (
-                        <div className="p-3 bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-xs font-medium rounded-xl flex items-center gap-2">
-                            <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                            {error}
-                        </div>
-                    )}
-
-                    <div>
-                        <span className="block text-xs font-semibold uppercase text-text-muted mb-1">Lead Reference</span>
-                        <p className="text-sm font-bold text-text-primary">{lead.leadNumber} ({lead.fullName})</p>
-                    </div>
-
-                    <div>
-                        <label className="block text-xs font-semibold uppercase text-text-muted mb-1">Assigned Salesperson *</label>
-                        <select
-                            value={assignedToId}
-                            onChange={(e) => setAssignedToId(e.target.value)}
-                            className="w-full px-3 py-2 text-sm bg-bg-main border border-border-subtle rounded-xl text-text-primary focus:outline-none focus:ring-2 focus:ring-[#0D9488]"
-                        >
-                            <option value="">-- Unassigned --</option>
-                            {adminUsers.map(u => (
-                                <option key={u.id} value={u.id}>{u.name} ({u.role}) - {u.email}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className="flex justify-end gap-3 pt-4 border-t border-border-subtle">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="btn btn-secondary btn-md"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={isLoading}
-                            className="btn btn-primary btn-md"
-                        >
-                            {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                            Save Assignment
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+                <div>
+                    <label className="block text-xs font-semibold uppercase text-text-muted mb-1">Assigned Salesperson *</label>
+                    <select
+                        value={assignedToId}
+                        onChange={(e) => setAssignedToId(e.target.value)}
+                        className="w-full px-3 py-2 text-sm bg-bg-main border border-border-subtle rounded-xl text-text-primary focus:outline-none focus:ring-2 focus:ring-[#0D9488]"
+                    >
+                        <option value="">-- Unassigned --</option>
+                        {adminUsers.map(u => (
+                            <option key={u.id} value={u.id}>{u.name || u.fullName || u.username} ({u.role}) - {u.email}</option>
+                        ))}
+                    </select>
+                </div>
+            </form>
+        </Modal>
     );
 }

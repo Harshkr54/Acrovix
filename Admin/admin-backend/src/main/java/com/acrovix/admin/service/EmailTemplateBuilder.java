@@ -313,6 +313,9 @@ public class EmailTemplateBuilder {
         body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Client Name:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(escapeHtml(quotation.getClientName())).append("</td></tr>\n");
         body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Total Amount:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(CurrencyUtils.formatCurrency(quotation.getGrandTotal(), quotation.getCurrency())).append("</td></tr>\n");
         body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Status:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0; color:").append("ACCEPTED".equals(quotation.getStatus()) ? "#16A34A" : "#DC2626").append(";\"><strong>").append(quotation.getStatus()).append("</strong></td></tr>\n");
+        if (quotation.getResponseSource() != null) {
+            body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Response Source:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(escapeHtml(quotation.getResponseSource().name())).append("</td></tr>\n");
+        }
         if (quotation.getResponseNotes() != null && !quotation.getResponseNotes().trim().isEmpty()) {
             body.append("  <tr><td style=\"padding:10px; font-weight:600; border-bottom:1px solid #E2E8F0;\">Notes:</td><td style=\"padding:10px; border-bottom:1px solid #E2E8F0;\">").append(escapeHtml(quotation.getResponseNotes())).append("</td></tr>\n");
         }
