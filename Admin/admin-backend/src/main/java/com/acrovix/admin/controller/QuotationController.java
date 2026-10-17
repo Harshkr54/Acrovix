@@ -57,7 +57,7 @@ public class QuotationController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     @Transactional(readOnly = true)
     public ResponseEntity<Page<java.util.Map<String, Object>>> getAllQuotations(
             @RequestParam(defaultValue = "0") int page,
@@ -71,7 +71,7 @@ public class QuotationController {
     }
 
     @GetMapping("/trash")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     @Transactional(readOnly = true)
     public ResponseEntity<Page<java.util.Map<String, Object>>> getTrashQuotations(
             @RequestParam(defaultValue = "0") int page,
@@ -87,7 +87,7 @@ public class QuotationController {
     }
 
     @GetMapping("/trash/count")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     @Transactional(readOnly = true)
     public ResponseEntity<java.util.Map<String, Object>> getTrashCount() {
         long count = quotationRepository.countByDeletedAtIsNotNullAndStatus("DRAFT");
@@ -97,7 +97,7 @@ public class QuotationController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     @Transactional(readOnly = true)
     public ResponseEntity<java.util.Map<String, Object>> getQuotationById(
             @PathVariable Long id,
@@ -107,7 +107,7 @@ public class QuotationController {
     }
 
     @GetMapping("/enquiry/{enquiryId}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     @Transactional(readOnly = true)
     public ResponseEntity<java.util.List<java.util.Map<String, Object>>> getQuotationsByEnquiryId(
             @PathVariable Long enquiryId,
@@ -118,7 +118,7 @@ public class QuotationController {
     }
 
     @PostMapping("/lead/{leadId}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     @Transactional
     public ResponseEntity<java.util.Map<String, Object>> createDraftQuotationFromLead(
             @PathVariable Long leadId,
@@ -128,7 +128,7 @@ public class QuotationController {
     }
 
     @PostMapping("/enquiry/{enquiryId}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     @Transactional
     public ResponseEntity<java.util.Map<String, Object>> createDraftQuotation(
             @PathVariable Long enquiryId,
@@ -138,7 +138,7 @@ public class QuotationController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     @Transactional
     public ResponseEntity<java.util.Map<String, Object>> saveQuotationDraft(
             @PathVariable Long id,
@@ -149,7 +149,7 @@ public class QuotationController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     @Transactional
     public ResponseEntity<java.util.Map<String, Object>> moveToTrash(
             @PathVariable Long id,
@@ -161,7 +161,7 @@ public class QuotationController {
     }
 
     @PatchMapping("/{id}/restore")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     @Transactional
     public ResponseEntity<java.util.Map<String, Object>> restoreFromTrash(
             @PathVariable Long id,
@@ -171,7 +171,7 @@ public class QuotationController {
     }
 
     @DeleteMapping("/{id}/permanent")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     @Transactional
     public ResponseEntity<Void> permanentlyDelete(
             @PathVariable Long id,
@@ -182,7 +182,7 @@ public class QuotationController {
 
     @RateLimit(category = RateLimitCategory.PDF)
     @GetMapping("/{id}/pdf")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     @Transactional(readOnly = true)
     public ResponseEntity<byte[]> previewPdf(
             @PathVariable Long id,
@@ -197,13 +197,14 @@ public class QuotationController {
 
     @RateLimit(category = RateLimitCategory.EMAIL)
     @PostMapping({"/{id}/send", "/{id}/send-email"})
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     @Transactional
     public ResponseEntity<java.util.Map<String, Object>> sendQuotation(
             @PathVariable Long id,
             @RequestBody(required = false) com.acrovix.admin.dto.SendQuotationRequest request,
             @AuthenticationPrincipal AdminUser admin) {
         java.util.List<String> recipients = null;
+        String pdfVariant = (request != null && request.getPdfVariant() != null) ? request.getPdfVariant() : "STANDARD";
         if (request != null) {
             if (request.getRecipientEmails() != null && !request.getRecipientEmails().isEmpty()) {
                 recipients = request.resolveRecipients();
@@ -212,10 +213,10 @@ public class QuotationController {
             }
         }
         if (recipients != null && recipients.size() > 1) {
-            quotationService.sendQuotationToRecipients(id, recipients, admin);
+            quotationService.sendQuotationToRecipients(id, recipients, pdfVariant, admin);
         } else {
             String singleEmail = (recipients != null && !recipients.isEmpty()) ? recipients.get(0) : null;
-            quotationService.sendQuotation(id, singleEmail, admin);
+            quotationService.sendQuotation(id, singleEmail, pdfVariant, admin);
         }
         Quotation q = quotationRepository.findById(id).orElse(null);
         java.util.Map<String, Object> resp = new java.util.HashMap<>();
@@ -230,7 +231,7 @@ public class QuotationController {
     }
 
     @PostMapping("/direct")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     @Transactional
     public ResponseEntity<java.util.Map<String, Object>> createDirectDraftQuotation(
             @Valid @RequestBody com.acrovix.admin.dto.CreateDirectQuotationRequest request,
@@ -240,7 +241,7 @@ public class QuotationController {
     }
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     @Transactional
     public ResponseEntity<java.util.Map<String, Object>> updateStatus(
             @PathVariable Long id,
@@ -251,7 +252,7 @@ public class QuotationController {
     }
 
     @PostMapping("/{id}/revisions")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     @Transactional
     public ResponseEntity<java.util.Map<String, Object>> createRevision(
             @PathVariable Long id,
@@ -261,7 +262,7 @@ public class QuotationController {
     }
 
     @GetMapping("/{id}/versions")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     @Transactional(readOnly = true)
     public ResponseEntity<java.util.List<java.util.Map<String, Object>>> getQuotationVersions(
             @PathVariable Long id,
@@ -273,7 +274,7 @@ public class QuotationController {
 
     @RateLimit(category = RateLimitCategory.PDF)
     @PostMapping("/preview/pdf")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     @Transactional(readOnly = true)
     public ResponseEntity<byte[]> generatePreviewPdf(
             @Valid @RequestBody com.acrovix.admin.dto.QuotationPreviewRequest request,
@@ -287,7 +288,7 @@ public class QuotationController {
     }
 
     @PostMapping("/preview/email")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     @Transactional(readOnly = true)
     public ResponseEntity<java.util.Map<String, String>> generatePreviewEmail(
             @Valid @RequestBody com.acrovix.admin.dto.QuotationPreviewRequest request,
@@ -323,7 +324,14 @@ public class QuotationController {
         
         map.put("responseSource", q.getResponseSource() != null ? q.getResponseSource().name() : null);
         map.put("responseNotes", q.getResponseNotes());
-        map.put("clientToken", q.getClientToken());
+        String token = q.getPublicToken() != null ? q.getPublicToken() : q.getClientToken();
+        map.put("clientToken", token);
+        map.put("publicToken", token);
+        map.put("signedAt", q.getSignedAt());
+        map.put("acceptedAt", q.getSignedAt());
+        map.put("signerName", q.getSignerName());
+        map.put("acceptedByName", q.getSignerName());
+        map.put("acceptedByIp", q.getSignerIp());
         appendDocumentIds(map, q.getId());
         return map;
     }
@@ -344,6 +352,17 @@ public class QuotationController {
         java.util.Map<String, Object> map = new java.util.HashMap<>();
         map.put("id", q.getId());
         map.put("quotationNumber", q.getQuotationNumber());
+        String detailToken = q.getPublicToken() != null ? q.getPublicToken() : q.getClientToken();
+        map.put("publicToken", detailToken);
+        map.put("clientToken", detailToken);
+        map.put("signedAt", q.getSignedAt());
+        map.put("acceptedAt", q.getSignedAt());
+        map.put("signerName", q.getSignerName());
+        map.put("acceptedByName", q.getSignerName());
+        map.put("signerNotes", q.getSignerNotes());
+        map.put("signatureData", q.getSignatureData());
+        map.put("signerIp", q.getSignerIp());
+        map.put("acceptedByIp", q.getSignerIp());
         map.put("clientName", q.getClientName());
         map.put("clientCompany", q.getClientCompany());
         map.put("clientEmail", q.getClientEmail());

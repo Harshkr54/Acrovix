@@ -31,10 +31,11 @@ export function createTelUri(phone) {
 /**
  * Generates a properly encoded mailto: URI.
  */
-export function createMailtoUri(email, leadNumber = '', subject = '') {
+export function createMailtoUri(email, leadNumber = '', subject = '', brandName = '') {
     if (!email || typeof email !== 'string' || !email.includes('@')) return null;
     const cleanEmail = email.trim();
-    const defaultSubject = subject || (leadNumber ? `ACROVIX Enquiry Follow-up: ${leadNumber}` : 'ACROVIX Enquiry Follow-up');
+    const brandPrefix = brandName || 'ACROVIX';
+    const defaultSubject = subject || (leadNumber ? `${brandPrefix} Enquiry Follow-up: ${leadNumber}` : `${brandPrefix} Enquiry Follow-up`);
     return `mailto:${cleanEmail}?subject=${encodeURIComponent(defaultSubject)}`;
 }
 

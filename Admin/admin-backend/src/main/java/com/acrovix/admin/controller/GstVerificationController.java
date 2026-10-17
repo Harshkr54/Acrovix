@@ -17,7 +17,7 @@ public class GstVerificationController {
     private final GstVerificationService gstVerificationService;
     
     @PostMapping("/verify")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<GstVerificationResponse> verifyGstin(@Valid @RequestBody GstVerificationRequest request) {
         return ResponseEntity.ok(gstVerificationService.verify(request.getGstin()));
     }

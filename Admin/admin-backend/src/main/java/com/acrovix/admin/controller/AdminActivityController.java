@@ -23,7 +23,7 @@ public class AdminActivityController {
     private final AdminActivityService activityService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<Page<AdminActivityResponse>> getActivities(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {

@@ -8,11 +8,11 @@ import {
 } from 'lucide-react';
 import { 
     getCustomers, createCustomer, updateCustomer, deleteCustomer, activateCustomer,
-    bulkUpdateCustomerStatus 
+    bulkUpdateCustomerStatus, getNextCustomerCode 
 } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import GstinAutoLookup from '../components/GstinAutoLookup';
-import { formatStateDisplay } from '../utils/gstStateUtils';
+import { GST_STATES, GST_STATE_MAP, formatStateDisplay, searchGstStates } from '../utils/gstStateUtils';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 
 // Deterministic initials & colors for customer avatars
@@ -41,6 +41,109 @@ const getAvatarColor = (str) => {
     const index = Math.abs(hash) % colors.length;
     return colors[index];
 };
+
+/** Searchable dropdown component for standard GST states */
+function GstStateDropdown({ value, onChange, disabled }) {
+    const [isOpen, setIsOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const dropdownRef = useRef(null);
+
+    const filteredStates = useMemo(() => {
+        return searchGstStates(searchQuery);
+    }, [searchQuery]);
+
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+                setIsOpen(false);
+            }
+        };
+        if (isOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [isOpen]);
+
+    return (
+        <div className="relative w-full" ref={dropdownRef}>
+            <button
+                type="button"
+                disabled={disabled}
+                onClick={() => setIsOpen(!isOpen)}
+                className={`acx-input rounded-xl text-[13px] bg-bg-main h-10 w-full flex items-center justify-between px-3 text-left ${
+                    disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:border-brand-teal/50'
+                }`}
+            >
+                <span className={`truncate font-medium ${value ? 'text-text-primary' : 'text-text-muted'}`}>
+                    {value || 'Select State / GST State Code'}
+                </span>
+                <ChevronDown className={`w-4 h-4 text-text-muted transition-transform shrink-0 ml-2 ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {isOpen && (
+                <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-bg-surface border border-border-light rounded-xl shadow-xl overflow-hidden">
+                    <div className="p-2 border-b border-border-light/50 bg-bg-main">
+                        <div className="relative">
+                            <Search className="w-3.5 h-3.5 text-text-muted absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                            <input
+                                type="text"
+                                autoFocus
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Search state name or code..."
+                                className="w-full pl-8 pr-7 py-1.5 text-xs rounded-lg bg-bg-surface border border-border-light text-text-primary placeholder:text-text-muted focus:outline-none focus:border-brand-teal"
+                            />
+                            {searchQuery && (
+                                <button
+                                    type="button"
+                                    onClick={() => setSearchQuery('')}
+                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary"
+                                >
+                                    <X className="w-3 h-3" />
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="max-h-56 overflow-y-auto divide-y divide-border-light/20 py-1">
+                        {filteredStates.length > 0 ? (
+                            filteredStates.map((st) => {
+                                const formatted = `${st.code} - ${st.name}`;
+                                const isSelected = value === formatted || value?.startsWith(`${st.code} -`);
+                                return (
+                                    <button
+                                        key={st.code}
+                                        type="button"
+                                        onClick={() => {
+                                            onChange(formatted);
+                                            setIsOpen(false);
+                                            setSearchQuery('');
+                                        }}
+                                        className={`w-full px-3 py-2 text-left text-xs flex items-center justify-between hover:bg-brand-teal/10 transition-colors ${
+                                            isSelected ? 'bg-brand-teal/15 text-brand-teal font-bold' : 'text-text-primary'
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-mono font-semibold px-1.5 py-0.5 rounded bg-bg-main border border-border-light text-[11px] text-text-secondary">
+                                                {st.code}
+                                            </span>
+                                            <span>{st.name}</span>
+                                        </div>
+                                        {isSelected && <span className="text-brand-teal font-bold text-xs">✓</span>}
+                                    </button>
+                                );
+                            })
+                        ) : (
+                            <div className="p-3 text-center text-xs text-text-muted">
+                                No matching states found
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
 
 export default function CustomerMaster() {
     const navigate = useNavigate();
@@ -92,6 +195,8 @@ export default function CustomerMaster() {
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [isManualCodeEdit, setIsManualCodeEdit] = useState(false);
+    const [isFetchingCode, setIsFetchingCode] = useState(false);
     const [formData, setFormData] = useState({
         customerCode: '',
         name: '',
@@ -108,6 +213,21 @@ export default function CustomerMaster() {
         paymentTerms: '',
         creditLimit: ''
     });
+
+    // Smart Auto-Selection of State via GSTIN
+    useEffect(() => {
+        if (!formData.gstin) return;
+        const trimmed = formData.gstin.trim().toUpperCase();
+        if (trimmed.length >= 2) {
+            const stateCode = trimmed.substring(0, 2);
+            if (/^[0-9]{2}$/.test(stateCode) && GST_STATE_MAP[stateCode]) {
+                const autoState = `${stateCode} - ${GST_STATE_MAP[stateCode]}`;
+                if (formData.state !== autoState) {
+                    setFormData(prev => ({ ...prev, state: autoState }));
+                }
+            }
+        }
+    }, [formData.gstin]);
 
     // Debounce search input
     useEffect(() => {
@@ -454,6 +574,26 @@ export default function CustomerMaster() {
         });
         setEditingId(null);
         setShowForm(false);
+        setIsManualCodeEdit(false);
+        setIsFetchingCode(false);
+    };
+
+    const openAddCustomerModal = async () => {
+        resetForm();
+        setShowForm(true);
+        setIsManualCodeEdit(false);
+        setIsFetchingCode(true);
+        try {
+            const res = await getNextCustomerCode();
+            if (res && res.customerCode) {
+                setFormData(prev => ({ ...prev, customerCode: res.customerCode }));
+            }
+        } catch (err) {
+            console.error("Failed to fetch next customer code", err);
+            setFormData(prev => ({ ...prev, customerCode: prev.customerCode || 'CUST-001' }));
+        } finally {
+            setIsFetchingCode(false);
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -492,6 +632,8 @@ export default function CustomerMaster() {
             creditLimit: customer.creditLimit || ''
         });
         setEditingId(customer.id);
+        setIsManualCodeEdit(false);
+        setIsFetchingCode(false);
         setShowForm(true);
         setActiveActionMenuId(null);
     };
@@ -574,7 +716,7 @@ export default function CustomerMaster() {
                 <button
                     onClick={() => {
                         if (showForm) resetForm();
-                        else setShowForm(true);
+                        else openAddCustomerModal();
                     }}
                     className="btn btn-primary btn-md shrink-0 shadow-sm self-start sm:self-auto"
                 >
@@ -719,18 +861,47 @@ export default function CustomerMaster() {
                     <form onSubmit={handleSubmit} className="space-y-5">
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                             <div>
-                                <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">
-                                    Customer Code
-                                </label>
-                                <input
-                                    required
-                                    type="text"
-                                    value={formData.customerCode}
-                                    onChange={e => setFormData({...formData, customerCode: e.target.value})}
-                                    className="acx-input rounded-xl text-[13px] bg-bg-main h-10 w-full"
-                                    placeholder="e.g. CUST-001"
-                                    disabled={editingId !== null}
-                                />
+                                <div className="flex items-center justify-between mb-2">
+                                    <label className="text-[11px] font-bold text-text-muted uppercase tracking-wider flex items-center gap-2">
+                                        Customer Code
+                                        {!editingId && (
+                                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">
+                                                Auto-Generated
+                                            </span>
+                                        )}
+                                    </label>
+                                    {!editingId && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsManualCodeEdit(!isManualCodeEdit)}
+                                            className="text-[11px] font-semibold text-brand-teal hover:underline flex items-center gap-1"
+                                            title={isManualCodeEdit ? "Lock back to auto-generated mode" : "Edit customer code manually"}
+                                        >
+                                            {isManualCodeEdit ? 'Auto Mode' : 'Edit Manually'}
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="relative">
+                                    <input
+                                        required
+                                        type="text"
+                                        value={formData.customerCode}
+                                        onChange={e => setFormData({...formData, customerCode: e.target.value})}
+                                        className={`acx-input rounded-xl text-[13px] h-10 w-full font-mono font-bold ${
+                                            (editingId !== null || !isManualCodeEdit)
+                                                ? 'bg-bg-subtle/80 cursor-default text-text-primary border-border-subtle'
+                                                : 'bg-bg-main'
+                                        }`}
+                                        placeholder="e.g. CUST-001"
+                                        readOnly={editingId !== null || !isManualCodeEdit}
+                                        disabled={editingId !== null}
+                                    />
+                                    {isFetchingCode && (
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                            <RefreshCw className="w-3.5 h-3.5 animate-spin text-text-muted" />
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                             <div>
                                 <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">
@@ -813,12 +984,9 @@ export default function CustomerMaster() {
                                 <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">
                                     State Code – State Name
                                 </label>
-                                <input
-                                    type="text"
+                                <GstStateDropdown
                                     value={formData.state}
-                                    onChange={e => setFormData({ ...formData, state: e.target.value })}
-                                    className="acx-input rounded-xl text-[13px] bg-bg-main h-10 w-full"
-                                    placeholder="e.g. 07 - Delhi"
+                                    onChange={(val) => setFormData(prev => ({ ...prev, state: val }))}
                                 />
                             </div>
                             <div>
@@ -1035,7 +1203,7 @@ export default function CustomerMaster() {
                                 Clear Filters
                             </button>
                         ) : (
-                            <button onClick={() => setShowForm(true)} className="btn btn-primary btn-sm mt-4">
+                            <button onClick={openAddCustomerModal} className="btn btn-primary btn-sm mt-4">
                                 <Plus className="w-3.5 h-3.5 mr-1" />
                                 Add Customer
                             </button>

@@ -22,13 +22,13 @@ public class AutomationController {
     }
 
     @GetMapping("/status")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     public ResponseEntity<List<JobExecutionInfo>> getAutomationStatus() {
         return ResponseEntity.ok(automationService.getAutomationStatus());
     }
 
     @GetMapping("/history")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     public ResponseEntity<?> getRecentExecutions(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
@@ -43,7 +43,7 @@ public class AutomationController {
     }
 
     @PostMapping("/run/{jobId}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     public ResponseEntity<?> runJobManually(@PathVariable String jobId) {
         try {
             AutomationJobRun result = automationService.runJobManually(jobId);

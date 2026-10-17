@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { resetPassword } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
+import { useTenant } from '../context/TenantContext';
 import logoLight from '../assets/acrovix_logo1.png';
 import logoDark from '../assets/Acrovix_logo.png';
 import { Lock, Loader2, ArrowRight, ArrowLeft, Sun, Moon, Shield, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 
 const ResetPassword = () => {
+    const { tenant } = useTenant();
     const [searchParams] = useSearchParams();
     const token = searchParams.get('token');
     
@@ -85,8 +87,8 @@ const ResetPassword = () => {
                     {/* Header */}
                     <div className="flex flex-col items-center mb-5 sm:mb-6">
                         <img 
-                            src={theme === 'dark' ? logoDark : logoLight} 
-                            alt="Acrovix" 
+                            src={tenant?.logoUrl || (theme === 'dark' ? logoDark : logoLight)} 
+                            alt={tenant?.brandName || "Workspace"} 
                             width="250"
                             height="56"
                             className="h-8 sm:h-11 w-auto object-contain mb-3 sm:mb-4"
@@ -213,7 +215,7 @@ const ResetPassword = () => {
                             <div className="flex items-center justify-center gap-1.5 pt-2">
                                 <Shield className="w-3.5 h-3.5 text-text-muted" />
                                 <p className="text-[11.5px] sm:text-[12px] text-text-muted">
-                                    Protected by ACROVIX Security
+                                    Protected by {tenant?.brandName || 'Enterprise'} Security
                                 </p>
                             </div>
                         </form>
@@ -223,7 +225,7 @@ const ResetPassword = () => {
 
             {/* Footer */}
             <footer className="w-full px-4 sm:px-6 py-3 flex flex-col sm:flex-row items-center justify-between z-20 text-[11px] text-text-muted gap-2 sm:gap-0 mt-auto shrink-0">
-                <div>© 2026 Acrovix Innovations Private Limited</div>
+                <div>© {new Date().getFullYear()} {tenant?.companyName || 'Acrovix Innovations Private Limited'}</div>
                 <div className="flex gap-4">
                     <Link to="#" className="hover:text-text-primary transition-colors">Privacy Policy</Link>
                     <Link to="#" className="hover:text-text-primary transition-colors">Terms of Service</Link>

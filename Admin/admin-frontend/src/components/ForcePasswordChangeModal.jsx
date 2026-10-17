@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useTenant } from '../context/TenantContext';
 import { fetchApi } from '../services/api';
 import { Lock, ShieldAlert, CheckCircle2, AlertCircle, Eye, EyeOff, Loader2, LogOut } from 'lucide-react';
 
 export default function ForcePasswordChangeModal() {
     const { user, setPasswordChangedSuccessfully, logout } = useAuth();
+    const { tenant } = useTenant();
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -74,7 +76,7 @@ export default function ForcePasswordChangeModal() {
                     Password Change Required
                 </h2>
                 <p className="text-[13px] text-text-secondary text-center leading-relaxed mb-6">
-                    A temporary password was assigned to your account. You must set a new private password before accessing the ACROVIX ERP system.
+                    A temporary password was assigned to your account. You must set a new private password before accessing the {tenant?.brandName || 'ERP'} system.
                 </p>
 
                 {error && (

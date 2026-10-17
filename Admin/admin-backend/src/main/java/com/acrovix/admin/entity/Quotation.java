@@ -18,7 +18,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Quotation {
+public class Quotation extends TenantAwareEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -75,6 +75,48 @@ public class Quotation {
 
     @Column(name = "client_token", unique = true, length = 64)
     private String clientToken;
+
+    @Column(name = "public_token", unique = true, length = 64)
+    private String publicToken;
+
+    @Column(name = "signed_at")
+    private LocalDateTime signedAt;
+
+    @Column(name = "signer_name", length = 150)
+    private String signerName;
+
+    @Column(name = "signer_ip", length = 64)
+    private String signerIp;
+
+    @Column(name = "signature_data", columnDefinition = "TEXT")
+    private String signatureData;
+
+    @Column(name = "signer_notes", columnDefinition = "TEXT")
+    private String signerNotes;
+
+    public LocalDateTime getAcceptedAt() {
+        return this.signedAt;
+    }
+
+    public void setAcceptedAt(LocalDateTime acceptedAt) {
+        this.signedAt = acceptedAt;
+    }
+
+    public String getAcceptedByName() {
+        return this.signerName;
+    }
+
+    public void setAcceptedByName(String acceptedByName) {
+        this.signerName = acceptedByName;
+    }
+
+    public String getAcceptedByIp() {
+        return this.signerIp;
+    }
+
+    public void setAcceptedByIp(String acceptedByIp) {
+        this.signerIp = acceptedByIp;
+    }
 
     @Column(nullable = false, length = 50)
     private String status = "DRAFT"; // DRAFT, SENT, ACCEPTED, REJECTED, EXPIRED
@@ -152,6 +194,12 @@ public class Quotation {
     protected void onCreate() {
         if (this.createdAt == null) {
             this.createdAt = LocalDateTime.now();
+        }
+        if (this.publicToken == null) {
+            this.publicToken = java.util.UUID.randomUUID().toString().replace("-", "");
+        }
+        if (this.clientToken == null) {
+            this.clientToken = this.publicToken;
         }
     }
 

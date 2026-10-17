@@ -1,12 +1,11 @@
 package com.acrovix.admin.service;
 
+import com.acrovix.admin.dto.CompanySettingsResponse;
 import com.acrovix.admin.dto.email.EmailAttachment;
 import com.acrovix.admin.dto.email.EmailRequest;
 import com.acrovix.admin.entity.*;
 import com.acrovix.admin.repository.EmailLogRepository;
-import com.resend.Resend;
-import com.resend.services.emails.model.Attachment;
-import com.resend.services.emails.model.CreateEmailOptions;
+
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
@@ -34,10 +33,12 @@ public class EmailService {
     private final EmailLogRepository emailLogRepository;
     private final JavaMailSender mailSender;
 
+    @Autowired(required = false)
+    private CompanySettingsService companySettingsService;
+
     @org.springframework.context.annotation.Lazy
     @Autowired
     private EmailService self;
-
 
     @Value("${acrovix.email.from:${acrovix.mail.from-email:sales@acrovix.com}}")
     private String fromEmail;
@@ -51,11 +52,10 @@ public class EmailService {
     @Value("${acrovix.email.admin-notification:}")
     private String adminNotificationEmail;
 
-    @Value("${acrovix.app.frontend-url:}")
+    @Value("${acrovix.app.frontend-url:${app.frontend.url:https://admin.acrovix.com}}")
     private String frontendUrl;
 
-    @Value("${resend.api-key:}")
-    private String resendApiKey;
+
 
     @Value("${app.demo-mode:false}")
     private boolean demoMode;
@@ -78,6 +78,40 @@ public class EmailService {
     public EmailService(PdfService pdfService) {
         this(pdfService, new EmailTemplateBuilder(), null, null);
     }
+
+    public void setCompanySettingsService(CompanySettingsService companySettingsService) {
+        this.companySettingsService = companySettingsService;
+    }
+
+    private CompanySettingsResponse resolveCompanySettings(Long tenantId) {
+        if (companySettingsService != null) {
+            try {
+                return companySettingsService.getCompanySettingsForTenant(tenantId);
+            } catch (Exception e) {
+                logger.warn("Failed to load company settings for tenant {}: {}", tenantId, e.getMessage());
+            }
+        }
+        CompanySettingsResponse fallback = new CompanySettingsResponse();
+        fallback.setTenantId(1L);
+        fallback.setCompanyName("ACROVIX INNOVATIONS PRIVATE LIMITED");
+        fallback.setBrandName(fromName != null && !fromName.isBlank() ? fromName : "ACROVIX INNOVATIONS PRIVATE LIMITED");
+        fallback.setEmail(fromEmail != null && !fromEmail.isBlank() ? fromEmail : "sales@acrovix.com");
+        fallback.setPrimaryColor("#0D9488");
+        fallback.setSecondaryColor("#0F172A");
+        return fallback;
+    }
+
+    private String resolvePortalUrl(Quotation quotation) {
+        if (quotation == null) return null;
+        String token = quotation.getPublicToken() != null ? quotation.getPublicToken() : quotation.getClientToken();
+        if (token == null || token.isBlank()) return null;
+        String base = (frontendUrl != null && !frontendUrl.isBlank()) ? frontendUrl.trim() : "https://admin.acrovix.com";
+        while (base.endsWith("/")) {
+            base = base.substring(0, base.length() - 1);
+        }
+        return base + "/quote/view/" + token;
+    }
+
 
     /**
      * Send simple text email.
@@ -150,7 +184,9 @@ public class EmailService {
         }
 
         String activeFromEmail = (fromEmail != null && !fromEmail.trim().isEmpty()) ? fromEmail.trim() : "sales@acrovix.com";
-        String activeFromName = (fromName != null && !fromName.trim().isEmpty()) ? fromName.trim() : "ACROVIX INNOVATIONS PRIVATE LIMITED";
+        String activeFromName = (request.getFromName() != null && !request.getFromName().trim().isEmpty())
+                ? request.getFromName().trim()
+                : ((fromName != null && !fromName.trim().isEmpty()) ? fromName.trim() : "ACROVIX INNOVATIONS PRIVATE LIMITED");
 
         try {
             if (mailSender != null && mailHost != null && !mailHost.trim().isEmpty()) {
@@ -161,6 +197,12 @@ public class EmailService {
                     helper.setFrom(new InternetAddress(activeFromEmail, activeFromName));
                 } catch (Exception e) {
                     helper.setFrom(activeFromEmail);
+                }
+
+                if (request.getReplyTo() != null && !request.getReplyTo().trim().isEmpty()) {
+                    try {
+                        helper.setReplyTo(request.getReplyTo().trim());
+                    } catch (Exception ignored) {}
                 }
 
                 helper.setTo(targetRecipients.toArray(new String[0]));
@@ -181,9 +223,9 @@ public class EmailService {
                         if (attachment != null && attachment.getContent() != null && attachment.getContent().length > 0) {
                             String contentType = attachment.getContentType() != null ? attachment.getContentType() : "application/octet-stream";
                             helper.addAttachment(
-                                    attachment.getFilename() != null ? attachment.getFilename() : "attachment",
-                                    new ByteArrayResource(attachment.getContent()),
-                                    contentType
+                                     attachment.getFilename() != null ? attachment.getFilename() : "attachment",
+                                     new ByteArrayResource(attachment.getContent()),
+                                     contentType
                             );
                         }
                     }
@@ -191,23 +233,19 @@ public class EmailService {
 
                 mailSender.send(mimeMessage);
                 logger.info("Successfully sent email to {} via JavaMailSender [Type: {}, Subject: '{}']", targetEmailStr, type, subject);
-                logEmail(targetEmailStr, subject, type, EmailStatus.SENT, null, request.getRelatedEntityType(), request.getRelatedEntityId());
-                return true;
-            } else if (resendApiKey != null && !resendApiKey.trim().isEmpty()) {
-                sendViaResend(targetRecipients, subject, request, activeFromEmail, activeFromName);
-                logEmail(targetEmailStr, subject, type, EmailStatus.SENT, null, request.getRelatedEntityType(), request.getRelatedEntityId());
+                logEmail(targetEmailStr, subject, type, EmailStatus.SENT, null, request.getRelatedEntityType(), request.getRelatedEntityId(), request.getTenantId());
                 return true;
             } else {
-                String errMsg = "Email service configuration is incomplete. Please configure MAIL_HOST or RESEND_API_KEY.";
+                String errMsg = "Email service configuration is incomplete. Please configure MAIL_HOST in environment variables.";
                 logger.error("Email send failed for recipient {}: {}", targetEmailStr, errMsg);
                 throw new IllegalStateException(errMsg);
             }
         } catch (IllegalArgumentException | IllegalStateException e) {
-            logEmail(targetEmailStr, subject, type, EmailStatus.FAILED, e.getMessage(), request.getRelatedEntityType(), request.getRelatedEntityId());
+            logEmail(targetEmailStr, subject, type, EmailStatus.FAILED, e.getMessage(), request.getRelatedEntityType(), request.getRelatedEntityId(), request.getTenantId());
             throw e;
         } catch (Exception e) {
             logger.error("Email transmission error [recipient={}, subject={}, type={}]: {}", targetEmailStr, subject, type, e.getMessage());
-            logEmail(targetEmailStr, subject, type, EmailStatus.FAILED, e.getMessage(), request.getRelatedEntityType(), request.getRelatedEntityId());
+            logEmail(targetEmailStr, subject, type, EmailStatus.FAILED, e.getMessage(), request.getRelatedEntityType(), request.getRelatedEntityId(), request.getTenantId());
             throw new IllegalStateException("Failed to send email. Please try again later.", e);
         }
     }
@@ -239,13 +277,17 @@ public class EmailService {
      * High-level quotation email trigger for default client recipient.
      */
     public void sendQuotationEmail(Quotation quotation) {
-        sendQuotationEmail(quotation, (String) null);
+        sendQuotationEmail(quotation, (String) null, "STANDARD");
     }
 
     /**
      * Quotation email trigger for single override recipient (preserves backward compatibility with existing tests).
      */
     public void sendQuotationEmail(Quotation quotation, String overrideEmail) {
+        sendQuotationEmail(quotation, overrideEmail, "STANDARD");
+    }
+
+    public void sendQuotationEmail(Quotation quotation, String overrideEmail, String pdfVariant) {
         if (quotation == null) {
             throw new IllegalArgumentException("Quotation cannot be null");
         }
@@ -258,13 +300,17 @@ public class EmailService {
             throw new IllegalArgumentException("Client email is required to send quotation");
         }
 
-        sendQuotationEmailInternal(quotation, Collections.singletonList(targetEmail));
+        sendQuotationEmailInternal(quotation, Collections.singletonList(targetEmail), pdfVariant);
     }
 
     /**
      * Multi-recipient quotation email dispatch.
      */
     public void sendQuotationEmailToRecipients(Quotation quotation, List<String> recipientEmails) {
+        sendQuotationEmailToRecipients(quotation, recipientEmails, "STANDARD");
+    }
+
+    public void sendQuotationEmailToRecipients(Quotation quotation, List<String> recipientEmails, String pdfVariant) {
         if (quotation == null) {
             throw new IllegalArgumentException("Quotation cannot be null");
         }
@@ -291,20 +337,33 @@ public class EmailService {
             }
         }
 
-        sendQuotationEmailInternal(quotation, targetRecipients);
+        sendQuotationEmailInternal(quotation, targetRecipients, pdfVariant);
     }
 
     private void sendQuotationEmailInternal(Quotation quotation, List<String> targetRecipients) {
-        byte[] pdfBytes = pdfService.generateQuotationPdf(quotation);
+        sendQuotationEmailInternal(quotation, targetRecipients, "STANDARD");
+    }
+
+    private void sendQuotationEmailInternal(Quotation quotation, List<String> targetRecipients, String pdfVariant) {
+        boolean isCustom = "CUSTOM".equalsIgnoreCase(pdfVariant);
+        byte[] pdfBytes = isCustom ? pdfService.generateQuotationPdf(quotation) : pdfService.generateStandardQuotationPdf(quotation);
         if (pdfBytes == null || pdfBytes.length == 0) {
             throw new IllegalStateException("Generated quotation PDF is empty");
         }
 
+        CompanySettingsResponse settings = resolveCompanySettings(quotation.getTenantId());
+        String brandName = (settings != null && settings.getBrandName() != null && !settings.getBrandName().trim().isEmpty())
+                ? settings.getBrandName().trim()
+                : ((settings != null && settings.getCompanyName() != null && !settings.getCompanyName().trim().isEmpty())
+                        ? settings.getCompanyName().trim()
+                        : "Acrovix");
+
         String quotationNumber = (quotation.getQuotationNumber() != null && !quotation.getQuotationNumber().isEmpty()) 
                 ? quotation.getQuotationNumber() 
                 : "QT-" + quotation.getId();
-        String subject = "Acrovix Quotation: " + quotationNumber;
-        String formattedHtml = templateBuilder.buildQuotationEmailHtml(quotation);
+        String subject = brandName + " Quotation: " + quotationNumber;
+        String portalUrl = resolvePortalUrl(quotation);
+        String formattedHtml = templateBuilder.buildQuotationEmailHtml(quotation, settings, portalUrl);
         String filename = quotationNumber + ".pdf";
 
         EmailAttachment pdfAttachment = EmailAttachment.builder()
@@ -316,6 +375,9 @@ public class EmailService {
         EmailRequest request = EmailRequest.builder()
                 .to(String.join(", ", targetRecipients))
                 .toRecipients(targetRecipients)
+                .fromName(brandName)
+                .replyTo(settings != null ? settings.getEmail() : null)
+                .tenantId(quotation.getTenantId())
                 .subject(subject)
                 .htmlBody(formattedHtml)
                 .isHtml(true)
@@ -346,12 +408,22 @@ public class EmailService {
             throw new IllegalArgumentException("Recipient email is required to send invoice");
         }
 
+        CompanySettingsResponse settings = resolveCompanySettings(invoice.getTenantId());
+        String brandName = (settings != null && settings.getBrandName() != null && !settings.getBrandName().trim().isEmpty())
+                ? settings.getBrandName().trim()
+                : ((settings != null && settings.getCompanyName() != null && !settings.getCompanyName().trim().isEmpty())
+                        ? settings.getCompanyName().trim()
+                        : "Acrovix");
+
         String invoiceNo = invoice.getInvoiceNumber() != null ? invoice.getInvoiceNumber() : "INV-" + invoice.getId();
-        String subject = "Acrovix Invoice: " + invoiceNo;
-        String formattedHtml = templateBuilder.buildInvoiceEmailHtml(invoice);
+        String subject = brandName + " Invoice: " + invoiceNo;
+        String formattedHtml = templateBuilder.buildInvoiceEmailHtml(invoice, settings);
 
         EmailRequest request = EmailRequest.builder()
                 .to(targetEmail)
+                .fromName(brandName)
+                .replyTo(settings != null ? settings.getEmail() : null)
+                .tenantId(invoice.getTenantId())
                 .subject(subject)
                 .htmlBody(formattedHtml)
                 .isHtml(true)
@@ -381,6 +453,13 @@ public class EmailService {
             throw new IllegalArgumentException("Recipient email is required to send payment receipt");
         }
 
+        CompanySettingsResponse settings = resolveCompanySettings(payment.getTenantId());
+        String brandName = (settings != null && settings.getBrandName() != null && !settings.getBrandName().trim().isEmpty())
+                ? settings.getBrandName().trim()
+                : ((settings != null && settings.getCompanyName() != null && !settings.getCompanyName().trim().isEmpty())
+                        ? settings.getCompanyName().trim()
+                        : "Acrovix");
+
         BigDecimal remainingBalance = null;
         if (payment.getInvoice() != null && payment.getInvoice().getGrandTotal() != null) {
             BigDecimal paid = payment.getInvoice().getAmountPaid() != null ? payment.getInvoice().getAmountPaid() : BigDecimal.ZERO;
@@ -388,11 +467,14 @@ public class EmailService {
         }
 
         String paymentRef = payment.getPaymentNumber() != null ? payment.getPaymentNumber() : "PAY-" + payment.getId();
-        String subject = "Acrovix Payment Receipt: " + paymentRef;
-        String formattedHtml = templateBuilder.buildPaymentReceiptEmailHtml(payment, remainingBalance);
+        String subject = brandName + " Payment Receipt: " + paymentRef;
+        String formattedHtml = templateBuilder.buildPaymentReceiptEmailHtml(payment, remainingBalance, settings);
 
         EmailRequest request = EmailRequest.builder()
                 .to(targetEmail)
+                .fromName(brandName)
+                .replyTo(settings != null ? settings.getEmail() : null)
+                .tenantId(payment.getTenantId())
                 .subject(subject)
                 .htmlBody(formattedHtml)
                 .isHtml(true)
@@ -533,8 +615,7 @@ public class EmailService {
     }
 
     public boolean isEmailConfigured() {
-        return (mailSender != null && mailHost != null && !mailHost.trim().isEmpty())
-                || (resendApiKey != null && !resendApiKey.trim().isEmpty());
+        return (mailSender != null && mailHost != null && !mailHost.trim().isEmpty());
     }
 
     @Async("emailTaskExecutor")
@@ -548,7 +629,7 @@ public class EmailService {
 
     public com.acrovix.admin.dto.email.EmailDispatchResult sendPasswordResetEmail(String targetEmail, String resetLink) {
         if (!isEmailConfigured()) {
-            logger.warn("Password reset email dispatch skipped: Email provider not configured (neither MAIL_HOST nor RESEND_API_KEY is set).");
+            logger.warn("Password reset email dispatch skipped: Email provider not configured (MAIL_HOST is not set).");
             return com.acrovix.admin.dto.email.EmailDispatchResult.unconfigured("Email service is not configured on this server. Please use Temporary Password Recovery.");
         }
         if (targetEmail == null || targetEmail.trim().isEmpty()) {
@@ -707,9 +788,17 @@ public class EmailService {
             targetEmail = "[Client Email Pending]";
         }
 
-        String activeFromEmail = (fromEmail != null && !fromEmail.trim().isEmpty()) ? fromEmail.trim() : "sales@acrovix.com";
-        String activeFromName = (fromName != null && !fromName.trim().isEmpty()) ? fromName.trim() : "ACROVIX INNOVATIONS PRIVATE LIMITED";
-        String from = activeFromName + " <" + activeFromEmail + ">";
+        CompanySettingsResponse settings = resolveCompanySettings(quotation.getTenantId());
+        String brandName = (settings != null && settings.getBrandName() != null && !settings.getBrandName().trim().isEmpty())
+                ? settings.getBrandName().trim()
+                : ((settings != null && settings.getCompanyName() != null && !settings.getCompanyName().trim().isEmpty())
+                        ? settings.getCompanyName().trim()
+                        : ((fromName != null && !fromName.trim().isEmpty()) ? fromName.trim() : "ACROVIX INNOVATIONS PRIVATE LIMITED"));
+
+        String activeFromEmail = (settings != null && settings.getEmail() != null && !settings.getEmail().trim().isEmpty())
+                ? settings.getEmail().trim()
+                : ((fromEmail != null && !fromEmail.trim().isEmpty()) ? fromEmail.trim() : "sales@acrovix.com");
+        String from = brandName + " <" + activeFromEmail + ">";
 
         String to = targetEmail;
         if (quotation.getClientName() != null && !quotation.getClientName().trim().isEmpty()) {
@@ -720,8 +809,9 @@ public class EmailService {
                 ? quotation.getQuotationNumber() 
                 : "PREVIEW-DRAFT";
                 
-        String subject = "Acrovix Quotation: " + quotationNumber;
-        String htmlContent = templateBuilder.buildQuotationEmailHtml(quotation);
+        String subject = brandName + " Quotation: " + quotationNumber;
+        String portalUrl = resolvePortalUrl(quotation);
+        String htmlContent = templateBuilder.buildQuotationEmailHtml(quotation, settings, portalUrl);
         String filename = quotationNumber + ".pdf";
 
         Map<String, String> details = new HashMap<>();
@@ -734,44 +824,13 @@ public class EmailService {
         return details;
     }
 
-    private void sendViaResend(List<String> targetRecipients, String subject, EmailRequest request, String activeFromEmail, String activeFromName) {
-        try {
-            String from = activeFromName + " <" + activeFromEmail + ">";
-            String htmlContent = request.isHtml() ? request.getHtmlBody() : "<p>" + (request.getBody() != null ? request.getBody() : "") + "</p>";
 
-            List<Attachment> resendAttachments = new ArrayList<>();
-            if (request.getAttachments() != null) {
-                for (EmailAttachment att : request.getAttachments()) {
-                    if (att != null && att.getContent() != null) {
-                        String base64Content = Base64.getEncoder().encodeToString(att.getContent());
-                        resendAttachments.add(Attachment.builder()
-                                .fileName(att.getFilename() != null ? att.getFilename() : "attachment")
-                                .content(base64Content)
-                                .build());
-                    }
-                }
-            }
-
-            CreateEmailOptions.Builder optionsBuilder = CreateEmailOptions.builder()
-                    .from(from)
-                    .to(targetRecipients)
-                    .subject(subject)
-                    .html(htmlContent);
-
-            if (!resendAttachments.isEmpty()) {
-                optionsBuilder.attachments(resendAttachments);
-            }
-
-            Resend resend = new Resend(resendApiKey.trim());
-            resend.emails().send(optionsBuilder.build());
-            logger.info("Successfully sent email to {} via Resend API", targetRecipients);
-        } catch (Exception e) {
-            logger.error("Resend API Error: {}", e.getMessage());
-            throw new IllegalStateException("Failed to send email via Resend. Please try again later.", e);
-        }
-    }
 
     private void logEmail(String recipient, String subject, EmailType emailType, EmailStatus status, String errorMessage, String relatedEntityType, Long relatedEntityId) {
+        logEmail(recipient, subject, emailType, status, errorMessage, relatedEntityType, relatedEntityId, null);
+    }
+
+    private void logEmail(String recipient, String subject, EmailType emailType, EmailStatus status, String errorMessage, String relatedEntityType, Long relatedEntityId, Long tenantId) {
         if (emailLogRepository != null) {
             try {
                 EmailLog logEntry = EmailLog.builder()
@@ -784,6 +843,9 @@ public class EmailService {
                         .relatedEntityType(relatedEntityType)
                         .relatedEntityId(relatedEntityId)
                         .build();
+                if (tenantId != null) {
+                    logEntry.setTenantId(tenantId);
+                }
                 emailLogRepository.save(logEntry);
             } catch (Exception e) {
                 logger.error("Failed to save email audit log: {}", e.getMessage());

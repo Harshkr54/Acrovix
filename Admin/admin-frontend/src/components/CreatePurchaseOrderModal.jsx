@@ -4,8 +4,10 @@ import { X, ShoppingCart, Lock, AlertCircle, Loader2 } from 'lucide-react';
 import { createPurchaseOrder } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { formatCurrency } from '../utils/formatters';
+import { useTenant } from '../context/TenantContext';
 
 export default function CreatePurchaseOrderModal({ isOpen, onClose, quotation, onSuccess }) {
+    const { tenant } = useTenant();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
@@ -14,24 +16,48 @@ export default function CreatePurchaseOrderModal({ isOpen, onClose, quotation, o
         poValue: '',
         receivedVia: 'EMAIL',
         remarks: '',
-        deliveryDestinationType: 'COMPANY_OFFICE',
+        deliveryDestinationType: 'CUSTOMER_SITE',
         deliveryAddress: '',
         deliveryContactName: '',
         deliveryContactPhone: ''
     });
 
+    const formatCustomerShippingAddress = (q) => {
+        if (!q) return '';
+        const custName = q.customerName || q.clientName || q.customer?.name || '';
+        const company = q.companyName || q.clientCompany || q.customer?.companyName || '';
+        const namePart = custName ? (company ? `${custName} (${company})` : custName) : (company ? `(${company})` : '');
+        const addrPart = q.billingAddress || q.customerAddress || q.shippingAddress || q.customer?.billingAddress || q.customer?.shippingAddress || '';
+        const statePart = q.state || q.customer?.state || '';
+        const pinPart = q.pinCode || q.pincode || q.customer?.pinCode || q.customer?.pincode || '';
+        const statePinPart = [statePart, pinPart].filter(Boolean).join(' - ');
+
+        return [namePart, addrPart, statePinPart].filter(Boolean).join(', ');
+    };
+
+    const getCustomerContactPerson = (q) => {
+        return q?.clientName || q?.customerName || q?.customer?.name || 'Client Site Representative';
+    };
+
+    const getCustomerContactPhone = (q) => {
+        return q?.phone || q?.clientPhone || q?.customer?.phone || '';
+    };
+
     useEffect(() => {
         if (isOpen && quotation) {
+            const custShippingAddr = formatCustomerShippingAddress(quotation);
+            const custContact = getCustomerContactPerson(quotation);
+            const custPhone = getCustomerContactPhone(quotation);
             setFormData({
                 clientPoNumber: '',
                 poDate: new Date().toISOString().split('T')[0],
                 poValue: quotation.grandTotal !== undefined && quotation.grandTotal !== null ? quotation.grandTotal : '',
                 receivedVia: 'EMAIL',
                 remarks: '',
-                deliveryDestinationType: 'COMPANY_OFFICE',
-                deliveryAddress: '',
-                deliveryContactName: '',
-                deliveryContactPhone: ''
+                deliveryDestinationType: 'CUSTOMER_SITE',
+                deliveryAddress: custShippingAddr,
+                deliveryContactName: custContact,
+                deliveryContactPhone: custPhone
             });
         }
     }, [isOpen, quotation]);
@@ -79,23 +105,15 @@ export default function CreatePurchaseOrderModal({ isOpen, onClose, quotation, o
 
     const handleDestinationTypeChange = (newType) => {
         if (newType === 'CUSTOMER_SITE') {
-            const custShippingAddr = quotation.customer?.shippingAddress || quotation.shippingAddress || '';
-            const custContact = quotation.clientName || quotation.customer?.name || '';
-            const custPhone = quotation.clientPhone || quotation.customer?.phone || '';
+            const custShippingAddr = formatCustomerShippingAddress(quotation);
+            const custContact = getCustomerContactPerson(quotation);
+            const custPhone = getCustomerContactPhone(quotation);
             setFormData(prev => ({
                 ...prev,
                 deliveryDestinationType: newType,
                 deliveryAddress: custShippingAddr,
                 deliveryContactName: custContact,
                 deliveryContactPhone: custPhone
-            }));
-        } else if (newType === 'COMPANY_OFFICE') {
-            setFormData(prev => ({
-                ...prev,
-                deliveryDestinationType: newType,
-                deliveryAddress: '',
-                deliveryContactName: 'ACROVIX Operations',
-                deliveryContactPhone: ''
             }));
         } else {
             setFormData(prev => ({
@@ -289,19 +307,7 @@ export default function CreatePurchaseOrderModal({ isOpen, onClose, quotation, o
                                     <p className="text-[11px] text-text-muted mb-2">
                                         Specify the genuine delivery destination for this Purchase Order.
                                     </p>
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => handleDestinationTypeChange('COMPANY_OFFICE')}
-                                            className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
-                                                formData.deliveryDestinationType === 'COMPANY_OFFICE'
-                                                    ? 'border-brand-primary bg-brand-primary/10 text-brand-primary font-bold'
-                                                    : 'border-border-subtle hover:bg-bg-hover text-text-secondary font-medium'
-                                            }`}
-                                        >
-                                            <div className="text-xs">ACROVIX Office</div>
-                                            <div className="text-[10px] text-text-muted mt-0.5 font-normal">Primary office address</div>
-                                        </button>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                         <button
                                             type="button"
                                             onClick={() => handleDestinationTypeChange('CUSTOMER_SITE')}
@@ -329,64 +335,71 @@ export default function CreatePurchaseOrderModal({ isOpen, onClose, quotation, o
                                     </div>
                                 </div>
 
-                                {formData.deliveryDestinationType !== 'COMPANY_OFFICE' && (
-                                    <div className="space-y-3 pt-2 border-t border-border-subtle/50 animate-fade-in">
-                                        <div>
-                                            <label className="block text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1">
+                                <div className="space-y-3 pt-2 border-t border-border-subtle/50 animate-fade-in">
+                                    <div>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <label className="block text-[11px] text-text-muted uppercase tracking-wider font-semibold">
                                                 Delivery Address <span className="text-brand-danger">*</span>
                                             </label>
-                                            <textarea
-                                                name="deliveryAddress"
-                                                rows={2}
-                                                required={formData.deliveryDestinationType !== 'COMPANY_OFFICE'}
-                                                value={formData.deliveryAddress}
-                                                onChange={handleChange}
-                                                placeholder="Enter full physical delivery address including city, state, pin..."
-                                                className="w-full bg-bg-main border border-border-subtle focus:border-brand-primary focus:ring-1 focus:ring-brand-primary/20 rounded-xl p-2.5 text-[12px] font-medium text-text-primary outline-none resize-none"
-                                            />
-                                            {formData.deliveryDestinationType === 'CUSTOMER_SITE' && (quotation.customer?.billingAddress || quotation.billingAddress) && !formData.deliveryAddress && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setFormData(prev => ({
-                                                        ...prev,
-                                                        deliveryAddress: quotation.customer?.billingAddress || quotation.billingAddress || ''
-                                                    }))}
-                                                    className="text-[11px] text-brand-primary hover:underline font-medium mt-1 inline-block"
-                                                >
-                                                    + Use customer's registered billing address as delivery destination
-                                                </button>
+                                            {formData.deliveryDestinationType === 'CUSTOMER_SITE' && (
+                                                <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold uppercase tracking-wider">
+                                                    Auto-filled from Customer
+                                                </span>
                                             )}
                                         </div>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            <div>
-                                                <label className="block text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1">
-                                                    Receiving Contact Person
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    name="deliveryContactName"
-                                                    value={formData.deliveryContactName}
-                                                    onChange={handleChange}
-                                                    placeholder="e.g. John Doe / Site Manager"
-                                                    className="w-full h-9 bg-bg-main border border-border-subtle focus:border-brand-primary focus:ring-1 focus:ring-brand-primary/20 rounded-xl px-3 text-[12px] font-medium text-text-primary outline-none"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1">
-                                                    Receiving Contact Phone
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    name="deliveryContactPhone"
-                                                    value={formData.deliveryContactPhone}
-                                                    onChange={handleChange}
-                                                    placeholder="e.g. +91 9876543210"
-                                                    className="w-full h-9 bg-bg-main border border-border-subtle focus:border-brand-primary focus:ring-1 focus:ring-brand-primary/20 rounded-xl px-3 text-[12px] font-medium text-text-primary outline-none"
-                                                />
-                                            </div>
+                                        <textarea
+                                            name="deliveryAddress"
+                                            rows={2}
+                                            required
+                                            value={formData.deliveryAddress}
+                                            onChange={handleChange}
+                                            placeholder={formData.deliveryDestinationType === 'CUSTOM' ? "Enter custom warehouse or delivery location including address, city, state, pin..." : "Enter full physical delivery address including city, state, pin..."}
+                                            className="w-full bg-bg-main border border-border-subtle focus:border-brand-primary focus:ring-1 focus:ring-brand-primary/20 rounded-xl p-2.5 text-[12px] font-medium text-text-primary outline-none resize-none"
+                                        />
+                                        {formData.deliveryDestinationType === 'CUSTOMER_SITE' && (quotation.customer?.billingAddress || quotation.billingAddress || quotation.customerAddress || quotation.shippingAddress) && !formData.deliveryAddress && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setFormData(prev => ({
+                                                    ...prev,
+                                                    deliveryAddress: formatCustomerShippingAddress(quotation),
+                                                    deliveryContactName: getCustomerContactPerson(quotation),
+                                                    deliveryContactPhone: getCustomerContactPhone(quotation)
+                                                }))}
+                                                className="text-[11px] text-brand-primary hover:underline font-medium mt-1 inline-block"
+                                            >
+                                                + Re-fill customer's registered address
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1">
+                                                Receiving Contact Person
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="deliveryContactName"
+                                                value={formData.deliveryContactName}
+                                                onChange={handleChange}
+                                                placeholder="e.g. Harsh Raj / Site Manager"
+                                                className="w-full h-9 bg-bg-main border border-border-subtle focus:border-brand-primary focus:ring-1 focus:ring-brand-primary/20 rounded-xl px-3 text-[12px] font-medium text-text-primary outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[11px] text-text-muted uppercase tracking-wider font-semibold mb-1">
+                                                Receiving Contact Phone
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="deliveryContactPhone"
+                                                value={formData.deliveryContactPhone}
+                                                onChange={handleChange}
+                                                placeholder="e.g. +91 9876543210"
+                                                className="w-full h-9 bg-bg-main border border-border-subtle focus:border-brand-primary focus:ring-1 focus:ring-brand-primary/20 rounded-xl px-3 text-[12px] font-medium text-text-primary outline-none"
+                                            />
                                         </div>
                                     </div>
-                                )}
+                                </div>
                             </div>
                             <div className="sm:col-span-2">
                                 <div className="flex justify-between items-center mb-1.5">

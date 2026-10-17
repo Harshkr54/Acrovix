@@ -27,13 +27,27 @@ class ErrorBoundary extends React.Component {
                         <p className="text-[13px] text-text-secondary mb-8 leading-relaxed">
                             We couldn't load this section. Please reload the page to try again.
                         </p>
-                        <button 
-                            onClick={() => window.location.reload()} 
-                            className="btn btn-primary btn-md w-full"
-                        >
-                            <RefreshCw className="w-4 h-4 mr-2" />
-                            Try Again
-                        </button>
+                        <div className="flex gap-3 w-full">
+                            <button 
+                                onClick={() => window.location.reload()} 
+                                className="btn btn-primary btn-md flex-1 inline-flex items-center justify-center"
+                            >
+                                <RefreshCw className="w-4 h-4 mr-2" />
+                                Reload
+                            </button>
+                            <button 
+                                onClick={() => {
+                                    try {
+                                        localStorage.removeItem('adminToken');
+                                        localStorage.removeItem('adminUser');
+                                    } catch (_) {}
+                                    window.location.href = '/login';
+                                }} 
+                                className="btn btn-secondary btn-md flex-1 inline-flex items-center justify-center"
+                            >
+                                Back to Login
+                            </button>
+                        </div>
                         
                         {(import.meta.env?.DEV || (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development')) && this.state.error && (
                             <div className="mt-8 w-full p-4 bg-bg-muted rounded-xl border border-border-subtle text-left overflow-auto max-h-48 text-[11px] font-mono text-text-secondary">

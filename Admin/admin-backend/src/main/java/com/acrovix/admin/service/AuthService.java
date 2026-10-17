@@ -29,7 +29,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.beans.factory.annotation.Value;
 
 @Service
-@RequiredArgsConstructor
 public class AuthService {
 
     private final AdminUserRepository repository;
@@ -41,8 +40,45 @@ public class AuthService {
     private final NotificationService notificationService;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final PasswordEncoder passwordEncoder;
+    private final com.acrovix.admin.repository.TenantRepository tenantRepository;
 
-    @Value("${acrovix.app.frontend-url:http://localhost:5173}")
+    @org.springframework.beans.factory.annotation.Autowired
+    public AuthService(AdminUserRepository repository,
+                       AdminActivityRepository activityRepository,
+                       JwtUtil jwtUtil,
+                       AuthenticationManager authenticationManager,
+                       EmailService emailService,
+                       LoginRateLimiterService rateLimiterService,
+                       NotificationService notificationService,
+                       PasswordResetTokenRepository passwordResetTokenRepository,
+                       PasswordEncoder passwordEncoder,
+                       com.acrovix.admin.repository.TenantRepository tenantRepository) {
+        this.repository = repository;
+        this.activityRepository = activityRepository;
+        this.jwtUtil = jwtUtil;
+        this.authenticationManager = authenticationManager;
+        this.emailService = emailService;
+        this.rateLimiterService = rateLimiterService;
+        this.notificationService = notificationService;
+        this.passwordResetTokenRepository = passwordResetTokenRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.tenantRepository = tenantRepository;
+    }
+
+    public AuthService(AdminUserRepository repository,
+                       AdminActivityRepository activityRepository,
+                       JwtUtil jwtUtil,
+                       AuthenticationManager authenticationManager,
+                       EmailService emailService,
+                       LoginRateLimiterService rateLimiterService,
+                       NotificationService notificationService,
+                       PasswordResetTokenRepository passwordResetTokenRepository,
+                       PasswordEncoder passwordEncoder) {
+        this(repository, activityRepository, jwtUtil, authenticationManager, emailService,
+             rateLimiterService, notificationService, passwordResetTokenRepository, passwordEncoder, null);
+    }
+
+    @Value("${acrovix.app.frontend-url:${app.frontend.url:https://admin.acrovix.com}}")
     private String frontendUrl;
 
     @Transactional
@@ -54,19 +90,79 @@ public class AuthService {
                     .entityId(0L)
                     .description("IP: " + clientIp)
                     .build();
+            Long currentTenantId = com.acrovix.admin.tenant.TenantContext.getTenantId();
+            activity.setTenantId(currentTenantId != null ? currentTenantId : 1L);
             activityRepository.save(activity);
             
             throw new RateLimitExceededException("Too many login attempts. Please try again later.");
         }
 
         try {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
-                        request.getPassword()
-                )
-        );
-        AdminUser user = (AdminUser) authentication.getPrincipal();
+            String explicitSlug = request.getEffectiveSlug();
+            Long targetTenantId = null;
+            String tenantSlug = "default";
+
+            if (explicitSlug != null && !explicitSlug.isBlank()) {
+                if (tenantRepository != null) {
+                    var tenantOpt = tenantRepository.findBySlug(explicitSlug);
+                    if (tenantOpt.isEmpty()) {
+                        throw new org.springframework.security.authentication.BadCredentialsException("Workspace '" + explicitSlug + "' not found.");
+                    }
+                    var tenant = tenantOpt.get();
+                    if (tenant.getStatus() == com.acrovix.admin.entity.TenantStatus.SUSPENDED 
+                            || tenant.getStatus() == com.acrovix.admin.entity.TenantStatus.CANCELLED) {
+                        throw new org.springframework.security.authentication.DisabledException("Tenant account is " + tenant.getStatus().name().toLowerCase() + ".");
+                    }
+                    targetTenantId = tenant.getId();
+                    tenantSlug = tenant.getSlug();
+                }
+            } else {
+                // Auto-detect tenant by user email across active tenants
+                java.util.List<AdminUser> usersWithEmail = repository.findAllByEmail(request.getEmail());
+                if (!usersWithEmail.isEmpty()) {
+                    AdminUser candidate = usersWithEmail.get(0);
+                    if (usersWithEmail.size() > 1) {
+                        // If multiple workspaces share email, prefer platform root tenant 1 if present
+                        candidate = usersWithEmail.stream()
+                                .filter(u -> u.getTenantId() != null && u.getTenantId().equals(1L))
+                                .findFirst()
+                                .orElse(usersWithEmail.get(0));
+                    }
+                    targetTenantId = (candidate.getTenantId() != null) ? candidate.getTenantId() : 1L;
+                }
+            }
+
+            if (targetTenantId != null) {
+                com.acrovix.admin.tenant.TenantContext.setTenantId(targetTenantId);
+            }
+
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getEmail(),
+                            request.getPassword()
+                    )
+            );
+            AdminUser user = (AdminUser) authentication.getPrincipal();
+
+            // Enforce workspace tenancy scoping
+            if (targetTenantId != null && user.getTenantId() != null && !targetTenantId.equals(user.getTenantId())) {
+                throw new org.springframework.security.authentication.BadCredentialsException("Invalid credentials for this workspace.");
+            }
+
+            Long effectiveTenantId = (user.getTenantId() != null) ? user.getTenantId() : (targetTenantId != null ? targetTenantId : 1L);
+            if (tenantRepository != null) {
+                var tenantOpt = tenantRepository.findById(effectiveTenantId);
+                if (tenantOpt.isPresent()) {
+                    var tenant = tenantOpt.get();
+                    tenantSlug = tenant.getSlug();
+                    if (tenant.getStatus() == com.acrovix.admin.entity.TenantStatus.SUSPENDED 
+                            || tenant.getStatus() == com.acrovix.admin.entity.TenantStatus.CANCELLED) {
+                        throw new org.springframework.security.authentication.DisabledException("Tenant account is " + tenant.getStatus().name().toLowerCase() + ".");
+                    }
+                } else if (Long.valueOf(1L).equals(effectiveTenantId)) {
+                    tenantSlug = "default";
+                }
+            }
 
         rateLimiterService.loginSucceeded(clientIp);
 
@@ -79,9 +175,10 @@ public class AuthService {
                 .entityType("AUTH")
                 .entityId(user.getId())
                 .build();
+        activity.setTenantId(effectiveTenantId);
         activityRepository.save(activity);
 
-        var jwtToken = jwtUtil.generateToken(user);
+        var jwtToken = jwtUtil.generateToken(user, effectiveTenantId, tenantSlug);
         try {
             java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
             emailService.sendLoginSecurityEmailAsync(user.getEmail(), user.getName(), LocalDateTime.now().format(formatter));
@@ -95,6 +192,8 @@ public class AuthService {
                 .email(user.getEmail())
                 .role(user.getRole().name())
                 .mustChangePassword(user.isMustChangePassword())
+                .tenantId(effectiveTenantId)
+                .tenantSlug(tenantSlug)
                 .build();
         } catch (AuthenticationException ex) {
             rateLimiterService.loginFailed(clientIp);
@@ -106,6 +205,8 @@ public class AuthService {
                         .entityId(0L)
                         .description("IP: " + clientIp)
                         .build();
+                Long fallbackTenantId = com.acrovix.admin.tenant.TenantContext.getTenantId();
+                activity.setTenantId(fallbackTenantId != null ? fallbackTenantId : 1L);
                 activityRepository.save(activity);
             } catch (Exception e) {
                 // Activity logging failure should not suppress auth failure
@@ -152,7 +253,7 @@ public class AuthService {
         
         passwordResetTokenRepository.save(resetToken);
 
-        String baseUrl = (frontendUrl != null && !frontendUrl.isBlank()) ? frontendUrl.trim() : "http://localhost:5173";
+        String baseUrl = (frontendUrl != null && !frontendUrl.isBlank()) ? frontendUrl.trim() : "https://admin.acrovix.com";
         while (baseUrl.endsWith("/")) {
             baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
         }

@@ -6,9 +6,12 @@ import { useToast } from '../context/ToastContext';
 import GstinAutoLookup from './GstinAutoLookup';
 import { formatStateDisplay, extractStateCode, searchGstStates, GST_STATES } from '../utils/gstStateUtils';
 
+import { useTenant } from '../context/TenantContext';
+
 export default function CreateQuotationModal({ isOpen, onClose }) {
     const navigate = useNavigate();
     const { showToast } = useToast();
+    const { tenant } = useTenant();
     const [step, setStep] = useState(1); // 1: Choose type, 2: Direct quotation client details
     const [isCreating, setIsCreating] = useState(false);
     const [error, setError] = useState(null);
@@ -25,7 +28,7 @@ export default function CreateQuotationModal({ isOpen, onClose }) {
         shippingAddress: '',
         state: '',
         pincode: '',
-        currency: 'INR',
+        currency: tenant?.currencyCode || 'USD',
         quotationSource: 'PHONE',
         sourceNotes: ''
     });

@@ -29,7 +29,7 @@ public class PurchaseOrderController {
     private final PurchaseOrderService purchaseOrderService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<Page<PurchaseOrderResponse>> getPurchaseOrders(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) PurchaseOrderStatus status,
@@ -43,13 +43,13 @@ public class PurchaseOrderController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<PurchaseOrderResponse> getPurchaseOrder(@PathVariable Long id, @AuthenticationPrincipal AdminUser admin) {
         return ResponseEntity.ok(purchaseOrderService.getPurchaseOrder(id, admin));
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     public ResponseEntity<PurchaseOrderResponse> createPurchaseOrder(
             @Valid @RequestBody PurchaseOrderRequest request,
             @AuthenticationPrincipal AdminUser admin) {
@@ -57,7 +57,7 @@ public class PurchaseOrderController {
     }
 
     @PostMapping("/{id}/verify")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     public ResponseEntity<PurchaseOrderResponse> verifyPurchaseOrder(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser admin) {
@@ -65,7 +65,7 @@ public class PurchaseOrderController {
     }
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     public ResponseEntity<PurchaseOrderResponse> updateStatus(
             @PathVariable Long id, 
             @Valid @RequestBody PurchaseOrderStatusRequest request,
@@ -74,7 +74,7 @@ public class PurchaseOrderController {
     }
 
     @PatchMapping("/{id}/remarks")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     public ResponseEntity<PurchaseOrderResponse> updateRemarks(
             @PathVariable Long id,
             @Valid @RequestBody com.acrovix.admin.dto.PurchaseOrderRemarksRequest request,
@@ -84,7 +84,7 @@ public class PurchaseOrderController {
 
     @RateLimit(category = RateLimitCategory.PDF)
     @GetMapping("/{id}/pdf")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<byte[]> downloadPdf(@PathVariable Long id, @AuthenticationPrincipal AdminUser admin) {
         byte[] pdfBytes = purchaseOrderService.generatePdf(id, admin);
         org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();

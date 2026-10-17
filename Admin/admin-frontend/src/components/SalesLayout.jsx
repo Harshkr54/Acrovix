@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useTenant } from '../context/TenantContext';
 import { 
     LayoutDashboard, 
     MessageSquare, 
@@ -9,25 +10,22 @@ import {
     FileText, 
     Menu, 
     X, 
-    Sun, 
-    Moon, 
     Search, 
     Clock, 
-    Calendar, 
     UsersRound, 
     ShoppingCart, 
     CreditCard, 
     Building2,
-    Briefcase
+    PanelLeftClose,
+    PanelLeftOpen
 } from 'lucide-react';
 import HeaderControls from './HeaderControls';
-import { getInitials } from '../utils/userUtils';
-import { fetchApi } from '../services/api';
+import { fetchApi, resolveAssetUrl } from '../services/api';
 
 import logoLightExpanded from '../assets/acrovix_logo1.png';
-import logoDarkExpanded from '../assets/Acrovix_logo.png';
+import logoDarkExpanded from '../assets/acrovix_logo_dark.png';
 import logoLightCollapsed from '../assets/Acrovix_light.png';
-import logoDarkCollapsed from '../assets/Acrovix.png';
+import logoDarkCollapsed from '../assets/acrovix_collapsed_dark.png';
 
 const DateTimeDisplay = () => {
     const [time, setTime] = useState(new Date());
@@ -37,29 +35,25 @@ const DateTimeDisplay = () => {
         return () => clearInterval(timer);
     }, []);
 
-    const dateOptions = { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' };
+    const dateOptions = { weekday: 'short', month: 'short', day: 'numeric' };
     const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: true };
     const dateStr = time.toLocaleDateString('en-US', dateOptions);
     const timeStr = time.toLocaleTimeString('en-US', timeOptions);
 
     return (
-        <div className="hidden lg:flex items-center">
-            <div className="flex items-center gap-3 bg-bg-card border border-border-subtle rounded-full px-4 h-[44px] shadow-sm">
-                <div className="w-8 h-8 rounded-full bg-brand-primary/10 flex items-center justify-center shrink-0">
-                    <Calendar className="w-4 h-4 text-brand-primary" />
-                </div>
-                <div className="flex flex-col justify-center">
-                    <span className="text-[12px] font-bold text-text-primary tracking-tight leading-[1.1]">{dateStr}</span>
-                    <span className="text-[10px] font-medium text-text-muted leading-[1.1] mt-0.5">{timeStr} IST</span>
-                </div>
-            </div>
+        <div className="hidden xl:flex items-center text-xs text-slate-500 dark:text-slate-400 bg-slate-100/80 dark:bg-slate-800/40 px-2.5 py-1.5 rounded-lg border border-slate-200/80 dark:border-slate-700/30 font-medium">
+            <span>{dateStr}</span>
+            <span className="mx-1.5 text-slate-400/60">·</span>
+            <span>{timeStr}</span>
         </div>
     );
 };
 
 export default function SalesLayout() {
     const { user, logout } = useAuth();
-    const { theme, toggleTheme } = useTheme();
+    const { theme } = useTheme();
+    const { tenant, isPlatformOwner } = useTenant();
+    const isOwnerWorkspace = isPlatformOwner ? isPlatformOwner(user) : (!user?.tenantId || user?.tenantId === 1 || user?.tenantId === '1');
     const navigate = useNavigate();
     const location = useLocation();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -174,7 +168,7 @@ export default function SalesLayout() {
     ];
 
     return (
-        <div className={`flex h-screen bg-bg-main text-text-primary overflow-hidden ${isExiting ? 'animate-page-exit' : 'animate-page-entrance'}`}>
+        <div className={`flex h-screen bg-slate-50 dark:bg-[#0B0F17] text-text-primary overflow-hidden ${isExiting ? 'animate-page-exit' : 'animate-page-entrance'}`}>
             {/* Mobile Sidebar Overlay */}
             {isSidebarOpen && (
                 <div
@@ -183,58 +177,77 @@ export default function SalesLayout() {
                 />
             )}
 
-            {/* Sales Sidebar */}
-            <aside aria-label="Sales navigation" className={`sidebar fixed inset-y-0 left-0 z-50 flex flex-col shrink-0 lg:relative lg:translate-x-0 lg:h-screen ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isCollapsed ? 'w-[72px]' : 'w-[260px]'}`}>
+            {/* Sales Sidebar (Seamless L-Frame Outer Surface) */}
+            <aside aria-label="Sales navigation" className={`sidebar fixed inset-y-0 left-0 z-50 flex flex-col shrink-0 lg:relative lg:translate-x-0 lg:h-screen bg-slate-50 dark:bg-[#0B0F17] ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isCollapsed ? 'w-[68px]' : 'w-[244px]'}`}>
                 {/* Brand Logo Header */}
-                <div className="w-full h-[81px] bg-white dark:bg-bg-card flex items-center justify-center shrink-0 shadow-sm relative z-10 border-b border-border-subtle/50">
+                <div className="w-full h-[52px] bg-transparent flex items-center px-4 shrink-0 relative z-10">
                     {!isCollapsed && (
-                        <img
-                            src={theme === 'dark' ? logoDarkExpanded : logoLightExpanded}
-                            alt="ACROVIX"
-                            width="200"
-                            height="60"
-                            className="h-[80%] w-auto object-contain transition-all"
-                        />
+                        tenant?.logoUrl ? (
+                            <img
+                                src={resolveAssetUrl(tenant.logoUrl)}
+                                alt={tenant?.brandName || "Workspace"}
+                                className="max-h-8 max-w-[190px] w-auto object-contain transition-all"
+                            />
+                        ) : isOwnerWorkspace ? (
+                            <img
+                                src={theme === 'dark' ? logoDarkExpanded : logoLightExpanded}
+                                alt="ACROVIX"
+                                className="max-h-8 max-w-[190px] w-auto object-contain transition-all"
+                            />
+                        ) : (
+                            <div className="flex items-center gap-2.5 max-w-[210px]">
+                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-primary to-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
+                                    {(tenant?.brandName || tenant?.companyName || 'Acrovix Innovations').slice(0, 2).toUpperCase()}
+                                </div>
+                                <div className="flex flex-col min-w-0 text-left">
+                                    <span className="text-xs font-bold text-text-primary truncate tracking-tight">
+                                        {tenant?.brandName || tenant?.companyName || 'Acrovix Innovations'}
+                                    </span>
+                                    <span className="text-[10px] text-text-muted font-medium uppercase tracking-wider">
+                                        Sales Workspace
+                                    </span>
+                                </div>
+                            </div>
+                        )
                     )}
                     {isCollapsed && (
                         <div className="w-full flex justify-center">
-                            <img
-                                src={theme === 'dark' ? logoDarkCollapsed : logoLightCollapsed}
-                                alt="ACX"
-                                width="40"
-                                height="24"
-                                className="h-[24px] w-auto object-contain transition-all"
-                            />
+                            {tenant?.faviconUrl ? (
+                                <img
+                                    src={resolveAssetUrl(tenant.faviconUrl)}
+                                    alt={tenant?.brandName || "Workspace"}
+                                    className="max-h-7 max-w-[32px] w-auto object-contain transition-all"
+                                />
+                            ) : isOwnerWorkspace ? (
+                                <img
+                                    src={theme === 'dark' ? logoDarkCollapsed : logoLightCollapsed}
+                                    alt="ACX"
+                                    className="max-h-7 max-w-[32px] w-auto object-contain transition-all"
+                                />
+                            ) : (
+                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-primary to-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                                    {(tenant?.brandName || tenant?.companyName || 'Acrovix Innovations').slice(0, 2).toUpperCase()}
+                                </div>
+                            )}
                         </div>
                     )}
                     <button 
                         onClick={() => setIsSidebarOpen(false)} 
-                        aria-label="Close sidebar" 
+                        aria-label="Close navigation"
                         className="lg:hidden absolute right-4 text-text-muted hover:text-text-primary transition-colors p-1 rounded-lg"
                     >
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
-                {/* Sales Workspace Title Badge */}
-                {!isCollapsed && (
-                    <div className="mx-4 mt-3 mb-1 px-3 py-1.5 rounded-xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-between">
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-brand-primary flex items-center gap-1.5">
-                            <Briefcase className="w-3.5 h-3.5" /> Sales Workspace
-                        </span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-brand-primary text-white font-bold">
-                            Active
-                        </span>
-                    </div>
-                )}
-
-                {/* Navigation Items */}
+                {/* Sales Nav List */}
                 <div className="flex-1 overflow-y-auto py-3 hide-scrollbar flex flex-col">
                     <nav className="space-y-1 flex-1">
                         <div className="flex flex-col space-y-[2px]">
+                            {!isCollapsed && <p className="sidebar-section-title">Sales Workspace</p>}
                             {salesWorkspaceItems.map((item) => {
                                 const Icon = item.icon;
-                                const isActive = item.exact
+                                const isActive = item.exact 
                                     ? location.pathname === item.path
                                     : (location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path)));
                                 return (
@@ -247,10 +260,10 @@ export default function SalesLayout() {
                                     >
                                         <Icon className={`sidebar-nav-icon ${isCollapsed ? '!mr-0' : ''}`} />
                                         {!isCollapsed && (
-                                            <div className="flex items-center justify-between flex-1 min-w-0 pr-1">
-                                                <span className="truncate">{item.name}</span>
+                                            <div className="flex items-center justify-between w-full">
+                                                <span>{item.name}</span>
                                                 {item.badge && (
-                                                    <span className="text-[9.5px] font-medium text-text-muted bg-bg-muted px-1.5 py-0.5 rounded-md border border-border-subtle">
+                                                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-bg-muted/80 text-text-muted font-medium">
                                                         {item.badge}
                                                     </span>
                                                 )}
@@ -269,55 +282,52 @@ export default function SalesLayout() {
                     </nav>
                 </div>
 
-                {/* Sales Profile Bottom Section */}
-                <div className="sidebar-bottom-section">
-                    <div 
-                        className="mx-4 mb-4 mt-auto rounded-2xl border flex items-center px-3 py-2.5 transition-colors group cursor-default" 
-                        style={{ borderColor: 'var(--theme-sidebar-separator, #E2E8F0)', backgroundColor: 'var(--theme-sidebar-item-hover-bg)' }}
-                    >
-                        <div className="w-[38px] h-[38px] rounded-full bg-[var(--color-brand-primary)] flex items-center justify-center text-white font-bold text-[14px] shrink-0 shadow-sm relative">
-                            {getInitials(user?.name)}
-                            {isCollapsed && (
-                                <div className="sidebar-tooltip">
-                                    {user?.name || 'Sales User'}
+                {/* Sales Sidebar Footer: Compact Status & Quick Logout */}
+                <div className="p-3 border-t border-border-subtle/50 dark:border-slate-800/60 mt-auto shrink-0 flex items-center justify-between">
+                    {!isCollapsed ? (
+                        <>
+                            <div className="flex items-center gap-2 min-w-0">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                                <div className="flex flex-col min-w-0">
+                                    <span className="text-[11px] font-semibold text-text-primary dark:text-slate-300 truncate">
+                                        {activeTenantName}
+                                    </span>
+                                    <span className="text-[10px] text-text-muted dark:text-slate-400">Online</span>
                                 </div>
-                            )}
-                        </div>
-                        {!isCollapsed && (
-                            <div className="flex flex-col ml-3 min-w-0 flex-1">
-                                <span className="text-[13px] font-bold text-text-primary truncate">
-                                    {user?.name || 'Sales Representative'}
-                                </span>
-                                <span className="text-[11px] font-medium text-brand-primary flex items-center gap-1">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                    SALES
-                                </span>
                             </div>
-                        )}
-                        {!isCollapsed && (
                             <button
                                 onClick={handleLogout}
-                                aria-label="Sign out"
+                                className="p-1.5 rounded-lg text-text-muted hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
                                 title="Sign out"
-                                className="p-1.5 text-text-muted hover:text-brand-danger hover:bg-brand-danger/10 rounded-lg transition-colors"
+                                aria-label="Sign out"
                             >
                                 <LogOut className="w-4 h-4" />
                             </button>
-                        )}
-                    </div>
+                        </>
+                    ) : (
+                        <button
+                            onClick={handleLogout}
+                            className="w-9 h-9 mx-auto flex items-center justify-center rounded-lg text-text-muted hover:text-rose-500 hover:bg-rose-500/10 transition-colors group relative"
+                            title="Sign out"
+                            aria-label="Sign out"
+                        >
+                            <LogOut className="w-4 h-4" />
+                            <div className="sidebar-tooltip">Sign out</div>
+                        </button>
+                    )}
                 </div>
             </aside>
 
-            {/* Main Application Container */}
-            <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-                {/* Top Header */}
-                <header className="h-[81px] bg-bg-card border-b border-border-subtle flex items-center justify-between px-6 shrink-0 relative z-30 shadow-sm">
-                    <div className="flex items-center gap-4 flex-1 max-w-2xl">
+            {/* Main Application Container (Integrated L-Frame) */}
+            <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-50 dark:bg-[#0B0F17] relative">
+                {/* Top Header (Subtle 52px height) */}
+                <header className="h-[52px] sticky top-0 flex items-center justify-between px-4 sm:px-6 bg-slate-50 dark:bg-[#0B0F17] z-30 transition-all shrink-0">
+                    <div className="flex items-center flex-1 gap-3 sm:gap-4 min-w-0">
                         {/* Mobile Menu Trigger */}
                         <button
                             onClick={() => setIsSidebarOpen(true)}
                             aria-label="Open navigation menu"
-                            className="lg:hidden text-text-secondary hover:text-text-primary p-2 rounded-xl border border-border-subtle bg-bg-main"
+                            className="lg:hidden text-text-muted hover:text-text-primary transition-colors focus:outline-none shrink-0"
                         >
                             <Menu className="w-5 h-5" />
                         </button>
@@ -327,22 +337,27 @@ export default function SalesLayout() {
                             onClick={toggleSidebar}
                             aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
                             title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-                            className="hidden lg:flex items-center justify-center w-10 h-10 rounded-xl border border-border-subtle bg-bg-main text-text-secondary hover:text-text-primary hover:bg-bg-card transition-colors shrink-0"
+                            className="hidden lg:flex items-center justify-center w-8 h-8 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-hover border border-transparent hover:border-border-subtle transition-all focus:outline-none shrink-0"
                         >
-                            <Menu className="w-4 h-4" />
+                            {isCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
                         </button>
 
-                        {/* Search Bar */}
-                        <div className="relative flex-1" ref={searchRef}>
+                        {/* Global Search (Cmd + K) */}
+                        <div className="relative w-64 lg:w-72 focus-within:w-80 transition-all duration-200" ref={searchRef}>
                             <div className="relative">
-                                <Search className="w-4 h-4 text-text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
+                                <Search className="w-3.5 h-3.5 text-text-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                                 <input
                                     type="text"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    placeholder="Search your enquiries, quotations, customers..."
-                                    className="w-full bg-bg-main border border-border-subtle rounded-xl pl-10 pr-9 py-2 text-[13px] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all h-[42px]"
+                                    placeholder="Search sales..."
+                                    className="w-full bg-slate-100/80 dark:bg-slate-800/50 hover:bg-slate-200/60 dark:hover:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/50 rounded-xl pl-9 pr-14 py-1.5 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all h-[36px]"
                                 />
+                                {!searchQuery && (
+                                    <div className="absolute inset-y-0 right-2.5 flex items-center pointer-events-none">
+                                        <kbd className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200/80 dark:bg-slate-700/60 text-slate-500 dark:text-slate-400 font-mono border border-slate-300/40 dark:border-slate-600/40">⌘K</kbd>
+                                    </div>
+                                )}
                                 {searchQuery && (
                                     <button 
                                         onClick={handleClearSearch}
@@ -370,9 +385,9 @@ export default function SalesLayout() {
                                                             <div className="text-[11px] font-bold uppercase text-text-muted px-2 py-1">Enquiries</div>
                                                             {searchResults.enquiries.map(enq => (
                                                                 <div 
-                                                                    key={enq.id}
+                                                                    key={enq.id} 
                                                                     onClick={() => handleSearchNavigate(`/enquiries`)}
-                                                                    className="px-3 py-2 rounded-xl hover:bg-bg-main cursor-pointer text-xs flex justify-between items-center transition-colors"
+                                                                    className="px-3 py-2 rounded-xl hover:bg-bg-hover cursor-pointer text-xs flex justify-between items-center transition-colors"
                                                                 >
                                                                     <div>
                                                                         <span className="font-bold text-text-primary">{enq.referenceId}</span>
@@ -389,9 +404,9 @@ export default function SalesLayout() {
                                                             <div className="text-[11px] font-bold uppercase text-text-muted px-2 py-1">Quotations</div>
                                                             {searchResults.quotations.map(quot => (
                                                                 <div 
-                                                                    key={quot.id}
+                                                                    key={quot.id} 
                                                                     onClick={() => handleSearchNavigate(`/quotations/edit/${quot.id}`)}
-                                                                    className="px-3 py-2 rounded-xl hover:bg-bg-main cursor-pointer text-xs flex justify-between items-center transition-colors"
+                                                                    className="px-3 py-2 rounded-xl hover:bg-bg-hover cursor-pointer text-xs flex justify-between items-center transition-colors"
                                                                 >
                                                                     <div>
                                                                         <span className="font-bold text-text-primary">{quot.quotationNumber}</span>
@@ -408,15 +423,15 @@ export default function SalesLayout() {
                                                             <div className="text-[11px] font-bold uppercase text-text-muted px-2 py-1">Customers</div>
                                                             {searchResults.customers.map(cust => (
                                                                 <div 
-                                                                    key={cust.id}
+                                                                    key={cust.id} 
                                                                     onClick={() => handleSearchNavigate(`/customers/${cust.id}/360`)}
-                                                                    className="px-3 py-2 rounded-xl hover:bg-bg-main cursor-pointer text-xs flex justify-between items-center transition-colors"
+                                                                    className="px-3 py-2 rounded-xl hover:bg-bg-hover cursor-pointer text-xs flex justify-between items-center transition-colors"
                                                                 >
                                                                     <div>
                                                                         <span className="font-bold text-text-primary">{cust.name}</span>
-                                                                        {cust.companyName && <span className="text-text-muted ml-2">({cust.companyName})</span>}
+                                                                        {cust.customerCode && <span className="text-[10px] text-text-muted ml-1.5">({cust.customerCode})</span>}
                                                                     </div>
-                                                                    <span className="text-[10px] font-mono text-text-muted">{cust.customerCode}</span>
+                                                                    <span className="text-text-muted text-[11px] truncate max-w-[150px]">{cust.companyName}</span>
                                                                 </div>
                                                             ))}
                                                         </div>
@@ -431,28 +446,10 @@ export default function SalesLayout() {
                     </div>
 
                     {/* Right Controls */}
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2.5 sm:gap-3 ml-2 lg:ml-4 shrink-0">
                         <DateTimeDisplay />
-
-                        {/* Light / Dark Mode Toggle */}
-                        <div className="flex items-center bg-bg-card rounded-full p-1 border border-border-subtle shadow-sm">
-                            <button
-                                type="button"
-                                onClick={() => theme !== 'light' && toggleTheme()}
-                                aria-label="Switch to light mode"
-                                className={`p-1.5 sm:p-2 rounded-full transition-colors ${theme === 'light' ? 'bg-bg-muted text-[#F59E0B]' : 'text-text-muted hover:text-text-primary'}`}
-                            >
-                                <Sun className="w-4 h-4" />
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => theme !== 'dark' && toggleTheme()}
-                                aria-label="Switch to dark mode"
-                                className={`p-1.5 sm:p-2 rounded-full transition-colors ${theme === 'dark' ? 'bg-bg-muted text-[#2563EB]' : 'text-text-muted hover:text-text-primary'}`}
-                            >
-                                <Moon className="w-4 h-4" />
-                            </button>
-                        </div>
+                        <div className="hidden sm:block header-divider"></div>
+                        <HeaderControls onLogout={handleLogout} />
                     </div>
                 </header>
 

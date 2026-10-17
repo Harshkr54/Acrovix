@@ -19,10 +19,15 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class PaymentService {
+
+    private static final Logger log = LoggerFactory.getLogger(PaymentService.class);
 
     private final PaymentRepository paymentRepository;
     private final InvoiceRepository invoiceRepository;
@@ -200,7 +205,107 @@ public class PaymentService {
         return savedPayment;
     }
 
-    private void recalculateInvoiceTotalsAndStatus(Invoice invoice) {
+    /**
+     * Reconciles an automated Razorpay webhook payment against the target invoice.
+     * Guarantees idempotent settlement, ledger updates, invoice status transitions,
+     * and asynchronous client receipt notification.
+     */
+    @Transactional
+    public Payment processRazorpayWebhookSettlement(Long invoiceId, Long tenantId, BigDecimal paidAmount,
+                                                    String paymentId, String orderId, String eventType) {
+        if (paymentId == null || paymentId.isBlank()) {
+            throw new IllegalArgumentException("payment_id cannot be null or blank");
+        }
+        final String txnRef = paymentId.trim();
+
+        // 1. Idempotency Guard: Check if a Payment with transactionRef = payment_id already exists.
+        if (paymentRepository.existsByTransactionReference(txnRef)) {
+            log.info("Payment with transactionRef={} already recorded. Skipping double-counting.", txnRef);
+            return null;
+        }
+
+        // 2. Look up target Invoice by ID and tenant ID.
+        Invoice invoice = null;
+        if (tenantId != null && invoiceId != null) {
+            invoice = invoiceRepository.findByTenantIdAndId(tenantId, invoiceId).orElse(null);
+        }
+        if (invoice == null && invoiceId != null) {
+            invoice = invoiceRepository.findById(invoiceId).orElse(null);
+        }
+
+        if (invoice == null) {
+            throw new ResourceNotFoundException("Target invoice not found for reconciliation: invoiceId=" + invoiceId + ", tenantId=" + tenantId);
+        }
+
+        // 3. Record a new Payment entry:
+        //    method = 'RAZORPAY', amount = paidAmount, transactionRef = payment_id, status = 'RECORDED'
+        String paymentNumber = sequenceGeneratorService.generateNextPaymentNumber(LocalDate.now(), invoice.getTenantId());
+
+        Payment payment = Payment.builder()
+                .paymentNumber(paymentNumber)
+                .invoice(invoice)
+                .customer(invoice.getCustomer())
+                .paymentDate(LocalDate.now())
+                .currency(invoice.getCurrency() != null ? invoice.getCurrency() : Currency.INR)
+                .amount(paidAmount.setScale(2, RoundingMode.HALF_UP))
+                .paymentMethod(PaymentMethod.RAZORPAY)
+                .transactionReference(txnRef)
+                .notes("Automated Razorpay Webhook (" + eventType + ")" + (orderId != null ? " - Order: " + orderId : ""))
+                .status(PaymentStatus.RECORDED)
+                .build();
+        payment.setTenantId(invoice.getTenantId());
+
+        Payment savedPayment;
+        try {
+            savedPayment = paymentRepository.saveAndFlush(payment);
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            log.warn("Concurrent duplicate payment detected for transactionRef={}. Skipping.", txnRef);
+            return null;
+        }
+
+        // 4. Update invoice.amountPaid += paidAmount and recalculate balanceDue = invoice.grandTotal - invoice.amountPaid.
+        BigDecimal currentPaid = invoice.getAmountPaid() != null ? invoice.getAmountPaid() : BigDecimal.ZERO;
+        BigDecimal newAmountPaid = currentPaid.add(paidAmount).setScale(2, RoundingMode.HALF_UP);
+        invoice.setAmountPaid(newAmountPaid);
+
+        BigDecimal grandTotal = invoice.getGrandTotal() != null ? invoice.getGrandTotal() : BigDecimal.ZERO;
+        BigDecimal balanceDue = grandTotal.subtract(newAmountPaid).setScale(2, RoundingMode.HALF_UP);
+        if (balanceDue.compareTo(BigDecimal.ZERO) < 0) {
+            balanceDue = BigDecimal.ZERO;
+        }
+        invoice.setBalanceDue(balanceDue);
+
+        // If balanceDue <= 0.01: Set invoice.status = 'PAID'. Otherwise set invoice.status = 'PARTIALLY_PAID'.
+        if (balanceDue.compareTo(new BigDecimal("0.01")) <= 0) {
+            invoice.setStatus(InvoiceStatus.PAID);
+        } else {
+            invoice.setStatus(InvoiceStatus.PARTIALLY_PAID);
+        }
+        invoiceRepository.save(invoice);
+
+        // Activity log
+        try {
+            logActivity(null, "PAYMENT_RECORDED", "Automated Razorpay settlement " + savedPayment.getPaymentNumber() +
+                    " of Rs. " + savedPayment.getAmount() + " against " + invoice.getInvoiceNumber() +
+                    " [Ref: " + txnRef + "]", savedPayment.getId());
+        } catch (Exception ex) {
+            log.warn("Could not record activity log for webhook payment: {}", ex.getMessage());
+        }
+
+        // 5. Client Notification: Trigger asynchronous email confirmation
+        CompletableFuture.runAsync(() -> {
+            try {
+                emailService.sendPaymentReceiptEmail(savedPayment, null);
+                log.info("Dispatched payment receipt email to client for payment {}", savedPayment.getPaymentNumber());
+            } catch (Exception ex) {
+                log.warn("Could not send asynchronous receipt email for payment {}: {}", savedPayment.getPaymentNumber(), ex.getMessage());
+            }
+        });
+
+        return savedPayment;
+    }
+
+    public void recalculateInvoiceTotalsAndStatus(Invoice invoice) {
         BigDecimal totalPaid = paymentRepository.sumActivePaymentsForInvoice(invoice.getId()).setScale(2, RoundingMode.HALF_UP);
         BigDecimal grandTotal = invoice.getGrandTotal() != null ? invoice.getGrandTotal() : BigDecimal.ZERO;
         BigDecimal balanceDue = grandTotal.subtract(totalPaid).setScale(2, RoundingMode.HALF_UP);
@@ -223,6 +328,16 @@ public class PaymentService {
         }
 
         invoiceRepository.save(invoice);
+    }
+
+    @Transactional
+    public Invoice reconcileInvoicePayments(Long invoiceId, AdminUser admin) {
+        Invoice invoice = invoiceRepository.findById(invoiceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Invoice not found: " + invoiceId));
+        recalculateInvoiceTotalsAndStatus(invoice);
+        logActivity(admin != null ? admin.getId() : null, "INVOICE_RECONCILED", 
+                "Reconciled payment totals for invoice " + invoice.getInvoiceNumber(), invoice.getId());
+        return invoice;
     }
 
     @Transactional(readOnly = true)

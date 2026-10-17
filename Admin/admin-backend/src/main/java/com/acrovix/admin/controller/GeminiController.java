@@ -21,7 +21,7 @@ public class GeminiController {
 
     @RateLimit(category = RateLimitCategory.AI)
     @PostMapping(value = "/extract", produces = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<?> extractQuotationRows(@RequestBody Map<String, String> body) {
         String text = body.get("roughText");
         if (text == null || text.trim().isEmpty()) {

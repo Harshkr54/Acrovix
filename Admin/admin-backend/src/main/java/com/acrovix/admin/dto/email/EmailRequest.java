@@ -26,6 +26,10 @@ public class EmailRequest {
     private String htmlBody;
     private boolean isHtml;
     
+    private String fromName;
+    private String replyTo;
+    private Long tenantId;
+
     @Builder.Default
     private EmailType emailType = EmailType.GENERAL;
     

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
-import { fetchApi, getCustomers, getCatalog, getCompanyBankAccounts, createInvoiceFromQuotation } from '../services/api';
+import { fetchApi, getCustomers, getCatalog, getCompanyBankAccounts, createInvoiceFromQuotation, getCompanySettings } from '../services/api';
 import { formatCurrency, formatDate, formatDateTime } from '../utils/formatters';
 import { 
     VALIDITY_PERIOD_OPTIONS, 
@@ -20,8 +20,11 @@ import QuotationColumnConfigModal from '../components/QuotationColumnConfigModal
 import QuotationPreviewModal from '../components/QuotationPreviewModal';
 import AcceptRejectQuotationModal from '../components/AcceptRejectQuotationModal';
 import CreatePurchaseOrderModal from '../components/CreatePurchaseOrderModal';
+import ActivityTimelineDrawer from '../components/ActivityTimelineDrawer';
+import LivePdfStudio from '../components/LivePdfStudio';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
+import { useTenant } from '../context/TenantContext';
 import GstinAutoLookup from '../components/GstinAutoLookup';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { parseQuotationText, normalizeLineItem, extractJsonFromText } from '../utils/quotationTextParser';
@@ -33,15 +36,91 @@ const defaultConfigs = [
     { columnKey: "description", displayName: "Description", columnType: "TEXT", visible: true, sortOrder: 2, isCustom: false },
     { columnKey: "hsnSac", displayName: "HSN/SAC", columnType: "TEXT", visible: true, sortOrder: 3, isCustom: false },
     { columnKey: "quantity", displayName: "Qty", columnType: "NUMBER", visible: true, sortOrder: 4, isCustom: false },
-    { columnKey: "listPrice", displayName: "List Price (₹)", columnType: "CURRENCY", visible: true, sortOrder: 5, isCustom: false },
+    { columnKey: "listPrice", displayName: "List Price", columnType: "CURRENCY", visible: true, sortOrder: 5, isCustom: false },
     { columnKey: "discountPercent", displayName: "Disc %", columnType: "NUMBER", visible: true, sortOrder: 6, isCustom: false },
-    { columnKey: "unitPrice", displayName: "Unit Price (₹)", columnType: "CURRENCY", visible: true, sortOrder: 7, isCustom: false },
+    { columnKey: "unitPrice", displayName: "Unit Price", columnType: "CURRENCY", visible: true, sortOrder: 7, isCustom: false },
     { columnKey: "taxPercent", displayName: "Tax %", columnType: "NUMBER", visible: true, sortOrder: 8, isCustom: false },
-    { columnKey: "taxAmount", displayName: "Tax Amount (₹)", columnType: "CURRENCY", visible: true, sortOrder: 9, isCustom: false },
-    { columnKey: "total", displayName: "Total (₹)", columnType: "CURRENCY", visible: true, sortOrder: 10, isCustom: false }
+    { columnKey: "taxAmount", displayName: "Tax Amount", columnType: "CURRENCY", visible: true, sortOrder: 9, isCustom: false },
+    { columnKey: "total", displayName: "Total", columnType: "CURRENCY", visible: true, sortOrder: 10, isCustom: false }
 ];
 
+export const PDF_METADATA_CONFIG_KEYS = new Set([
+    'themeColor',
+    'templateStyle',
+    'brandDisplayMode',
+    'bankDetails',
+    'signature',
+    'termsAndConditions',
+    'customLayoutEnabled'
+]);
+
+export const isLineItemTableColumn = (config) => {
+    if (!config || !config.columnKey) return false;
+    return !PDF_METADATA_CONFIG_KEYS.has(config.columnKey);
+};
+
+export const ensureCompleteColumnConfigs = (configs, tenantPrimaryColor = '#2563EB') => {
+    let list = Array.isArray(configs) && configs.length > 0 
+        ? configs.map(c => ({ ...c })) 
+        : defaultConfigs.map(c => ({ ...c }));
+
+    const ensureConfig = (key, defaultDisplayName, defaultVisible) => {
+        const index = list.findIndex(c => c.columnKey === key);
+        if (index === -1) {
+            list.push({
+                columnKey: key,
+                displayName: defaultDisplayName,
+                columnType: 'TEXT',
+                visible: defaultVisible,
+                isCustom: true
+            });
+        } else {
+            if (!list[index].displayName || !String(list[index].displayName).trim()) {
+                list[index].displayName = defaultDisplayName;
+            }
+            if (list[index].visible === undefined || list[index].visible === null) {
+                list[index].visible = defaultVisible;
+            }
+            if (!list[index].columnType) {
+                list[index].columnType = 'TEXT';
+            }
+            list[index].isCustom = true;
+        }
+    };
+
+    ensureConfig('themeColor', tenantPrimaryColor || '#2563EB', true);
+    ensureConfig('brandDisplayMode', 'LOGO', true);
+    ensureConfig('templateStyle', 'modern', true);
+    ensureConfig('bankDetails', 'bankDetails', true);
+    ensureConfig('signature', 'signature', true);
+    ensureConfig('termsAndConditions', 'termsAndConditions', true);
+    ensureConfig('customLayoutEnabled', 'false', false);
+
+    const builtInKeys = new Set([
+        "rowNumber", "sku", "description", "hsnSac", "quantity",
+        "listPrice", "discountPercent", "unitPrice", "taxPercent", "taxAmount", "total"
+    ]);
+
+    const seen = new Set();
+    const deduplicated = [];
+    for (const c of list) {
+        if (!seen.has(c.columnKey)) {
+            seen.add(c.columnKey);
+            deduplicated.push(c);
+        }
+    }
+
+    return deduplicated.map((c, idx) => ({
+        ...c,
+        sortOrder: idx,
+        isCustom: !builtInKeys.has(c.columnKey),
+        columnType: c.columnType || 'TEXT',
+        visible: Boolean(c.visible)
+    }));
+};
+
 export default function QuotationBuilder() {
+    const { tenant } = useTenant();
     const { enquiryId, quotationId: routeQuotationId, id: routeId } = useParams();
     const targetQuotationId = routeQuotationId || routeId;
     const navigate = useNavigate();
@@ -56,7 +135,7 @@ export default function QuotationBuilder() {
     const [clientCompany, setClientCompany] = useState('');
     const [clientEmail, setClientEmail] = useState('');
     const [clientPhone, setClientPhone] = useState('');
-    const [currency, setCurrency] = useState('INR');
+    const [currency, setCurrency] = useState(() => tenant?.currencyCode || 'INR');
     const [quotationSource, setQuotationSource] = useState('ENQUIRY');
     const [sourceNotes, setSourceNotes] = useState('');
     const [issueDate, setIssueDate] = useState(() => getIssueDateStr(null));
@@ -95,8 +174,21 @@ export default function QuotationBuilder() {
     const [isSaving, setIsSaving] = useState(false);
     const [isSending, setIsSending] = useState(false);
     const [isSendModalOpen, setIsSendModalOpen] = useState(false);
-    const [columnConfigs, setColumnConfigs] = useState(defaultConfigs);
+    const [columnConfigs, setColumnConfigs] = useState(() => ensureCompleteColumnConfigs(defaultConfigs));
     const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
+
+    // Track whether custom PDF design is enabled on this quotation
+    const isCustomPdfEnabled = React.useMemo(() => {
+        const found = (columnConfigs || []).find(c => c.columnKey === 'customLayoutEnabled');
+        return found ? Boolean(found.visible) : false;
+    }, [columnConfigs]);
+
+    // Filter out PDF studio/metadata settings from the actual line items table columns
+    const activeTableConfigs = React.useMemo(() => {
+        return (columnConfigs || [])
+            .filter(c => isLineItemTableColumn(c) && c.visible)
+            .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+    }, [columnConfigs]);
     const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
     const [acceptRejectModalInfo, setAcceptRejectModalInfo] = useState(null);
 
@@ -113,6 +205,11 @@ export default function QuotationBuilder() {
     const [lastSendError, setLastSendError] = useState(null);
     const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
     const [isCreatingRevision, setIsCreatingRevision] = useState(false);
+    const [publicToken, setPublicToken] = useState(null);
+    const [signedAt, setSignedAt] = useState(null);
+    const [signerName, setSignerName] = useState('');
+    const [signerIp, setSignerIp] = useState('');
+    const [isTimelineOpen, setIsTimelineOpen] = useState(false);
 
     // Derived persisted read-only flags
     const isReadOnly = Boolean(currentQuotationId && quotationStatus && quotationStatus !== 'DRAFT');
@@ -150,6 +247,7 @@ export default function QuotationBuilder() {
     const [selectedBankAccountId, setSelectedBankAccountId] = useState('');
     const [selectedBank, setSelectedBank] = useState(null);
     const [isLoadingBankAccounts, setIsLoadingBankAccounts] = useState(false);
+    const [companySettings, setCompanySettings] = useState(null);
     
     // Preview & Form Validation State
     const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
@@ -172,6 +270,30 @@ export default function QuotationBuilder() {
 
     const [error, setError] = useState(null);
     const [isInitializing, setIsInitializing] = useState(true);
+
+    // Auto-Draft Storage Key Resolver (acrovix_draft_quote_${id || 'new'}_${tenantId || 'default'})
+    const getDraftStorageKey = React.useCallback((quoteId) => {
+        const qId = quoteId || targetQuotationId || 'new';
+        let tId = tenant?.tenantId ?? tenant?.id;
+        if (tId === undefined || tId === null) {
+            try {
+                const storedUser = localStorage.getItem('adminUser');
+                if (storedUser) {
+                    const u = JSON.parse(storedUser);
+                    tId = u?.tenantId ?? u?.tenantSlug;
+                }
+            } catch (_) {}
+        }
+        return `acrovix_draft_quote_${qId}_${tId || 'default'}`;
+    }, [targetQuotationId, tenant]);
+
+    const clearDraft = React.useCallback((quoteId) => {
+        try {
+            sessionStorage.removeItem(getDraftStorageKey(quoteId));
+        } catch (err) {
+            console.error("Failed to clear quotation draft:", err);
+        }
+    }, [getDraftStorageKey]);
 
     const initializeBuilder = React.useCallback(async () => {
         setIsInitializing(true);
@@ -197,6 +319,15 @@ export default function QuotationBuilder() {
                 setIsLoadingBankAccounts(false);
             }
 
+            try {
+                const cs = await getCompanySettings();
+                if (cs) {
+                    setCompanySettings(cs);
+                }
+            } catch (csErr) {
+                console.warn("Could not load company settings for quotation:", csErr);
+            }
+
             if (targetQuotationId) {
                 // LOAD EXISTING QUOTATION (supports /quotations/:id and /quotations/edit/:id)
                 const q = await fetchApi(`/quotations/${targetQuotationId}`);
@@ -209,6 +340,7 @@ export default function QuotationBuilder() {
                 setEmailSentAt(q.emailSentAt || null);
                 setEmailRecipient(q.emailRecipient || q.clientEmail || '');
                 setEmailErrorMessage(q.emailErrorMessage || '');
+                setPublicToken(q.publicToken || q.clientToken || null);
                 
                 setClientName(q.clientName || '');
                 setClientCompany(q.clientCompany || '');
@@ -220,6 +352,9 @@ export default function QuotationBuilder() {
                 setSourceNotes(q.sourceNotes || '');
                 setResponseSource(q.responseSource || null);
                 setResponseNotes(q.responseNotes || '');
+                setSignedAt(q.signedAt || q.acceptedAt || null);
+                setSignerName(q.signerName || q.acceptedByName || '');
+                setSignerIp(q.signerIp || q.acceptedByIp || '');
                 setPurchaseOrderId(q.purchaseOrderId || null);
                 setProformaId(q.proformaId || null);
                 setTaxInvoiceId(q.taxInvoiceId || null);
@@ -281,9 +416,9 @@ export default function QuotationBuilder() {
                 } : null);
                 
                 if (q.columnConfigs && q.columnConfigs.length > 0) {
-                    setColumnConfigs(q.columnConfigs);
+                    setColumnConfigs(ensureCompleteColumnConfigs(q.columnConfigs, tenant?.primaryColor));
                 } else {
-                    setColumnConfigs(defaultConfigs);
+                    setColumnConfigs(ensureCompleteColumnConfigs(defaultConfigs, tenant?.primaryColor));
                 }
 
                 if (q.items && q.items.length > 0) {
@@ -318,7 +453,7 @@ export default function QuotationBuilder() {
                 setIssueDate(todayIssueDate);
                 setValidityPeriod('30');
                 setValidUntil(calculateValidUntilDate(todayIssueDate, 30));
-                setColumnConfigs(defaultConfigs);
+                setColumnConfigs(ensureCompleteColumnConfigs(defaultConfigs, tenant?.primaryColor));
                 setCustomerId(null);
                 setItems([]);
                 setCurrentQuotationId(null);
@@ -330,6 +465,9 @@ export default function QuotationBuilder() {
                 setEmailSentAt(null);
                 setEmailRecipient('');
                 setEmailErrorMessage('');
+                setSignedAt(null);
+                setSignerName('');
+                setSignerIp('');
 
                 // Pre-select default bank account for new quotation
                 const defaultAcc = accounts.find(a => a.isDefault) || (accounts.length > 0 ? accounts[0] : null);
@@ -343,17 +481,113 @@ export default function QuotationBuilder() {
             } else {
                 throw new Error("Invalid routing parameters.");
             }
+
+            // Restore cached auto-draft from sessionStorage if available
+            try {
+                const currentKey = getDraftStorageKey(targetQuotationId);
+                const cachedStr = sessionStorage.getItem(currentKey);
+                if (cachedStr) {
+                    const cached = JSON.parse(cachedStr);
+                    if (cached && typeof cached === 'object') {
+                        if (Array.isArray(cached.items) && cached.items.length > 0) {
+                            setItems(cached.items);
+                        }
+                        if (cached.customerId !== undefined) setCustomerId(cached.customerId);
+                        if (cached.clientName) setClientName(cached.clientName);
+                        if (cached.clientCompany) setClientCompany(cached.clientCompany);
+                        if (cached.clientEmail) setClientEmail(cached.clientEmail);
+                        if (cached.clientPhone) setClientPhone(cached.clientPhone);
+                        if (cached.currency) setCurrency(cached.currency);
+                        if (cached.quotationSource) setQuotationSource(cached.quotationSource);
+                        if (cached.sourceNotes !== undefined) setSourceNotes(cached.sourceNotes);
+                        if (cached.issueDate) setIssueDate(cached.issueDate);
+                        if (cached.validityPeriod) setValidityPeriod(cached.validityPeriod);
+                        if (cached.validUntil) setValidUntil(cached.validUntil);
+                        if (cached.termsAndConditions !== undefined) setTermsAndConditions(cached.termsAndConditions);
+                        if (cached.billingAddress !== undefined) setBillingAddress(cached.billingAddress);
+                        if (cached.shippingAddress !== undefined) setShippingAddress(cached.shippingAddress);
+                        if (cached.state !== undefined) setState(cached.state);
+                        if (cached.pincode !== undefined) setPincode(cached.pincode);
+                        if (cached.gstin !== undefined) setGstin(cached.gstin);
+                        if (Array.isArray(cached.columnConfigs) && cached.columnConfigs.length > 0) {
+                            setColumnConfigs(ensureCompleteColumnConfigs(cached.columnConfigs, tenant?.primaryColor));
+                        }
+                        if (cached.selectedBankAccountId) {
+                            setSelectedBankAccountId(String(cached.selectedBankAccountId));
+                            if (cached.selectedBank) {
+                                setSelectedBank(cached.selectedBank);
+                            } else if (accounts && accounts.length > 0) {
+                                const acc = accounts.find(a => String(a.id) === String(cached.selectedBankAccountId));
+                                if (acc) setSelectedBank(acc);
+                            }
+                        }
+                        if (cached.roughText) setRoughText(cached.roughText);
+                    }
+                }
+            } catch (draftErr) {
+                console.error("Failed to restore cached draft from sessionStorage:", draftErr);
+            }
         } catch (err) {
             console.error("Initialization Error", err);
             setError(err.message || "Failed to initialize workspace.");
         } finally {
             setIsInitializing(false);
         }
-    }, [enquiryId, targetQuotationId]);
+    }, [enquiryId, targetQuotationId, getDraftStorageKey]);
 
     useEffect(() => {
         initializeBuilder();
     }, [initializeBuilder]);
+
+    // Auto-Draft Persistence to sessionStorage
+    useEffect(() => {
+        if (isInitializing || isReadOnly) return;
+
+        // Check if there are changes worth persisting
+        const hasData = (items && items.length > 0) || clientName || clientCompany || clientEmail || termsAndConditions || selectedBankAccountId;
+        if (!hasData) return;
+
+        const timer = setTimeout(() => {
+            try {
+                const draftData = {
+                    items,
+                    customerId,
+                    clientName,
+                    clientCompany,
+                    clientEmail,
+                    clientPhone,
+                    currency,
+                    quotationSource,
+                    sourceNotes,
+                    issueDate,
+                    validityPeriod,
+                    validUntil,
+                    termsAndConditions,
+                    billingAddress,
+                    shippingAddress,
+                    state,
+                    pincode,
+                    gstin,
+                    columnConfigs,
+                    selectedBankAccountId,
+                    selectedBank,
+                    roughText,
+                    updatedAt: Date.now()
+                };
+                const currentKey = getDraftStorageKey(targetQuotationId);
+                sessionStorage.setItem(currentKey, JSON.stringify(draftData));
+            } catch (e) {
+                console.error("Auto-save draft error:", e);
+            }
+        }, 600);
+
+        return () => clearTimeout(timer);
+    }, [
+        isInitializing, isReadOnly, items, customerId, clientName, clientCompany, clientEmail,
+        clientPhone, currency, quotationSource, sourceNotes, issueDate, validityPeriod,
+        validUntil, termsAndConditions, billingAddress, shippingAddress, state, pincode,
+        gstin, columnConfigs, selectedBankAccountId, selectedBank, roughText, targetQuotationId, getDraftStorageKey
+    ]);
 
     useEffect(() => {
         if (isCustomerDropdownOpen) {
@@ -875,6 +1109,9 @@ export default function QuotationBuilder() {
         setIsPreviewModalOpen(true);
 
         try {
+            const finalizedColumnConfigs = ensureCompleteColumnConfigs(columnConfigs, tenant?.primaryColor);
+            setColumnConfigs(finalizedColumnConfigs);
+
             const payload = {
                 quotationId: currentQuotationId,
                 enquiryId: enquiryId,
@@ -893,7 +1130,7 @@ export default function QuotationBuilder() {
                 state: extractStateCode(state) || state?.trim() || null,
                 pincode: pincode?.trim() || null,
                 gstin: gstin?.trim() || null,
-                columnConfigs: columnConfigs,
+                columnConfigs: finalizedColumnConfigs,
                 items: serializeItems(items),
                 bankName: selectedBank ? selectedBank.bankName : null,
                 bankAccountHolder: selectedBank ? selectedBank.accountHolder : null,
@@ -954,6 +1191,9 @@ export default function QuotationBuilder() {
                 throw new Error("No active quotation to save.");
             }
 
+            const finalizedColumnConfigs = ensureCompleteColumnConfigs(columnConfigs, tenant?.primaryColor);
+            setColumnConfigs(finalizedColumnConfigs);
+
             const payload = {
                 customerId: customerId,
                 clientName: clientName,
@@ -970,7 +1210,7 @@ export default function QuotationBuilder() {
                 state: extractStateCode(state) || state?.trim() || null,
                 pincode: pincode?.trim() || null,
                 gstin: gstin?.trim() || null,
-                columnConfigs: columnConfigs,
+                columnConfigs: finalizedColumnConfigs,
                 items: serializeItems(items),
                 bankName: selectedBank ? selectedBank.bankName : null,
                 bankAccountHolder: selectedBank ? selectedBank.accountHolder : null,
@@ -985,6 +1225,9 @@ export default function QuotationBuilder() {
                 body: JSON.stringify(payload)
             });
             if (saved) {
+                clearDraft(targetQuotationId);
+                clearDraft(activeQuotationId);
+                clearDraft('new');
                 if (saved.status) setQuotationStatus(saved.status);
                 if (saved.grandTotal !== undefined) setQuotationGrandTotal(saved.grandTotal);
                 if (saved.createdAt) setQuotationCreatedAt(saved.createdAt);
@@ -1008,6 +1251,39 @@ export default function QuotationBuilder() {
         }
         try {
             setIsDownloadingPdf(true);
+            if (!isReadOnly && validateMandatoryQuotationFields()) {
+                const finalizedColumnConfigs = ensureCompleteColumnConfigs(columnConfigs, tenant?.primaryColor);
+                setColumnConfigs(finalizedColumnConfigs);
+                const payload = {
+                    customerId: customerId,
+                    clientName: clientName,
+                    clientCompany: clientCompany,
+                    clientEmail: clientEmail,
+                    clientPhone: clientPhone,
+                    currency: currency,
+                    quotationSource: quotationSource,
+                    sourceNotes: sourceNotes,
+                    validUntil: validUntil || null,
+                    termsAndConditions: termsAndConditions,
+                    billingAddress: billingAddress.trim(),
+                    shippingAddress: shippingAddress?.trim() || null,
+                    state: extractStateCode(state) || state?.trim() || null,
+                    pincode: pincode?.trim() || null,
+                    gstin: gstin?.trim() || null,
+                    columnConfigs: finalizedColumnConfigs,
+                    items: serializeItems(items),
+                    bankName: selectedBank ? selectedBank.bankName : null,
+                    bankAccountHolder: selectedBank ? selectedBank.accountHolder : null,
+                    bankAccountNumber: selectedBank ? selectedBank.bankAccountNumber : null,
+                    bankIfsc: selectedBank ? selectedBank.bankIfsc : null,
+                    bankBranch: selectedBank ? selectedBank.bankBranch : null,
+                    companyBankAccountId: selectedBank && !isNaN(Number(selectedBank.id)) ? Number(selectedBank.id) : null
+                };
+                await fetchApi(`/quotations/${currentQuotationId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(payload)
+                });
+            }
             const token = localStorage.getItem('token');
             const headers = {};
             if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -1047,7 +1323,7 @@ export default function QuotationBuilder() {
         setIsSendModalOpen(true);
     };
 
-    const executeSendQuotation = async (confirmedEmail) => {
+    const executeSendQuotation = async (confirmedEmail, pdfVariant = 'STANDARD') => {
         if (isSending || isSaving) return;
         if (isReadOnly) {
             showToast({ type: 'error', message: 'This quotation is in read-only mode and cannot be sent.' });
@@ -1078,6 +1354,9 @@ export default function QuotationBuilder() {
                 throw new Error("No active quotation to send.");
             }
 
+            const finalizedColumnConfigs = ensureCompleteColumnConfigs(columnConfigs, tenant?.primaryColor);
+            setColumnConfigs(finalizedColumnConfigs);
+
             const payload = {
                 customerId: customerId,
                 clientName: clientName,
@@ -1094,7 +1373,7 @@ export default function QuotationBuilder() {
                 state: extractStateCode(state) || state?.trim() || null,
                 pincode: pincode?.trim() || null,
                 gstin: gstin?.trim() || null,
-                columnConfigs: columnConfigs,
+                columnConfigs: finalizedColumnConfigs,
                 items: serializeItems(items),
                 bankName: selectedBank ? selectedBank.bankName : null,
                 bankAccountHolder: selectedBank ? selectedBank.accountHolder : null,
@@ -1139,11 +1418,15 @@ export default function QuotationBuilder() {
                 method: 'POST',
                 body: JSON.stringify({ 
                     recipientEmails: recipientList,
-                    recipientEmail: primaryRecipient
+                    recipientEmail: primaryRecipient,
+                    pdfVariant: pdfVariant || 'STANDARD'
                 })
             });
 
             setIsSendModalOpen(false);
+            clearDraft(targetQuotationId);
+            clearDraft(activeQuotationId);
+            clearDraft('new');
             window.dispatchEvent(new Event('notification-update'));
 
             const recipientDisplay = recipientList.join(', ');
@@ -1258,17 +1541,17 @@ export default function QuotationBuilder() {
             </div>
 
             {/* Header */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-2">
-                <div>
-                    <div className="flex items-center space-x-3 mb-1">
-                        <h1 className="text-[28px] font-bold text-text-primary tracking-tight leading-tight">
+            <div className="flex items-start justify-between gap-4 w-full mb-3">
+                <div className="shrink-0">
+                    <div className="whitespace-nowrap shrink-0 flex items-center gap-3 mb-1">
+                        <h1 className="text-[28px] font-bold text-text-primary tracking-tight leading-tight whitespace-nowrap">
                             {quotationNumber || 'Create Quotation'}
                         </h1>
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${
-                            quotationStatus === 'SENT' 
-                                ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/20' 
-                                : quotationStatus === 'ACCEPTED'
-                                ? 'bg-blue-50 text-blue-800 border border-blue-300 dark:bg-blue-500/15 dark:text-blue-400 dark:border-blue-500/20'
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider shrink-0 ${
+                            quotationStatus === 'ACCEPTED'
+                                ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/30'
+                                : quotationStatus === 'SENT' 
+                                ? 'bg-teal-50 text-teal-800 border border-teal-300 dark:bg-teal-500/15 dark:text-teal-400 dark:border-teal-500/20' 
                                 : quotationStatus === 'REJECTED'
                                 ? 'bg-rose-50 text-rose-800 border border-rose-300 dark:bg-rose-500/15 dark:text-rose-400 dark:border-rose-500/20'
                                 : 'bg-amber-50 text-amber-800 border border-amber-300 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/20'
@@ -1276,7 +1559,7 @@ export default function QuotationBuilder() {
                             {quotationStatus || 'DRAFT'}
                         </span>
                     </div>
-                    <p className="text-[13px] text-text-muted flex items-center mt-1">
+                    <p className="text-[13px] text-text-muted flex items-center mt-1 whitespace-nowrap">
                         {enquiry?.referenceId ? (
                             <span className="font-mono text-text-secondary mr-2">Enquiry Ref: {enquiry.referenceId}</span>
                         ) : (
@@ -1284,97 +1567,86 @@ export default function QuotationBuilder() {
                         )}
                     </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                    <button 
-                        onClick={() => navigate('/quotations')} 
-                        className="btn btn-secondary btn-sm flex items-center"
-                        title="View All Quotations"
-                    >
-                        <FileText className="mr-1.5 h-3.5 w-3.5" /> View All Quotations
-                    </button>
-                    <button 
-                        onClick={() => navigate('/dashboard')} 
-                        className="btn btn-secondary btn-sm flex items-center"
-                        title="Return to Dashboard"
-                    >
-                        <LayoutDashboard className="mr-1.5 h-3.5 w-3.5" /> Dashboard
-                    </button>
-                    <button 
-                        onClick={handleDownloadPdf} 
-                        disabled={!currentQuotationId || isDownloadingPdf}
-                        className="btn btn-secondary btn-sm flex items-center"
-                        title="Download PDF"
-                    >
-                        {isDownloadingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Download className="mr-1.5 h-3.5 w-3.5" />}
-                        Download PDF
-                    </button>
-                    <button 
-                        onClick={handlePreview} 
-                        disabled={isSaving || isSending}
-                        className="btn btn-secondary btn-sm flex items-center"
-                    >
-                        <Eye className="mr-1.5 h-3.5 w-3.5" /> Preview PDF
-                    </button>
-                    {!isReadOnly && (
-                        <>
-                            <button 
-                                id="save-draft-btn"
-                                onClick={handleSaveDraft} 
-                                disabled={isSaving || isSending}
-                                className="btn btn-secondary btn-sm flex items-center"
-                            >
-                                {isSaving ? <><Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> Saving...</> : <><Save className="mr-1.5 h-3.5 w-3.5" /> Save Draft</>}
-                            </button>
-                            <button 
-                                id="send-quotation-btn"
-                                onClick={handleSend} 
-                                disabled={isSending || isSaving}
-                                className="btn btn-primary btn-sm flex items-center"
-                            >
-                                {isSending ? <><Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> Sending...</> : <><Send className="mr-1.5 h-3.5 w-3.5" /> Send Quotation</>}
-                            </button>
-                        </>
-                    )}
-                    {isReadOnly && (
-                        <button
-                            type="button"
-                            onClick={handleCreateRevision}
-                            disabled={isCreatingRevision}
-                            className="btn btn-secondary btn-sm flex items-center"
-                            title="Create a new draft revision from this quotation"
+                <div className="flex flex-col items-end gap-2.5 max-w-[70%]">
+                    {/* Row 1 (Main Actions): Right-align primary workflow actions */}
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                        <button 
+                            onClick={handleDownloadPdf} 
+                            disabled={!currentQuotationId || isDownloadingPdf}
+                            className="btn btn-secondary btn-sm flex items-center px-3 py-1.5 text-xs font-semibold"
+                            title="Download PDF"
                         >
-                            <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${isCreatingRevision ? 'animate-spin' : ''}`} />
-                            Create Revision
+                            {isDownloadingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Download className="mr-1.5 h-3.5 w-3.5" />}
+                            Download PDF
                         </button>
-                    )}
-                    {(quotationStatus === 'ACCEPTED' || quotationStatus === 'CONVERTED') && (
-                        <>
-                            {!purchaseOrderId && quotationStatus === 'ACCEPTED' ? (
-                                <button
-                                    id="create-po-btn"
-                                    type="button"
-                                    onClick={() => setIsPoModalOpen(true)}
-                                    className="btn btn-brand btn-sm flex items-center"
-                                    title="Create a Purchase Order from this quotation"
+                        <button 
+                            onClick={handlePreview} 
+                            disabled={isSaving || isSending}
+                            className="btn btn-secondary btn-sm flex items-center px-3 py-1.5 text-xs font-semibold"
+                        >
+                            <Eye className="mr-1.5 h-3.5 w-3.5" /> Preview PDF
+                        </button>
+                        {!isReadOnly && (
+                            <>
+                                <button 
+                                    id="save-draft-btn"
+                                    onClick={handleSaveDraft} 
+                                    disabled={isSaving || isSending}
+                                    className="btn btn-secondary btn-sm flex items-center px-3 py-1.5 text-xs font-semibold"
                                 >
-                                    <ShoppingCart className="mr-1.5 h-3.5 w-3.5" /> Create Purchase Order
+                                    {isSaving ? <><Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> Saving...</> : <><Save className="mr-1.5 h-3.5 w-3.5" /> Save Draft</>}
                                 </button>
-                            ) : purchaseOrderId ? (
-                                <button
-                                    id="view-po-btn"
-                                    type="button"
-                                    onClick={() => navigate(`/purchase-orders/${purchaseOrderId}`)}
-                                    className="btn btn-secondary btn-sm flex items-center"
-                                    title="View related Purchase Order"
+                                <button 
+                                    id="send-quotation-btn"
+                                    onClick={handleSend} 
+                                    disabled={isSending || isSaving}
+                                    className="btn btn-primary btn-sm flex items-center px-3 py-1.5 text-xs font-semibold"
                                 >
-                                    <ShoppingCart className="mr-1.5 h-3.5 w-3.5" /> View Purchase Orders
+                                    {isSending ? <><Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> Sending...</> : <><Send className="mr-1.5 h-3.5 w-3.5" /> Send Quotation</>}
                                 </button>
-                            ) : null}
+                            </>
+                        )}
 
-                            {(!taxInvoiceId && !proformaId) ? (
-                                isSuperAdmin && (
+                        {isReadOnly && (
+                            <button
+                                type="button"
+                                onClick={handleCreateRevision}
+                                disabled={isCreatingRevision}
+                                className="btn btn-secondary btn-sm flex items-center px-3 py-1.5 text-xs font-semibold"
+                                title="Create a new draft revision from this quotation"
+                            >
+                                <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${isCreatingRevision ? 'animate-spin' : ''}`} />
+                                Create Revision
+                            </button>
+                        )}
+                        {(quotationStatus === 'ACCEPTED' || quotationStatus === 'CONVERTED') && (
+                            <>
+                                {!purchaseOrderId && quotationStatus === 'ACCEPTED' ? (
                                     <button
-                                        id="create-invoice-btn"
+                                        id="create-po-btn"
+                                        type="button"
+                                        onClick={() => setIsPoModalOpen(true)}
+                                        className="btn btn-sm flex items-center px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700 shadow-sm rounded-lg transition-colors shrink-0"
+                                        title="Create a Purchase Order from this quotation"
+                                    >
+                                        <ShoppingCart className="mr-1.5 h-3.5 w-3.5 text-slate-600 dark:text-slate-400" /> Create Purchase Order
+                                    </button>
+                                ) : purchaseOrderId ? (
+                                    <button
+                                        id="view-po-btn"
+                                        type="button"
+                                        onClick={() => navigate(`/purchase-orders/${purchaseOrderId}`)}
+                                        className="btn btn-sm flex items-center px-3.5 py-1.5 text-xs font-semibold whitespace-nowrap bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700 shadow-sm rounded-lg transition-colors shrink-0"
+                                        title="View related Purchase Order"
+                                    >
+                                        <ShoppingCart className="mr-1.5 h-3.5 w-3.5 text-slate-600 dark:text-slate-400" /> View Purchase Orders
+                                    </button>
+                                ) : null}
+
+                                {(!taxInvoiceId && !proformaId) ? (
+                                    <button
+                                        id="convert-to-tax-invoice-btn"
+                                        data-testid="create-invoice-btn"
                                         type="button"
                                         onClick={() => {
                                             setInvoiceCreationError(null);
@@ -1382,31 +1654,46 @@ export default function QuotationBuilder() {
                                             setIsInvoiceModalOpen(true);
                                         }}
                                         disabled={isCreatingInvoice}
-                                        className="btn btn-secondary btn-sm flex items-center text-brand-teal hover:text-brand-teal"
-                                        title="Create an invoice from this quotation"
+                                        className="btn btn-sm flex items-center px-3.5 py-1.5 text-xs font-bold whitespace-nowrap bg-emerald-600 hover:bg-emerald-700 text-white border border-transparent shadow-sm rounded-lg transition-colors shrink-0"
+                                        title="Convert this accepted quotation to a Tax Invoice"
                                     >
                                         {isCreatingInvoice ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <FileText className="mr-1.5 h-3.5 w-3.5" />}
-                                        Create Invoice
+                                        Convert to Tax Invoice
                                     </button>
-                                )
-                            ) : (
-                                <button
-                                    id="view-invoices-btn"
-                                    type="button"
-                                    onClick={() => {
-                                        if (taxInvoiceId && proformaId) {
-                                            setIsViewInvoicesDialogOpen(true);
-                                        } else {
-                                            navigate(`/invoices/${taxInvoiceId || proformaId}`);
-                                        }
-                                    }}
-                                    className="btn btn-secondary btn-sm flex items-center"
-                                    title="View related invoice(s)"
-                                >
-                                    <FileText className="mr-1.5 h-3.5 w-3.5" /> View Invoices
-                                </button>
-                            )}
-                        </>
+                                ) : (
+                                    <button
+                                        id="view-invoices-btn"
+                                        type="button"
+                                        onClick={() => {
+                                            if (taxInvoiceId && proformaId) {
+                                                setIsViewInvoicesDialogOpen(true);
+                                            } else {
+                                                navigate(`/invoices/${taxInvoiceId || proformaId}`);
+                                            }
+                                        }}
+                                        className="btn btn-sm flex items-center px-3.5 py-1.5 text-xs font-bold whitespace-nowrap bg-emerald-600 hover:bg-emerald-700 text-white border border-transparent shadow-sm rounded-lg transition-colors shrink-0"
+                                        title="View related invoice(s)"
+                                    >
+                                        <FileText className="mr-1.5 h-3.5 w-3.5" /> View Invoices
+                                    </button>
+                                )}
+                            </>
+                        )}
+                    </div>
+
+                    {/* Row 2: Secondary / Activity Buttons */}
+                    {currentQuotationId && (
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                            <button
+                                id="toggle-activity-timeline-btn"
+                                type="button"
+                                onClick={() => setIsTimelineOpen(true)}
+                                className="btn btn-secondary btn-sm flex items-center px-3 py-1.5 text-xs font-semibold text-text-secondary hover:text-text-primary bg-bg-card border border-border-subtle shadow-sm rounded-lg"
+                                title="View activity and audit trail"
+                            >
+                                <Clock className="mr-1.5 h-3.5 w-3.5" /> Activity History
+                            </button>
+                        </div>
                     )}
                 </div>
             </div>
@@ -1437,10 +1724,10 @@ export default function QuotationBuilder() {
                             <div>
                                 <span className="text-[10px] uppercase tracking-wider text-text-muted font-bold block">Quotation Status</span>
                                 <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold ${
-                                    quotationStatus === 'SENT' 
-                                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/20' 
-                                        : quotationStatus === 'ACCEPTED'
-                                        ? 'bg-blue-50 text-blue-800 border border-blue-300 dark:bg-blue-500/15 dark:text-blue-400 dark:border-blue-500/20'
+                                    quotationStatus === 'ACCEPTED'
+                                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/30'
+                                        : quotationStatus === 'SENT' 
+                                        ? 'bg-teal-50 text-teal-800 border border-teal-300 dark:bg-teal-500/15 dark:text-teal-400 dark:border-teal-500/20' 
                                         : quotationStatus === 'REJECTED'
                                         ? 'bg-rose-50 text-rose-800 border border-rose-300 dark:bg-rose-500/15 dark:text-rose-400 dark:border-rose-500/20'
                                         : 'bg-amber-50 text-amber-800 border border-amber-300 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/20'
@@ -1560,78 +1847,83 @@ export default function QuotationBuilder() {
                 </div>
             )}
 
-            {/* Lifecycle Read-Only & Lock Banners */}
+            {/* Unified Quotation Acceptance & Lock Banner */}
             {(quotationStatus === 'ACCEPTED' || quotationStatus === 'CONVERTED') && (
-                <div id="quotation-locked-banner" className="p-4 md:p-5 rounded-2xl border border-blue-200 bg-blue-50/90 dark:border-blue-500/30 dark:bg-blue-950/30 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm animate-modal-entrance">
+                <div 
+                    id="quotation-acceptance-banner" 
+                    className="bg-emerald-50 border border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-800/40 p-4 rounded-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm animate-modal-entrance"
+                >
+                    {/* Left Side: Acceptance summary */}
                     <div className="flex items-start md:items-center gap-3.5">
-                        <div className="w-10 h-10 rounded-xl bg-blue-100 border border-blue-200 dark:bg-blue-500/20 dark:border-blue-500/30 flex items-center justify-center text-blue-700 dark:text-blue-400 shrink-0">
-                            <Lock className="w-5 h-5" />
+                        <div className="w-10 h-10 rounded-xl bg-emerald-100 border border-emerald-300 dark:bg-emerald-500/20 dark:border-emerald-500/30 flex items-center justify-center text-emerald-700 dark:text-emerald-400 shrink-0">
+                            <CheckCircle className="w-5 h-5" />
                         </div>
                         <div>
-                            <h3 className="text-sm font-bold text-blue-950 dark:text-blue-100">
-                                {quotationStatus === 'CONVERTED' 
-                                    ? 'This quotation has been converted to downstream records and is locked against editing.'
-                                    : 'This quotation has been accepted and is locked against editing.'}
+                            <h3 className="text-sm font-bold text-emerald-950 dark:text-emerald-100">
+                                Quotation Accepted &amp; Locked Against Editing
                             </h3>
-                            <p className="text-xs text-blue-800/90 dark:text-blue-300/90 mt-0.5">
-                                {quotationStatus === 'CONVERTED'
-                                    ? 'Downstream Purchase Order and/or Invoice records are linked.'
-                                    : 'Client acceptance has been recorded. Downstream Purchase Order and Invoice generation are available.'}
-                            </p>
-                            {(responseSource || responseNotes) && (
-                                <div id="quotation-acceptance-reason" className="mt-2.5 text-xs text-blue-950 dark:text-blue-100 bg-blue-100/80 dark:bg-blue-900/40 rounded-lg p-2.5 border border-blue-300 dark:border-blue-800/50 flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2">
-                                    <span className="font-bold text-blue-900 dark:text-blue-200">Acceptance Response:</span>
-                                    {responseSource && (
-                                        <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded bg-blue-200 text-blue-900 dark:bg-blue-800 dark:text-blue-100 uppercase tracking-wider">
-                                            via {responseSource}
-                                        </span>
-                                    )}
-                                    {responseNotes && (
-                                        <span className="italic text-blue-950 dark:text-blue-50 font-medium">"{responseNotes}"</span>
-                                    )}
-                                </div>
+                            <div className="flex flex-wrap items-center gap-2 mt-1">
+                                <span className="inline-flex items-center text-xs text-emerald-800 dark:text-emerald-300 font-medium">
+                                    Accepted by <strong className="ml-1 mr-1 text-emerald-950 dark:text-emerald-100 font-bold">{signerName || clientName || 'Client'}</strong> on {signedAt ? formatDateTime(signedAt) : (quotationCreatedAt ? formatDateTime(quotationCreatedAt) : formatDate(issueDate))} via <span className="ml-1 px-1.5 py-0.5 rounded bg-emerald-200/80 dark:bg-emerald-900/60 text-[11px] font-semibold uppercase">{responseSource === 'CLIENT_PORTAL' ? 'Client Portal' : (responseSource || 'Direct Confirmation')}</span>
+                                </span>
+                                {signerIp && (
+                                    <span className="text-[11px] text-emerald-700/80 dark:text-emerald-400/80 font-mono">
+                                        (IP: {signerIp})
+                                    </span>
+                                )}
+                            </div>
+                            {responseNotes && (
+                                <p className="text-xs text-emerald-900 dark:text-emerald-200 italic mt-1.5 bg-emerald-100/70 dark:bg-emerald-900/40 px-2.5 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800/60 inline-block">
+                                    "{responseNotes}"
+                                </p>
                             )}
                         </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2 shrink-0">
-                        {!purchaseOrderId && quotationStatus === 'ACCEPTED' ? (
+
+                    {/* Right Side: Strictly TWO action buttons */}
+                    <div className="flex flex-wrap items-center gap-2 shrink-0 self-end md:self-center">
+                        {/* 1. Create Purchase Order (Secondary/Outline styled button with cart icon) */}
+                        {!purchaseOrderId ? (
                             <button
+                                id="banner-create-po-btn"
                                 type="button"
                                 onClick={() => setIsPoModalOpen(true)}
-                                className="btn btn-sm flex items-center bg-blue-600 hover:bg-blue-700 text-white font-medium border-transparent shadow-sm dark:bg-blue-600 dark:hover:bg-blue-500"
+                                className="btn btn-sm flex items-center bg-white hover:bg-emerald-50 text-emerald-900 font-semibold border border-emerald-300 dark:bg-slate-900 dark:text-emerald-300 dark:border-emerald-700 shadow-sm rounded-lg whitespace-nowrap px-3.5 py-1.5 text-xs transition-colors"
                             >
-                                <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />
+                                <ShoppingCart className="mr-1.5 h-3.5 w-3.5 text-emerald-700 dark:text-emerald-400" />
                                 Create Purchase Order
                             </button>
-                        ) : purchaseOrderId ? (
-                            <button
-                                type="button"
-                                onClick={() => navigate(`/purchase-orders/${purchaseOrderId}`)}
-                                className="btn btn-sm flex items-center bg-blue-600 hover:bg-blue-700 text-white font-medium border-transparent shadow-sm dark:bg-blue-600 dark:hover:bg-blue-500"
-                            >
-                                <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />
-                                View Purchase Orders
-                            </button>
-                        ) : null}
-
-                        {(!taxInvoiceId && !proformaId) ? (
-                            isSuperAdmin && (
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setInvoiceCreationError(null);
-                                        setSelectedInvoiceType('TAX_INVOICE');
-                                        setIsInvoiceModalOpen(true);
-                                    }}
-                                    disabled={isCreatingInvoice}
-                                    className="btn btn-sm flex items-center bg-blue-600 hover:bg-blue-700 text-white font-medium border-transparent shadow-sm dark:bg-blue-600 dark:hover:bg-blue-500"
-                                >
-                                    <FileText className="mr-1.5 h-3.5 w-3.5" />
-                                    Create Invoice
-                                </button>
-                            )
                         ) : (
                             <button
+                                id="banner-view-po-btn"
+                                type="button"
+                                onClick={() => navigate(`/purchase-orders/${purchaseOrderId}`)}
+                                className="btn btn-sm flex items-center bg-white hover:bg-emerald-50 text-emerald-900 font-semibold border border-emerald-300 dark:bg-slate-900 dark:text-emerald-300 dark:border-emerald-700 shadow-sm rounded-lg whitespace-nowrap px-3.5 py-1.5 text-xs transition-colors"
+                            >
+                                <ShoppingCart className="mr-1.5 h-3.5 w-3.5 text-emerald-700 dark:text-emerald-400" />
+                                View Purchase Order
+                            </button>
+                        )}
+
+                        {/* 2. Convert to Tax Invoice (Primary green button with invoice icon) */}
+                        {(!taxInvoiceId && !proformaId) ? (
+                            <button
+                                id="banner-convert-to-invoice-btn"
+                                type="button"
+                                onClick={() => {
+                                    setInvoiceCreationError(null);
+                                    setSelectedInvoiceType('TAX_INVOICE');
+                                    setIsInvoiceModalOpen(true);
+                                }}
+                                disabled={isCreatingInvoice}
+                                className="btn btn-sm flex items-center bg-emerald-600 hover:bg-emerald-700 text-white font-semibold border-transparent shadow-sm rounded-lg whitespace-nowrap px-3.5 py-1.5 text-xs transition-colors"
+                            >
+                                {isCreatingInvoice ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <FileText className="mr-1.5 h-3.5 w-3.5" />}
+                                Convert to Tax Invoice
+                            </button>
+                        ) : (
+                            <button
+                                id="banner-view-invoice-btn"
                                 type="button"
                                 onClick={() => {
                                     if (taxInvoiceId && proformaId) {
@@ -1640,22 +1932,12 @@ export default function QuotationBuilder() {
                                         navigate(`/invoices/${taxInvoiceId || proformaId}`);
                                     }
                                 }}
-                                className="btn btn-sm flex items-center bg-blue-600 hover:bg-blue-700 text-white font-medium border-transparent shadow-sm dark:bg-blue-600 dark:hover:bg-blue-500"
+                                className="btn btn-sm flex items-center bg-emerald-600 hover:bg-emerald-700 text-white font-semibold border-transparent shadow-sm rounded-lg whitespace-nowrap px-3.5 py-1.5 text-xs transition-colors"
                             >
                                 <FileText className="mr-1.5 h-3.5 w-3.5" />
-                                View Invoices
+                                View Tax Invoice
                             </button>
                         )}
-
-                        <button
-                            type="button"
-                            onClick={handleCreateRevision}
-                            disabled={isCreatingRevision}
-                            className="btn btn-sm flex items-center bg-blue-700 hover:bg-blue-800 text-white font-medium border-transparent shadow-sm dark:bg-blue-700 dark:hover:bg-blue-600"
-                        >
-                            <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${isCreatingRevision ? 'animate-spin' : ''}`} />
-                            Create Revision
-                        </button>
                     </div>
                 </div>
             )}
@@ -1809,12 +2091,61 @@ export default function QuotationBuilder() {
                 </div>
             )}
 
+
+
+            {/* Party Overview: ISSUED BY (SELLER) */}
+            <div className="acx-card p-5 md:p-6 mb-6 border-l-4 border-l-[var(--color-brand-primary)] bg-gradient-to-r from-bg-card to-bg-main shadow-sm">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex items-start gap-3.5">
+                        <div className="w-10 h-10 rounded-xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary shrink-0 mt-0.5">
+                            <Building2 className="w-5 h-5 text-brand-teal" />
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">
+                                    ISSUED BY / SELLER
+                                </span>
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-brand-teal/10 text-brand-teal">
+                                    Active Workspace Entity
+                                </span>
+                            </div>
+                            <h3 className="text-base font-bold text-text-primary tracking-tight mt-0.5">
+                                {companySettings?.legalName || companySettings?.companyName || tenant?.companyName || tenant?.brandName || 'Acrovix Innovations Private Limited'}
+                            </h3>
+                            <p className="text-xs text-text-muted leading-relaxed mt-0.5 whitespace-pre-line max-w-2xl">
+                                {companySettings?.registeredAddress || companySettings?.billingAddress || tenant?.address || 'Registered Office Address'}
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex flex-wrap md:flex-col items-start md:items-end gap-x-4 gap-y-1 text-xs pt-2 md:pt-0 border-t md:border-t-0 border-border-subtle shrink-0">
+                        <div className="flex items-center gap-1.5 font-mono">
+                            <span className="text-text-muted">GSTIN:</span>
+                            <span className="font-semibold text-text-primary">{companySettings?.gstin || tenant?.gstin || 'N/A'}</span>
+                        </div>
+                        {companySettings?.pan && (
+                            <div className="flex items-center gap-1.5 font-mono">
+                                <span className="text-text-muted">PAN/CIN:</span>
+                                <span className="font-semibold text-text-primary">{companySettings.pan}</span>
+                            </div>
+                        )}
+                        <div className="flex items-center gap-1.5 text-text-secondary">
+                            <span className="text-text-muted">Email:</span>
+                            <span>{companySettings?.email || tenant?.contactEmail || 'N/A'}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-text-secondary">
+                            <span className="text-text-muted">Phone:</span>
+                            <span>{companySettings?.phone || tenant?.phone || 'N/A'}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {/* Client Details Card */}
             <div className="acx-card p-6 md:p-8">
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center text-[11px] font-bold text-text-secondary uppercase tracking-wider">
                         <User className="w-4 h-4 " />
-                        Client Details &amp; Source
+                        Client Details &amp; Source (Prepared For)
                     </div>
                     {enquiry?.referenceId ? (
                         <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-[var(--color-brand-primary)] bg-[var(--color-brand-primary)]/10 px-2 py-0.5 rounded-md">
@@ -2285,7 +2616,7 @@ export default function QuotationBuilder() {
                                                     <div className="text-[11px] text-text-muted">{item.sku} | HSN: {item.hsnSac}</div>
                                                 </div>
                                                 <div className="text-[12px] font-mono font-semibold text-brand-teal">
-                                                    ₹{item.listPrice}
+                                                    {formatCurrency(item.listPrice, currency || tenant?.currencyCode || 'INR', 2)}
                                                 </div>
                                             </div>
                                         ))
@@ -2300,7 +2631,7 @@ export default function QuotationBuilder() {
                     <table className="min-w-[900px] w-full">
                         <thead>
                             <tr>
-                                {columnConfigs.filter(c => c.visible).sort((a,b) => a.sortOrder - b.sortOrder).map(config => (
+                                {activeTableConfigs.map(config => (
                                     <th key={config.columnKey} className={`px-3 py-4 text-[11px] font-bold text-text-muted uppercase tracking-wider bg-bg-card ${config.columnKey === 'rowNumber' ? 'text-center w-[48px]' : config.columnType === 'CURRENCY' || config.columnType === 'NUMBER' ? 'text-right' : 'text-left'}`}>
                                         {config.displayName}
                                     </th>
@@ -2314,7 +2645,7 @@ export default function QuotationBuilder() {
                             {items.length === 0 ? (
                                 <tr>
                                     <td 
-                                        colSpan={columnConfigs.filter(c => c.visible).length + (isReadOnly ? 0 : 1)}
+                                        colSpan={activeTableConfigs.length + (isReadOnly ? 0 : 1)}
                                         className="px-6 py-14 text-center bg-bg-card"
                                     >
                                         <div className="flex flex-col items-center justify-center max-w-sm mx-auto text-center">
@@ -2351,7 +2682,7 @@ export default function QuotationBuilder() {
                                     const taxAmt = net * (taxPct / 100);
                                     const lineTotal = net + taxAmt;
 
-                                    const activeConfigs = columnConfigs.filter(c => c.visible).sort((a,b) => a.sortOrder - b.sortOrder);
+                                    const activeConfigs = activeTableConfigs;
 
                                     return (
                                         <tr key={item.id} className="group hover:bg-bg-hover transition-colors">
@@ -2629,7 +2960,7 @@ export default function QuotationBuilder() {
                                             </p>
                                             <div className="pt-1.5">
                                                 <Link
-                                                    to="/settings"
+                                                    to="/company-bank-details/bank-accounts"
                                                     className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[var(--color-brand-primary)] hover:underline"
                                                 >
                                                     Configure in Company Settings <ExternalLink className="w-3.5 h-3.5" />
@@ -2737,7 +3068,7 @@ export default function QuotationBuilder() {
                         {bankAccounts.length > 0 && (
                             <div className="px-5 py-3 border-t border-border-subtle/50 bg-bg-card/50 flex justify-between items-center text-[11px] text-text-muted">
                                 <span>{bankAccounts.length} saved account{bankAccounts.length > 1 ? 's' : ''} available</span>
-                                <Link to="/settings" className="hover:text-text-primary flex items-center gap-1 transition-colors font-medium">
+                                <Link to="/company-bank-details/bank-accounts" className="hover:text-text-primary flex items-center gap-1 transition-colors font-medium">
                                     Manage Accounts in Settings <ExternalLink className="w-3 h-3" />
                                 </Link>
                             </div>
@@ -2780,12 +3111,41 @@ export default function QuotationBuilder() {
                 </div>
             </div>
 
+            {/* Interactive Live PDF Studio & Column Customizer (Split-Screen 50/50 View) */}
+            <LivePdfStudio
+                quotationNumber={quotationNumber}
+                issueDate={issueDate}
+                validUntil={validUntil}
+                clientName={clientName}
+                clientCompany={clientCompany}
+                clientEmail={clientEmail}
+                clientPhone={clientPhone}
+                billingAddress={billingAddress}
+                shippingAddress={shippingAddress}
+                state={state}
+                gstin={gstin}
+                items={items}
+                currency={currency}
+                totals={totals}
+                selectedBank={selectedBank}
+                termsAndConditions={termsAndConditions}
+                tenant={tenant}
+                companySettings={companySettings}
+                columnConfigs={columnConfigs}
+                onColumnConfigsChange={setColumnConfigs}
+                onDownloadPdf={handleDownloadPdf}
+                isDownloadingPdf={isDownloadingPdf}
+                isReadOnly={isReadOnly}
+                quotationStatus={quotationStatus}
+            />
+
             <SendQuotationModal 
                 isOpen={isSendModalOpen} 
                 onClose={() => setIsSendModalOpen(false)} 
                 initialEmail={clientEmail} 
                 onSend={executeSendQuotation}
                 isSending={isSending}
+                isCustomPdfEnabled={isCustomPdfEnabled}
             />
 
             <QuotationColumnConfigModal
@@ -2817,6 +3177,9 @@ export default function QuotationBuilder() {
                 variant="destructive"
                 onConfirm={() => {
                     setItems([]);
+                    clearDraft(targetQuotationId);
+                    clearDraft(currentQuotationId);
+                    clearDraft('new');
                     setIsClearConfirmOpen(false);
                 }}
                 onCancel={() => setIsClearConfirmOpen(false)}
@@ -2830,6 +3193,9 @@ export default function QuotationBuilder() {
                 onSuccess={(updated) => {
                     if (updated) {
                         if (updated.status) setQuotationStatus(updated.status);
+                        if (updated.signedAt || updated.acceptedAt) setSignedAt(updated.signedAt || updated.acceptedAt);
+                        if (updated.signerName || updated.acceptedByName) setSignerName(updated.signerName || updated.acceptedByName);
+                        if (updated.signerIp || updated.acceptedByIp) setSignerIp(updated.signerIp || updated.acceptedByIp);
                         if (updated.responseSource) setResponseSource(updated.responseSource);
                         if (updated.responseNotes !== undefined) setResponseNotes(updated.responseNotes || '');
                     }
@@ -2840,10 +3206,21 @@ export default function QuotationBuilder() {
             <CreatePurchaseOrderModal
                 isOpen={isPoModalOpen}
                 onClose={() => setIsPoModalOpen(false)}
+                companySettings={companySettings}
                 quotation={{
                     id: currentQuotationId,
                     quotationNumber: quotationNumber,
                     clientName: clientName || clientCompany,
+                    customerName: clientName,
+                    clientCompany: clientCompany,
+                    companyName: clientCompany,
+                    clientPhone: clientPhone,
+                    phone: clientPhone,
+                    billingAddress: billingAddress,
+                    shippingAddress: shippingAddress,
+                    state: state,
+                    pinCode: pincode,
+                    customerAddress: shippingAddress || billingAddress,
                     grandTotal: totals?.grandTotal || quotationGrandTotal || 0,
                     currency: currency || 'INR'
                 }}
@@ -2957,6 +3334,9 @@ export default function QuotationBuilder() {
                                     setInvoiceCreationError(null);
                                     try {
                                         const invoice = await createInvoiceFromQuotation(currentQuotationId, selectedInvoiceType);
+                                        clearDraft(currentQuotationId);
+                                        clearDraft(targetQuotationId);
+                                        clearDraft('new');
                                         showToast({
                                             type: 'success',
                                             message: `${selectedInvoiceType === 'PROFORMA' ? 'Proforma Invoice' : 'Tax Invoice'} created successfully!`
@@ -3055,6 +3435,14 @@ export default function QuotationBuilder() {
                     </div>
                 </div>
             )}
+
+            <ActivityTimelineDrawer
+                isOpen={isTimelineOpen}
+                onClose={() => setIsTimelineOpen(false)}
+                entityType="QUOTATION"
+                entityId={currentQuotationId}
+                entityTitle={quotationNumber || (currentQuotationId ? `Quotation #${currentQuotationId}` : 'Quotation')}
+            />
         </div>
     );
 }

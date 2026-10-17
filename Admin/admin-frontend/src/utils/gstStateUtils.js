@@ -42,7 +42,8 @@ export const GST_STATES = [
     { code: '37', name: 'Andhra Pradesh' },
     { code: '38', name: 'Ladakh' },
     { code: '97', name: 'Other Territory' },
-    { code: '99', name: 'Centre Jurisdiction' }
+    { code: '99', name: 'Centre Jurisdiction' },
+    { code: '96', name: 'Other / International' }
 ];
 
 export const GST_STATE_MAP = GST_STATES.reduce((acc, curr) => {

@@ -13,12 +13,22 @@ export const useToast = () => {
 
 export const ToastProvider = ({ children }) => {
     const [toasts, setToasts] = useState([]);
+    const lastToastRef = React.useRef({ message: '', time: 0 });
 
     const showToast = useCallback(({ type = 'info', message, duration = 4000 }) => {
-        const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+        if (!message) return;
+
+        // Suppress repeated identical error popups within 5 seconds cooldown
+        const now = Date.now();
+        if (lastToastRef.current.message === message && (now - lastToastRef.current.time) < 5000) {
+            return;
+        }
+        lastToastRef.current = { message, time: now };
+
+        const id = now.toString() + Math.random().toString(36).substr(2, 9);
         
         setToasts(prevToasts => {
-            // Check for duplicates within the last few moments to prevent spam
+            // Check for duplicates currently on screen
             const isDuplicate = prevToasts.some(t => t.message === message && t.type === type);
             if (isDuplicate) return prevToasts;
 

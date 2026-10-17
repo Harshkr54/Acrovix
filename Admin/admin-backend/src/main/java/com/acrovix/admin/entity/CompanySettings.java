@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CompanySettings {
+public class CompanySettings extends TenantAwareEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,11 +24,17 @@ public class CompanySettings {
     @Column(name = "legal_name", nullable = false, length = 150)
     private String legalName;
 
+    @Column(name = "brand_name", length = 150)
+    private String brandName;
+
     @Column(length = 50)
     private String gstin;
 
     @Column(length = 50)
     private String pan;
+
+    @Column(name = "vat_id", length = 50)
+    private String vatId;
 
     @Column(nullable = false, length = 150)
     private String email;
@@ -69,6 +75,33 @@ public class CompanySettings {
     @Column(name = "logo_url", length = 255)
     private String logoUrl;
 
+    @Column(name = "favicon_url", length = 255)
+    private String faviconUrl;
+
+    @Builder.Default
+    @Column(name = "primary_color", length = 50)
+    private String primaryColor = "#2563EB";
+
+    @Builder.Default
+    @Column(name = "secondary_color", length = 50)
+    private String secondaryColor = "#1E40AF";
+
+    @Builder.Default
+    @Column(name = "currency_code", length = 10)
+    private String currencyCode = "INR";
+
+    @Builder.Default
+    @Column(name = "currency_symbol", length = 10)
+    private String currencySymbol = "₹";
+
+    @Builder.Default
+    @Column(name = "timezone", length = 50)
+    private String timezone = "Asia/Kolkata";
+
+    @Builder.Default
+    @Column(name = "date_format", length = 30)
+    private String dateFormat = "YYYY-MM-DD";
+
     @Column(name = "signature_url", length = 255)
     private String signatureUrl;
 
@@ -86,6 +119,12 @@ public class CompanySettings {
         if (this.createdAt == null) {
             this.createdAt = LocalDateTime.now();
         }
+        if (this.primaryColor == null) this.primaryColor = "#2563EB";
+        if (this.secondaryColor == null) this.secondaryColor = "#1E40AF";
+        if (this.currencyCode == null) this.currencyCode = "INR";
+        if (this.currencySymbol == null) this.currencySymbol = "₹";
+        if (this.timezone == null) this.timezone = "Asia/Kolkata";
+        if (this.dateFormat == null) this.dateFormat = "YYYY-MM-DD";
     }
 
     @PreUpdate

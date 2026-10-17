@@ -26,20 +26,20 @@ public class AdminUserController {
     private final AdminUserService userService;
 
     @GetMapping
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     public ResponseEntity<List<AdminUserResponse>> getAllUsers(
             @RequestParam(required = false) Boolean enabled) {
         return ResponseEntity.ok(userService.getAllUsers(enabled));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     public ResponseEntity<AdminUserResponse> getUserById(@PathVariable Long id) {
         return ResponseEntity.ok(userService.getUserById(id));
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     public ResponseEntity<AdminUserResponse> createUser(
             @Valid @RequestBody AdminUserRequest request,
             @AuthenticationPrincipal AdminUser admin) {
@@ -47,7 +47,7 @@ public class AdminUserController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     public ResponseEntity<AdminUserResponse> updateUser(
             @PathVariable Long id,
             @Valid @RequestBody UpdateProfileRequest request,
@@ -56,7 +56,7 @@ public class AdminUserController {
     }
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     public ResponseEntity<?> updateStatus(
             @PathVariable Long id,
             @RequestBody Map<String, Object> body,
@@ -71,7 +71,7 @@ public class AdminUserController {
     }
     
     @PatchMapping("/{id}/role")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     public ResponseEntity<?> updateRole(
             @PathVariable Long id,
             @RequestBody Map<String, String> body,
@@ -81,7 +81,7 @@ public class AdminUserController {
     }
 
     @PostMapping("/{id}/send-reset-link")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     @RateLimit(category = RateLimitCategory.EMAIL)
     public ResponseEntity<com.acrovix.admin.dto.AdminRecoveryLinkResponse> sendResetLink(
             @PathVariable Long id,
@@ -90,7 +90,7 @@ public class AdminUserController {
     }
 
     @PostMapping("/{id}/reset-temporary-password")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     @RateLimit(category = RateLimitCategory.LOGIN)
     public ResponseEntity<com.acrovix.admin.dto.TemporaryPasswordResetResponse> resetTemporaryPassword(
             @PathVariable Long id,

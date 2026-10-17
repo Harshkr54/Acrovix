@@ -2,15 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useTenant } from '../context/TenantContext';
 import { LayoutDashboard, MessageSquare, LogOut, FileText, Shield, Menu, X, ChevronLeft, ChevronRight, Sun, Moon, Search, Bell, Settings, Trash2, PanelLeftClose, PanelLeftOpen, ArrowLeft, UsersRound, Package, ShoppingCart, CreditCard, DollarSign, BarChart3, Target, TrendingUp, Clock, Calendar, Building2, Zap } from 'lucide-react';
 import HeaderControls from './HeaderControls';
 import { getInitials } from '../utils/userUtils';
-import { fetchApi } from '../services/api';
+import { fetchApi, resolveAssetUrl } from '../services/api';
 
 import logoLightExpanded from '../assets/acrovix_logo1.png';
-import logoDarkExpanded from '../assets/Acrovix_logo.png';
+import logoDarkExpanded from '../assets/acrovix_logo_dark.png';
 import logoLightCollapsed from '../assets/Acrovix_light.png';
-import logoDarkCollapsed from '../assets/Acrovix.png';
+import logoDarkCollapsed from '../assets/acrovix_collapsed_dark.png';
 
 const DateTimeDisplay = () => {
     const [time, setTime] = useState(new Date());
@@ -20,22 +21,16 @@ const DateTimeDisplay = () => {
         return () => clearInterval(timer);
     }, []);
 
-    const dateOptions = { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' };
+    const dateOptions = { weekday: 'short', month: 'short', day: 'numeric' };
     const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: true };
     const dateStr = time.toLocaleDateString('en-US', dateOptions);
     const timeStr = time.toLocaleTimeString('en-US', timeOptions);
 
     return (
-        <div className="hidden lg:flex items-center">
-            <div className="flex items-center gap-3 bg-bg-card border border-border-subtle rounded-full px-4 h-[44px] shadow-sm">
-                <div className="w-8 h-8 rounded-full bg-brand-primary/10 flex items-center justify-center shrink-0">
-                    <Calendar className="w-4 h-4 text-brand-primary" />
-                </div>
-                <div className="flex flex-col justify-center">
-                    <span className="text-[12px] font-bold text-text-primary tracking-tight leading-[1.1]">{dateStr}</span>
-                    <span className="text-[10px] font-medium text-text-muted leading-[1.1] mt-0.5">{timeStr} IST</span>
-                </div>
-            </div>
+        <div className="hidden xl:flex items-center text-xs text-slate-500 dark:text-slate-400 bg-slate-100/80 dark:bg-slate-800/40 px-2.5 py-1.5 rounded-lg border border-slate-200/80 dark:border-slate-700/30 font-medium">
+            <span>{dateStr}</span>
+            <span className="mx-1.5 text-slate-400/60">·</span>
+            <span>{timeStr}</span>
         </div>
     );
 };
@@ -43,6 +38,15 @@ const DateTimeDisplay = () => {
 export default function Layout() {
     const { user, logout } = useAuth();
     const { theme, toggleTheme } = useTheme();
+    const { tenant, isPlatformOwner } = useTenant();
+    const isOwnerWorkspace = isPlatformOwner(user) || 
+        user?.tenantId === 1 || 
+        user?.tenantId === '1' || 
+        user?.tenantSlug === 'default' || 
+        tenant?.slug === 'default' || 
+        user?.email?.toLowerCase() === 'sales@acrovix.com' || 
+        user?.email?.toLowerCase()?.endsWith('@acrovix.com');
+    const activeTenantName = isOwnerWorkspace ? 'Acrovix Innovations' : (tenant?.brandName || tenant?.companyName || 'Acrovix Innovations');
     const navigate = useNavigate();
     const location = useLocation();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -152,7 +156,7 @@ export default function Layout() {
         { path: '/purchase-orders', name: 'Purchase Orders', icon: ShoppingCart },
         { path: '/invoices', name: 'Invoices', icon: FileText },
         { path: '/payments', name: 'Payments', icon: CreditCard },
-        ...(user?.role === 'SUPER_ADMIN' ? [
+        ...((user?.role === 'SUPER_ADMIN' || user?.role === 'COMPANY_ADMIN') ? [
             { path: '/receivables', name: 'Receivables', icon: DollarSign },
             { path: '/reports', name: 'Reports', icon: BarChart3 },
             { path: '/company-bank-details', name: 'Company & Bank Details', icon: Building2 }
@@ -167,7 +171,10 @@ export default function Layout() {
     ];
 
     const managementItems = [];
-    if (user?.role === 'SUPER_ADMIN') {
+    if (user?.role === 'SUPER_ADMIN' || user?.role === 'COMPANY_ADMIN') {
+        if (isPlatformOwner(user)) {
+            managementItems.push({ path: '/workspaces', name: 'Workspaces / Tenants', icon: Building2 });
+        }
         managementItems.push({ path: '/users', name: 'Users', icon: Shield });
         managementItems.push({ path: '/automation', name: 'Automation Center', icon: Zap });
     }
@@ -178,7 +185,7 @@ export default function Layout() {
     ];
 
     return (
-        <div className={`flex h-screen bg-bg-main text-text-primary overflow-hidden ${isExiting ? 'animate-page-exit' : 'animate-page-entrance'}`}>
+        <div className={`flex h-screen bg-slate-50 dark:bg-[#0B0F17] text-text-primary overflow-hidden ${isExiting ? 'animate-page-exit' : 'animate-page-entrance'}`}>
             {/* Mobile Sidebar Overlay */}
             {isSidebarOpen && (
                 <div
@@ -187,27 +194,59 @@ export default function Layout() {
                 />
             )}
 
-            {/* Sidebar */}
-            <div className={`sidebar fixed inset-y-0 left-0 z-50 flex flex-col shrink-0 lg:relative lg:translate-x-0 lg:h-screen ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isCollapsed ? 'w-[72px]' : 'w-[260px]'}`}>
-                <div className="w-full h-[81px] bg-white dark:bg-bg-card flex items-center justify-center shrink-0 shadow-sm relative z-10 border-b border-border-subtle/50">
+            {/* Sidebar (Seamless L-Frame Outer Surface) */}
+            <div className={`sidebar fixed inset-y-0 left-0 z-50 flex flex-col shrink-0 lg:relative lg:translate-x-0 lg:h-screen bg-slate-50 dark:bg-[#0B0F17] ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isCollapsed ? 'w-[68px]' : 'w-[244px]'}` }>
+                <div className="w-full h-[52px] bg-transparent flex items-center px-4 shrink-0 relative z-10">
                     {!isCollapsed && (
-                        <img
-                            src={theme === 'dark' ? logoDarkExpanded : logoLightExpanded}
-                            alt="ACROVIX"
-                            width="200"
-                            height="60"
-                            className="h-[80%] w-auto object-contain transition-all"
-                        />
+                        tenant?.logoUrl ? (
+                            <img
+                                id="tenantNavbarLogo"
+                                src={resolveAssetUrl(tenant.logoUrl)}
+                                alt={tenant?.brandName || "Workspace"}
+                                className="max-h-8 max-w-[190px] w-auto object-contain transition-all"
+                            />
+                        ) : isOwnerWorkspace ? (
+                            <img
+                                id="acrovixOwnerLogo"
+                                src={theme === 'dark' ? logoDarkExpanded : logoLightExpanded}
+                                alt="ACROVIX"
+                                className="max-h-8 max-w-[190px] w-auto object-contain transition-all"
+                            />
+                        ) : (
+                            <div id="tenantNavbarBrand" className="flex items-center gap-2.5 max-w-[210px]">
+                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-primary to-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
+                                    {(tenant?.brandName || tenant?.companyName || 'Acrovix Innovations').slice(0, 2).toUpperCase()}
+                                </div>
+                                <div className="flex flex-col min-w-0 text-left">
+                                    <span id="tenantNavbarBrandName" className="text-xs font-bold text-text-primary truncate tracking-tight">
+                                        {activeTenantName}
+                                    </span>
+                                    <span className="text-[10px] text-text-muted font-medium uppercase tracking-wider">
+                                        Workspace
+                                    </span>
+                                </div>
+                            </div>
+                        )
                     )}
                     {isCollapsed && (
                         <div className="w-full flex justify-center">
-                            <img
-                                src={theme === 'dark' ? logoDarkCollapsed : logoLightCollapsed}
-                                alt="ACX"
-                                width="40"
-                                height="24"
-                                className="h-[24px] w-auto object-contain transition-all"
-                            />
+                            {tenant?.faviconUrl ? (
+                                <img
+                                    src={resolveAssetUrl(tenant.faviconUrl)}
+                                    alt={tenant?.brandName || "Workspace"}
+                                    className="max-h-7 max-w-[32px] w-auto object-contain transition-all"
+                                />
+                            ) : isOwnerWorkspace ? (
+                                <img
+                                    src={theme === 'dark' ? logoDarkCollapsed : logoLightCollapsed}
+                                    alt="ACX"
+                                    className="max-h-7 max-w-[32px] w-auto object-contain transition-all"
+                                />
+                            ) : (
+                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-primary to-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                                    {(tenant?.brandName || tenant?.companyName || 'Acrovix Innovations').slice(0, 2).toUpperCase()}
+                                </div>
+                            )}
                         </div>
                     )}
                     <button onClick={() => setIsSidebarOpen(false)} aria-label="Close sidebar" className="lg:hidden absolute right-4 text-text-muted hover:text-text-primary transition-colors p-1 rounded-lg">
@@ -336,100 +375,96 @@ export default function Layout() {
                     </nav>
                 </div>
 
-                <div className="sidebar-bottom-section">
+                {/* Sidebar Footer: Compact Workspace Status & Quick Logout */}
+                <div className="p-3 border-t border-border-subtle/50 dark:border-slate-800/60 mt-auto shrink-0 flex items-center justify-between">
 
-                    {/* Compact User Profile */}
-                    <div className="mx-4 mb-4 mt-auto rounded-2xl border flex items-center px-3 py-2.5 transition-colors group cursor-pointer" style={{ borderColor: 'var(--theme-sidebar-separator, #E2E8F0)', backgroundColor: 'var(--theme-sidebar-item-hover-bg)' }}>
-                        <div className="w-[38px] h-[38px] rounded-full bg-[var(--color-brand-primary)] flex items-center justify-center text-white font-bold text-[14px] shrink-0 shadow-sm relative">
-                            {getInitials(user?.name)}
-                            {isCollapsed && (
-                                <div className="sidebar-tooltip">
-                                    {user?.name || 'User'}
+                    {!isCollapsed ? (
+                        <>
+                            <div className="flex items-center gap-2 min-w-0">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                                <div className="flex flex-col min-w-0">
+                                    <span className="text-[11px] font-semibold text-text-primary dark:text-slate-300 truncate">
+                                        {activeTenantName}
+                                    </span>
+                                    <span className="text-[10px] text-text-muted dark:text-slate-400">Online</span>
                                 </div>
-                            )}
-                        </div>
-                        {!isCollapsed && (
-                            <div className="flex flex-col ml-3 min-w-0 flex-1">
-                                <span className="text-[13px] font-bold text-text-primary truncate">{user?.name || 'Admin'}</span>
-                                <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider truncate mt-[2px]">{user?.role?.replace('_', ' ')}</span>
                             </div>
-                        )}
-                        {!isCollapsed && (
                             <button
                                 onClick={handleLogout}
-                                className="ml-2 w-[32px] h-[32px] flex items-center justify-center rounded-lg hover:bg-bg-hover text-text-muted hover:text-text-primary transition-colors shrink-0"
+                                className="p-1.5 rounded-lg text-text-muted hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
                                 title="Sign out"
+                                aria-label="Sign out"
                             >
-                                <LogOut className="w-[18px] h-[18px]" />
+                                <LogOut className="w-4 h-4" />
                             </button>
-                        )}
-                    </div>
-                    {isCollapsed && (
+                        </>
+                    ) : (
                         <button
                             onClick={handleLogout}
-                            className="mx-auto mb-1 w-[36px] h-[36px] flex items-center justify-center rounded-lg hover:bg-brand-danger/10 text-brand-danger transition-colors group relative"
+                            className="w-9 h-9 mx-auto flex items-center justify-center rounded-lg text-text-muted hover:text-rose-500 hover:bg-rose-500/10 transition-colors group relative"
                             title="Sign out"
+                            aria-label="Sign out"
                         >
                             <LogOut className="w-4 h-4" />
-                            <div className="sidebar-tooltip">
-                                Sign out
-                            </div>
+                            <div className="sidebar-tooltip">Sign out</div>
                         </button>
                     )}
                 </div>
             </div>
 
-            {/* Main content */}
-            <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-bg-main relative z-0">
-                {/* Dotted Pattern Decorators */}
-                <div className="absolute top-0 right-0 w-[500px] h-[350px] bg-dotted-pattern opacity-70 pointer-events-none z-[-1] animate-fade-in-up"></div>
-                <div className="absolute bottom-0 left-0 w-[400px] h-[250px] bg-dotted-pattern opacity-50 pointer-events-none z-[-1]"></div>
-
-                {/* Top Header */}
-                <header className="h-[80px] flex items-center justify-between px-4 sm:px-6 lg:px-8 bg-[var(--theme-sidebar-bg)] relative z-30">
-                    <div className="flex items-center flex-1 gap-4 lg:gap-6 min-w-0">
+            {/* Main content (Integrated L-Frame) */}
+            <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-50 dark:bg-[#0B0F17] relative z-0">
+                {/* Top Header (Subtle 52px height, seamless mantle) */}
+                <header className="h-[52px] sticky top-0 flex items-center justify-between px-4 sm:px-6 bg-slate-50 dark:bg-[#0B0F17] z-30 transition-all shrink-0">
+                    <div className="flex items-center flex-1 gap-3 sm:gap-4 min-w-0">
                         <button
                             onClick={() => setIsSidebarOpen(true)}
                             aria-label="Open sidebar"
                             className="lg:hidden text-text-muted hover:text-text-primary transition-colors focus:outline-none shrink-0"
                         >
-                            <Menu className="w-6 h-6" />
+                            <Menu className="w-5 h-5" />
                         </button>
 
                         {/* Desktop Collapse Toggle */}
                         <button
                             onClick={toggleSidebar}
-                            className="hidden lg:flex items-center justify-center w-[44px] h-[44px] rounded-xl text-text-muted hover:text-text-primary hover:bg-bg-card border border-transparent hover:border-border-subtle hover:shadow-sm transition-all focus:outline-none shrink-0"
+                            className="hidden lg:flex items-center justify-center w-8 h-8 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-hover border border-transparent hover:border-border-subtle transition-all focus:outline-none shrink-0"
                             title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
                         >
-                            {isCollapsed ? <PanelLeftOpen className="w-[20px] h-[20px]" /> : <PanelLeftClose className="w-[20px] h-[20px]" />}
+                            {isCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
                         </button>
 
-                        {/* Search Bar matching reference */}
-                        <div ref={searchRef} className="relative w-full max-w-[580px] flex-1 min-w-0">
-                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        {/* Minimalist Global Search (Cmd + K) */}
+                        <div ref={searchRef} className="relative w-48 lg:w-56 focus-within:w-72 transition-all duration-200">
+                            <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
                                 {isSearching ? (
-                                    <div className="animate-spin w-[18px] h-[18px] border-2 border-[var(--color-brand-primary)] border-t-transparent rounded-full" />
+                                    <div className="animate-spin w-3 h-3 border-2 border-brand-primary border-t-transparent rounded-full" />
                                 ) : (
-                                    <Search className="h-[18px] w-[18px] text-text-muted" />
+                                    <Search className="h-3.5 w-3.5 text-slate-400" />
                                 )}
                             </div>
                             <input
                                 type="text"
-                                className="w-full pl-11 pr-10 h-[46px] sm:h-[48px] bg-bg-card border border-border-subtle rounded-[14px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-primary)]/20 focus:border-[var(--color-brand-primary)] transition-all shadow-[0_2px_12px_rgba(11,25,44,0.02)] text-text-primary placeholder-text-muted font-medium"
-                                placeholder="Search anything..."
+                                className="w-full pl-8 pr-11 h-[32px] bg-slate-200/50 dark:bg-slate-850/60 hover:bg-slate-200/80 dark:hover:bg-slate-800/80 border border-slate-300/40 dark:border-slate-800/80 rounded-lg px-2.5 py-1 text-xs text-text-primary placeholder:text-slate-400 transition-all focus:outline-none focus:ring-1 focus:ring-brand-primary focus:border-brand-primary"
+                                placeholder="Search... (⌘K)"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 onFocus={() => { if (searchQuery.trim() && (searchResults.enquiries.length > 0 || searchResults.quotations.length > 0 || searchResults.customers.length > 0)) setSearchDropdownOpen(true) }}
                             />
+                            {/* Minimalist keyboard shortcut pill */}
+                            {!searchQuery && (
+                                <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                                    <kbd className="text-[10px] px-1 py-0.5 rounded bg-slate-300/60 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-mono border border-slate-300/50 dark:border-slate-700/50">⌘K</kbd>
+                                </div>
+                            )}
 
                             {searchQuery && (
                                 <button
                                     onClick={handleClearSearch}
                                     aria-label="Clear search"
-                                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-text-muted hover:text-text-primary focus:outline-none z-10"
+                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-text-muted hover:text-text-primary focus:outline-none z-10"
                                 >
-                                    <X className="h-[18px] w-[18px]" />
+                                    <X className="h-4 w-4" />
                                 </button>
                             )}
 
@@ -537,10 +572,12 @@ export default function Layout() {
                     </div>
                 </header>
 
-                {/* Page content */}
-                <main ref={mainContentRef} className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 pt-2">
-                    <Outlet />
-                </main>
+                {/* Inset Main Content Shell (Subtle rounded top-left corner) */}
+                <div className="flex-1 min-w-0 overflow-hidden rounded-tl-2xl border-t border-l border-slate-200/80 dark:border-slate-800/60 bg-bg-card shadow-sm flex flex-col">
+                    <main ref={mainContentRef} className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+                        <Outlet />
+                    </main>
+                </div>
             </div>
         </div>
     );

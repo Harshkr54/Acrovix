@@ -6,6 +6,7 @@ import EmptyState from '../components/ui/EmptyState';
 import StatusBadge from '../components/ui/StatusBadge';
 import CreateLeadModal from '../components/CreateLeadModal';
 import { formatCurrency, formatDate } from '../utils/formatters';
+import { useTenant } from '../context/TenantContext';
 import { 
     Kanban, 
     Plus, 
@@ -29,6 +30,7 @@ const STAGES = [
 ];
 
 export default function CrmPipeline() {
+    const { tenant } = useTenant();
     const navigate = useNavigate();
 
     const [pipelineData, setPipelineData] = useState({});
@@ -168,7 +170,7 @@ export default function CrmPipeline() {
                                                 </div>
                                             ))
                                         ) : (
-                                            <div className="text-[13px] font-bold text-text-muted">₹0</div>
+                                            <div className="text-[13px] font-bold text-text-muted">{formatCurrency(0, tenant?.currencyCode || 'INR')}</div>
                                         )}
                                     </div>
                                     <div className="text-text-muted flex items-center justify-center w-8 h-8 rounded-full hover:bg-bg-main transition-colors">

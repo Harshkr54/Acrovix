@@ -26,12 +26,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
 public class PaymentController {
 
     private final PaymentService paymentService;
+    private final com.acrovix.admin.service.InvoiceService invoiceService;
 
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     @PostMapping("/payments")
     public ResponseEntity<PaymentResponse> recordPayment(
             @Valid @RequestBody PaymentRequest request,
@@ -40,7 +41,7 @@ public class PaymentController {
         return ResponseEntity.status(HttpStatus.CREATED).body(paymentService.getPaymentById(payment.getId(), admin));
     }
 
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     @PostMapping("/payments/{id}/cancel")
     public ResponseEntity<PaymentResponse> cancelPayment(
             @PathVariable Long id,
@@ -85,6 +86,13 @@ public class PaymentController {
         return ResponseEntity.ok(paymentService.getPaymentsByInvoiceId(invoiceId, admin));
     }
 
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
+    @PostMapping("/invoices/{invoiceId}/reconcile")
+    public ResponseEntity<InvoiceResponse> reconcileInvoice(@PathVariable Long invoiceId, @AuthenticationPrincipal AdminUser admin) {
+        paymentService.reconcileInvoicePayments(invoiceId, admin);
+        return ResponseEntity.ok(invoiceService.getInvoiceResponseById(invoiceId, admin));
+    }
+
     @RateLimit(category = RateLimitCategory.PDF)
     @GetMapping("/payments/{id}/pdf")
     public ResponseEntity<byte[]> getPaymentReceiptPdf(@PathVariable Long id, @AuthenticationPrincipal AdminUser admin) {
@@ -99,7 +107,7 @@ public class PaymentController {
         return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
     }
 
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     @GetMapping("/receivables")
     public ResponseEntity<Page<ReceivableSummaryResponse>> getReceivablesSummary(
             @RequestParam(required = false) String search,
@@ -111,7 +119,7 @@ public class PaymentController {
         return ResponseEntity.ok(receivables);
     }
 
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     @GetMapping("/dashboard/receivables")
     public ResponseEntity<DashboardReceivablesResponse> getDashboardReceivablesStats(@AuthenticationPrincipal AdminUser admin) {
         return ResponseEntity.ok(paymentService.getDashboardReceivablesStats());

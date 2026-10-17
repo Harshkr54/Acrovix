@@ -23,6 +23,7 @@ import com.acrovix.admin.repository.InvoiceRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -46,6 +47,9 @@ public class QuotationService {
     private final com.acrovix.admin.repository.CrmLeadRepository crmLeadRepository;
     private final PurchaseOrderRepository purchaseOrderRepository;
     private final InvoiceRepository invoiceRepository;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private AuditLogService auditLogService;
 
     @org.springframework.beans.factory.annotation.Autowired
     public QuotationService(
@@ -497,6 +501,9 @@ public class QuotationService {
         if (saved.getEnquiry() != null) {
             saved.getEnquiry().getReferenceId();
         }
+        if (saved.getColumnConfigs() != null) {
+            saved.getColumnConfigs().size();
+        }
         logActivity(admin.getId(), "Updated Quotation: " + saved.getQuotationNumber(), "Quotation", saved.getId());
         return saved;
     }
@@ -510,6 +517,11 @@ public class QuotationService {
     
     @Transactional
     public void sendQuotation(Long id, String overrideRecipientEmail, AdminUser admin) {
+        sendQuotation(id, overrideRecipientEmail, "STANDARD", admin);
+    }
+
+    @Transactional
+    public void sendQuotation(Long id, String overrideRecipientEmail, String pdfVariant, AdminUser admin) {
         Quotation quotation = getQuotationById(id, admin);
         
         if (!"DRAFT".equals(quotation.getStatus())) {
@@ -551,14 +563,19 @@ public class QuotationService {
             quotationRepository.save(quotation);
         }
         
-        emailService.sendQuotationEmail(quotation, finalRecipient);
+        emailService.sendQuotationEmail(quotation, finalRecipient, pdfVariant);
         markAsSent(id, admin);
     }
 
     @Transactional
     public void sendQuotationToRecipients(Long id, List<String> overrideRecipientEmails, AdminUser admin) {
+        sendQuotationToRecipients(id, overrideRecipientEmails, "STANDARD", admin);
+    }
+
+    @Transactional
+    public void sendQuotationToRecipients(Long id, List<String> overrideRecipientEmails, String pdfVariant, AdminUser admin) {
         if (overrideRecipientEmails == null || overrideRecipientEmails.isEmpty()) {
-            sendQuotation(id, (String) null, admin);
+            sendQuotation(id, (String) null, pdfVariant, admin);
             return;
         }
 
@@ -582,12 +599,12 @@ public class QuotationService {
 
         List<String> finalRecipients = new ArrayList<>(deduplicated.values());
         if (finalRecipients.isEmpty()) {
-            sendQuotation(id, (String) null, admin);
+            sendQuotation(id, (String) null, pdfVariant, admin);
             return;
         }
 
         if (finalRecipients.size() == 1) {
-            sendQuotation(id, finalRecipients.get(0), admin);
+            sendQuotation(id, finalRecipients.get(0), pdfVariant, admin);
             return;
         }
 
@@ -606,7 +623,7 @@ public class QuotationService {
             quotationRepository.save(quotation);
         }
 
-        emailService.sendQuotationEmailToRecipients(quotation, finalRecipients);
+        emailService.sendQuotationEmailToRecipients(quotation, finalRecipients, pdfVariant);
         markAsSent(id, admin);
     }
     
@@ -675,6 +692,9 @@ public class QuotationService {
         if (quotation.getEnquiry() != null) {
             quotation.getEnquiry().getReferenceId();
         }
+        if (quotation.getColumnConfigs() != null) {
+            quotation.getColumnConfigs().size();
+        }
         return quotation;
     }
 
@@ -742,8 +762,8 @@ public class QuotationService {
 
     @Transactional
     public void permanentlyDelete(Long id, AdminUser admin) {
-        if (admin == null || admin.getRole() != Role.SUPER_ADMIN) {
-            throw new org.springframework.security.access.AccessDeniedException("Only Super Admin can permanently delete quotations");
+        if (admin == null || (admin.getRole() != Role.SUPER_ADMIN && admin.getRole() != Role.COMPANY_ADMIN)) {
+            throw new org.springframework.security.access.AccessDeniedException("Only Super Admin or Company Admin can permanently delete quotations");
         }
 
         Quotation quotation = quotationRepository.findById(id)
@@ -766,6 +786,16 @@ public class QuotationService {
                 .entityId(entityId)
                 .build();
         activityRepository.save(activity);
+
+        if (auditLogService != null && entityId != null) {
+            String performedBy = "System";
+            if (adminId != null) {
+                performedBy = userRepository.findById(adminId)
+                        .map(AdminUser::getName)
+                        .orElse("Admin #" + adminId);
+            }
+            auditLogService.log(entityType != null ? entityType.toUpperCase() : "QUOTATION", entityId, action, performedBy, action);
+        }
     }
 
     private List<QuotationColumnConfig> createDefaultColumnConfigs(Quotation quotation) {
@@ -1062,6 +1092,7 @@ public class QuotationService {
                 .companyBankAccountId(original.getCompanyBankAccountId())
                 .createdBy(admin)
                 .build();
+        revision.setTenantId(original.getTenantId());
 
         Quotation saved = quotationRepository.save(revision);
 
@@ -1083,6 +1114,7 @@ public class QuotationService {
                     .sortOrder(originalItem.getSortOrder())
                     .customValues(new java.util.HashMap<>(originalItem.getCustomValues()))
                     .build();
+            newItem.setTenantId(original.getTenantId());
             saved.getItems().add(newItem);
         }
 
@@ -1096,6 +1128,7 @@ public class QuotationService {
                     .sortOrder(originalConfig.getSortOrder())
                     .isCustom(originalConfig.getIsCustom())
                     .build();
+            newConfig.setTenantId(original.getTenantId());
             saved.getColumnConfigs().add(newConfig);
         }
 
@@ -1170,6 +1203,14 @@ public class QuotationService {
             }
             quotation.setResponseSource(request.getResponseSource());
             quotation.setResponseNotes(request.getResponseNotes());
+            if ("ACCEPTED".equals(newStatus)) {
+                if (quotation.getSignedAt() == null) {
+                    quotation.setSignedAt(LocalDateTime.now());
+                }
+                if (quotation.getSignerName() == null || quotation.getSignerName().isBlank()) {
+                    quotation.setSignerName(quotation.getClientName());
+                }
+            }
         }
 
         quotation.setStatus(newStatus);

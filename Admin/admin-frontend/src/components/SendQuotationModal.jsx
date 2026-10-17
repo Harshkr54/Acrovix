@@ -4,9 +4,10 @@ import Modal from './ui/Modal';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export default function SendQuotationModal({ isOpen, onClose, initialEmail, onSend, isSending }) {
+export default function SendQuotationModal({ isOpen, onClose, initialEmail, onSend, isSending, isCustomPdfEnabled = false }) {
     const [recipients, setRecipients] = useState([]);
     const [inputValue, setInputValue] = useState('');
+    const [pdfVariant, setPdfVariant] = useState('STANDARD');
     const [error, setError] = useState(null);
     const inputRef = useRef(null);
 
@@ -29,6 +30,7 @@ export default function SendQuotationModal({ isOpen, onClose, initialEmail, onSe
         if (isOpen) {
             setError(null);
             setInputValue('');
+            setPdfVariant('STANDARD');
             const initialList = [];
             const parsed = parseEmailsFromInput(initialEmail);
             parsed.forEach(email => {
@@ -178,7 +180,7 @@ export default function SendQuotationModal({ isOpen, onClose, initialEmail, onSe
         }
 
         setError(null);
-        onSend(finalRecipients);
+        onSend(finalRecipients, pdfVariant);
     };
 
     const modalFooter = (
@@ -306,10 +308,94 @@ export default function SendQuotationModal({ isOpen, onClose, initialEmail, onSe
                         )}
                     </div>
 
+                    {/* PDF Attachment Selector */}
+                    <div className="space-y-2">
+                        <label className="block text-xs font-bold text-text-secondary uppercase tracking-wider">
+                            PDF Attachment Format
+                        </label>
+                        <div className="grid grid-cols-1 gap-2.5">
+                            {/* Option 1: Standard Official PDF */}
+                            <label
+                                className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                                    pdfVariant === 'STANDARD'
+                                        ? 'border-brand-teal/50 bg-brand-teal/5 ring-1 ring-brand-teal/20 shadow-2xs'
+                                        : 'border-border-subtle bg-bg-main/40 hover:border-border-strong hover:bg-bg-main/60'
+                                }`}
+                            >
+                                <input
+                                    type="radio"
+                                    name="pdfVariant"
+                                    value="STANDARD"
+                                    checked={pdfVariant === 'STANDARD'}
+                                    onChange={() => setPdfVariant('STANDARD')}
+                                    className="mt-0.5 text-brand-teal focus:ring-brand-teal"
+                                />
+                                <div className="space-y-0.5 flex-1">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-bold text-text-primary">
+                                            Standard Official PDF
+                                        </span>
+                                        <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-bg-surface border border-border-subtle text-text-muted">
+                                            Default
+                                        </span>
+                                    </div>
+                                    <p className="text-[11px] text-text-muted">
+                                        Standard system layout with complete details and official theme
+                                    </p>
+                                </div>
+                            </label>
+
+                            {/* Option 2: Customized Studio PDF */}
+                            <label
+                                className={`flex items-start gap-3 p-3 rounded-xl border transition-all ${
+                                    !isCustomPdfEnabled
+                                        ? 'opacity-60 bg-bg-surface/30 border-border-subtle cursor-not-allowed'
+                                        : pdfVariant === 'CUSTOM'
+                                            ? 'border-brand-teal/50 bg-brand-teal/5 ring-1 ring-brand-teal/20 shadow-2xs cursor-pointer'
+                                            : 'border-border-subtle bg-bg-main/40 hover:border-border-strong hover:bg-bg-main/60 cursor-pointer'
+                                }`}
+                            >
+                                <input
+                                    type="radio"
+                                    name="pdfVariant"
+                                    value="CUSTOM"
+                                    disabled={!isCustomPdfEnabled}
+                                    checked={pdfVariant === 'CUSTOM'}
+                                    onChange={() => isCustomPdfEnabled && setPdfVariant('CUSTOM')}
+                                    className="mt-0.5 text-brand-teal focus:ring-brand-teal disabled:opacity-50"
+                                />
+                                <div className="space-y-0.5 flex-1">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-bold text-text-primary">
+                                            Customized Studio PDF
+                                        </span>
+                                        {isCustomPdfEnabled ? (
+                                            <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-brand-teal/10 text-brand-teal border border-brand-teal/20">
+                                                Studio Active
+                                            </span>
+                                        ) : (
+                                            <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                                Studio Disabled
+                                            </span>
+                                        )}
+                                    </div>
+                                    <p className="text-[11px] text-text-muted">
+                                        Customized colors, selective columns, and personalized layout
+                                    </p>
+                                    {!isCustomPdfEnabled && (
+                                        <p className="text-[10px] font-medium text-amber-600 dark:text-amber-400 pt-0.5">
+                                            Enable and configure in PDF Studio first
+                                        </p>
+                                    )}
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
                     <div className="p-3 bg-bg-main/60 border border-border-subtle rounded-xl text-xs text-text-secondary leading-relaxed space-y-1">
                         <div className="font-semibold text-text-primary">Delivery Details:</div>
                         <p className="text-text-muted text-[11px]">
-                            A single quotation email with the generated PDF attachment will be delivered to all confirmed recipient addresses in the <strong>To</strong> field.
+                            A single quotation email with the selected PDF attachment format will be delivered to all confirmed recipient addresses in the <strong>To</strong> field.
                         </p>
                     </div>
                 </div>

@@ -51,14 +51,15 @@ test('1. Order Details table card spans full width (w-full) and is outside restr
 });
 
 test('2. Upper cards layout: Buyer / Bill To, Supplier / Vendor & Ship To in Row 1, Source Quotation & Timeline in Row 2', () => {
-    // Row 1: Buyer, Supplier & Delivery Destination in 3 Columns
+    // Row 1: Buyer and Supplier & Delivery Destination in 2 Columns
     assert.match(
         sourceCode,
-        /<div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">\s*{\/\* 1\. BUYER \/ BILL TO \(ACROVIX\) \*\/}/m,
-        'Buyer / Bill To, Supplier / Vendor, and Ship To must be placed in a 3-column responsive grid'
+        /<div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">/m,
+        'Buyer / Bill To and Supplier & Delivery Destination must be placed in a 2-column responsive grid'
     );
-    assert.match(sourceCode, /{\/\* 2\. SUPPLIER \/ VENDOR \*\/}/, 'Must contain Supplier / Vendor card');
-    assert.match(sourceCode, /{\/\* 3\. SHIP TO \/ DELIVERY DESTINATION \*\/}/, 'Must contain Ship To / Delivery Destination card');
+    assert.match(sourceCode, /BUYER \/ BILL TO/, 'Must contain Buyer / Bill To card');
+    assert.match(sourceCode, /SUPPLIER \/ VENDOR/, 'Must contain Supplier / Vendor section');
+    assert.match(sourceCode, /DELIVERY DESTINATION/, 'Must contain Delivery Destination section');
 
     // Row 2: Source Quotation & Timeline
     assert.match(

@@ -26,14 +26,20 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.NOT_FOUND, "Not Found", ex.getMessage(), request.getRequestURI());
     }
 
-    @ExceptionHandler(org.springframework.web.servlet.NoHandlerFoundException.class)
-    public ResponseEntity<ErrorResponse> handleNoHandlerFoundException(org.springframework.web.servlet.NoHandlerFoundException ex, HttpServletRequest request) {
-        return buildErrorResponse(HttpStatus.NOT_FOUND, "Not Found", "Endpoint not found", request.getRequestURI());
+    @ExceptionHandler({org.springframework.web.servlet.NoHandlerFoundException.class, org.springframework.web.servlet.resource.NoResourceFoundException.class})
+    public ResponseEntity<ErrorResponse> handleNoHandlerOrResourceFoundException(Exception ex, HttpServletRequest request) {
+        return buildErrorResponse(HttpStatus.NOT_FOUND, "Not Found", "Resource or endpoint not found", request.getRequestURI());
     }
 
     @ExceptionHandler(ResourceConflictException.class)
     public ResponseEntity<ErrorResponse> handleResourceConflictException(ResourceConflictException ex, HttpServletRequest request) {
         return buildErrorResponse(HttpStatus.CONFLICT, "Conflict", ex.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(SubscriptionQuotaExceededException.class)
+    public ResponseEntity<ErrorResponse> handleSubscriptionQuotaExceededException(SubscriptionQuotaExceededException ex, HttpServletRequest request) {
+        HttpStatus status = ex.getStatus() != null ? ex.getStatus() : HttpStatus.PAYMENT_REQUIRED;
+        return buildErrorResponse(status, status.getReasonPhrase(), ex.getMessage(), request.getRequestURI());
     }
 
     @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})

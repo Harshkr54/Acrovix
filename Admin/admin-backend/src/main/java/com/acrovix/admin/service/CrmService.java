@@ -781,8 +781,8 @@ public class CrmService {
         if (user == null) {
             throw new AccessDeniedException("Access denied: Unauthenticated user");
         }
-        if (user.getRole() == Role.SUPER_ADMIN) {
-            return; // Full access for SUPER_ADMIN
+        if (user.getRole() == Role.SUPER_ADMIN || user.getRole() == Role.COMPANY_ADMIN) {
+            return; // Full access for SUPER_ADMIN and COMPANY_ADMIN
         }
         if (user.getRole() == Role.SALES) {
             if (lead.getAssignedTo() == null) {

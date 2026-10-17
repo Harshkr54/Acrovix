@@ -7,10 +7,19 @@ import java.util.Optional;
 
 public interface AdminUserRepository extends JpaRepository<AdminUser, Long> {
     Optional<AdminUser> findByEmail(String email);
+    java.util.List<AdminUser> findAllByEmail(String email);
+    Optional<AdminUser> findByTenantIdAndEmail(Long tenantId, String email);
+    Optional<AdminUser> findByTenantIdAndId(Long tenantId, Long id);
     boolean existsByEmail(String email);
+    boolean existsByTenantIdAndEmail(Long tenantId, String email);
     long countByRoleAndEnabledTrue(com.acrovix.admin.entity.Role role);
     java.util.List<AdminUser> findByEnabled(boolean enabled);
     long countByEnabled(boolean enabled);
+    java.util.List<AdminUser> findByTenantId(Long tenantId);
+    java.util.List<AdminUser> findByTenantIdAndEnabled(Long tenantId, boolean enabled);
+    long countByTenantIdAndEnabledTrue(Long tenantId);
+    long countByTenantId(Long tenantId);
+    Optional<AdminUser> findFirstByTenantIdOrderByIdAsc(Long tenantId);
 
     @org.springframework.data.jpa.repository.Modifying(clearAutomatically = true)
     @org.springframework.data.jpa.repository.Query("UPDATE AdminEnquiry e SET e.assignedTo = :newAssignee WHERE e.assignedTo = :oldAssignee AND e.status NOT IN ('CONVERTED', 'CLOSED')")

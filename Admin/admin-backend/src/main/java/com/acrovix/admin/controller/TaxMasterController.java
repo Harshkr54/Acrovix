@@ -26,19 +26,19 @@ public class TaxMasterController {
     private final TaxMasterService taxMasterService;
 
     @GetMapping
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     public ResponseEntity<List<TaxMasterResponse>> getAllTaxes() {
         return ResponseEntity.ok(taxMasterService.getAllTaxes());
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     public ResponseEntity<TaxMasterResponse> getTaxById(@PathVariable Long id) {
         return ResponseEntity.ok(taxMasterService.getTaxById(id));
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     public ResponseEntity<TaxMasterResponse> createTax(
             @Valid @RequestBody TaxMasterRequest request,
             @AuthenticationPrincipal AdminUser adminUser) {
@@ -47,7 +47,7 @@ public class TaxMasterController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     public ResponseEntity<TaxMasterResponse> updateTax(
             @PathVariable Long id,
             @Valid @RequestBody TaxMasterRequest request,
@@ -57,7 +57,7 @@ public class TaxMasterController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     public ResponseEntity<Void> deleteTax(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser adminUser) {
@@ -66,7 +66,7 @@ public class TaxMasterController {
     }
     
     @PatchMapping("/{id}/activate")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     public ResponseEntity<Void> activateTax(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser adminUser) {

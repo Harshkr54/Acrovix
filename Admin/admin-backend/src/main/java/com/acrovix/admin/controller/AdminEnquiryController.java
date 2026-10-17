@@ -28,7 +28,7 @@ public class AdminEnquiryController {
     private final AdminEnquiryService enquiryService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<Page<AdminEnquiry>> getAllEnquiries(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -44,7 +44,7 @@ public class AdminEnquiryController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<AdminEnquiry> getEnquiry(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser admin) {
@@ -52,7 +52,7 @@ public class AdminEnquiryController {
     }
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<?> updateStatus(
             @PathVariable Long id, 
             @RequestBody Map<String, String> body,
@@ -62,7 +62,7 @@ public class AdminEnquiryController {
     }
 
     @PatchMapping("/{id}/assign")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     public ResponseEntity<?> assignAdmin(
             @PathVariable Long id, 
             @RequestBody Map<String, Long> body,
@@ -72,7 +72,7 @@ public class AdminEnquiryController {
     }
 
     @PatchMapping("/{id}/notes")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<?> updateNotes(
             @PathVariable Long id, 
             @RequestBody Map<String, String> body,

@@ -127,7 +127,7 @@ export default function ActionMenu({
                         <div className="space-y-0">
                             {items.map((item, idx) => {
                                 if (item.type === 'divider') {
-                                    return <div key={`div-${idx}`} className="my-1 border-t border-[#E5E7EB]" />;
+                                    return <div key={`div-${idx}`} className="my-1 border-t border-border-subtle" />;
                                 }
                                 if (item.type === 'header') {
                                     return (
@@ -140,17 +140,17 @@ export default function ActionMenu({
                                 const Icon = item.icon;
                                 
                                 const hoverBg = item.disabled ? 'hover:bg-transparent' : 
-                                                (item.variant === 'danger' ? 'hover:bg-[#DC2626]/[0.08]' : 
-                                                 (item.variant === 'success' || item.variant === 'brand') ? 'hover:bg-[rgba(13,148,136,0.08)]' : 
-                                                 item.variant === 'accent' ? 'hover:bg-[#6D28D9]/[0.08]' : 
-                                                 'hover:bg-[#F3F7FA]');
+                                                (item.variant === 'danger' ? 'hover:bg-red-500/10 dark:hover:bg-red-500/20' : 
+                                                 (item.variant === 'success' || item.variant === 'brand') ? 'hover:bg-teal-500/10 dark:hover:bg-teal-500/20' : 
+                                                 item.variant === 'accent' ? 'hover:bg-purple-500/10 dark:hover:bg-purple-500/20' : 
+                                                 'hover:bg-bg-hover');
 
-                                const activeBg = item.disabled ? '' : 'active:bg-[rgba(37,99,235,0.10)]';
+                                const activeBg = item.disabled ? '' : 'active:bg-brand-primary/10';
 
-                                const textColor = item.variant === 'danger' ? 'text-[#DC2626]' :
-                                                  (item.variant === 'success' || item.variant === 'brand') ? 'text-[#0D9488]' :
-                                                  item.variant === 'accent' ? 'text-[#6D28D9]' :
-                                                  'text-[#0B192C]';
+                                const textColor = item.variant === 'danger' ? 'text-brand-danger' :
+                                                  (item.variant === 'success' || item.variant === 'brand') ? 'text-brand-primary' :
+                                                  item.variant === 'accent' ? 'text-purple-600 dark:text-purple-400' :
+                                                  'text-text-primary';
 
                                 const colorClass = `${textColor} ${hoverBg} ${activeBg}`;
 

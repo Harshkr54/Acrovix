@@ -19,6 +19,7 @@ public class CompanyBankAccountResponse {
     private String maskedAccountNumber;
     private String bankIfsc;
     private String bankBranch;
+    private String upiId;
     private Boolean isDefault;
     private Boolean isActive;
     private LocalDateTime createdAt;

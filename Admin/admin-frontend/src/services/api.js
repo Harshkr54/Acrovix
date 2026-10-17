@@ -1,15 +1,30 @@
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081/api/admin';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/admin';
 
 export const getAuthHeaders = () => {
     const token = localStorage.getItem('adminToken');
-    return {
-        'Content-Type': 'application/json',
-        'Authorization': token ? `Bearer ${token}` : ''
+    const tenantSlug = localStorage.getItem('acrovix_tenant_slug');
+    const headers = {
+        'Content-Type': 'application/json'
     };
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+    if (tenantSlug) {
+        headers['X-Tenant-Slug'] = tenantSlug;
+    }
+    return headers;
 };
 
 export const fetchApi = async (endpoint, options = {}) => {
-    const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+    let url;
+    if (endpoint.startsWith('http')) {
+        url = endpoint;
+    } else if (endpoint.startsWith('/api/')) {
+        const rootBase = API_BASE_URL.replace(/\/api\/admin\/?$/, '');
+        url = `${rootBase}${endpoint}`;
+    } else {
+        url = `${API_BASE_URL}${endpoint}`;
+    }
     const defaultHeaders = getAuthHeaders();
     
     // Prevent overriding Authorization unless explicitly provided
@@ -157,6 +172,7 @@ export const getCustomers = (params) => {
 export const getCustomerById = (id) => fetchApi(`/customers/${id}`);
 
 export const getCustomer360 = (id) => fetchApi(`/customers/${id}/360`);
+export const getNextCustomerCode = () => fetchApi('/customers/next-code');
 
 export const createCustomer = (data) => fetchApi('/customers', {
     method: 'POST',
@@ -267,6 +283,43 @@ export const updateCompanySettings = (data) => fetchApi('/company-settings', {
     method: 'PATCH',
     body: JSON.stringify(data)
 });
+
+export const uploadTenantLogo = async (file) => {
+    const token = localStorage.getItem('adminToken');
+    const tenantSlug = localStorage.getItem('acrovix_tenant_slug');
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (tenantSlug) headers['X-Tenant-Slug'] = tenantSlug;
+
+    const response = await fetch(`${API_BASE_URL}/uploads/logo`, {
+        method: 'POST',
+        headers,
+        body: formData
+    });
+
+    if (!response.ok) {
+        let errStr = 'Failed to upload logo';
+        try {
+            const errData = await response.json();
+            if (errData.error) errStr = errData.error;
+            else if (errData.message) errStr = errData.message;
+        } catch (_e) {}
+        throw new Error(errStr);
+    }
+    return await response.json();
+};
+
+export const resolveAssetUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+        return url;
+    }
+    const backendRoot = API_BASE_URL.replace(/\/api\/admin\/?$/, '');
+    return url.startsWith('/') ? `${backendRoot}${url}` : `${backendRoot}/${url}`;
+};
 
 export const getCompanyBankAccounts = () => fetchApi('/company-settings/bank-accounts');
 
@@ -386,6 +439,41 @@ export const getPaymentReceiptPdf = (id) => fetchApi(`/payments/${id}/pdf`);
 export const getEligibleInvoicesForPayment = (search) => {
     const qs = search ? `?search=${encodeURIComponent(search)}` : '';
     return fetchApi(`/payments/eligible-invoices${qs}`);
+};
+
+export const reconcileInvoice = (invoiceId) => fetchApi(`/invoices/${invoiceId}/reconcile`, {
+    method: 'POST'
+});
+
+export const getPublicInvoicePay = (token) => fetchApi(`/api/public/invoices/pay/${token}`);
+
+export const submitPublicPaymentProof = (token, data) => fetchApi(`/api/public/invoices/pay/${token}/submit-proof`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+});
+
+export const createPublicInvoicePaymentOrder = (token, data) => fetchApi(`/api/public/invoices/pay/${token}/create-order`, {
+    method: 'POST',
+    body: JSON.stringify(data || {})
+});
+
+export const verifyPublicInvoicePayment = (token, data) => fetchApi(`/api/public/invoices/pay/${token}/verify-payment`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+});
+
+export const getPublicQrUrl = (data, size = 260) => {
+    const rootBase = API_BASE_URL.startsWith('http')
+        ? API_BASE_URL.replace(/\/api\/admin\/?$/, '')
+        : (typeof window !== 'undefined' ? window.location.origin : '');
+    return `${rootBase}/api/public/qr?data=${encodeURIComponent(data)}&size=${size}`;
+};
+
+export const getInvoiceUpiQrUrl = (token, size = 260) => {
+    const rootBase = API_BASE_URL.startsWith('http')
+        ? API_BASE_URL.replace(/\/api\/admin\/?$/, '')
+        : (typeof window !== 'undefined' ? window.location.origin : '');
+    return `${rootBase}/api/public/qr/invoice/${encodeURIComponent(token)}?size=${size}`;
 };
 
 // --- REPORTS & BUSINESS ANALYTICS ---
@@ -679,7 +767,38 @@ export const downloadCrmLeadTemplate = async () => {
     document.body.removeChild(a);
 };
 
+// --- Tenant & White-Labeling Services ---
 
+export const getPublicTenantBranding = async (slug) => {
+    return fetchApi(`/api/public/tenants/${encodeURIComponent(slug)}/branding`);
+};
 
+export const getAllTenants = async () => {
+    return fetchApi('/api/v1/super-admin/tenants');
+};
 
+export const getTenantById = async (id) => {
+    return fetchApi(`/api/v1/super-admin/tenants/${id}`);
+};
+
+export const provisionTenant = async (payload) => {
+    return fetchApi('/api/v1/super-admin/tenants', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+    });
+};
+
+export const updateTenantSubscription = async (id, payload) => {
+    return fetchApi(`/api/v1/super-admin/tenants/${id}/subscription`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload)
+    });
+};
+
+export const updateTenantStatus = async (id, status) => {
+    return fetchApi(`/api/v1/super-admin/tenants/${id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status })
+    });
+};
 

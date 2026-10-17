@@ -11,6 +11,7 @@ import {
     getCompanySettings 
 } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useTenant } from '../context/TenantContext';
 import { useToast } from '../context/ToastContext';
 import { 
     ArrowLeft, Clock, CheckCircle, Package, XCircle, FileText, Download, 
@@ -21,8 +22,10 @@ import {
 } from 'lucide-react';
 import { API_BASE_URL } from '../services/api';
 import { formatCurrency } from '../utils/formatters';
+import { formatStateDisplay } from '../utils/gstStateUtils';
 
 export default function PurchaseOrderDetail() {
+    const { tenant } = useTenant();
     const { id } = useParams();
     const navigate = useNavigate();
     const { user } = useAuth();
@@ -181,29 +184,37 @@ export default function PurchaseOrderDetail() {
             setLoading(true);
             const poData = await getPurchaseOrderById(id);
             setOrder(poData);
-            setEditedRemarks(poData.remarks || '');
+            setEditedRemarks(poData?.remarks || '');
             
-            const [qData, cData, invRes] = await Promise.all([
-                fetchApi(`/quotations/${poData.quotationId}`).catch(() => null),
-                getCompanySettings().catch(() => null),
-                getInvoices({ purchaseOrderId: id }).catch(() => null)
-            ]);
-            setQuotation(qData);
-            setCompanySettings(cData);
-            if (invRes?.content) {
-                setRelatedInvoices(invRes.content);
-            }
+            // Secondary fetches (quotation, company settings, invoices) - non-critical, isolated so failures do not trigger global toast error
+            try {
+                const secondaryFetches = [
+                    getCompanySettings().catch(() => null),
+                    getInvoices({ purchaseOrderId: id }).catch(() => null)
+                ];
+                if (poData?.quotationId) {
+                    secondaryFetches.push(fetchApi(`/quotations/${poData.quotationId}`).catch(() => null));
+                }
 
-            if (qData?.customer) {
-                setCustomer(qData.customer);
-            } else if (qData?.customerId) {
-                const custData = await fetchApi(`/customers/${qData.customerId}`).catch(() => null);
-                if (custData) setCustomer(custData);
+                const [cData, invRes, qData] = await Promise.all(secondaryFetches);
+                if (cData) setCompanySettings(cData);
+                if (invRes?.content) setRelatedInvoices(invRes.content);
+                if (qData) {
+                    setQuotation(qData);
+                    if (qData?.customer) {
+                        setCustomer(qData.customer);
+                    } else if (qData?.customerId) {
+                        const custData = await fetchApi(`/customers/${qData.customerId}`).catch(() => null);
+                        if (custData) setCustomer(custData);
+                    }
+                }
+            } catch (secError) {
+                console.warn('Non-critical secondary settings/quotation fetch failed:', secError);
             }
             
         } catch (error) {
             console.error('Failed to fetch PO data', error);
-            showToast({ type: 'error', message: error.message || 'Failed to fetch Purchase Order details' });
+            showToast({ type: 'error', message: error?.message || 'Failed to fetch Purchase Order details' });
         } finally {
             setLoading(false);
         }
@@ -396,27 +407,55 @@ export default function PurchaseOrderDetail() {
         }
     };
 
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-[50vh]">
-                <div className="flex flex-col items-center">
-                    <Loader2 className="w-8 h-8 animate-spin text-brand-primary mb-4" />
-                    <p className="text-[13px] text-text-muted font-medium">Loading Document...</p>
+    const po = order;
+
+    if (loading || !po) {
+        if (!loading && !po) {
+            return (
+                <div className="flex flex-col items-center justify-center min-h-[50vh] text-center px-4">
+                    <div className="w-16 h-16 bg-brand-danger/10 flex items-center justify-center rounded-[20px] mb-6">
+                        <AlertTriangle className="w-8 h-8 text-brand-danger" />
+                    </div>
+                    <h2 className="text-[20px] font-bold text-text-primary mb-2">Purchase Order Not Found</h2>
+                    <p className="text-sm text-text-muted max-w-sm mb-4">
+                        The requested purchase order could not be loaded or may not exist.
+                    </p>
+                    <button onClick={() => navigate('/purchase-orders')} className="btn btn-secondary btn-md">
+                        Back to Purchase Orders
+                    </button>
                 </div>
-            </div>
-        );
-    }
-    
-    if (!order) {
+            );
+        }
+
         return (
-            <div className="flex flex-col items-center justify-center min-h-[50vh] text-center px-4">
-                <div className="w-16 h-16 bg-brand-danger/10 flex items-center justify-center rounded-[20px] mb-6">
-                    <AlertTriangle className="w-8 h-8 text-brand-danger" />
+            <div className="space-y-6 max-w-[1600px] mx-auto pb-24 animate-pulse">
+                {/* Header skeleton */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-bg-muted shrink-0" />
+                        <div className="space-y-2">
+                            <div className="h-7 w-64 bg-bg-muted rounded-lg" />
+                            <div className="h-4 w-32 bg-bg-muted rounded" />
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <div className="h-10 w-28 bg-bg-muted rounded-xl" />
+                        <div className="h-10 w-28 bg-bg-muted rounded-xl" />
+                    </div>
                 </div>
-                <h2 className="text-[20px] font-bold text-text-primary mb-2">Purchase Order Not Found</h2>
-                <button onClick={() => navigate('/purchase-orders')} className="btn btn-secondary btn-md mt-4">
-                    Back to Purchase Orders
-                </button>
+                {/* 4 Stat Cards */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[1, 2, 3, 4].map(idx => (
+                        <div key={idx} className="acx-card p-5 h-24 bg-bg-muted/40 rounded-2xl border border-border-subtle/50" />
+                    ))}
+                </div>
+                {/* Upper 2 Cards */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
+                    <div className="acx-card p-6 h-64 bg-bg-muted/40 rounded-2xl border border-border-subtle/50" />
+                    <div className="acx-card p-6 h-64 bg-bg-muted/40 rounded-2xl border border-border-subtle/50" />
+                </div>
+                {/* Table skeleton */}
+                <div className="acx-card p-6 h-80 bg-bg-muted/40 rounded-2xl border border-border-subtle/50" />
             </div>
         );
     }
@@ -554,13 +593,15 @@ export default function PurchaseOrderDetail() {
 
     const totals = calculateTotals();
     const visibleColumns = (quotation?.columnConfigs && quotation.columnConfigs.length > 0)
-        ? quotation.columnConfigs.filter(c => c.visible).sort((a,b) => a.sortOrder - b.sortOrder)
+        ? quotation.columnConfigs
+            .filter(c => !['themeColor', 'templateStyle', 'brandDisplayMode', 'bankDetails', 'signature', 'termsAndConditions'].includes(c.columnKey) && c.visible)
+            .sort((a,b) => a.sortOrder - b.sortOrder)
         : defaultConfigs;
 
     // Helper to format Bill To Company Address lines
     const getCompanyAddressLines = () => {
-        const rawAddress = companySettings?.registeredAddress || companySettings?.billingAddress || '';
-        if (rawAddress.trim()) {
+        const rawAddress = companySettings?.registeredAddress || tenant?.address || 'Address not specified';
+        if (rawAddress && typeof rawAddress === 'string' && rawAddress.trim() && rawAddress !== 'Address not specified') {
             const lines = rawAddress.split(/\r?\n|\\n/).map(l => l.trim()).filter(Boolean);
             const separateLoc = [
                 companySettings?.city,
@@ -571,7 +612,7 @@ export default function PurchaseOrderDetail() {
             if (separateLoc && !rawAddress.toLowerCase().includes((companySettings?.city || '').toLowerCase())) {
                 lines.push(separateLoc);
             }
-            return lines;
+            return lines.length > 0 ? lines : [rawAddress];
         }
 
         const lines = [];
@@ -585,29 +626,32 @@ export default function PurchaseOrderDetail() {
         ].filter(Boolean).join(', ');
         if (cityStatePin) lines.push(cityStatePin);
 
-        return lines;
+        return lines.length > 0 ? lines : [companySettings?.registeredAddress || tenant?.address || 'Address not specified'];
     };
 
     const companyAddressLines = getCompanyAddressLines();
 
-    // Helper to format Client Address lines
+    // Helper to format Client / Supplier / Delivery Address lines
     const getClientAddressLines = (rawAddress, state, pincode) => {
         if (!rawAddress && !state && !pincode) return [];
         const lines = [];
-        if (rawAddress && rawAddress.trim()) {
+        const formattedState = state ? formatStateDisplay(state) : '';
+        if (rawAddress && typeof rawAddress === 'string' && rawAddress.trim()) {
             const splitLines = rawAddress.split(/\r?\n|\\n/).map(l => l.trim()).filter(Boolean);
             lines.push(...splitLines);
             
             const fullRaw = rawAddress.toLowerCase();
-            const stateNeedsAdd = state && !fullRaw.includes(state.toLowerCase());
+            const stateNeedsAdd = formattedState && !fullRaw.includes(state.toLowerCase()) && !fullRaw.includes(formattedState.toLowerCase());
             const pinNeedsAdd = pincode && !fullRaw.includes(pincode.toString().toLowerCase());
             
             if (stateNeedsAdd || pinNeedsAdd) {
-                const locParts = [stateNeedsAdd ? state : null, pinNeedsAdd ? pincode : null].filter(Boolean);
+                const locParts = [stateNeedsAdd ? formattedState : null, pinNeedsAdd ? pincode : null].filter(Boolean);
                 lines.push(locParts.join(' - '));
             }
+        } else if (rawAddress) {
+            lines.push(String(rawAddress));
         } else {
-            const locParts = [state, pincode].filter(Boolean);
+            const locParts = [formattedState || state, pincode].filter(Boolean);
             if (locParts.length > 0) {
                 lines.push(locParts.join(' - '));
             }
@@ -615,73 +659,38 @@ export default function PurchaseOrderDetail() {
         return lines;
     };
 
-    // Client Details Resolution (Order Snapshot -> Quotation Snapshot -> Customer Master)
-    const clientCompany = order?.clientCompany || quotation?.clientCompany || customer?.companyName || '';
-    const clientContact = order?.clientName || quotation?.clientName || customer?.name || '';
-    const clientEmail = order?.clientEmail || quotation?.clientEmail || customer?.email || '';
-    const clientPhone = order?.clientPhone || quotation?.clientPhone || customer?.phone || '';
-    const clientAltPhone = quotation?.alternatePhone || customer?.alternatePhone || '';
-    const clientGstin = quotation?.gstin || customer?.gstin || '';
-    const clientPan = quotation?.pan || customer?.pan || '';
-    const clientCode = customer?.customerCode || quotation?.customerCode || '';
-    const clientPaymentTerms = quotation?.paymentTerms || customer?.paymentTerms || '';
-    
-    // Address Resolution
-    const clientBillingAddressRaw = quotation?.billingAddress || customer?.billingAddress || '';
-    const clientBillingState = quotation?.state || customer?.state || '';
-    const clientBillingPin = quotation?.pincode || customer?.pincode || '';
-    const clientBillingLines = getClientAddressLines(clientBillingAddressRaw, clientBillingState, clientBillingPin);
+    // Supplier / Vendor Details Resolution
+    const supplierName = po?.supplierName || po?.vendorName || po?.customerName || po?.clientCompany || po?.clientName || quotation?.clientCompany || customer?.companyName || 'Supplier';
+    const supplierContactPerson = po?.supplierContactPerson || po?.customerContactPerson || po?.clientName || po?.contactPerson || quotation?.clientName || customer?.name || 'N/A';
+    const supplierBillingAddressRaw = po?.supplierBillingAddress || po?.customerAddress || po?.billingAddress || po?.clientBillingAddress || quotation?.billingAddress || customer?.billingAddress || '';
+    const supplierBillingState = po?.supplierState || po?.clientState || quotation?.state || customer?.state || '';
+    const supplierBillingPin = po?.supplierPincode || po?.clientPincode || quotation?.pincode || customer?.pincode || '';
+    const supplierBillingLines = getClientAddressLines(supplierBillingAddressRaw, supplierBillingState, supplierBillingPin);
 
-    const clientShippingAddressRaw = quotation?.shippingAddress || customer?.shippingAddress || '';
-    const clientShippingLines = getClientAddressLines(clientShippingAddressRaw, null, null);
-    
-    // Check if shipping address is distinct from billing address
-    const hasDistinctShippingAddress = Boolean(
-        clientShippingLines.length > 0 &&
-        clientBillingLines.length > 0 &&
-        clientShippingLines.join(' ').trim().toLowerCase() !== clientBillingLines.join(' ').trim().toLowerCase()
-    );
+    const supplierGstin = po?.supplierGstin || po?.clientGstin || quotation?.gstin || customer?.gstin || '';
+    const supplierPan = po?.supplierPan || po?.clientPan || quotation?.pan || customer?.pan || '';
+    const supplierCode = customer?.customerCode || quotation?.customerCode || '';
+    const supplierPaymentTerms = quotation?.paymentTerms || customer?.paymentTerms || '';
+    const supplierEmail = po?.supplierEmail || po?.clientEmail || quotation?.clientEmail || customer?.email || '';
+    const supplierPhone = po?.supplierPhone || po?.clientPhone || quotation?.clientPhone || customer?.phone || '';
+    const supplierAltPhone = quotation?.alternatePhone || customer?.alternatePhone || '';
 
     // Delivery Destination Resolution
-    const rawDestType = order?.deliveryDestinationType;
-    const rawDeliveryAddress = order?.deliveryAddress;
-    
-    let resolvedDestType = rawDestType;
-    if (!resolvedDestType) {
-        if (rawDeliveryAddress && rawDeliveryAddress.trim()) {
-            const compAddr = (companySettings?.registeredAddress || companySettings?.billingAddress || '').toLowerCase();
-            resolvedDestType = (compAddr && rawDeliveryAddress.toLowerCase().includes(compAddr))
-                ? 'COMPANY_OFFICE'
-                : 'CUSTOM';
-        } else {
-            resolvedDestType = 'NOT_SPECIFIED';
-        }
-    }
-
-    const deliveryDestinationType = resolvedDestType;
-    let deliveryContactName = 'Not Specified';
-    let deliveryContactPhone = '';
-    let deliveryAddressRaw = '';
-
-    if (deliveryDestinationType === 'NOT_SPECIFIED') {
-        deliveryContactName = order?.deliveryContactName || 'Not Specified';
-        deliveryContactPhone = order?.deliveryContactPhone || '';
-        deliveryAddressRaw = '';
-    } else if (deliveryDestinationType === 'CUSTOMER_SITE') {
-        deliveryContactName = order?.deliveryContactName || clientContact || 'Site Contact';
-        deliveryContactPhone = order?.deliveryContactPhone || clientPhone || '';
-        deliveryAddressRaw = order?.deliveryAddress || clientShippingAddressRaw || '';
-    } else if (deliveryDestinationType === 'CUSTOM') {
-        deliveryContactName = order?.deliveryContactName || 'Designated Contact';
-        deliveryContactPhone = order?.deliveryContactPhone || '';
-        deliveryAddressRaw = order?.deliveryAddress || '';
-    } else {
-        // COMPANY_OFFICE
-        deliveryContactName = order?.deliveryContactName || 'ACROVIX Operations';
-        deliveryContactPhone = order?.deliveryContactPhone || companySettings?.phone || '';
-        deliveryAddressRaw = order?.deliveryAddress || companySettings?.registeredAddress || companySettings?.billingAddress || '';
-    }
+    const deliveryAddressRaw = po?.deliveryAddress || po?.shippingAddress || po?.clientShippingAddress || quotation?.shippingAddress || customer?.shippingAddress || '';
     const deliveryAddressLines = deliveryAddressRaw ? getClientAddressLines(deliveryAddressRaw, null, null) : [];
+    const deliveryDestinationType = po?.deliveryDestinationType || 'Client / Project Site';
+    const receivingContactPhone = po?.receivingContactPhone || po?.phone || po?.deliveryContactPhone || po?.clientPhone || customer?.phone || '';
+    const receivingContactEmail = po?.receivingContactEmail || po?.email || po?.deliveryContactEmail || po?.clientEmail || customer?.email || '';
+    const receivingContactName = po?.deliveryContactName || po?.receivingContactName || (supplierContactPerson !== 'N/A' ? supplierContactPerson : '') || `${tenant?.brandName || 'Client'} Site Contact`;
+
+    const getDestinationBadgeLabel = () => {
+        const destType = po?.deliveryDestinationType || deliveryDestinationType;
+        if (destType === 'CUSTOMER_SITE') return 'Client / Project Site';
+        if (destType === 'COMPANY_OFFICE') return `${tenant?.brandName || 'Company'} Office`;
+        if (destType === 'CUSTOM') return 'Custom Delivery Site';
+        if (destType && destType !== 'NOT_SPECIFIED') return destType.replace(/_/g, ' ');
+        return 'Client / Project Site';
+    };
 
     return (
         <div className="space-y-6 max-w-[1600px] mx-auto pb-24">
@@ -707,8 +716,8 @@ export default function PurchaseOrderDetail() {
                             </h1>
                         </div>
                         <p className="text-[13px] font-mono text-text-muted flex items-center mt-1 flex-wrap gap-2">
-                            {order.poNumber}
-                            {order.status === 'VERIFIED' ? (
+                            {order?.poNumber}
+                            {order?.status === 'VERIFIED' ? (
                                 <>
                                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 uppercase tracking-wider gap-1.5 shadow-sm">
                                         <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
@@ -721,8 +730,8 @@ export default function PurchaseOrderDetail() {
                                 </>
                             ) : (
                                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-bg-muted border border-border-subtle uppercase tracking-wider gap-1.5 text-text-secondary">
-                                    {getStatusIcon(order.status)}
-                                    {order.status}
+                                    {getStatusIcon(order?.status)}
+                                    {order?.status}
                                 </span>
                             )}
                         </p>
@@ -750,7 +759,7 @@ export default function PurchaseOrderDetail() {
                         <button 
                             onClick={() => {
                                 const taxInv = relatedInvoices.find(i => i.invoiceType === 'TAX_INVOICE' && i.status !== 'CANCELLED');
-                                navigate(`/invoices/${taxInv.id}`);
+                                if (taxInv) navigate(`/invoices/${taxInv.id}`);
                             }}
                             className="btn btn-secondary btn-md flex items-center text-blue-600 dark:text-blue-400 border-blue-500/20 hover:bg-blue-500/5 shadow-sm"
                             title="View Tax Invoice"
@@ -759,16 +768,16 @@ export default function PurchaseOrderDetail() {
                         </button>
                     )}
 
-                    {isSuperAdmin && ['VERIFIED', 'PARTIALLY_FULFILLED'].includes(order.status) && (
+                    {isSuperAdmin && ['VERIFIED', 'PARTIALLY_FULFILLED'].includes(order?.status) && (
                         <button 
                             onClick={handleOpenCreateTaxInvoiceModal}
                             disabled={actionLoading || (
-                                order.poValue != null && 
+                                order?.poValue != null && 
                                 relatedInvoices.filter(i => i.status !== 'CANCELLED').reduce((sum, i) => sum + (Number(i.grandTotal) || 0), 0) >= Number(order.poValue) &&
                                 relatedInvoices.some(i => i.status !== 'CANCELLED')
                             )}
                             className={`btn btn-secondary btn-md flex items-center shadow-sm ${
-                                order.poValue != null && 
+                                order?.poValue != null && 
                                 relatedInvoices.filter(i => i.status !== 'CANCELLED').reduce((sum, i) => sum + (Number(i.grandTotal) || 0), 0) >= Number(order.poValue) &&
                                 relatedInvoices.some(i => i.status !== 'CANCELLED')
                                     ? 'opacity-50 cursor-not-allowed text-text-muted border-border-subtle'
@@ -779,7 +788,7 @@ export default function PurchaseOrderDetail() {
                         </button>
                     )}
                     
-                    {isSuperAdmin && order.status === 'RECEIVED' && (
+                    {isSuperAdmin && order?.status === 'RECEIVED' && (
                         <button 
                             onClick={() => setVerifyModalOpen(true)}
                             disabled={actionLoading}
@@ -790,7 +799,7 @@ export default function PurchaseOrderDetail() {
                         </button>
                     )}
 
-                    {isSuperAdmin && order.status === 'PARTIALLY_FULFILLED' && (
+                    {isSuperAdmin && order?.status === 'PARTIALLY_FULFILLED' && (
                         <button 
                             onClick={() => { setNewStatus(''); setStatusModalOpen(true); }}
                             className="btn btn-secondary btn-md flex items-center"
@@ -802,7 +811,7 @@ export default function PurchaseOrderDetail() {
             </div>
 
             {/* Verified Read-Only Banner */}
-            {(order.status === 'VERIFIED' || order.readOnly) && (
+            {(order?.status === 'VERIFIED' || order?.readOnly) && (
                 <div className="p-4 bg-emerald-500/10 border border-emerald-500/25 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-modal-entrance">
                     <div className="flex items-start sm:items-center gap-3">
                         <div className="w-9 h-9 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5 sm:mt-0">
@@ -818,14 +827,14 @@ export default function PurchaseOrderDetail() {
                                 </span>
                             </div>
                             <p className="text-[12px] text-emerald-700/90 dark:text-emerald-400/90 mt-0.5">
-                                This purchase order is verified{order.verifiedBy?.name ? ` by ${order.verifiedBy.name}` : ''}{order.verifiedAt ? ` on ${new Date(order.verifiedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}` : ''}. All line items, prices, discounts, and terms are protected from direct alteration.
+                                This purchase order is verified{order?.verifiedBy?.name ? ` by ${order.verifiedBy.name}` : ''}{order?.verifiedAt ? ` on ${new Date(order.verifiedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}` : ''}. All line items, prices, discounts, and terms are protected from direct alteration.
                             </p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
                         <button
                             type="button"
-                            onClick={() => navigate(`/invoices?search=${order.poNumber}`)}
+                            onClick={() => navigate(`/invoices?search=${order?.poNumber || ''}`)}
                             className="btn btn-secondary btn-sm flex items-center gap-1.5 text-xs bg-bg-card border-emerald-500/30 hover:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 shadow-sm"
                         >
                             <FileText className="w-3.5 h-3.5" />
@@ -845,7 +854,7 @@ export default function PurchaseOrderDetail() {
                         <div>
                             <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1">PO Date</p>
                             <p className="text-[14px] font-semibold text-text-primary">
-                                {new Date(order.poDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                {order?.poDate ? new Date(order.poDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
                             </p>
                         </div>
                     </div>
@@ -857,7 +866,7 @@ export default function PurchaseOrderDetail() {
                         </div>
                         <div>
                             <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1">Client PO #</p>
-                            <p className="text-[14px] font-semibold text-text-primary">{order.clientPoNumber || 'N/A'}</p>
+                            <p className="text-[14px] font-semibold text-text-primary">{order?.clientPoNumber || 'N/A'}</p>
                         </div>
                     </div>
                 </div>
@@ -869,7 +878,7 @@ export default function PurchaseOrderDetail() {
                         <div>
                             <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1">PO Value</p>
                             <p className="text-[14px] font-semibold font-mono text-text-primary tracking-tight">
-                                {formatCurrency(order.poValue, order.currency)}
+                                {formatCurrency(order?.poValue, order?.currency)}
                             </p>
                         </div>
                     </div>
@@ -881,258 +890,324 @@ export default function PurchaseOrderDetail() {
                         </div>
                         <div>
                             <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1">Received Via</p>
-                            <p className="text-[14px] font-semibold text-text-primary">{order.receivedVia || 'N/A'}</p>
+                            <p className="text-[14px] font-semibold text-text-primary">{order?.receivedVia || 'N/A'}</p>
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* Mismatch Warning */}
-            {order.valueMismatch && (
+            {order?.valueMismatch && (
                 <div className="p-4 bg-brand-danger/10 border border-brand-danger/30 rounded-2xl flex items-center gap-4 shadow-sm animate-modal-entrance">
                     <AlertTriangle className="w-8 h-8 text-brand-danger shrink-0" />
                     <div>
                         <h3 className="text-[14px] font-bold text-brand-danger mb-0.5">Value Mismatch Detected</h3>
                         <p className="text-[13px] font-medium text-brand-danger/80">
-                            PO Value ({formatCurrency(order.poValue, order.currency)}) differs from Quotation Value ({formatCurrency(order.quotationValue, order.currency)}).
-                            Difference: {formatCurrency(order.difference, order.currency)}
+                            PO Value ({formatCurrency(order?.poValue, order?.currency)}) differs from Quotation Value ({formatCurrency(order?.quotationValue, order?.currency)}).
+                            Difference: {formatCurrency(order?.difference, order?.currency)}
                         </p>
                     </div>
                 </div>
             )}
 
             {/* Upper Information Section */}
-            {/* Row 1: Buyer, Supplier/Vendor & Delivery Destination in 3 Columns */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
-                {/* 1. BUYER / BILL TO (ACROVIX) */}
-                <div className="acx-card p-6 border-t-4 border-t-[var(--color-brand-primary)] flex flex-col justify-between">
-                    <div>
-                        <h3 className="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-4 flex items-center">
-                            <Building2 className="w-3.5 h-3.5 mr-2 text-brand-primary" /> BUYER / BILL TO
-                        </h3>
-                        <div className="space-y-4">
-                            <div>
-                                <p className="text-[15px] font-bold text-text-primary tracking-tight">
-                                    {companySettings?.companyName || 'ACROVIX INNOVATIONS PRIVATE LIMITED'}
-                                </p>
-                            </div>
-
-                            <div className="pt-2">
-                                <div className="flex items-start text-[13px] text-text-secondary">
-                                    <MapPin className="w-4 h-4 mr-2 mt-0.5 shrink-0 text-text-muted" />
-                                    <div>
-                                        <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">Registered Address</p>
-                                        {companyAddressLines.length > 0 ? (
-                                            <div className="leading-relaxed space-y-0.5 text-text-secondary">
-                                                {companyAddressLines.map((line, idx) => (
-                                                    <p key={idx}>{line}</p>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <p className="text-[12px] text-text-muted italic">Registered address not specified</p>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            {((companySettings?.gstin) || (companySettings?.pan)) && (
-                                <div className="pt-3 border-t border-border-subtle/50 flex flex-wrap gap-x-6 gap-y-3">
-                                    {companySettings?.gstin && (
-                                        <div>
-                                            <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">GSTIN</p>
-                                            <p className="text-[12px] font-mono font-medium text-text-primary bg-bg-muted/70 px-2 py-0.5 rounded border border-border-subtle/50 inline-block">{companySettings.gstin}</p>
-                                        </div>
-                                    )}
-                                    {companySettings?.pan && (
-                                        <div>
-                                            <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">PAN</p>
-                                            <p className="text-[12px] font-mono font-medium text-text-primary bg-bg-muted/70 px-2 py-0.5 rounded border border-border-subtle/50 inline-block">{companySettings.pan}</p>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                            
-                            {((companySettings?.email) || (companySettings?.phone)) && (
-                                <div className="pt-3 border-t border-border-subtle/50 space-y-2">
-                                    {companySettings?.email && (
-                                        <div className="flex items-center text-[12px] text-text-secondary break-all">
-                                            <Mail className="w-3.5 h-3.5 mr-2 text-text-muted shrink-0" />
-                                            <a href={`mailto:${companySettings.email}`} className="hover:text-brand-primary hover:underline transition-colors">
-                                                {companySettings.email}
-                                            </a>
-                                        </div>
-                                    )}
-                                    {companySettings?.phone && (
-                                        <div className="flex items-center text-[12px] text-text-secondary">
-                                            <Phone className="w-3.5 h-3.5 mr-2 text-text-muted shrink-0" />
-                                            <a href={`tel:${companySettings.phone}`} className="hover:text-brand-primary transition-colors">
-                                                {companySettings.phone}
-                                            </a>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* 2. SUPPLIER / VENDOR */}
-                <div className="acx-card p-6 border-t-4 border-t-amber-500 flex flex-col justify-between">
+            {/* Row 1: Buyer/Bill To and Supplier & Delivery Destination in 2 Columns */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
+                {/* 1. BUYER / BILL TO (Dynamic Tenant Info) */}
+                <div className="acx-card p-6 border-t-4 border-t-[var(--color-brand-primary)] flex flex-col justify-between shadow-sm">
                     <div>
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-[11px] font-bold text-text-secondary uppercase tracking-wider flex items-center">
-                                <UserSquare2 className="w-3.5 h-3.5 mr-2 text-amber-500" /> SUPPLIER / VENDOR
+                                <Building2 className="w-3.5 h-3.5 mr-2 text-brand-primary" /> BUYER / BILL TO
                             </h3>
-                            {clientCode && (
-                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-bg-muted border border-border-subtle text-text-secondary font-semibold">
-                                    Code: {clientCode}
-                                </span>
-                            )}
-                        </div>
-
-                        <div className="space-y-4">
-                            <div>
-                                <p className="text-[15px] font-bold text-text-primary tracking-tight">
-                                    {clientCompany || clientContact || 'Vendor / Supplier Not Specified'}
-                                </p>
-                                {clientCompany && clientContact && clientContact !== clientCompany && (
-                                    <p className="text-[12px] text-text-secondary flex items-center mt-1">
-                                        <User className="w-3 h-3 mr-1.5 text-text-muted" /> Attn: <span className="font-semibold text-text-primary ml-1">{clientContact}</span>
-                                    </p>
-                                )}
-                            </div>
-
-                            <div className="pt-2">
-                                <div className="flex items-start text-[13px] text-text-secondary">
-                                    <MapPin className="w-4 h-4 mr-2 mt-0.5 shrink-0 text-text-muted" />
-                                    <div>
-                                        <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">Billing / Registered Address</p>
-                                        {clientBillingLines.length > 0 ? (
-                                            <div className="leading-relaxed space-y-0.5 text-text-secondary">
-                                                {clientBillingLines.map((line, idx) => (
-                                                    <p key={idx}>{line}</p>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <p className="text-[12px] text-text-muted italic">No address recorded</p>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {(clientGstin || clientPan || clientPaymentTerms) && (
-                                <div className="pt-3 border-t border-border-subtle/50 flex flex-wrap gap-x-6 gap-y-3">
-                                    {clientGstin && (
-                                        <div>
-                                            <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">GSTIN</p>
-                                            <p className="text-[12px] font-mono font-medium text-text-primary bg-bg-muted/70 px-2 py-0.5 rounded border border-border-subtle/50 inline-block">{clientGstin}</p>
-                                        </div>
-                                    )}
-                                    {clientPan && (
-                                        <div>
-                                            <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">PAN</p>
-                                            <p className="text-[12px] font-mono font-medium text-text-primary bg-bg-muted/70 px-2 py-0.5 rounded border border-border-subtle/50 inline-block">{clientPan}</p>
-                                        </div>
-                                    )}
-                                    {clientPaymentTerms && (
-                                        <div>
-                                            <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">Payment Terms</p>
-                                            <p className="text-[12px] text-text-secondary">{clientPaymentTerms}</p>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {(clientEmail || clientPhone || clientAltPhone) && (
-                                <div className="pt-3 border-t border-border-subtle/50 space-y-2">
-                                    {clientEmail && (
-                                        <div className="flex items-center text-[12px] text-text-secondary break-all">
-                                            <Mail className="w-3.5 h-3.5 mr-2 text-text-muted shrink-0" />
-                                            <a href={`mailto:${clientEmail}`} className="hover:text-brand-primary hover:underline transition-colors">
-                                                {clientEmail}
-                                            </a>
-                                        </div>
-                                    )}
-                                    {(clientPhone || clientAltPhone) && (
-                                        <div className="flex items-center text-[12px] text-text-secondary flex-wrap gap-y-1">
-                                            <Phone className="w-3.5 h-3.5 mr-2 text-text-muted shrink-0" />
-                                            {clientPhone && (
-                                                <a href={`tel:${clientPhone}`} className="hover:text-brand-primary transition-colors">
-                                                    {clientPhone}
-                                                </a>
-                                            )}
-                                            {clientPhone && clientAltPhone && (
-                                                <span className="text-text-muted mx-2">|</span>
-                                            )}
-                                            {clientAltPhone && (
-                                                <span className="text-text-secondary">
-                                                    <span className="text-text-muted text-[11px] mr-1">Alt:</span>
-                                                    <a href={`tel:${clientAltPhone}`} className="hover:text-brand-primary transition-colors">
-                                                        {clientAltPhone}
-                                                    </a>
-                                                </span>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* 3. SHIP TO / DELIVERY DESTINATION */}
-                <div className="acx-card p-6 border-t-4 border-t-brand-teal flex flex-col justify-between">
-                    <div>
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-[11px] font-bold text-text-secondary uppercase tracking-wider flex items-center">
-                                <Truck className="w-3.5 h-3.5 mr-2 text-brand-teal" /> SHIP TO / DELIVERY DESTINATION
-                            </h3>
-                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-brand-teal/10 border border-brand-teal/20 text-brand-teal">
-                                {deliveryDestinationType === 'CUSTOMER_SITE' ? 'Client Project Site' : (deliveryDestinationType === 'COMPANY_OFFICE' ? 'ACROVIX Office' : (deliveryDestinationType === 'NOT_SPECIFIED' ? 'Not Specified' : 'Designated Site'))}
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-brand-primary/10 border border-brand-primary/20 text-brand-primary uppercase tracking-wider">
+                                Legal Entity
                             </span>
                         </div>
 
                         <div className="space-y-4">
                             <div>
-                                <p className="text-[15px] font-bold text-text-primary tracking-tight">
-                                    {deliveryContactName || 'ACROVIX Receiving / Operations'}
+                                <p className="text-[16px] font-bold text-text-primary tracking-tight">
+                                    {companySettings?.legalName || companySettings?.companyName || tenant?.legalName || tenant?.companyName || tenant?.brandName || 'Our Company'}
                                 </p>
-                                {deliveryContactName && deliveryDestinationType === 'CUSTOMER_SITE' && (
-                                    <p className="text-[12px] text-text-secondary flex items-center mt-1">
-                                        <Building2 className="w-3 h-3 mr-1.5 text-text-muted" /> Direct Drop-Ship: <span className="font-semibold text-text-primary ml-1">{clientCompany || clientContact}</span>
+                                {tenant?.brandName && companySettings?.companyName && tenant?.brandName !== companySettings?.companyName && (
+                                    <p className="text-[12px] text-text-muted mt-0.5 font-medium">
+                                        Brand: <span className="text-text-secondary">{tenant.brandName}</span>
                                     </p>
                                 )}
                             </div>
 
                             <div className="pt-2">
                                 <div className="flex items-start text-[13px] text-text-secondary">
-                                    <MapPin className="w-4 h-4 mr-2 mt-0.5 shrink-0 text-brand-teal" />
+                                    <MapPin className="w-4 h-4 mr-2 mt-0.5 shrink-0 text-brand-primary" />
                                     <div>
-                                        <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">Delivery Destination Address</p>
-                                        {deliveryAddressLines.length > 0 ? (
-                                            <div className="leading-relaxed space-y-0.5 text-text-secondary">
-                                                {deliveryAddressLines.map((line, idx) => (
-                                                    <p key={idx}>{line}</p>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <p className="text-[12px] text-text-muted italic">Delivery address not specified</p>
-                                        )}
+                                        <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">Registered Address</p>
+                                        <div className="leading-relaxed space-y-0.5 text-text-secondary text-[12px]">
+                                            {companyAddressLines.map((line, idx) => (
+                                                <p key={idx}>{line}</p>
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            {(deliveryContactPhone || companySettings?.phone) && (
-                                <div className="pt-3 border-t border-border-subtle/50 space-y-2">
-                                    <div className="flex items-center text-[12px] text-text-secondary">
-                                        <Phone className="w-3.5 h-3.5 mr-2 text-text-muted shrink-0" />
-                                        <span>Receiving Contact: </span>
-                                        <span className="font-semibold text-text-primary ml-1.5">
-                                            {deliveryContactPhone || companySettings?.phone}
-                                        </span>
-                                    </div>
+                            {((companySettings?.gstin || tenant?.gstin) || (companySettings?.cin || tenant?.cin) || (companySettings?.pan || tenant?.pan)) && (
+                                <div className="pt-3 border-t border-border-subtle/50 flex flex-wrap gap-x-6 gap-y-3">
+                                    {(companySettings?.gstin || tenant?.gstin) && (
+                                        <div>
+                                            <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">GSTIN</p>
+                                            <p className="text-[12px] font-mono font-medium text-text-primary bg-bg-muted/70 px-2 py-0.5 rounded border border-border-subtle/50 inline-block">
+                                                {companySettings?.gstin || tenant?.gstin || ''}
+                                            </p>
+                                        </div>
+                                    )}
+                                    {(companySettings?.cin || tenant?.cin) && (
+                                        <div>
+                                            <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">CIN</p>
+                                            <p className="text-[12px] font-mono font-medium text-text-primary bg-bg-muted/70 px-2 py-0.5 rounded border border-border-subtle/50 inline-block">
+                                                {companySettings?.cin || tenant?.cin || ''}
+                                            </p>
+                                        </div>
+                                    )}
+                                    {(companySettings?.pan || tenant?.pan) && (
+                                        <div>
+                                            <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">PAN</p>
+                                            <p className="text-[12px] font-mono font-medium text-text-primary bg-bg-muted/70 px-2 py-0.5 rounded border border-border-subtle/50 inline-block">
+                                                {companySettings?.pan || tenant?.pan || ''}
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             )}
+
+                            {((companySettings?.email || tenant?.email) || (companySettings?.phone || tenant?.phone)) && (
+                                <div className="pt-3 border-t border-border-subtle/50 space-y-2">
+                                    {(companySettings?.email || tenant?.email) && (
+                                        <div className="flex items-center text-[12px] text-text-secondary break-all">
+                                            <Mail className="w-3.5 h-3.5 mr-2 text-text-muted shrink-0" />
+                                            <a href={`mailto:${companySettings?.email || tenant?.email || ''}`} className="hover:text-brand-primary hover:underline transition-colors">
+                                                {companySettings?.email || tenant?.email || ''}
+                                            </a>
+                                        </div>
+                                    )}
+                                    {(companySettings?.phone || tenant?.phone) && (
+                                        <div className="flex items-center text-[12px] text-text-secondary">
+                                            <Phone className="w-3.5 h-3.5 mr-2 text-text-muted shrink-0" />
+                                            <a href={`tel:${companySettings?.phone || tenant?.phone || ''}`} className="hover:text-brand-primary transition-colors">
+                                                {companySettings?.phone || tenant?.phone || ''}
+                                            </a>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* 2. SUPPLIER / VENDOR & DELIVERY DESTINATION (Unified Card) */}
+                <div className="acx-card p-6 border-t-4 border-t-amber-500 flex flex-col justify-between shadow-sm">
+                    <div>
+                        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                            <h3 className="text-[11px] font-bold text-text-secondary uppercase tracking-wider flex items-center gap-2">
+                                <span className="inline-flex items-center text-amber-500">
+                                    <UserSquare2 className="w-3.5 h-3.5 mr-1.5" />
+                                    SUPPLIER / VENDOR
+                                </span>
+                                <span className="text-text-muted font-normal">&amp;</span>
+                                <span className="inline-flex items-center text-teal-600 dark:text-teal-400">
+                                    <Truck className="w-3.5 h-3.5 mr-1.5" />
+                                    DELIVERY DESTINATION
+                                </span>
+                            </h3>
+                            <div className="flex items-center gap-2">
+                                {supplierCode && (
+                                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-bg-muted border border-border-subtle text-text-secondary font-semibold">
+                                        Code: {supplierCode}
+                                    </span>
+                                )}
+                                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-teal-500/10 border border-teal-500/30 text-teal-600 dark:text-teal-400">
+                                    {getDestinationBadgeLabel()}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Two-Column Internal Layout */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 divide-y md:divide-y-0 md:divide-x divide-border-subtle/60 pt-1">
+                            {/* Left Sub-section: Supplier / Customer Details */}
+                            <div className="space-y-4 md:pr-4">
+                                <div>
+                                    <p className="text-[10px] text-amber-600 dark:text-amber-400 uppercase font-bold tracking-wider mb-1 flex items-center">
+                                        <UserSquare2 className="w-3 h-3 mr-1" /> Vendor / Client Entity
+                                    </p>
+                                    <p className="text-[15px] font-bold text-text-primary tracking-tight">
+                                        {supplierName}
+                                    </p>
+                                    {supplierContactPerson && supplierContactPerson !== 'N/A' && (
+                                        <p className="text-[12px] text-text-secondary flex items-center mt-1">
+                                            <User className="w-3 h-3 mr-1.5 text-text-muted shrink-0" />
+                                            <span>Kind Attn.: </span>
+                                            <span className="font-semibold text-text-primary ml-1">
+                                                {supplierContactPerson}
+                                            </span>
+                                        </p>
+                                    )}
+                                </div>
+
+                                {supplierBillingLines.length > 0 ? (
+                                    <div className="pt-2">
+                                        <div className="flex items-start text-[13px] text-text-secondary">
+                                            <MapPin className="w-4 h-4 mr-2 mt-0.5 shrink-0 text-text-muted" />
+                                            <div>
+                                                <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">Billing / Registered Address</p>
+                                                <div className="leading-relaxed space-y-0.5 text-text-secondary text-[12px]">
+                                                    {supplierBillingLines.map((line, idx) => (
+                                                        <p key={idx}>{line}</p>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : supplierBillingAddressRaw ? (
+                                    <div className="pt-2">
+                                        <div className="flex items-start text-[13px] text-text-secondary">
+                                            <MapPin className="w-4 h-4 mr-2 mt-0.5 shrink-0 text-text-muted" />
+                                            <div>
+                                                <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">Billing / Registered Address</p>
+                                                <p className="text-[12px] text-text-secondary">{supplierBillingAddressRaw}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : null}
+
+                                {(supplierGstin || supplierPan || supplierPaymentTerms) && (
+                                    <div className="pt-3 border-t border-border-subtle/50 flex flex-wrap gap-x-4 gap-y-2">
+                                        {supplierGstin && (
+                                            <div>
+                                                <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">GSTIN / Tax ID</p>
+                                                <p className="text-[11px] font-mono font-medium text-text-primary bg-bg-muted/70 px-1.5 py-0.5 rounded border border-border-subtle/50 inline-block">
+                                                    {supplierGstin}
+                                                </p>
+                                            </div>
+                                        )}
+                                        {supplierPan && (
+                                            <div>
+                                                <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">PAN</p>
+                                                <p className="text-[11px] font-mono font-medium text-text-primary bg-bg-muted/70 px-1.5 py-0.5 rounded border border-border-subtle/50 inline-block">
+                                                    {supplierPan}
+                                                </p>
+                                            </div>
+                                        )}
+                                        {supplierPaymentTerms && (
+                                            <div>
+                                                <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">Terms</p>
+                                                <p className="text-[11px] text-text-secondary">{supplierPaymentTerms}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {(supplierEmail || supplierPhone || supplierAltPhone) && (
+                                    <div className="pt-3 border-t border-border-subtle/50 space-y-1.5">
+                                        {supplierEmail && (
+                                            <div className="flex items-center text-[12px] text-text-secondary break-all">
+                                                <Mail className="w-3.5 h-3.5 mr-2 text-text-muted shrink-0" />
+                                                <a href={`mailto:${supplierEmail}`} className="hover:text-brand-primary hover:underline transition-colors">
+                                                    {supplierEmail}
+                                                </a>
+                                            </div>
+                                        )}
+                                        {(supplierPhone || supplierAltPhone) && (
+                                            <div className="flex items-center text-[12px] text-text-secondary flex-wrap gap-y-1">
+                                                <Phone className="w-3.5 h-3.5 mr-2 text-text-muted shrink-0" />
+                                                {supplierPhone && (
+                                                    <a href={`tel:${supplierPhone}`} className="hover:text-brand-primary transition-colors">
+                                                        {supplierPhone}
+                                                    </a>
+                                                )}
+                                                {supplierPhone && supplierAltPhone && (
+                                                    <span className="text-text-muted mx-1.5">|</span>
+                                                )}
+                                                {supplierAltPhone && (
+                                                    <span className="text-text-secondary">
+                                                        <span className="text-text-muted text-[11px] mr-1">Alt:</span>
+                                                        <a href={`tel:${supplierAltPhone}`} className="hover:text-brand-primary transition-colors">
+                                                            {supplierAltPhone}
+                                                        </a>
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Right Sub-section: Delivery / Destination Details */}
+                            <div className="space-y-4 pt-4 md:pt-0 md:pl-5">
+                                <div>
+                                    <p className="text-[10px] text-teal-600 dark:text-teal-400 uppercase font-bold tracking-wider mb-1 flex items-center">
+                                        <Truck className="w-3 h-3 mr-1" /> Destination Recipient
+                                    </p>
+                                    <p className="text-[15px] font-bold text-text-primary tracking-tight">
+                                        {receivingContactName}
+                                    </p>
+                                    {supplierName && supplierName !== 'Supplier' && (
+                                        <p className="text-[12px] text-text-secondary flex items-center mt-1">
+                                            <Building2 className="w-3 h-3 mr-1.5 text-text-muted shrink-0" />
+                                            <span>Direct Drop-Ship: </span>
+                                            <span className="font-semibold text-text-primary ml-1">{supplierName}</span>
+                                        </p>
+                                    )}
+                                </div>
+
+                                {deliveryAddressLines.length > 0 ? (
+                                    <div className="pt-2">
+                                        <div className="flex items-start text-[13px] text-text-secondary">
+                                            <MapPin className="w-4 h-4 mr-2 mt-0.5 shrink-0 text-teal-500 dark:text-teal-400" />
+                                            <div>
+                                                <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">Delivery Address</p>
+                                                <div className="leading-relaxed space-y-0.5 text-text-secondary text-[12px]">
+                                                    {deliveryAddressLines.map((line, idx) => (
+                                                        <p key={idx}>{line}</p>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : deliveryAddressRaw ? (
+                                    <div className="pt-2">
+                                        <div className="flex items-start text-[13px] text-text-secondary">
+                                            <MapPin className="w-4 h-4 mr-2 mt-0.5 shrink-0 text-teal-500 dark:text-teal-400" />
+                                            <div>
+                                                <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">Delivery Address</p>
+                                                <p className="text-[12px] text-text-secondary">{deliveryAddressRaw}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : null}
+
+                                {(receivingContactPhone || receivingContactEmail) && (
+                                    <div className="pt-3 border-t border-border-subtle/50 space-y-1.5">
+                                        {receivingContactPhone && (
+                                            <div className="flex items-center text-[12px] text-text-secondary">
+                                                <Phone className="w-3.5 h-3.5 mr-2 text-text-muted shrink-0" />
+                                                <span>Contact Phone: </span>
+                                                <a href={`tel:${receivingContactPhone}`} className="font-semibold text-text-primary ml-1.5 hover:text-brand-primary transition-colors">
+                                                    {receivingContactPhone}
+                                                </a>
+                                            </div>
+                                        )}
+                                        {receivingContactEmail && (
+                                            <div className="flex items-center text-[12px] text-text-secondary break-all">
+                                                <Mail className="w-3.5 h-3.5 mr-2 text-text-muted shrink-0" />
+                                                <span>Contact Email: </span>
+                                                <a href={`mailto:${receivingContactEmail}`} className="font-semibold text-text-primary ml-1.5 hover:text-brand-primary hover:underline transition-colors">
+                                                    {receivingContactEmail}
+                                                </a>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1152,10 +1227,10 @@ export default function PurchaseOrderDetail() {
                                     <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-0.5">Ref Number</p>
                                     <button 
                                         type="button"
-                                        onClick={() => navigate(`/quotations?search=${order.quotationNumber}`)}
+                                        onClick={() => navigate(`/quotations?search=${order?.quotationNumber || ''}`)}
                                         className="text-[13px] font-mono font-bold text-[var(--color-brand-primary)] hover:underline flex items-center"
                                     >
-                                        {order.quotationNumber}
+                                        {order?.quotationNumber || 'N/A'}
                                     </button>
                                 </div>
                                 <div className="w-8 h-8 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary">
@@ -1166,7 +1241,7 @@ export default function PurchaseOrderDetail() {
                                 <div>
                                     <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider mb-1">Quotation Value</p>
                                     <p className="text-[16px] font-mono font-semibold text-text-primary tracking-tight">
-                                        {formatCurrency(order.quotationValue, order.currency)}
+                                        {formatCurrency(order?.quotationValue, order?.currency)}
                                     </p>
                                 </div>
                                 {quotation?.validUntil && (
@@ -1193,26 +1268,26 @@ export default function PurchaseOrderDetail() {
                                 <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-brand-primary border-4 border-bg-card"></div>
                                 <p className="text-[12px] font-bold text-text-primary">PO Created</p>
                                 <p className="text-[11px] text-text-muted mt-0.5">
-                                    {new Date(order.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                    {order?.createdAt ? new Date(order.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}
                                 </p>
-                                <p className="text-[11px] text-text-secondary mt-1">by {order.createdBy?.name || 'System'}</p>
+                                <p className="text-[11px] text-text-secondary mt-1">by {order?.createdBy?.name || 'System'}</p>
                             </div>
-                            {order.verifiedAt && (
+                            {order?.verifiedAt && (
                                 <div className="relative pl-6">
                                     <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-brand-teal border-4 border-bg-card"></div>
                                     <p className="text-[12px] font-bold text-text-primary">Verified</p>
                                     <p className="text-[11px] text-text-muted mt-0.5">
                                         {new Date(order.verifiedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                     </p>
-                                    <p className="text-[11px] text-text-secondary mt-1">by {order.verifiedBy?.name || 'System'}</p>
+                                    <p className="text-[11px] text-text-secondary mt-1">by {order?.verifiedBy?.name || 'System'}</p>
                                 </div>
                             )}
-                            {order.status === 'FULFILLED' && (
+                            {order?.status === 'FULFILLED' && (
                                 <div className="relative pl-6">
                                     <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-green-500 border-4 border-bg-card"></div>
                                     <p className="text-[12px] font-bold text-text-primary">Fulfilled</p>
                                     <p className="text-[11px] text-text-muted mt-0.5">
-                                        {new Date(order.updatedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                        {order?.updatedAt ? new Date(order.updatedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}
                                     </p>
                                 </div>
                             )}
@@ -1289,26 +1364,26 @@ export default function PurchaseOrderDetail() {
                     <div className="w-full sm:w-[340px] ml-auto space-y-3">
                         <div className="flex justify-between text-[13px] text-text-secondary">
                             <span className="font-medium">Subtotal</span>
-                            <span className="font-mono font-semibold text-text-primary">{formatCurrency(totals.subtotalBeforeTax, order.currency)}</span>
+                            <span className="font-mono font-semibold text-text-primary">{formatCurrency(totals.subtotalBeforeTax, order?.currency)}</span>
                         </div>
                         {totals.discount > 0 && (
                             <div className="flex justify-between text-[13px]">
                                 <span className="font-medium text-text-secondary">Discount</span>
-                                <span className="text-brand-danger font-mono font-semibold">-{formatCurrency(totals.discount, order.currency)}</span>
+                                <span className="text-brand-danger font-mono font-semibold">-{formatCurrency(totals.discount, order?.currency)}</span>
                             </div>
                         )}
                         <div className="flex justify-between text-[13px] text-text-secondary">
                             <span className="font-medium">Taxable Amount</span>
-                            <span className="font-mono font-semibold text-text-primary">{formatCurrency(totals.taxableAmount, order.currency)}</span>
+                            <span className="font-mono font-semibold text-text-primary">{formatCurrency(totals.taxableAmount, order?.currency)}</span>
                         </div>
                         <div className="flex justify-between text-[13px] text-text-secondary pb-4 border-b border-border-subtle">
                             <span className="font-medium">Total Tax</span>
-                            <span className="font-mono font-semibold text-text-primary">{formatCurrency(totals.tax, order.currency)}</span>
+                            <span className="font-mono font-semibold text-text-primary">{formatCurrency(totals.tax, order?.currency)}</span>
                         </div>
                         <div className="flex justify-between items-end pt-2">
                             <span className="text-[14px] font-bold text-text-primary uppercase tracking-wide">Grand Total</span>
                             <span className="text-[26px] font-bold text-brand-teal font-mono tracking-tight leading-none">
-                                {formatCurrency(totals.grandTotal, order.currency)}
+                                {formatCurrency(totals.grandTotal, order?.currency)}
                             </span>
                         </div>
                     </div>
@@ -1337,19 +1412,19 @@ export default function PurchaseOrderDetail() {
                                 Remarks / Additional Notes
                             </h3>
                         </div>
-                        {isSuperAdmin && !isEditingRemarks && order.status !== 'VERIFIED' && !order.readOnly ? (
+                        {isSuperAdmin && !isEditingRemarks && order?.status !== 'VERIFIED' && !order?.readOnly ? (
                             <button
                                 type="button"
                                 onClick={() => {
-                                    setEditedRemarks(order.remarks || '');
+                                    setEditedRemarks(order?.remarks || '');
                                     setIsEditingRemarks(true);
                                 }}
                                 className="text-xs font-semibold text-brand-primary hover:text-brand-primary/80 flex items-center gap-1.5 transition-colors"
                             >
                                 <Edit3 className="w-3.5 h-3.5" />
-                                {order.remarks ? 'Edit Notes' : 'Add Notes'}
+                                {order?.remarks ? 'Edit Notes' : 'Add Notes'}
                             </button>
-                        ) : (order.status === 'VERIFIED' || order.readOnly) ? (
+                        ) : (order?.status === 'VERIFIED' || order?.readOnly) ? (
                             <span className="text-[11px] font-semibold text-text-muted flex items-center gap-1 bg-bg-muted px-2 py-0.5 rounded border border-border-subtle">
                                 <Lock className="w-3 h-3 text-text-muted" /> Read-Only
                             </span>
@@ -1374,7 +1449,7 @@ export default function PurchaseOrderDetail() {
                                     <button
                                         type="button"
                                         onClick={() => {
-                                            setEditedRemarks(order.remarks || '');
+                                            setEditedRemarks(order?.remarks || '');
                                             setIsEditingRemarks(false);
                                         }}
                                         className="btn btn-secondary btn-sm"
@@ -1397,13 +1472,13 @@ export default function PurchaseOrderDetail() {
                                 These notes are rendered on the Purchase Order PDF in a dedicated Remarks panel, kept separate from Terms & Conditions.
                             </p>
                         </div>
-                    ) : order.remarks ? (
+                    ) : order?.remarks ? (
                         <div className="text-[13px] text-text-secondary whitespace-pre-wrap leading-relaxed bg-brand-primary/5 p-4 rounded-xl border border-brand-primary/10">
                             {order.remarks}
                         </div>
                     ) : (
                         <p className="text-[13px] text-text-muted italic">
-                            {order.status === 'VERIFIED' || order.readOnly
+                            {order?.status === 'VERIFIED' || order?.readOnly
                                 ? 'No additional notes or instructions recorded for this purchase order.'
                                 : 'No additional notes or instructions specified. Click “Add Notes” to include remarks on this PO.'}
                         </p>
@@ -1425,12 +1500,12 @@ export default function PurchaseOrderDetail() {
                             </p>
                         </div>
                     </div>
-                    {isSuperAdmin && ['VERIFIED', 'PARTIALLY_FULFILLED'].includes(order.status) && (
+                    {isSuperAdmin && ['VERIFIED', 'PARTIALLY_FULFILLED'].includes(order?.status) && (
                         <button
                             type="button"
                             onClick={handleOpenCreateTaxInvoiceModal}
                             disabled={actionLoading || (
-                                order.poValue != null && 
+                                order?.poValue != null && 
                                 relatedInvoices.filter(i => i.status !== 'CANCELLED').reduce((sum, i) => sum + (Number(i.grandTotal) || 0), 0) >= Number(order.poValue) &&
                                 relatedInvoices.some(i => i.status !== 'CANCELLED')
                             )}
@@ -1882,11 +1957,11 @@ export default function PurchaseOrderDetail() {
                                                             )}
                                                         </td>
                                                         <td className="py-2.5 px-3 text-right font-mono">{qty} {item.unit || ''}</td>
-                                                        <td className="py-2.5 px-3 text-right font-mono">{formatCurrency(unitPrice, order.currency)}</td>
+                                                        <td className="py-2.5 px-3 text-right font-mono">{formatCurrency(unitPrice, order?.currency)}</td>
                                                         <td className="py-2.5 px-3 text-right font-mono">{disc}%</td>
                                                         <td className="py-2.5 px-3 text-right font-mono">{tax}%</td>
                                                         <td className="py-2.5 px-3 text-right font-mono font-bold text-text-primary">
-                                                            {formatCurrency(lineTotal, order.currency)}
+                                                            {formatCurrency(lineTotal, order?.currency)}
                                                         </td>
                                                     </tr>
                                                 );
@@ -1898,7 +1973,7 @@ export default function PurchaseOrderDetail() {
                                                     Calculated Total:
                                                 </td>
                                                 <td className="py-3 px-3 text-right font-mono text-[13px] text-emerald-600 dark:text-emerald-400">
-                                                    {formatCurrency(quotation?.grandTotal || order.poValue, order.currency)}
+                                                    {formatCurrency(quotation?.grandTotal || order?.poValue, order?.currency)}
                                                 </td>
                                             </tr>
                                         </tfoot>
@@ -1969,7 +2044,7 @@ export default function PurchaseOrderDetail() {
                             Verify Purchase Order?
                         </h3>
                         <p className="text-[13px] text-text-secondary mt-2 leading-relaxed">
-                            Verifying this Purchase Order (<span className="font-mono font-bold text-text-primary">{order.poNumber}</span>) will place it in <strong>Read-Only Mode</strong> and enable downstream Tax Invoice creation.
+                            Verifying this Purchase Order (<span className="font-mono font-bold text-text-primary">{order?.poNumber}</span>) will place it in <strong>Read-Only Mode</strong> and enable downstream Tax Invoice creation.
                         </p>
                         <div className="mt-6 flex justify-end gap-3">
                             <button

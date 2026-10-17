@@ -38,7 +38,7 @@ class CompanySettingsServiceTest {
         CompanySettings existing = new CompanySettings();
         existing.setId(1L);
 
-        when(companySettingsRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(companySettingsRepository.findFirstByTenantIdOrderByIdAsc(1L)).thenReturn(Optional.of(existing));
         when(companySettingsRepository.save(any(CompanySettings.class))).thenReturn(existing);
 
         CompanySettingsResponse response = companySettingsService.updateCompanySettings(request, 100L);

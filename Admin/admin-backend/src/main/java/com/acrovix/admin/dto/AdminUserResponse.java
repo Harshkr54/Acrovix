@@ -13,6 +13,7 @@ public class AdminUserResponse {
     private String role;
     private boolean enabled;
     private boolean mustChangePassword;
+    private Long tenantId;
     private LocalDateTime createdAt;
     private LocalDateTime lastLogin;
 }

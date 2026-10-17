@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
         @UniqueConstraint(name = "uk_ird_idempotency_key", columnNames = {"idempotency_key"})
     }
 )
-public class InvoiceReminderDelivery {
+public class InvoiceReminderDelivery extends TenantAwareEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

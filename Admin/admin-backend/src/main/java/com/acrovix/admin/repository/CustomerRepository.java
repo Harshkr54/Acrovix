@@ -64,4 +64,15 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
     default Page<Customer> searchCustomersWithSalesFilter(String search, Boolean active, Long salesUserId, Pageable pageable) {
         return searchCustomersWithSalesFilter(search, active, null, null, null, salesUserId, pageable);
     }
+
+    java.util.Optional<Customer> findByTenantIdAndId(Long tenantId, Long id);
+    java.util.List<Customer> findAllByTenantId(Long tenantId);
+    Page<Customer> findAllByTenantId(Long tenantId, Pageable pageable);
+    void deleteByTenantIdAndId(Long tenantId, Long id);
+    java.util.Optional<Customer> findByTenantIdAndCustomerCode(Long tenantId, String customerCode);
+    java.util.Optional<Customer> findByTenantIdAndGstin(Long tenantId, String gstin);
+    java.util.Optional<Customer> findByTenantIdAndEmail(Long tenantId, String email);
+
+    @Query("SELECT c.customerCode FROM Customer c WHERE (c.tenantId = :tenantId OR :tenantId IS NULL) AND c.customerCode LIKE 'CUST-%'")
+    java.util.List<String> findCustomerCodesLikePrefix(@Param("tenantId") Long tenantId);
 }

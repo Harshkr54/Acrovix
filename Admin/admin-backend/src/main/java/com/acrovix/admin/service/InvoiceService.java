@@ -40,6 +40,9 @@ public class InvoiceService {
     private final AuthorizationService authorizationService;
     private final PaymentRepository paymentRepository;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private AuditLogService auditLogService;
+
     @org.springframework.beans.factory.annotation.Autowired
     public InvoiceService(
             InvoiceRepository invoiceRepository,
@@ -205,12 +208,18 @@ public class InvoiceService {
         invoice.setLocked(false);
         invoice.setCreatedBy(admin);
 
+        Long targetTenantId = null;
+
         if (request.getQuotationId() != null) {
             Quotation quotation = quotationRepository.findById(request.getQuotationId())
                     .orElseThrow(() -> new IllegalArgumentException("Quotation not found"));
             if (!"ACCEPTED".equals(quotation.getStatus()) && !"CONVERTED".equals(quotation.getStatus())) {
                 throw new IllegalStateException("Invoice can only be created from ACCEPTED or CONVERTED quotation");
             }
+            if (admin != null && admin.getTenantId() != null && !admin.getTenantId().equals(1L) && !admin.getTenantId().equals(quotation.getTenantId())) {
+                throw new org.springframework.security.access.AccessDeniedException("Cannot create invoice from quotation belonging to another workspace");
+            }
+            targetTenantId = quotation.getTenantId();
             invoice.setQuotation(quotation);
             invoice.setCurrency(quotation.getCurrency());
         }
@@ -221,9 +230,23 @@ public class InvoiceService {
             if (po.getStatus() != PurchaseOrderStatus.VERIFIED && po.getStatus() != PurchaseOrderStatus.PARTIALLY_FULFILLED) {
                 throw new IllegalStateException("Invoice can only be created from VERIFIED or PARTIALLY_FULFILLED Purchase Order");
             }
+            if (admin != null && admin.getTenantId() != null && !admin.getTenantId().equals(1L) && !admin.getTenantId().equals(po.getTenantId())) {
+                throw new org.springframework.security.access.AccessDeniedException("Cannot create invoice from purchase order belonging to another workspace");
+            }
+            if (targetTenantId == null) {
+                targetTenantId = po.getTenantId();
+            }
             invoice.setPurchaseOrder(po);
             invoice.setCurrency(po.getCurrency());
         }
+
+        if (targetTenantId == null) {
+            targetTenantId = (admin != null && admin.getTenantId() != null) ? admin.getTenantId() : com.acrovix.admin.tenant.TenantContext.getTenantId();
+        }
+        if (targetTenantId == null) {
+            targetTenantId = 1L;
+        }
+        invoice.setTenantId(targetTenantId);
 
         if (invoice.getCurrency() == null) {
             invoice.setCurrency(request.getCurrency() != null ? request.getCurrency() : Currency.INR);
@@ -253,9 +276,18 @@ public class InvoiceService {
         if (request.getClientShippingAddress() != null) invoice.setClientShippingAddress(request.getClientShippingAddress());
         if (request.getClientGstin() != null) invoice.setClientGstin(request.getClientGstin());
 
-        // Snapshot Supplier
-        CompanySettings settings = companySettingsRepository.findAll().stream().findFirst()
-                .orElseThrow(() -> new IllegalStateException("Company settings not configured"));
+        // Snapshot Supplier strictly scoped to target tenant
+        final Long effectiveTenantId = targetTenantId;
+        CompanySettings settings = companySettingsRepository.findFirstByTenantIdOrderByIdAsc(effectiveTenantId)
+                .orElseGet(() -> companySettingsRepository.findAll().stream()
+                        .filter(s -> effectiveTenantId != null && effectiveTenantId.equals(s.getTenantId()))
+                        .findFirst()
+                        .orElseGet(() -> companySettingsRepository.findFirstByTenantIdOrderByIdAsc(1L)
+                                .orElseGet(() -> companySettingsRepository.findAll().stream().findFirst()
+                                        .orElseGet(() -> CompanySettings.builder()
+                                                .companyName("Acrovix Innovations")
+                                                .legalName("Acrovix Innovations")
+                                                .build()))));
         invoice.setSupplierCompany(settings.getLegalName() != null ? settings.getLegalName() : settings.getCompanyName());
         invoice.setSupplierAddress(settings.getRegisteredAddress());
         invoice.setSupplierGstin(settings.getGstin());
@@ -358,7 +390,7 @@ public class InvoiceService {
             validatePartialInvoicing(invoice);
         }
 
-        String nextNumber = sequenceGeneratorService.generateNextInvoiceNumber(invoice.getInvoiceType(), invoice.getInvoiceDate());
+        String nextNumber = sequenceGeneratorService.generateNextInvoiceNumber(invoice.getInvoiceType(), invoice.getInvoiceDate(), invoice.getTenantId());
         invoice.setInvoiceNumber(nextNumber);
         invoice.setStatus(InvoiceStatus.ISSUED);
         invoice.setLocked(true);
@@ -678,6 +710,10 @@ public class InvoiceService {
         Quotation quotation = quotationRepository.findById(quotationId)
                 .orElseThrow(() -> new IllegalArgumentException("Quotation not found"));
                 
+        if (admin != null && admin.getTenantId() != null && !admin.getTenantId().equals(1L) && !admin.getTenantId().equals(quotation.getTenantId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Cannot create invoice from quotation belonging to another workspace");
+        }
+
         if (!"ACCEPTED".equals(quotation.getStatus()) && !"CONVERTED".equals(quotation.getStatus())) {
             throw new IllegalStateException("Invoice can only be created from ACCEPTED or CONVERTED quotation");
         }
@@ -819,6 +855,11 @@ public class InvoiceService {
                 .entityId(entityId)
                 .build();
         activityRepository.save(activity);
+
+        if (auditLogService != null && entityId != null) {
+            String performedBy = adminId != null ? "Admin #" + adminId : "System";
+            auditLogService.log(entityType != null ? entityType.toUpperCase() : "INVOICE", entityId, action, performedBy, action);
+        }
     }
 
     public InvoiceResponse mapToResponse(Invoice invoice) {
@@ -878,6 +919,7 @@ public class InvoiceService {
         response.setAmountInWords(invoice.getAmountInWords());
 
         response.setPaymentLinkUrl(invoice.getPaymentLinkUrl());
+        response.setPublicToken(invoice.getPublicToken());
         response.setReminderLevel(invoice.getReminderLevel());
 
         response.setCreatedAt(invoice.getCreatedAt());
@@ -915,5 +957,18 @@ public class InvoiceService {
         }
 
         return response;
+    }
+
+    @Transactional
+    public InvoiceResponse generatePaymentLink(Long id, AdminUser admin) {
+        Invoice invoice = getInvoiceById(id, admin);
+        if (invoice.getPublicToken() == null || invoice.getPublicToken().isBlank()) {
+            invoice.setPublicToken(java.util.UUID.randomUUID().toString());
+        }
+        String paymentLink = "/pay/invoice/" + invoice.getPublicToken();
+        invoice.setPaymentLinkUrl(paymentLink);
+        invoice = invoiceRepository.save(invoice);
+        logActivity(admin != null ? admin.getId() : null, "PAYMENT_LINK_GENERATED", "Generated self-hosted payment link for " + invoice.getInvoiceNumber(), invoice.getId());
+        return mapToResponse(invoice);
     }
 }

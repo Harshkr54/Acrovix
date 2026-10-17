@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { fetchApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useTenant } from '../context/TenantContext';
+import { formatCurrency } from '../utils/formatters';
 import { Trash2, RotateCcw, AlertTriangle, AlertCircle, ChevronLeft, ChevronRight, File, ShieldAlert } from 'lucide-react';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 
 export default function TrashList() {
     const { user } = useAuth();
+    const { tenant } = useTenant();
     const [trashQuotations, setTrashQuotations] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -147,7 +150,7 @@ export default function TrashList() {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap align-top">
                                         <div className="text-[13px] font-bold text-text-primary tracking-tight">
-                                            ₹{q.grandTotal?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                                            {formatCurrency(q.grandTotal || 0, q.currency || tenant?.currencyCode || 'INR', 2)}
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-[12px] text-text-muted font-medium align-top hidden sm:table-cell">

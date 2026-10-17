@@ -10,7 +10,6 @@ import java.math.BigDecimal;
 @Data
 public class CustomerRequest {
     private Currency currency;
-    @NotBlank(message = "Customer code is required")
     @Size(max = 50, message = "Customer code cannot exceed 50 characters")
     private String customerCode;
 

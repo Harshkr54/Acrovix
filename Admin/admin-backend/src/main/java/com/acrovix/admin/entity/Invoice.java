@@ -16,7 +16,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Invoice {
+public class Invoice extends TenantAwareEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -167,6 +167,9 @@ public class Invoice {
     @Column(name = "payment_link_url", length = 255)
     private String paymentLinkUrl;
 
+    @Column(name = "public_token", unique = true, length = 100)
+    private String publicToken;
+
     @Column(name = "reminder_level", nullable = false)
     @Builder.Default
     private Integer reminderLevel = 0;
@@ -196,6 +199,9 @@ public class Invoice {
         this.updatedAt = LocalDateTime.now();
         if (this.balanceDue == null && this.grandTotal != null) {
             this.balanceDue = this.grandTotal;
+        }
+        if (this.publicToken == null || this.publicToken.isBlank()) {
+            this.publicToken = java.util.UUID.randomUUID().toString();
         }
     }
 

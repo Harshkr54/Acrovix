@@ -190,6 +190,15 @@ export default function CompanyBankOverview() {
                                         {company.pan || '—'}
                                     </span>
                                 </div>
+                                {company.vatId && (
+                                    <div className="flex items-baseline">
+                                        <span className="w-36 text-text-secondary font-medium shrink-0">Tax / VAT ID</span>
+                                        <span className="text-text-muted mx-2">:</span>
+                                        <span className="font-mono text-text-primary font-semibold">
+                                            {company.vatId}
+                                        </span>
+                                    </div>
+                                )}
                                 <div className="flex items-baseline">
                                     <span className="w-36 text-text-secondary font-medium shrink-0">Phone</span>
                                     <span className="text-text-muted mx-2">:</span>
@@ -289,6 +298,15 @@ export default function CompanyBankOverview() {
                                                             <span className="text-text-muted">IFSC: </span>
                                                             <span className="font-mono font-medium">{acc.bankIfsc}</span>
                                                         </span>
+                                                        {acc.upiId && (
+                                                            <>
+                                                                <span className="text-border-subtle">•</span>
+                                                                <span>
+                                                                    <span className="text-text-muted">UPI: </span>
+                                                                    <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">{acc.upiId}</span>
+                                                                </span>
+                                                            </>
+                                                        )}
                                                     </div>
                                                     {acc.bankBranch && (
                                                         <p className="text-[11px] text-text-muted mt-0.5 truncate">

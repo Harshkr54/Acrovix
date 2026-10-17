@@ -23,14 +23,14 @@ public class CompanySettingsController {
     private final CompanySettingsService companySettingsService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES', 'EDITOR')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES', 'EDITOR')")
     public ResponseEntity<CompanySettingsResponse> getCompanySettings() {
         CompanySettingsResponse settings = companySettingsService.getCompanySettings();
         return ResponseEntity.ok(settings);
     }
 
     @PatchMapping
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     public ResponseEntity<CompanySettingsResponse> updateCompanySettings(
             @Valid @RequestBody CompanySettingsRequest request,
             @AuthenticationPrincipal AdminUser adminUser) {

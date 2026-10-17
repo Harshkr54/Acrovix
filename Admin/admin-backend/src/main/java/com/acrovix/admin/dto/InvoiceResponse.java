@@ -61,6 +61,7 @@ public class InvoiceResponse {
     private String amountInWords;
 
     private String paymentLinkUrl;
+    private String publicToken;
     private Integer reminderLevel;
 
     private LocalDateTime createdAt;

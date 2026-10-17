@@ -6,5 +6,6 @@ public enum PaymentMethod {
     CHEQUE,
     CASH,
     CARD,
+    RAZORPAY,
     OTHER
 }

@@ -35,6 +35,15 @@ public class ConfigValidator {
     @Value("${acrovix.app.frontend-url:}")
     private String frontendUrl;
 
+    @Value("${razorpay.key-id:}")
+    private String razorpayKeyId;
+
+    @Value("${razorpay.key-secret:}")
+    private String razorpayKeySecret;
+
+    @Value("${spring.mail.password:}")
+    private String mailPassword;
+
     public ConfigValidator(Environment environment) {
         this.environment = environment;
     }
@@ -68,6 +77,16 @@ public class ConfigValidator {
             String frontendUrlVal = StringUtils.hasText(this.frontendUrl) ? this.frontendUrl : environment.getProperty("acrovix.app.frontend-url");
             if (frontendUrlVal != null && (frontendUrlVal.contains("localhost") || frontendUrlVal.contains("127.0.0.1"))) {
                 throw new IllegalStateException("Production configuration acrovix.app.frontend-url cannot point to localhost or 127.0.0.1: " + frontendUrlVal);
+            }
+
+            // 5. Payment Gateway Validation
+            if (!StringUtils.hasText(razorpayKeyId) || !StringUtils.hasText(razorpayKeySecret)) {
+                throw new IllegalStateException("Required production configuration for Razorpay (RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET) is missing.");
+            }
+
+            // 6. Mail Credentials Validation
+            if (!StringUtils.hasText(mailPassword)) {
+                throw new IllegalStateException("Required production configuration for Email delivery (MAIL_PASSWORD) is missing.");
             }
 
             logger.info("PRODUCTION configuration secrets validated successfully.");

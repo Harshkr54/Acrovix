@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { fetchApi } from '../services/api';
 import { Link } from 'react-router-dom';
+import { formatCurrency } from '../utils/formatters';
+import { useTenant } from '../context/TenantContext';
 import { X, Inbox, User, Mail, Phone, Building2, Briefcase, FileText, Calendar, Plus, ExternalLink, Check, AlertCircle, Loader2 } from 'lucide-react';
 
 export default function EnquiryDetailModal({ isOpen, onClose, enquiry, onStatusUpdate }) {
+    const { tenant } = useTenant();
     const [quotations, setQuotations] = useState([]);
     const [isLoadingQuotations, setIsLoadingQuotations] = useState(false);
     const [statusError, setStatusError] = useState(null);
@@ -221,7 +224,7 @@ export default function EnquiryDetailModal({ isOpen, onClose, enquiry, onStatusU
                                             <span className="font-mono font-bold text-text-primary mr-2">{q.quotationNumber}</span>
                                             <span className="text-text-muted font-medium">({q.status})</span>
                                             <div className="text-[11px] font-bold text-brand-success mt-0.5">
-                                                ₹{Number(q.grandTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                                {formatCurrency(q.grandTotal || 0, q.currency || tenant?.currencyCode || 'INR', 2)}
                                             </div>
                                         </div>
                                         <Link

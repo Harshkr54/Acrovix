@@ -1,6 +1,7 @@
 package com.acrovix.admin.config;
 
 import com.acrovix.admin.security.JwtAuthenticationFilter;
+import com.acrovix.admin.security.TenantResolutionFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,14 +24,25 @@ import java.util.List;
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity  // Activates @PreAuthorize / @PostAuthorize on controller methods
-@RequiredArgsConstructor
 public class SecurityConfig {
 
+    private final TenantResolutionFilter tenantResolutionFilter;
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final AuthenticationProvider authenticationProvider;
 
-    @Value("${cors.allowed-origins:http://localhost:5173}")
+    public SecurityConfig(TenantResolutionFilter tenantResolutionFilter,
+                          JwtAuthenticationFilter jwtAuthFilter,
+                          AuthenticationProvider authenticationProvider) {
+        this.tenantResolutionFilter = tenantResolutionFilter;
+        this.jwtAuthFilter = jwtAuthFilter;
+        this.authenticationProvider = authenticationProvider;
+    }
+
+    @Value("${cors.allowed-origins:https://admin.acrovix.com,http://localhost:5173}")
     private List<String> allowedOrigins;
+
+    @Value("${app.cors.allowed-origin-patterns:${cors.allowed-origin-patterns:https://*.acrovix.com,https://acrovix.com,http://localhost:*,http://127.0.0.1:*}}")
+    private List<String> allowedOriginPatterns;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -39,8 +51,8 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .headers(headers -> {
                 headers.httpStrictTransportSecurity(hsts -> hsts
-                    .includeSubDomains(false)
-                    .preload(false)
+                    .includeSubDomains(true)
+                    .preload(true)
                     .maxAgeInSeconds(31536000)
                 );
                 headers.contentSecurityPolicy(csp -> csp
@@ -64,13 +76,16 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/api/admin/auth/**").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
+                .requestMatchers("/api/v1/public/**").permitAll()
                 .requestMatchers("/api/webhooks/**").permitAll()
                 .requestMatchers("/api/health").permitAll()
+                .requestMatchers("/uploads/**").permitAll()
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authenticationProvider(authenticationProvider)
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(tenantResolutionFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }
@@ -79,16 +94,31 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Origins are fully controlled by CORS_ALLOWED_ORIGINS environment variable.
-        // Default includes localhost for local dev; production must set CORS_ALLOWED_ORIGINS
-        // to only https://admin.acrovix.com via Render environment variables.
-        List<String> origins = (allowedOrigins != null && !allowedOrigins.isEmpty())
-                ? List.copyOf(allowedOrigins)
-                : List.of("http://localhost:5173");
-
-        configuration.setAllowedOrigins(origins);
+        // Support dynamic wildcard origin patterns (e.g. https://*.acrovix.com, https://acrovix.com)
+        if (allowedOriginPatterns != null && !allowedOriginPatterns.isEmpty()) {
+            configuration.setAllowedOriginPatterns(List.copyOf(allowedOriginPatterns));
+        } else if (allowedOrigins != null && !allowedOrigins.isEmpty()) {
+            configuration.setAllowedOrigins(List.copyOf(allowedOrigins));
+        } else {
+            configuration.setAllowedOrigins(List.of("https://admin.acrovix.com"));
+        }
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept"));
+        configuration.setAllowedHeaders(Arrays.asList(
+                "Authorization",
+                "Content-Type",
+                "Accept",
+                "X-Tenant-Slug",
+                "x-tenant-slug",
+                "X-Requested-With",
+                "Origin",
+                "Access-Control-Request-Method",
+                "Access-Control-Request-Headers"
+        ));
+        configuration.setExposedHeaders(Arrays.asList(
+                "Authorization",
+                "X-Tenant-Slug",
+                "Content-Disposition"
+        ));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 

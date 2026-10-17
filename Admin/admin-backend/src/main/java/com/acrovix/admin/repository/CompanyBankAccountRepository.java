@@ -15,7 +15,16 @@ public interface CompanyBankAccountRepository extends JpaRepository<CompanyBankA
     List<CompanyBankAccount> findAllByOrderByIsDefaultDescIdAsc();
     Optional<CompanyBankAccount> findFirstByIsDefaultTrueAndIsActiveTrue();
 
+    Optional<CompanyBankAccount> findFirstByTenantIdAndIsDefaultTrueAndIsActiveTrue(Long tenantId);
+    Optional<CompanyBankAccount> findFirstByTenantIdAndIsActiveTrueOrderByIdAsc(Long tenantId);
+    List<CompanyBankAccount> findByTenantIdAndIsActiveTrueOrderByIsDefaultDescIdAsc(Long tenantId);
+    List<CompanyBankAccount> findAllByTenantIdOrderByIsDefaultDescIdAsc(Long tenantId);
+
     @Modifying
     @Query("UPDATE CompanyBankAccount b SET b.isDefault = false WHERE b.isDefault = true")
     void resetAllDefaults();
+
+    @Modifying
+    @Query("UPDATE CompanyBankAccount b SET b.isDefault = false WHERE b.tenantId = :tenantId AND b.isDefault = true")
+    void resetAllDefaultsForTenant(@org.springframework.data.repository.query.Param("tenantId") Long tenantId);
 }

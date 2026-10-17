@@ -44,6 +44,9 @@ class AdminUserServiceTest {
     @Mock
     private com.acrovix.admin.repository.PasswordResetTokenRepository passwordResetTokenRepository;
 
+    @Mock
+    private com.acrovix.admin.service.TenantQuotaService tenantQuotaService;
+
     @InjectMocks
     private AdminUserService userService;
 
@@ -53,6 +56,7 @@ class AdminUserServiceTest {
 
     @BeforeEach
     void setUp() {
+        com.acrovix.admin.tenant.TenantContext.clear();
         superAdmin = AdminUser.builder()
                 .id(1L)
                 .name("Super Admin")
@@ -76,6 +80,11 @@ class AdminUserServiceTest {
                 .role(Role.SALES)
                 .enabled(false)
                 .build();
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void tearDown() {
+        com.acrovix.admin.tenant.TenantContext.clear();
     }
 
     @Test

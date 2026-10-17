@@ -33,7 +33,7 @@ public class CustomerController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<Page<CustomerResponse>> getCustomers(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) Boolean active,
@@ -49,14 +49,21 @@ public class CustomerController {
         return ResponseEntity.ok(customers);
     }
 
+    @GetMapping("/next-code")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
+    public ResponseEntity<java.util.Map<String, String>> getNextCustomerCode() {
+        String nextCode = customerService.getNextCustomerCode();
+        return ResponseEntity.ok(java.util.Map.of("customerCode", nextCode));
+    }
+
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<CustomerResponse> getCustomerById(@PathVariable Long id, @AuthenticationPrincipal AdminUser admin) {
         return ResponseEntity.ok(customerService.getCustomerById(id, admin));
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<CustomerResponse> createCustomer(
             @Valid @RequestBody CustomerRequest request,
             @AuthenticationPrincipal AdminUser adminUser) {
@@ -65,7 +72,7 @@ public class CustomerController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<CustomerResponse> updateCustomer(
             @PathVariable Long id,
             @Valid @RequestBody CustomerRequest request,
@@ -75,7 +82,7 @@ public class CustomerController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     public ResponseEntity<Void> deleteCustomer(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser adminUser) {
@@ -84,7 +91,7 @@ public class CustomerController {
     }
     
     @PatchMapping("/{id}/activate")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     public ResponseEntity<Void> activateCustomer(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser adminUser) {
@@ -93,7 +100,7 @@ public class CustomerController {
     }
 
     @PostMapping("/bulk-status")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     public ResponseEntity<BulkCustomerOperationResponse> bulkUpdateStatus(
             @Valid @RequestBody BulkCustomerStatusRequest request,
             @AuthenticationPrincipal AdminUser adminUser) {

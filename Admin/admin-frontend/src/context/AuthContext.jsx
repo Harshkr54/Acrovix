@@ -29,9 +29,14 @@ export const AuthProvider = ({ children }) => {
                             name: data.name, 
                             email: data.email, 
                             role: data.role,
-                            mustChangePassword: !!data.mustChangePassword
+                            mustChangePassword: !!data.mustChangePassword,
+                            tenantId: data.tenantId,
+                            tenantSlug: data.tenantSlug
                         };
                         localStorage.setItem('adminUser', JSON.stringify(userData));
+                        if (data.tenantSlug) {
+                            localStorage.setItem('acrovix_tenant_slug', data.tenantSlug);
+                        }
                         setUser(userData);
                     }
                 } catch (err) {
@@ -43,12 +48,22 @@ export const AuthProvider = ({ children }) => {
         initAuth();
     }, []);
 
-    const login = async (email, password) => {
+    const login = async (email, password, workspaceSlug = null) => {
         try {
+            const payload = { email, password };
+            const cleanSlug = workspaceSlug && workspaceSlug.trim() ? workspaceSlug.trim().toLowerCase() : null;
+            if (cleanSlug) {
+                payload.tenantSlug = cleanSlug;
+                payload.workspaceSlug = cleanSlug;
+            }
+
             const data = await fetchApi('/auth/login', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...(cleanSlug ? { 'X-Tenant-Slug': cleanSlug } : {})
+                },
+                body: JSON.stringify(payload)
             });
             
             localStorage.setItem('adminToken', data.token);
@@ -56,15 +71,20 @@ export const AuthProvider = ({ children }) => {
                 name: data.name, 
                 email: data.email, 
                 role: data.role,
-                mustChangePassword: !!data.mustChangePassword
+                mustChangePassword: !!data.mustChangePassword,
+                tenantId: data.tenantId,
+                tenantSlug: data.tenantSlug
             };
             localStorage.setItem('adminUser', JSON.stringify(userData));
+            const effectiveSlug = data.tenantSlug || cleanSlug || 'default';
+            localStorage.setItem('acrovix_tenant_slug', effectiveSlug);
             localStorage.setItem('acrovix_last_activity', Date.now().toString());
             setUser(userData);
-            return true;
+            window.dispatchEvent(new Event('auth-change'));
+            return { success: true, tenantSlug: effectiveSlug, user: userData };
         } catch (error) {
             console.error("Login Error:", error.message);
-            return false;
+            return { success: false, error: error.message };
         }
     };
 
@@ -81,7 +101,10 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('adminToken');
         localStorage.removeItem('adminUser');
         localStorage.removeItem('acrovix_last_activity');
+        localStorage.setItem('acrovix_tenant_slug', 'default');
+        document.title = "Acrovix Innovations | ERP & Operations Platform";
         setUser(null);
+        window.dispatchEvent(new Event('auth-change'));
     };
 
     return (

@@ -35,6 +35,9 @@ const CompanyBankOverview = lazy(() => import('./pages/CompanyBankOverview'));
 const CompanyDetailsPage = lazy(() => import('./pages/CompanyDetailsPage'));
 const BankAccountsPage = lazy(() => import('./pages/BankAccountsPage'));
 const AutomationCenter = lazy(() => import('./pages/AutomationCenter'));
+const Workspaces = lazy(() => import('./pages/Workspaces'));
+const PublicQuotationView = lazy(() => import('./pages/PublicQuotationView'));
+const PublicInvoicePayView = lazy(() => import('./pages/PublicInvoicePayView'));
 import SessionManager from './components/SessionManager';
 import ForcePasswordChangeModal from './components/ForcePasswordChangeModal';
 
@@ -52,6 +55,18 @@ const RoleRoute = ({ children, allowedRoles, redirectTo = "/" }) => {
         return <Navigate to="/login" replace />;
     }
     if (!allowedRoles.includes(user.role)) {
+        return <Navigate to={redirectTo} replace />;
+    }
+    return children;
+};
+
+const PlatformOwnerRoute = ({ children, redirectTo = "/" }) => {
+    const { user } = useAuth();
+    if (!user) {
+        return <Navigate to="/login" replace />;
+    }
+    const isPlatformOwner = user.role === 'SUPER_ADMIN' && (user.tenantId === 1 || user.tenantId === '1' || user.tenantSlug === 'default' || !user.tenantId);
+    if (!isPlatformOwner) {
         return <Navigate to={redirectTo} replace />;
     }
     return children;
@@ -106,8 +121,12 @@ function App() {
             <Suspense fallback={<div className="flex h-screen items-center justify-center"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div></div>}>
                 <Routes>
                 <Route path="/login" element={<Login />} />
+                <Route path="/workspace/:slug" element={<Login />} />
+                <Route path="/workspace/:slug/login" element={<Login />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/quote/view/:publicToken" element={<PublicQuotationView />} />
+                <Route path="/pay/invoice/:token" element={<PublicInvoicePayView />} />
                 
                 <Route path="/" element={<ProtectedRoute><SessionManager><AppLayout /></SessionManager></ProtectedRoute>}>
                     <Route index element={<RoleDashboard />} />
@@ -129,16 +148,17 @@ function App() {
                     <Route path="invoices" element={<InvoiceList />} />
                     <Route path="invoices/:id" element={<InvoiceDetail />} />
                     <Route path="payments" element={<Payments />} />
-                    <Route path="receivables" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><Receivables /></RoleRoute>} />
-                    <Route path="reports" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><Reports /></RoleRoute>} />
-                    <Route path="users" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><UserList /></RoleRoute>} />
-                    <Route path="trash" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><TrashList /></RoleRoute>} />
-                    <Route path="activity" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><Activity /></RoleRoute>} />
-                    <Route path="company-bank-details" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><CompanyBankOverview /></RoleRoute>} />
-                    <Route path="company-bank-details/company" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><CompanyDetailsPage /></RoleRoute>} />
-                    <Route path="company-bank-details/bank-accounts" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><BankAccountsPage /></RoleRoute>} />
-                    <Route path="automation" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><AutomationCenter /></RoleRoute>} />
-                    <Route path="settings" element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><Settings /></RoleRoute>} />
+                    <Route path="receivables" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'COMPANY_ADMIN']}><Receivables /></RoleRoute>} />
+                    <Route path="reports" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'COMPANY_ADMIN']}><Reports /></RoleRoute>} />
+                    <Route path="users" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'COMPANY_ADMIN']}><UserList /></RoleRoute>} />
+                    <Route path="trash" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'COMPANY_ADMIN']}><TrashList /></RoleRoute>} />
+                    <Route path="activity" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'COMPANY_ADMIN']}><Activity /></RoleRoute>} />
+                    <Route path="company-bank-details" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'COMPANY_ADMIN']}><CompanyBankOverview /></RoleRoute>} />
+                    <Route path="company-bank-details/company" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'COMPANY_ADMIN']}><CompanyDetailsPage /></RoleRoute>} />
+                    <Route path="company-bank-details/bank-accounts" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'COMPANY_ADMIN']}><BankAccountsPage /></RoleRoute>} />
+                    <Route path="workspaces" element={<PlatformOwnerRoute><Workspaces /></PlatformOwnerRoute>} />
+                    <Route path="automation" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'COMPANY_ADMIN']}><AutomationCenter /></RoleRoute>} />
+                    <Route path="settings" element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'COMPANY_ADMIN']}><Settings /></RoleRoute>} />
                 </Route>
             </Routes>
             </Suspense>

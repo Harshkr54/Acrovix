@@ -10,10 +10,12 @@ import {
 } from 'lucide-react';
 import { createMailtoUri, triggerSafeProtocol, copyToClipboard } from '../utils/crmActionUtils';
 import { useToast } from '../context/ToastContext';
+import { useTenant } from '../context/TenantContext';
 import Modal from './ui/Modal';
 
 export default function EmailActionModal({ isOpen, onClose, lead, onOpenLogEmail }) {
     const { showToast } = useToast();
+    const { tenant } = useTenant();
     const [copied, setCopied] = useState(false);
     const [mailTriggered, setMailTriggered] = useState(false);
 
@@ -38,8 +40,9 @@ export default function EmailActionModal({ isOpen, onClose, lead, onOpenLogEmail
     if (!isOpen || !lead) return null;
 
     const email = lead.businessEmail || '';
-    const defaultSubject = `ACROVIX Enquiry Follow-up: ${lead.leadNumber || ''}`;
-    const mailtoUri = createMailtoUri(email, lead.leadNumber, defaultSubject);
+    const brandName = tenant?.brandName || 'ACROVIX';
+    const defaultSubject = `${brandName} Enquiry Follow-up: ${lead.leadNumber || ''}`;
+    const mailtoUri = createMailtoUri(email, lead.leadNumber, defaultSubject, brandName);
 
     const handleCopyEmail = async () => {
         if (!email) return;

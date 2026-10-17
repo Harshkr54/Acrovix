@@ -31,6 +31,7 @@ public class AdminUserService {
     private final EmailService emailService;
     private final AuthService authService;
     private final com.acrovix.admin.repository.PasswordResetTokenRepository passwordResetTokenRepository;
+    private final TenantQuotaService tenantQuotaService;
 
     private AdminUserResponse mapToResponse(AdminUser user) {
         return AdminUserResponse.builder()
@@ -40,6 +41,7 @@ public class AdminUserService {
                 .role(user.getRole().name())
                 .enabled(user.isEnabled())
                 .mustChangePassword(user.isMustChangePassword())
+                .tenantId(user.getTenantId())
                 .createdAt(user.getCreatedAt())
                 .lastLogin(user.getLastLogin())
                 .build();
@@ -50,6 +52,13 @@ public class AdminUserService {
     }
 
     public List<AdminUserResponse> getAllUsers(Boolean enabled) {
+        Long tenantId = com.acrovix.admin.tenant.TenantContext.getTenantId();
+        if (tenantId != null) {
+            if (enabled == null) {
+                return userRepository.findByTenantId(tenantId).stream().map(this::mapToResponse).collect(Collectors.toList());
+            }
+            return userRepository.findByTenantIdAndEnabled(tenantId, enabled).stream().map(this::mapToResponse).collect(Collectors.toList());
+        }
         if (enabled == null) {
             return userRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
         }
@@ -57,22 +66,44 @@ public class AdminUserService {
     }
 
     public AdminUserResponse getUserById(Long userId) {
-        AdminUser user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        Long tenantId = com.acrovix.admin.tenant.TenantContext.getTenantId();
+        AdminUser user;
+        if (tenantId != null) {
+            user = userRepository.findByTenantIdAndId(tenantId, userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        } else {
+            user = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        }
         return mapToResponse(user);
     }
 
     @Transactional
     public AdminUserResponse createUser(AdminUserRequest request, Long adminId) {
+        Long effectiveTenantId = com.acrovix.admin.tenant.TenantContext.getTenantId();
+        if (effectiveTenantId == null) {
+            effectiveTenantId = 1L;
+        }
+
+        // Enforce subscription quota & validity
+        tenantQuotaService.checkSubscriptionValidity(effectiveTenantId);
+        tenantQuotaService.checkUserSeatLimit(effectiveTenantId);
+
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new ResourceConflictException("Email already exists");
+        }
+
+        Role requestedRole = Role.valueOf(request.getRole());
+        if (requestedRole == Role.SUPER_ADMIN && !Long.valueOf(1L).equals(effectiveTenantId)) {
+            throw new org.springframework.security.access.AccessDeniedException("Cannot create SUPER_ADMIN user outside of the platform owner workspace");
         }
 
         AdminUser user = AdminUser.builder()
                 .name(request.getName())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .role(Role.valueOf(request.getRole()))
+                .role(requestedRole)
+                .tenantId(effectiveTenantId)
                 .enabled(true)
                 .build();
 
@@ -174,6 +205,14 @@ public class AdminUserService {
             long activeSuperAdmins = userRepository.countByRoleAndEnabledTrue(Role.SUPER_ADMIN);
             if (activeSuperAdmins <= 1 && user.isEnabled()) {
                 throw new IllegalArgumentException("Cannot disable the last active Super Admin");
+            }
+        }
+
+        if (enabled && !user.isEnabled()) {
+            Long effectiveTenantId = (user.getTenantId() != null) ? user.getTenantId() : com.acrovix.admin.tenant.TenantContext.getTenantId();
+            if (effectiveTenantId != null) {
+                tenantQuotaService.checkSubscriptionValidity(effectiveTenantId);
+                tenantQuotaService.checkUserSeatLimit(effectiveTenantId);
             }
         }
         

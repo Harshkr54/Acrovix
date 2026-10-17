@@ -61,6 +61,8 @@ export default function BankAccountsPage() {
     // Modal state for Add/Edit
     const [modalOpen, setModalOpen] = useState(false);
     const [editingAccount, setEditingAccount] = useState(null);
+    const [isFetchingIfsc, setIsFetchingIfsc] = useState(false);
+    const [ifscAutoSuccess, setIfscAutoSuccess] = useState(false);
     const [formData, setFormData] = useState({
         bankName: '',
         accountHolder: '',
@@ -68,6 +70,7 @@ export default function BankAccountsPage() {
         confirmAccountNumber: '',
         bankIfsc: '',
         bankBranch: '',
+        upiId: '',
         isDefault: false
     });
     const [formErrors, setFormErrors] = useState({});
@@ -98,9 +101,11 @@ export default function BankAccountsPage() {
             confirmAccountNumber: '',
             bankIfsc: '',
             bankBranch: '',
+            upiId: '',
             isDefault: bankAccounts.length === 0
         });
         setFormErrors({});
+        setIfscAutoSuccess(false);
         setModalOpen(true);
     };
 
@@ -113,9 +118,11 @@ export default function BankAccountsPage() {
             confirmAccountNumber: acc.bankAccountNumber || '',
             bankIfsc: acc.bankIfsc || '',
             bankBranch: acc.bankBranch || '',
+            upiId: acc.upiId || '',
             isDefault: Boolean(acc.isDefault)
         });
         setFormErrors({});
+        setIfscAutoSuccess(false);
         setModalOpen(true);
     };
 
@@ -153,6 +160,45 @@ export default function BankAccountsPage() {
         }
     };
 
+    // Free Open Public IFSC Auto-Lookup (RBI directory, zero cost, no API keys)
+    const fetchIfscDetails = async (ifscCode) => {
+        const code = (ifscCode || '').trim().toUpperCase();
+        if (code.length !== 11) return;
+        try {
+            setIsFetchingIfsc(true);
+            setIfscAutoSuccess(false);
+            const res = await fetch(`https://ifsc.razorpay.com/${code}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.BANK) {
+                    setFormData(prev => ({
+                        ...prev,
+                        bankName: data.BANK || prev.bankName,
+                        bankBranch: data.BRANCH || prev.bankBranch
+                    }));
+                    setFormErrors(prev => ({
+                        ...prev,
+                        bankName: '',
+                        bankIfsc: ''
+                    }));
+                    setIfscAutoSuccess(true);
+                    showToast({
+                        type: 'success',
+                        message: `IFSC Verified: ${data.BANK} - ${data.BRANCH || 'Branch'}`
+                    });
+                }
+            } else {
+                setIfscAutoSuccess(false);
+            }
+        } catch (err) {
+            console.debug('Free IFSC auto-lookup skipped or failed:', err);
+        } finally {
+            setIsFetchingIfsc(false);
+        }
+    };
+
+    const UPI_REGEX = /^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/;
+
     const validateField = (name, value, allValues = formData) => {
         let error = '';
         const trimmedVal = (value || '').trim();
@@ -173,20 +219,29 @@ export default function BankAccountsPage() {
             }
         } else if (name === 'bankIfsc') {
             if (!trimmedVal) {
-                error = 'IFSC code is required';
-            } else if (!/^[A-Z]{4}0[A-Z0-9]{6}$/i.test(trimmedVal)) {
-                error = 'Invalid IFSC code format (e.g. HDFC0001234)';
+                error = 'IFSC / SWIFT code is required';
+            } else if (!/^[A-Z0-9]{4,15}$/i.test(trimmedVal)) {
+                error = 'Invalid IFSC or SWIFT code (e.g. HDFC0001234 or CHASUS33)';
+            }
+        } else if (name === 'upiId') {
+            if (trimmedVal && !UPI_REGEX.test(trimmedVal)) {
+                error = 'Invalid UPI ID format (e.g. yourname@okhdfcbank or 9876543210@upi)';
             }
         }
         return error;
     };
 
     const handleFieldChange = (field, value) => {
-        const nextValues = { ...formData, [field]: value };
+        let formattedValue = value;
+        if (field === 'bankIfsc') {
+            formattedValue = value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        }
+
+        const nextValues = { ...formData, [field]: formattedValue };
         setFormData(nextValues);
 
         // Live validation for changed field
-        const error = validateField(field, value, nextValues);
+        const error = validateField(field, formattedValue, nextValues);
         const nextErrors = { ...formErrors, [field]: error };
 
         // Cross-field revalidation: if bankAccountNumber changes, recheck confirmAccountNumber if it has a value
@@ -195,6 +250,11 @@ export default function BankAccountsPage() {
         }
 
         setFormErrors(nextErrors);
+
+        // 100% Free Open IFSC Auto-Lookup when user reaches standard 11-char IFSC code
+        if (field === 'bankIfsc' && formattedValue.length === 11) {
+            fetchIfscDetails(formattedValue);
+        }
     };
 
     const validateForm = () => {
@@ -216,9 +276,13 @@ export default function BankAccountsPage() {
         }
 
         if (!formData.bankIfsc.trim()) {
-            errors.bankIfsc = 'IFSC code is required';
-        } else if (!/^[A-Z]{4}0[A-Z0-9]{6}$/i.test(formData.bankIfsc.trim())) {
-            errors.bankIfsc = 'Invalid IFSC code format (e.g. HDFC0001234)';
+            errors.bankIfsc = 'IFSC / SWIFT code is required';
+        } else if (!/^[A-Z0-9]{4,15}$/i.test(formData.bankIfsc.trim())) {
+            errors.bankIfsc = 'Invalid IFSC or SWIFT code (e.g. HDFC0001234)';
+        }
+
+        if (formData.upiId && formData.upiId.trim() && !UPI_REGEX.test(formData.upiId.trim())) {
+            errors.upiId = 'Invalid UPI ID format (e.g. yourname@okhdfcbank or 9876543210@upi)';
         }
 
         setFormErrors(errors);
@@ -226,12 +290,12 @@ export default function BankAccountsPage() {
     };
 
     const isSubmitDisabled = () => {
-        if (actionLoading) return true;
+        if (actionLoading || isFetchingIfsc) return true;
         const accNum = (formData.bankAccountNumber || '').trim();
         const confNum = (formData.confirmAccountNumber || '').trim();
         if (!accNum || !confNum) return true;
         if (accNum !== confNum) return true;
-        if (formErrors.confirmAccountNumber || formErrors.bankAccountNumber) return true;
+        if (formErrors.confirmAccountNumber || formErrors.bankAccountNumber || formErrors.upiId) return true;
         return false;
     };
 
@@ -248,6 +312,7 @@ export default function BankAccountsPage() {
                 confirmAccountNumber: formData.confirmAccountNumber.trim(),
                 bankIfsc: formData.bankIfsc.trim().toUpperCase(),
                 bankBranch: formData.bankBranch ? formData.bankBranch.trim() : null,
+                upiId: formData.upiId ? formData.upiId.trim() : null,
                 isDefault: formData.isDefault
             };
 
@@ -389,8 +454,8 @@ export default function BankAccountsPage() {
                                     </div>
                                 </div>
 
-                                {/* Bottom Grid: Account Number, IFSC, Branch, Account Holder matching reference */}
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-5 pt-4 border-t border-border-subtle/50 text-[13px]">
+                                {/* Bottom Grid: Account Number, IFSC, Branch, Account Holder, UPI ID matching reference */}
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mt-5 pt-4 border-t border-border-subtle/50 text-[13px]">
                                     <div>
                                         <div className="text-[11px] font-bold text-text-muted uppercase">
                                             Account Number
@@ -411,7 +476,7 @@ export default function BankAccountsPage() {
                                         <div className="text-[11px] font-bold text-text-muted uppercase">
                                             Branch
                                         </div>
-                                        <div className="text-text-primary mt-1">
+                                        <div className="text-text-primary mt-1 truncate">
                                             {acc.bankBranch || '—'}
                                         </div>
                                     </div>
@@ -421,6 +486,18 @@ export default function BankAccountsPage() {
                                         </div>
                                         <div className="text-text-primary font-medium mt-1 truncate">
                                             {acc.accountHolder}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div className="text-[11px] font-bold text-text-muted uppercase">
+                                            Company UPI ID
+                                        </div>
+                                        <div className="text-text-primary font-mono text-[12px] font-medium mt-1 truncate">
+                                            {acc.upiId ? (
+                                                <span className="text-emerald-600 dark:text-emerald-400 font-semibold">{acc.upiId}</span>
+                                            ) : (
+                                                <span className="text-text-muted italic text-[11px]">Not configured</span>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -457,41 +534,92 @@ export default function BankAccountsPage() {
                             className="btn btn-primary btn-md shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
                         >
                             {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                            <span>{editingAccount ? 'Save Changes' : 'Add Account'}</span>
+                            <span>{editingAccount ? 'Save Changes' : 'Save Bank Account'}</span>
                         </button>
                     </>
                 }
             >
                 <form onSubmit={handleFormSubmit} className="space-y-4">
-                    <div>
-                        <label className="block text-[11px] font-bold text-text-muted uppercase mb-1">
-                            Bank Name *
-                        </label>
-                        <input
-                            type="text"
-                            placeholder="e.g. HDFC Bank, ICICI Bank, SBI"
-                            value={formData.bankName}
-                            onChange={(e) => handleFieldChange('bankName', e.target.value)}
-                            className={`acx-input text-[13px] ${formErrors.bankName ? '!border-red-500 focus:!ring-red-500/20' : ''}`}
-                        />
-                        {formErrors.bankName && (
-                            <p className="text-[11px] text-red-500 mt-1 font-medium">{formErrors.bankName}</p>
-                        )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <div className="flex items-center justify-between mb-1">
+                                <label className="block text-[11px] font-bold text-text-muted uppercase">
+                                    IFSC / SWIFT Code *
+                                </label>
+                                {isFetchingIfsc ? (
+                                    <span className="text-[10px] text-brand-primary flex items-center gap-1 font-semibold">
+                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                        Auto-fetching...
+                                    </span>
+                                ) : ifscAutoSuccess ? (
+                                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                                        <Check className="w-3 h-3" />
+                                        RBI Verified
+                                    </span>
+                                ) : null}
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="e.g. HDFC0001234 or SBIN0000001"
+                                value={formData.bankIfsc}
+                                onChange={(e) => handleFieldChange('bankIfsc', e.target.value)}
+                                className={`acx-input text-[13px] font-mono uppercase ${formErrors.bankIfsc ? '!border-red-500 focus:!ring-red-500/20' : ''}`}
+                            />
+                            {formErrors.bankIfsc ? (
+                                <p className="text-[11px] text-red-500 mt-1 font-medium">{formErrors.bankIfsc}</p>
+                            ) : (
+                                <p className="text-[10px] text-text-muted mt-1">
+                                    Type 11-char IFSC to auto-fill Bank &amp; Branch (Free RBI lookup)
+                                </p>
+                            )}
+                        </div>
+
+                        <div>
+                            <label className="block text-[11px] font-bold text-text-muted uppercase mb-1">
+                                Bank Name *
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="e.g. HDFC Bank, ICICI Bank, SBI"
+                                value={formData.bankName}
+                                onChange={(e) => handleFieldChange('bankName', e.target.value)}
+                                className={`acx-input text-[13px] ${formErrors.bankName ? '!border-red-500 focus:!ring-red-500/20' : ''}`}
+                            />
+                            {formErrors.bankName && (
+                                <p className="text-[11px] text-red-500 mt-1 font-medium">{formErrors.bankName}</p>
+                            )}
+                        </div>
                     </div>
 
-                    <div>
-                        <label className="block text-[11px] font-bold text-text-muted uppercase mb-1">
-                            Account Holder Name *
-                        </label>
-                        <input
-                            type="text"
-                            value={formData.accountHolder}
-                            onChange={(e) => handleFieldChange('accountHolder', e.target.value)}
-                            className={`acx-input text-[13px] ${formErrors.accountHolder ? '!border-red-500 focus:!ring-red-500/20' : ''}`}
-                        />
-                        {formErrors.accountHolder && (
-                            <p className="text-[11px] text-red-500 mt-1 font-medium">{formErrors.accountHolder}</p>
-                        )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-[11px] font-bold text-text-muted uppercase mb-1">
+                                Branch Name
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="e.g. Koramangala, Bengaluru"
+                                value={formData.bankBranch}
+                                onChange={(e) => handleFieldChange('bankBranch', e.target.value)}
+                                className="acx-input text-[13px]"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-[11px] font-bold text-text-muted uppercase mb-1">
+                                Account Holder Name *
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="e.g. Acrovix Innovations Pvt Ltd"
+                                value={formData.accountHolder}
+                                onChange={(e) => handleFieldChange('accountHolder', e.target.value)}
+                                className={`acx-input text-[13px] ${formErrors.accountHolder ? '!border-red-500 focus:!ring-red-500/20' : ''}`}
+                            />
+                            {formErrors.accountHolder && (
+                                <p className="text-[11px] text-red-500 mt-1 font-medium">{formErrors.accountHolder}</p>
+                            )}
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -528,38 +656,33 @@ export default function BankAccountsPage() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-[11px] font-bold text-text-muted uppercase mb-1">
-                                IFSC Code *
+                    {/* Company UPI ID / VPA Field */}
+                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-border-subtle">
+                        <div className="flex items-center justify-between mb-1.5">
+                            <label className="block text-[11px] font-bold text-text-muted uppercase">
+                                Company UPI ID / VPA
                             </label>
-                            <input
-                                type="text"
-                                placeholder="e.g. HDFC0001234"
-                                value={formData.bankIfsc}
-                                onChange={(e) => handleFieldChange('bankIfsc', e.target.value.toUpperCase())}
-                                className={`acx-input text-[13px] font-mono uppercase ${formErrors.bankIfsc ? '!border-red-500 focus:!ring-red-500/20' : ''}`}
-                            />
-                            {formErrors.bankIfsc && (
-                                <p className="text-[11px] text-red-500 mt-1 font-medium">{formErrors.bankIfsc}</p>
-                            )}
+                            <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-800">
+                                Zero-Fee Dynamic QR
+                            </span>
                         </div>
-
-                        <div>
-                            <label className="block text-[11px] font-bold text-text-muted uppercase mb-1">
-                                Branch Name
-                            </label>
-                            <input
-                                type="text"
-                                placeholder="e.g. Koramangala, Bengaluru"
-                                value={formData.bankBranch}
-                                onChange={(e) => handleFieldChange('bankBranch', e.target.value)}
-                                className="acx-input text-[13px]"
-                            />
-                        </div>
+                        <input
+                            type="text"
+                            placeholder="e.g. yourname@okhdfcbank or 9876543210@upi"
+                            value={formData.upiId}
+                            onChange={(e) => handleFieldChange('upiId', e.target.value)}
+                            className={`acx-input text-[13px] font-mono ${formErrors.upiId ? '!border-red-500 focus:!ring-red-500/20' : ''}`}
+                        />
+                        {formErrors.upiId ? (
+                            <p className="text-[11px] text-red-500 mt-1 font-medium">{formErrors.upiId}</p>
+                        ) : (
+                            <p className="text-[11px] text-text-muted mt-1.5">
+                                Enter your company UPI VPA (e.g. <span className="font-mono">name@bank</span> or <span className="font-mono">number@upi</span>). Invoices will generate an instant scan &amp; pay QR code directly to this account with zero fees.
+                            </p>
+                        )}
                     </div>
 
-                    <div className="pt-2">
+                    <div className="pt-1">
                         <label className="flex items-center gap-2 cursor-pointer select-none">
                             <input
                                 type="checkbox"

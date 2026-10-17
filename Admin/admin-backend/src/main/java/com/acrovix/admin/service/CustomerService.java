@@ -36,6 +36,7 @@ public class CustomerService {
     private final com.acrovix.admin.repository.AdminUserRepository adminUserRepository;
     private final NotificationService notificationService;
     private final AuthorizationService authorizationService;
+    private final SequenceGeneratorService sequenceGeneratorService;
 
     @Transactional(readOnly = true)
     public Page<CustomerResponse> getCustomers(String search, Boolean active, int page, int size) {
@@ -80,7 +81,8 @@ public class CustomerService {
 
     @Transactional(readOnly = true)
     public CustomerResponse getCustomerById(Long id, AdminUser admin) {
-        Customer c = customerRepository.findById(id)
+        Long tenantId = com.acrovix.admin.tenant.TenantContext.getTenantId();
+        Customer c = (tenantId != null ? customerRepository.findByTenantIdAndId(tenantId, id) : customerRepository.findById(id))
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + id));
         if (admin != null && admin.getRole() == com.acrovix.admin.entity.Role.SALES) {
             authorizationService.checkCustomer360Access(admin, c);
@@ -89,19 +91,72 @@ public class CustomerService {
     }
 
     @Transactional
+    public String getNextCustomerCode() {
+        Long tenantId = com.acrovix.admin.tenant.TenantContext.getTenantId();
+        if (tenantId == null) {
+            tenantId = 1L;
+        }
+        syncCustomerSequenceIfNecessary(tenantId);
+        return sequenceGeneratorService.peekNextCustomerCode(tenantId);
+    }
+
+    private void syncCustomerSequenceIfNecessary(Long tenantId) {
+        List<String> codes = customerRepository.findCustomerCodesLikePrefix(tenantId);
+        long maxNum = 0;
+        for (String c : codes) {
+            if (c != null && c.startsWith("CUST-")) {
+                try {
+                    long num = Long.parseLong(c.substring(5).trim());
+                    if (num > maxNum) {
+                        maxNum = num;
+                    }
+                } catch (NumberFormatException ignored) {}
+            }
+        }
+        if (maxNum > 0) {
+            sequenceGeneratorService.ensureCustomerSequenceAtLeast(tenantId, maxNum + 1);
+        }
+    }
+
+    @Transactional
     public CustomerResponse createCustomer(CustomerRequest request, Long adminId) {
-        if (customerRepository.findByCustomerCode(request.getCustomerCode()).isPresent()) {
-            throw new ResourceConflictException("Customer code already exists: " + request.getCustomerCode());
+        Long tenantId = com.acrovix.admin.tenant.TenantContext.getTenantId();
+        if (tenantId == null) {
+            tenantId = 1L;
+        }
+
+        String assignedCode = request.getCustomerCode();
+        if (assignedCode == null || assignedCode.isBlank()) {
+            syncCustomerSequenceIfNecessary(tenantId);
+            assignedCode = sequenceGeneratorService.generateNextCustomerCode(tenantId);
+        } else {
+            assignedCode = assignedCode.trim();
+            if (assignedCode.startsWith("CUST-")) {
+                try {
+                    long num = Long.parseLong(assignedCode.substring(5).trim());
+                    sequenceGeneratorService.ensureCustomerSequenceAtLeast(tenantId, num + 1);
+                } catch (NumberFormatException ignored) {}
+            }
+        }
+
+        boolean codeExists = (tenantId != null)
+                ? customerRepository.findByTenantIdAndCustomerCode(tenantId, assignedCode).isPresent()
+                : customerRepository.findByCustomerCode(assignedCode).isPresent();
+        if (codeExists) {
+            throw new ResourceConflictException("Customer code already exists: " + assignedCode);
         }
         
         if (request.getGstin() != null && !request.getGstin().isBlank()) {
-            if (customerRepository.findByGstin(request.getGstin()).isPresent()) {
+            boolean gstinExists = (tenantId != null)
+                    ? customerRepository.findByTenantIdAndGstin(tenantId, request.getGstin()).isPresent()
+                    : customerRepository.findByGstin(request.getGstin()).isPresent();
+            if (gstinExists) {
                 throw new ResourceConflictException("Customer with GSTIN already exists: " + request.getGstin());
             }
         }
 
         Customer customer = Customer.builder()
-                .customerCode(request.getCustomerCode())
+                .customerCode(assignedCode)
                 .name(request.getName())
                 .companyName(request.getCompanyName())
                 .currency(request.getCurrency() != null ? request.getCurrency() : Currency.INR)
@@ -131,21 +186,29 @@ public class CustomerService {
 
     @Transactional
     public CustomerResponse updateCustomer(Long id, CustomerRequest request, AdminUser adminUser) {
-        Customer customer = customerRepository.findById(id)
+        Long tenantId = com.acrovix.admin.tenant.TenantContext.getTenantId();
+        Customer customer = (tenantId != null ? customerRepository.findByTenantIdAndId(tenantId, id) : customerRepository.findById(id))
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + id));
 
         if (adminUser != null && adminUser.getRole() == com.acrovix.admin.entity.Role.SALES) {
             authorizationService.checkCustomer360Access(adminUser, customer);
         }
 
-        if (!customer.getCustomerCode().equals(request.getCustomerCode()) &&
-                customerRepository.findByCustomerCode(request.getCustomerCode()).isPresent()) {
-            throw new ResourceConflictException("Customer code already exists: " + request.getCustomerCode());
+        if (!customer.getCustomerCode().equals(request.getCustomerCode())) {
+            boolean codeExists = (tenantId != null)
+                    ? customerRepository.findByTenantIdAndCustomerCode(tenantId, request.getCustomerCode()).isPresent()
+                    : customerRepository.findByCustomerCode(request.getCustomerCode()).isPresent();
+            if (codeExists) {
+                throw new ResourceConflictException("Customer code already exists: " + request.getCustomerCode());
+            }
         }
         
         if (request.getGstin() != null && !request.getGstin().isBlank() && 
             !request.getGstin().equals(customer.getGstin())) {
-            if (customerRepository.findByGstin(request.getGstin()).isPresent()) {
+            boolean gstinExists = (tenantId != null)
+                    ? customerRepository.findByTenantIdAndGstin(tenantId, request.getGstin()).isPresent()
+                    : customerRepository.findByGstin(request.getGstin()).isPresent();
+            if (gstinExists) {
                 throw new ResourceConflictException("Customer with GSTIN already exists: " + request.getGstin());
             }
         }
@@ -184,7 +247,8 @@ public class CustomerService {
 
     @Transactional
     public void deleteCustomer(Long id, AdminUser adminUser) {
-        Customer customer = customerRepository.findById(id)
+        Long tenantId = com.acrovix.admin.tenant.TenantContext.getTenantId();
+        Customer customer = (tenantId != null ? customerRepository.findByTenantIdAndId(tenantId, id) : customerRepository.findById(id))
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + id));
 
         if (adminUser != null && adminUser.getRole() == com.acrovix.admin.entity.Role.SALES) {
@@ -250,7 +314,8 @@ public class CustomerService {
         for (Long id : customerIds) {
             if (id == null) continue;
             try {
-                Customer customer = customerRepository.findById(id).orElse(null);
+                Long tenantId = com.acrovix.admin.tenant.TenantContext.getTenantId();
+                Customer customer = (tenantId != null ? customerRepository.findByTenantIdAndId(tenantId, id) : customerRepository.findById(id)).orElse(null);
                 if (customer == null) {
                     failures.add(new BulkCustomerOperationResponse.BulkFailureDetail(id, "Customer not found with ID: " + id));
                     continue;
@@ -315,6 +380,7 @@ public class CustomerService {
     }
 
     private void logActivity(Long adminId, String action, Long entityId, String description) {
+        Long tenantId = com.acrovix.admin.tenant.TenantContext.getTenantId();
         AdminActivity activity = AdminActivity.builder()
                 .adminUserId(adminId)
                 .action(action)
@@ -322,6 +388,7 @@ public class CustomerService {
                 .entityId(entityId)
                 .description(description)
                 .build();
+        activity.setTenantId(tenantId != null ? tenantId : 1L);
         activityRepository.save(activity);
     }
 }

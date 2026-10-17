@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { fetchApi } from '../services/api';
 import { getInitials } from '../utils/userUtils';
-import ThemeStudio from './ThemeStudio';
+import ThemeStudioPopover from './ThemeStudioPopover';
 
 export default function HeaderControls({ onLogout }) {
     const { user, logout } = useAuth();
@@ -23,7 +23,6 @@ export default function HeaderControls({ onLogout }) {
     const [isNotificationsLoading, setIsNotificationsLoading] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
 
-    const [showThemeModal, setShowThemeModal] = useState(false);
 
     const handleLogout = () => {
         if (onLogout) {
@@ -274,156 +273,175 @@ export default function HeaderControls({ onLogout }) {
             */
             }
 
-            {/* Theme Toggle */}
-            <button
-                onClick={toggleTheme}
-                className="header-icon-button"
-                aria-label="Toggle Theme"
-                title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-            >
-                {theme === 'light' ? <Sun className="w-[20px] h-[20px] text-[#FACC15]" /> : <Moon className="w-[20px] h-[20px]" />}
-            </button>
-
-            {/* Quick Theme Studio Customizer */}
-            <button
-                onClick={() => setShowThemeModal(true)}
-                className="header-icon-button"
-                aria-label="Theme Studio"
-                title="Theme Studio: Customize Mode & Accent Colors"
-            >
-                <Palette className="w-[18px] h-[18px] text-[var(--color-brand-primary)]" />
-            </button>
-
-            {/* Notifications Dropdown */}
-            <div className="relative">
-                <button 
-                    onClick={() => toggleDropdown('notifications')}
-                    aria-label="Notifications"
-                    className={`relative ${activeDropdown === 'notifications' ? 'header-icon-button bg-bg-hover text-text-primary border-border-subtle shadow-sm' : 'header-icon-button'}`}
+            {/* Utility Icon Group */}
+            <div className="flex items-center gap-1 bg-slate-100/60 dark:bg-slate-800/40 p-1 rounded-xl border border-slate-200/60 dark:border-slate-700/40">
+                <button
+                    onClick={toggleTheme}
+                    className="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-white dark:hover:bg-slate-800/80 transition-colors relative flex items-center justify-center focus:outline-none"
+                    aria-label="Toggle Theme"
+                    title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
                 >
-                    <Bell className="w-[20px] h-[20px]" />
-                    {unreadCount > 0 && (
-                        <span className="absolute top-1.5 right-1.5 min-w-[16px] h-[16px] px-1 bg-brand-danger rounded-full ring-2 ring-bg-main flex items-center justify-center text-[9px] font-bold text-white leading-none">
-                            {unreadCount > 99 ? '99+' : unreadCount}
-                        </span>
-                    )}
+                    <span className="transition-transform duration-300" style={{ transform: theme === 'dark' ? 'rotate(20deg)' : 'rotate(0deg)', display: 'flex' }}>
+                        {theme === 'light' ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-slate-300" />}
+                    </span>
                 </button>
 
-                {activeDropdown === 'notifications' && (
-                    <div className="absolute right-0 mt-2 w-[340px] max-w-[calc(100vw-24px)] bg-bg-card rounded-2xl shadow-xl border border-border-subtle overflow-hidden z-50 animate-dropdown-entrance flex flex-col" style={{ maxHeight: 'min(420px, calc(100vh - 100px))' }}>
-                        {/* Sticky Header */}
-                        <div className="px-4 py-3 border-b border-border-subtle bg-bg-card flex justify-between items-center shrink-0">
-                            <div className="flex items-center gap-2">
-                                <h3 className="text-sm font-bold text-text-primary">Notifications</h3>
+                {/* Quick Theme Studio Popover */}
+                <div className="relative">
+                    <button
+                        onClick={() => toggleDropdown('theme')}
+                        className={`p-2 rounded-lg transition-colors relative flex items-center justify-center focus:outline-none ${
+                            activeDropdown === 'theme' 
+                                ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-xs' 
+                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-white dark:hover:bg-slate-800/80'
+                        }`}
+                        aria-label="Theme & Brand Accent"
+                        title="Theme & Brand Accent"
+                    >
+                        <Palette className="w-4 h-4 text-brand-primary" />
+                    </button>
+
+                    {activeDropdown === 'theme' && (
+                        <ThemeStudioPopover onClose={() => setActiveDropdown(null)} />
+                    )}
+                </div>
+
+                {/* Notifications Dropdown */}
+                <div className="relative">
+                    <button 
+                        onClick={() => toggleDropdown('notifications')}
+                        aria-label="Notifications"
+                        className={`p-2 rounded-lg transition-colors relative flex items-center justify-center focus:outline-none ${
+                            activeDropdown === 'notifications' 
+                                ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-xs' 
+                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-white dark:hover:bg-slate-800/80'
+                        }`}
+                    >
+                        <Bell className="w-4 h-4" />
+                        {unreadCount > 0 && (
+                            <span className="w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900 absolute top-1.5 right-1.5" />
+                        )}
+                    </button>
+
+                    {activeDropdown === 'notifications' && (
+                        <div className="absolute right-0 mt-2 w-[340px] max-w-[calc(100vw-24px)] bg-bg-card rounded-2xl shadow-xl border border-border-subtle overflow-hidden z-50 animate-dropdown-entrance flex flex-col" style={{ maxHeight: 'min(420px, calc(100vh - 100px))' }}>
+                            {/* Sticky Header */}
+                            <div className="px-4 py-3 border-b border-border-subtle bg-bg-card flex justify-between items-center shrink-0">
+                                <div className="flex items-center gap-2">
+                                    <h3 className="text-sm font-bold text-text-primary">Notifications</h3>
+                                    {unreadCount > 0 && (
+                                        <span className="min-w-[18px] h-[18px] px-1 bg-brand-danger rounded-full flex items-center justify-center text-[9px] font-bold text-white leading-none">
+                                            {unreadCount > 99 ? '99+' : unreadCount}
+                                        </span>
+                                    )}
+                                </div>
                                 {unreadCount > 0 && (
-                                    <span className="min-w-[18px] h-[18px] px-1 bg-brand-danger rounded-full flex items-center justify-center text-[9px] font-bold text-white leading-none">
-                                        {unreadCount > 99 ? '99+' : unreadCount}
-                                    </span>
+                                    <button 
+                                        onClick={markAllAsRead}
+                                        className="text-[10px] font-bold text-brand-primary hover:text-brand-primary/80 px-2 py-1 rounded-full hover:bg-brand-primary/10 transition-colors"
+                                    >
+                                        Mark all read
+                                    </button>
                                 )}
                             </div>
-                            {unreadCount > 0 && (
-                                <button 
-                                    onClick={markAllAsRead}
-                                    className="text-[10px] font-bold text-brand-primary hover:text-brand-primary/80 px-2 py-1 rounded-full hover:bg-brand-primary/10 transition-colors"
-                                >
-                                    Mark all read
-                                </button>
-                            )}
-                        </div>
-                        
-                        {/* Scrollable List */}
-                        <div className="overflow-y-auto flex-1 p-2">
-                            {isNotificationsLoading ? (
-                                <div className="flex justify-center items-center py-10">
-                                    <Loader2 className="w-5 h-5 animate-spin text-brand-primary" />
-                                </div>
-                            ) : notifications && notifications.length > 0 ? (
-                                notifications.map(notification => (
-                                    <Link 
-                                        key={notification.id} 
-                                        to={getNotificationLink(notification)}
-                                        onClick={() => {
-                                            if (!notification.read) markAsRead(notification.id, { preventDefault: () => {}, stopPropagation: () => {} });
-                                            setActiveDropdown(null);
-                                        }}
-                                        className={`flex gap-3 p-3 rounded-xl hover:bg-bg-hover transition-colors relative group ${
-                                            !notification.read ? 'bg-brand-primary/[0.04] dark:bg-brand-primary/10' : ''
-                                        }`}
-                                    >
-                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-                                            !notification.read ? 'bg-brand-primary/10' : 'bg-bg-muted border border-border-subtle'
-                                        }`}>
-                                            <Bell className={`w-3.5 h-3.5 ${!notification.read ? 'text-brand-primary' : 'text-text-muted'}`} />
-                                        </div>
-                                        <div className="min-w-0 flex-1 pr-4">
-                                            <p className={`text-[13px] leading-tight truncate ${
-                                                !notification.read ? 'font-bold text-text-primary' : 'font-semibold text-text-secondary'
-                                            }`}>
-                                                {notification.title}
-                                            </p>
-                                            <p className="text-[12px] text-text-muted mt-0.5 leading-snug line-clamp-2">{notification.message}</p>
-                                            <p className="text-[10px] text-text-muted mt-1 font-medium">
-                                                {new Date(notification.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                            </p>
-                                        </div>
-                                        {!notification.read && (
-                                            <button 
-                                                onClick={(e) => markAsRead(notification.id, e)}
-                                                className="absolute right-3 top-3 p-1 rounded-full text-text-muted hover:text-brand-primary hover:bg-brand-primary/10 opacity-0 group-hover:opacity-100 transition-all"
-                                                title="Mark as read"
-                                                aria-label="Mark as read"
-                                            >
-                                                <Check className="w-3 h-3" />
-                                            </button>
-                                        )}
-                                    </Link>
-                                ))
-                            ) : (
-                                <div className="px-4 py-10 flex flex-col items-center justify-center text-center">
-                                    <div className="w-12 h-12 rounded-full bg-bg-muted flex items-center justify-center mb-3">
-                                        <Bell className="w-5 h-5 text-text-muted opacity-40" />
+                            
+                            {/* Scrollable List */}
+                            <div className="overflow-y-auto flex-1 p-2">
+                                {isNotificationsLoading ? (
+                                    <div className="flex justify-center items-center py-10">
+                                        <Loader2 className="w-5 h-5 animate-spin text-brand-primary" />
                                     </div>
-                                    <p className="text-[13px] font-semibold text-text-primary">All caught up!</p>
-                                    <p className="text-[11px] text-text-muted mt-1">No new notifications</p>
-                                </div>
-                            )}
+                                ) : notifications && notifications.length > 0 ? (
+                                    notifications.map(notification => (
+                                        <Link 
+                                            key={notification.id} 
+                                            to={getNotificationLink(notification)}
+                                            onClick={() => {
+                                                if (!notification.read) markAsRead(notification.id, { preventDefault: () => {}, stopPropagation: () => {} });
+                                                setActiveDropdown(null);
+                                            }}
+                                            className={`flex gap-3 p-3 rounded-xl hover:bg-bg-hover transition-colors relative group ${
+                                                !notification.read ? 'bg-brand-primary/[0.04] dark:bg-brand-primary/10' : ''
+                                            }`}
+                                        >
+                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
+                                                !notification.read ? 'bg-brand-primary/10' : 'bg-bg-muted border border-border-subtle'
+                                            }`}>
+                                                <Bell className={`w-3.5 h-3.5 ${!notification.read ? 'text-brand-primary' : 'text-text-muted'}`} />
+                                            </div>
+                                            <div className="min-w-0 flex-1 pr-4">
+                                                <p className={`text-[13px] leading-tight truncate ${
+                                                    !notification.read ? 'font-bold text-text-primary' : 'font-semibold text-text-secondary'
+                                                }`}>
+                                                    {notification.title}
+                                                </p>
+                                                <p className="text-[12px] text-text-muted mt-0.5 leading-snug line-clamp-2">{notification.message}</p>
+                                                <p className="text-[10px] text-text-muted mt-1 font-medium">
+                                                    {new Date(notification.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                </p>
+                                            </div>
+                                            {!notification.read && (
+                                                <button 
+                                                    onClick={(e) => markAsRead(notification.id, e)}
+                                                    className="absolute right-3 top-3 p-1 rounded-full text-text-muted hover:text-brand-primary hover:bg-brand-primary/10 opacity-0 group-hover:opacity-100 transition-all"
+                                                    title="Mark as read"
+                                                    aria-label="Mark as read"
+                                                >
+                                                    <Check className="w-3 h-3" />
+                                                </button>
+                                            )}
+                                        </Link>
+                                    ))
+                                ) : (
+                                    <div className="px-4 py-10 flex flex-col items-center justify-center text-center">
+                                        <div className="w-12 h-12 rounded-full bg-bg-muted flex items-center justify-center mb-3">
+                                            <Bell className="w-5 h-5 text-text-muted opacity-40" />
+                                        </div>
+                                        <p className="text-[13px] font-semibold text-text-primary">All caught up!</p>
+                                        <p className="text-[11px] text-text-muted mt-1">No new notifications</p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    </div>
-                )}
-            </div>
+                    )}
+                </div>
 
-            {/* Settings Link */}
-            <button 
-                onClick={() => {
-                    setActiveDropdown(null);
-                    navigate('/settings');
-                }}
-                aria-label="Settings"
-                className="hidden sm:flex header-icon-button"
-            >
-                <SettingsIcon className="w-[20px] h-[20px]" />
-            </button>
+                {/* Settings Link */}
+                <button 
+                    onClick={() => {
+                        setActiveDropdown(null);
+                        navigate('/settings');
+                    }}
+                    aria-label="Settings"
+                    title="Settings"
+                    className="hidden sm:flex p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-white dark:hover:bg-slate-800/80 transition-colors relative items-center justify-center focus:outline-none"
+                >
+                    <SettingsIcon className="w-4 h-4" />
+                </button>
+            </div>
             
             <div className="hidden sm:block header-divider mx-1 lg:mx-2"></div>
 
-            {/* SA Profile / Account Menu */}
-            <div className="flex items-center relative ml-1 sm:ml-2">
+            {/* User Profile Dropdown (Top Right Primary Menu) */}
+            <div className="flex items-center relative ml-1">
                 <div 
                     onClick={() => toggleDropdown('profile')}
-                    className={`flex items-center gap-2.5 pl-1.5 pr-4 py-1.5 rounded-[28px] border shadow-sm cursor-pointer transition-all h-[52px] ${
+                    className={`flex items-center gap-2.5 pl-1.5 pr-3 py-1 rounded-full border shadow-xs cursor-pointer transition-all h-[42px] ${
                         activeDropdown === 'profile'
-                            ? 'bg-bg-hover border-border-subtle'
-                            : 'bg-bg-card border-border-subtle hover:bg-bg-hover'
+                            ? 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-600'
+                            : 'bg-white/80 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700/50 hover:bg-slate-100/80 dark:hover:bg-slate-800'
                     }`}
                 >
-                    <div className="w-[40px] h-[40px] rounded-full bg-[var(--color-brand-primary)] flex items-center justify-center text-white font-bold text-[14px] shrink-0 shadow-[0_2px_8px_rgba(37,99,235,0.25)]">
-                        {getInitials(user?.name)}
+                    <div className="w-[30px] h-[30px] rounded-full p-[1.5px] bg-gradient-to-tr from-brand-primary to-cyan-400 shrink-0">
+                        <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center text-white font-bold text-[11px]">
+                            {getInitials(user?.name)}
+                        </div>
                     </div>
-                    <div className="hidden sm:flex flex-col justify-center min-w-[90px] max-w-[140px] leading-[1.2]">
-                        <span className="text-[14px] font-bold text-text-primary truncate">{user?.name || 'User'}</span>
-                        <span className="text-[10px] font-medium text-text-muted uppercase tracking-[0.5px] truncate mt-0.5">{user?.role?.replace('_', ' ')}</span>
+                    <div className="hidden sm:flex flex-col justify-center leading-tight">
+                        <span className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate max-w-[120px]">{user?.name || 'User'}</span>
+                        <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">{user?.role?.replace('_', ' ')}</span>
                     </div>
-                    <ChevronRight className={`w-4 h-4 text-text-muted transition-transform ml-1 ${activeDropdown === 'profile' ? '-rotate-90' : 'rotate-90'}`} />
+                    <ChevronRight className={`w-3.5 h-3.5 text-slate-400 transition-transform ${activeDropdown === 'profile' ? '-rotate-90' : 'rotate-90'}`} />
                 </div>
 
                 {activeDropdown === 'profile' && (
@@ -440,8 +458,7 @@ export default function HeaderControls({ onLogout }) {
                             <button
                                 type="button"
                                 onClick={() => {
-                                    setActiveDropdown(null);
-                                    setShowThemeModal(true);
+                                    toggleDropdown('theme');
                                 }}
                                 className="flex items-center gap-3 w-full px-3 py-2 text-[13px] font-medium text-text-secondary hover:text-text-primary hover:bg-bg-hover rounded-xl transition-colors text-left"
                             >
@@ -471,37 +488,7 @@ export default function HeaderControls({ onLogout }) {
                 )}
             </div>
 
-            {/* Quick Access Theme Studio Modal */}
-            {showThemeModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <div 
-                        className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
-                        onClick={() => setShowThemeModal(false)}
-                    />
-                    <div className="relative w-full max-w-2xl bg-bg-card border border-border-subtle rounded-[24px] shadow-2xl overflow-hidden z-10 flex flex-col max-h-[90vh] animate-modal-entrance">
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-bg-card shrink-0">
-                            <div className="flex items-center gap-2.5">
-                                <div className="w-9 h-9 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary">
-                                    <Palette className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <h3 className="text-base font-bold text-text-primary">Theme Studio</h3>
-                                    <p className="text-[12px] text-text-muted">Customize enterprise theme and accents live</p>
-                                </div>
-                            </div>
-                            <button 
-                                onClick={() => setShowThemeModal(false)}
-                                className="w-8 h-8 rounded-lg flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors"
-                            >
-                                <X className="w-4 h-4" />
-                            </button>
-                        </div>
-                        <div className="overflow-y-auto p-6 flex-1 space-y-6">
-                            <ThemeStudio isModal={true} onSaved={() => setShowThemeModal(false)} />
-                        </div>
-                    </div>
-                </div>
-            )}
+
         </div>
     );
 }

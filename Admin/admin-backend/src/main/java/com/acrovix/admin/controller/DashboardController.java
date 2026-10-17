@@ -24,7 +24,7 @@ public class DashboardController {
     private final DashboardService dashboardService;
 
     @GetMapping("/stats")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<Map<String, Object>> getStats(
             @RequestParam(required = false, defaultValue = "ALL_TIME") String dateRange,
             @RequestParam(required = false, defaultValue = "ALL") String enquiryStatus,

@@ -105,11 +105,11 @@ export default function Modal({
             <div 
                 ref={dialogRef}
                 onClick={(e) => e.stopPropagation()}
-                className={`relative bg-bg-card rounded-2xl sm:rounded-3xl shadow-2xl border border-border-subtle flex flex-col max-h-[calc(100dvh-32px)] sm:max-h-[calc(100dvh-48px)] my-auto z-10 overflow-hidden animate-modal-entrance ${sizeClass} ${className}`}
+                className={`relative bg-bg-card rounded-2xl sm:rounded-[24px] shadow-2xl border border-border-subtle flex flex-col max-h-[calc(100dvh-32px)] sm:max-h-[calc(100dvh-48px)] my-auto z-10 overflow-hidden animate-modal-entrance ${sizeClass} ${className}`}
             >
                 {/* Header (Sticky / Fixed) */}
                 {(title || showCloseButton) && (
-                    <div className="flex items-center justify-between px-5 py-4 sm:px-6 sm:py-4.5 border-b border-border-subtle bg-bg-muted/30 shrink-0">
+                    <div className="flex items-center justify-between px-5 py-4 sm:px-6 sm:py-4 border-b border-border-subtle bg-gradient-to-br from-bg-muted/50 to-bg-card shrink-0">
                         <div className="flex items-center gap-3 min-w-0 pr-4">
                             {IconComponent && (
                                 <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 border ${iconClassName}`}>

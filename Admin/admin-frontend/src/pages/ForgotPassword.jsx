@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { forgotPassword } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
+import { useTenant } from '../context/TenantContext';
 import logoLight from '../assets/acrovix_logo1.png';
 import logoDark from '../assets/Acrovix_logo.png';
 import { Mail, Loader2, ArrowRight, ArrowLeft, Sun, Moon, Shield, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 const ForgotPassword = () => {
+    const { tenant } = useTenant();
     const [email, setEmail] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isSubmitted, setIsSubmitted] = useState(false);
@@ -71,8 +73,8 @@ const ForgotPassword = () => {
                     {/* Header */}
                     <div className="flex flex-col items-center mb-5 sm:mb-6">
                         <img 
-                            src={theme === 'dark' ? logoDark : logoLight} 
-                            alt="Acrovix" 
+                            src={tenant?.logoUrl || (theme === 'dark' ? logoDark : logoLight)} 
+                            alt={tenant?.brandName || "Workspace"} 
                             width="250"
                             height="56"
                             className="h-8 sm:h-11 w-auto object-contain mb-3 sm:mb-4"
@@ -130,7 +132,7 @@ const ForgotPassword = () => {
                                         type="email"
                                         required
                                         className="w-full pl-10 pr-4 rounded-xl h-[44px] sm:h-[46px] text-[13.5px] sm:text-[14px] bg-bg-main text-text-primary border border-border-subtle focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] outline-none transition-all placeholder-text-muted"
-                                        placeholder="user@acrovix.com"
+                                        placeholder="user@example.com"
                                         value={email}
                                         onChange={(e) => {
                                             setEmail(e.target.value);
@@ -168,7 +170,7 @@ const ForgotPassword = () => {
                             <div className="flex items-center justify-center gap-1.5 pt-2">
                                 <Shield className="w-3.5 h-3.5 text-text-muted" />
                                 <p className="text-[11.5px] sm:text-[12px] text-text-muted">
-                                    Protected by ACROVIX Security
+                                    Protected by {tenant?.brandName || 'Enterprise'} Security
                                 </p>
                             </div>
                         </form>
@@ -178,7 +180,7 @@ const ForgotPassword = () => {
 
             {/* Footer */}
             <footer className="w-full px-4 sm:px-6 py-3 flex flex-col sm:flex-row items-center justify-between z-20 text-[11px] text-text-muted gap-2 sm:gap-0 mt-auto shrink-0">
-                <div>© 2026 Acrovix Innovations Private Limited</div>
+                <div>© {new Date().getFullYear()} {tenant?.companyName || 'Acrovix Innovations Private Limited'}</div>
                 <div className="flex gap-4">
                     <Link to="#" className="hover:text-text-primary transition-colors">Privacy Policy</Link>
                     <Link to="#" className="hover:text-text-primary transition-colors">Terms of Service</Link>

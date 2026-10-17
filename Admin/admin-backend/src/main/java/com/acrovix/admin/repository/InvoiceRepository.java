@@ -78,6 +78,18 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long>, JpaSpec
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT i FROM Invoice i WHERE i.invoiceNumber = :invoiceNumber")
     java.util.Optional<Invoice> findByInvoiceNumberForUpdate(@Param("invoiceNumber") String invoiceNumber);
+
+    java.util.Optional<Invoice> findByTenantIdAndId(Long tenantId, Long id);
+    
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT i FROM Invoice i WHERE i.tenantId = :tenantId AND i.id = :id")
+    java.util.Optional<Invoice> findByTenantIdAndIdForUpdate(@Param("tenantId") Long tenantId, @Param("id") Long id);
+    java.util.List<Invoice> findAllByTenantId(Long tenantId);
+    Page<Invoice> findAllByTenantId(Long tenantId, Pageable pageable);
+    void deleteByTenantIdAndId(Long tenantId, Long id);
+    java.util.Optional<Invoice> findByTenantIdAndInvoiceNumber(Long tenantId, String invoiceNumber);
+    java.util.Optional<Invoice> findByPublicToken(String publicToken);
+    java.util.Optional<Invoice> findByTenantIdAndPublicToken(Long tenantId, String publicToken);
 }
 
 

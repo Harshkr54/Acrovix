@@ -24,7 +24,7 @@ public class Customer360Controller {
     private final Customer360Service customer360Service;
 
     @GetMapping("/{id}/360")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     @Transactional(readOnly = true)
     public ResponseEntity<Customer360Response> getCustomer360(
             @PathVariable Long id,

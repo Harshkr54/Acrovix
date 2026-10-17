@@ -41,3 +41,7 @@ Admin/admin-backend/test_retry.sh
 
 # Backups
 backups/
+
+# Runtime uploads
+Admin/admin-backend/uploads/**
+!Admin/admin-backend/uploads/.gitkeep

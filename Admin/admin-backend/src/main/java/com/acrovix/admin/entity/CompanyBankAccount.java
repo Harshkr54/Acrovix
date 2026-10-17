@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CompanyBankAccount {
+public class CompanyBankAccount extends TenantAwareEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,6 +32,9 @@ public class CompanyBankAccount {
 
     @Column(name = "bank_branch", length = 100)
     private String bankBranch;
+
+    @Column(name = "upi_id", length = 100)
+    private String upiId;
 
     @Column(name = "is_default")
     @Builder.Default

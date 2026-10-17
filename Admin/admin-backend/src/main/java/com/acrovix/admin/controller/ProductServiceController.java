@@ -26,7 +26,7 @@ public class ProductServiceController {
     private final ProductServiceService catalogService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<Page<ProductServiceResponse>> getCatalog(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) Boolean active,
@@ -40,13 +40,13 @@ public class ProductServiceController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<ProductServiceResponse> getCatalogItemById(@PathVariable Long id) {
         return ResponseEntity.ok(catalogService.getCatalogItemById(id));
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     public ResponseEntity<ProductServiceResponse> createCatalogItem(
             @Valid @RequestBody ProductServiceRequest request,
             @AuthenticationPrincipal AdminUser adminUser) {
@@ -55,7 +55,7 @@ public class ProductServiceController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     public ResponseEntity<ProductServiceResponse> updateCatalogItem(
             @PathVariable Long id,
             @Valid @RequestBody ProductServiceRequest request,
@@ -65,7 +65,7 @@ public class ProductServiceController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     public ResponseEntity<Void> deleteCatalogItem(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser adminUser) {
@@ -74,7 +74,7 @@ public class ProductServiceController {
     }
     
     @PatchMapping("/{id}/activate")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     public ResponseEntity<Void> activateCatalogItem(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser adminUser) {

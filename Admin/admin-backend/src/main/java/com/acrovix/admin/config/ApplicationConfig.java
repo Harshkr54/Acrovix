@@ -21,8 +21,16 @@ public class ApplicationConfig {
 
     @Bean
     public UserDetailsService userDetailsService() {
-        return username -> repository.findByEmail(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        return username -> {
+            Long currentTenantId = com.acrovix.admin.tenant.TenantContext.getTenantId();
+            if (currentTenantId != null) {
+                return repository.findByTenantIdAndEmail(currentTenantId, username)
+                        .or(() -> repository.findByEmail(username))
+                        .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+            }
+            return repository.findByEmail(username)
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        };
     }
 
     @Bean

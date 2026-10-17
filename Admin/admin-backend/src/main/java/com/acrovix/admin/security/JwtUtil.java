@@ -23,8 +23,29 @@ public class JwtUtil {
     @Value("${jwt.expiration}")
     private long jwtExpiration;
 
+    public static final String CLAIM_TENANT_ID = "tenant_id";
+    public static final String CLAIM_TENANT_SLUG = "tenant_slug";
+
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
+    }
+
+    public Long extractTenantId(String token) {
+        Claims claims = extractAllClaims(token);
+        Object tid = claims.get(CLAIM_TENANT_ID);
+        if (tid instanceof Number num) {
+            return num.longValue();
+        } else if (tid instanceof String str && !str.isBlank()) {
+            try {
+                return Long.parseLong(str);
+            } catch (NumberFormatException ignored) {}
+        }
+        return null;
+    }
+
+    public String extractTenantSlug(String token) {
+        Claims claims = extractAllClaims(token);
+        return claims.get(CLAIM_TENANT_SLUG, String.class);
     }
 
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
@@ -33,7 +54,24 @@ public class JwtUtil {
     }
 
     public String generateToken(UserDetails userDetails) {
-        return generateToken(new HashMap<>(), userDetails);
+        Map<String, Object> extraClaims = new HashMap<>();
+        if (userDetails instanceof com.acrovix.admin.entity.AdminUser adminUser) {
+            if (adminUser.getTenantId() != null) {
+                extraClaims.put(CLAIM_TENANT_ID, adminUser.getTenantId());
+            }
+        }
+        return generateToken(extraClaims, userDetails);
+    }
+
+    public String generateToken(UserDetails userDetails, Long tenantId, String tenantSlug) {
+        Map<String, Object> extraClaims = new HashMap<>();
+        if (tenantId != null) {
+            extraClaims.put(CLAIM_TENANT_ID, tenantId);
+        }
+        if (tenantSlug != null) {
+            extraClaims.put(CLAIM_TENANT_SLUG, tenantSlug);
+        }
+        return generateToken(extraClaims, userDetails);
     }
 
     public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {

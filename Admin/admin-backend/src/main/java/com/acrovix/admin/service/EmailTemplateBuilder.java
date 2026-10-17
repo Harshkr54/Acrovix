@@ -26,6 +26,25 @@ public class EmailTemplateBuilder {
      * No gradients.
      */
     public String buildCorporateEmail(String title, String contentHtml, String ctaText, String ctaUrl) {
+        return buildCorporateEmail(title, contentHtml, ctaText, ctaUrl, null);
+    }
+
+    public String buildCorporateEmail(String title, String contentHtml, String ctaText, String ctaUrl, com.acrovix.admin.dto.CompanySettingsResponse settings) {
+        String brandName = (settings != null && settings.getBrandName() != null && !settings.getBrandName().isBlank())
+                ? settings.getBrandName()
+                : ((settings != null && settings.getCompanyName() != null && !settings.getCompanyName().isBlank())
+                        ? settings.getCompanyName() : BRAND_NAME);
+        String primaryColor = (settings != null && settings.getPrimaryColor() != null && !settings.getPrimaryColor().isBlank())
+                ? settings.getPrimaryColor() : "#0D9488";
+        String contactEmail = (settings != null && settings.getEmail() != null && !settings.getEmail().isBlank())
+                ? settings.getEmail() : CONTACT_EMAIL;
+        String logoUrl = (settings != null && settings.getLogoUrl() != null && !settings.getLogoUrl().isBlank())
+                ? settings.getLogoUrl() : null;
+
+        boolean isAcrovix = (settings == null || settings.getTenantId() == null || Long.valueOf(1L).equals(settings.getTenantId())
+                || brandName.toUpperCase().contains("ACROVIX"));
+        String tagline = isAcrovix ? TAGLINE : "";
+
         StringBuilder html = new StringBuilder();
         html.append("<!DOCTYPE html>\n");
         html.append("<html lang=\"en\">\n");
@@ -36,24 +55,30 @@ public class EmailTemplateBuilder {
         html.append("  <style>\n");
         html.append("    body { margin: 0; padding: 0; background-color: #F8FAFC; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #334155; -webkit-font-smoothing: antialiased; }\n");
         html.append("    .email-container { max-width: 600px; margin: 30px auto; background-color: #FFFFFF; border-radius: 8px; border: 1px solid #E2E8F0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }\n");
-        html.append("    .header { background-color: #0F172A; padding: 24px 32px; text-align: left; border-bottom: 3px solid #0D9488; }\n");
+        html.append("    .header { background-color: #0F172A; padding: 24px 32px; text-align: left; border-bottom: 3px solid ").append(primaryColor).append("; }\n");
         html.append("    .brand-name { color: #FFFFFF; font-size: 18px; font-weight: 700; letter-spacing: 0.8px; margin: 0; text-transform: uppercase; }\n");
-        html.append("    .tagline { color: #0D9488; font-size: 10px; font-weight: 600; letter-spacing: 2px; margin-top: 4px; text-transform: uppercase; }\n");
+        html.append("    .tagline { color: ").append(primaryColor).append("; font-size: 10px; font-weight: 600; letter-spacing: 2px; margin-top: 4px; text-transform: uppercase; }\n");
         html.append("    .content { padding: 32px; font-size: 15px; line-height: 1.6; color: #334155; }\n");
         html.append("    .title-banner { font-size: 18px; font-weight: 600; color: #0F172A; margin-top: 0; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid #F1F5F9; }\n");
         html.append("    .cta-container { text-align: center; margin: 32px 0 16px 0; }\n");
-        html.append("    .cta-button { display: inline-block; background-color: #0D9488; color: #FFFFFF !important; text-decoration: none; padding: 12px 28px; border-radius: 6px; font-weight: 600; font-size: 14px; letter-spacing: 0.5px; }\n");
+        html.append("    .cta-button { display: inline-block; background-color: ").append(primaryColor).append("; color: #FFFFFF !important; text-decoration: none; padding: 12px 28px; border-radius: 6px; font-weight: 600; font-size: 14px; letter-spacing: 0.5px; }\n");
         html.append("    .footer { background-color: #F1F5F9; padding: 20px 32px; text-align: center; border-top: 1px solid #E2E8F0; font-size: 12px; color: #64748B; }\n");
         html.append("    .footer-brand { font-weight: 600; color: #0F172A; margin-bottom: 4px; }\n");
         html.append("    .footer-contact { margin-top: 8px; font-size: 12px; color: #64748B; }\n");
-        html.append("    .footer-contact a { color: #0D9488; text-decoration: none; }\n");
+        html.append("    .footer-contact a { color: ").append(primaryColor).append("; text-decoration: none; }\n");
         html.append("  </style>\n");
         html.append("</head>\n");
         html.append("<body>\n");
         html.append("  <div class=\"email-container\">\n");
         html.append("    <div class=\"header\">\n");
-        html.append("      <div class=\"brand-name\">").append(BRAND_NAME).append("</div>\n");
-        html.append("      <div class=\"tagline\">").append(TAGLINE).append("</div>\n");
+        if (logoUrl != null) {
+            html.append("      <img src=\"").append(escapeHtml(logoUrl)).append("\" alt=\"").append(escapeHtml(brandName)).append("\" style=\"max-height: 38px; max-width: 180px; object-fit: contain; vertical-align: middle;\" />\n");
+        } else {
+            html.append("      <div class=\"brand-name\">").append(escapeHtml(brandName)).append("</div>\n");
+            if (!tagline.isEmpty()) {
+                html.append("      <div class=\"tagline\">").append(escapeHtml(tagline)).append("</div>\n");
+            }
+        }
         html.append("    </div>\n");
         html.append("    <div class=\"content\">\n");
         if (title != null && !title.trim().isEmpty()) {
@@ -67,10 +92,10 @@ public class EmailTemplateBuilder {
         }
         html.append("    </div>\n");
         html.append("    <div class=\"footer\">\n");
-        html.append("      <div class=\"footer-brand\">").append(BRAND_NAME).append("</div>\n");
+        html.append("      <div class=\"footer-brand\">").append(escapeHtml(brandName)).append("</div>\n");
         html.append("      <div>Enterprise Resource Planning System</div>\n");
-        html.append("      <div class=\"footer-contact\">Contact: <a href=\"mailto:").append(CONTACT_EMAIL).append("\">").append(CONTACT_EMAIL).append("</a></div>\n");
-        html.append("      <div style=\"margin-top: 8px; font-size: 11px; color: #94A3B8;\">&copy; ").append(java.time.Year.now().getValue()).append(" ").append(BRAND_NAME).append(". All rights reserved.</div>\n");
+        html.append("      <div class=\"footer-contact\">Contact: <a href=\"mailto:").append(escapeHtml(contactEmail)).append("\">").append(escapeHtml(contactEmail)).append("</a></div>\n");
+        html.append("      <div style=\"margin-top: 8px; font-size: 11px; color: #94A3B8;\">&copy; ").append(java.time.Year.now().getValue()).append(" ").append(escapeHtml(brandName)).append(". All rights reserved.</div>\n");
         html.append("    </div>\n");
         html.append("  </div>\n");
         html.append("</body>\n");
@@ -79,13 +104,32 @@ public class EmailTemplateBuilder {
     }
 
     public String buildCorporateEmail(String title, String contentHtml) {
-        return buildCorporateEmail(title, contentHtml, null, null);
+        return buildCorporateEmail(title, contentHtml, null, null, null);
+    }
+
+    public String buildCorporateEmail(String title, String contentHtml, com.acrovix.admin.dto.CompanySettingsResponse settings) {
+        return buildCorporateEmail(title, contentHtml, null, null, settings);
     }
 
     public String buildQuotationEmailHtml(Quotation quotation) {
+        return buildQuotationEmailHtml(quotation, null);
+    }
+
+    public String buildQuotationEmailHtml(Quotation quotation, com.acrovix.admin.dto.CompanySettingsResponse settings) {
+        return buildQuotationEmailHtml(quotation, settings, null);
+    }
+
+    public String buildQuotationEmailHtml(Quotation quotation, com.acrovix.admin.dto.CompanySettingsResponse settings, String portalUrl) {
         String quotationNo = quotation.getQuotationNumber() != null ? quotation.getQuotationNumber() : "QT-" + quotation.getId();
         String clientName = quotation.getClientName() != null ? quotation.getClientName() : "Valued Client";
         String clientCompany = quotation.getClientCompany() != null ? quotation.getClientCompany() : "";
+
+        String brandName = (settings != null && settings.getBrandName() != null && !settings.getBrandName().isBlank())
+                ? settings.getBrandName()
+                : ((settings != null && settings.getCompanyName() != null && !settings.getCompanyName().isBlank())
+                        ? settings.getCompanyName() : BRAND_NAME);
+        String contactEmail = (settings != null && settings.getEmail() != null && !settings.getEmail().isBlank())
+                ? settings.getEmail() : CONTACT_EMAIL;
 
         StringBuilder body = new StringBuilder();
         body.append("<p>Dear <strong>").append(escapeHtml(clientName)).append("</strong>")
@@ -112,16 +156,34 @@ public class EmailTemplateBuilder {
             body.append(formatTermsAsHtmlList(quotation.getTermsAndConditions()));
         }
 
-        body.append("<p>Thank you for choosing ACROVIX INNOVATIONS PRIVATE LIMITED. For queries, contact <a href=\"mailto:sales@acrovix.com\" style=\"color:#0D9488;\">sales@acrovix.com</a>.</p>");
+        body.append("<p>Thank you for choosing ").append(escapeHtml(brandName)).append(". For queries, contact <a href=\"mailto:").append(escapeHtml(contactEmail)).append("\" style=\"color:#0D9488;\">").append(escapeHtml(contactEmail)).append("</a>.</p>");
 
-        return buildCorporateEmail("Quotation: " + quotationNo, body.toString());
+        String ctaText = null;
+        String ctaUrl = null;
+        if (portalUrl != null && !portalUrl.isBlank()) {
+            ctaText = "Review & Accept Quotation Online";
+            ctaUrl = portalUrl.trim();
+        }
+
+        return buildCorporateEmail("Quotation: " + quotationNo, body.toString(), ctaText, ctaUrl, settings);
     }
 
     public String buildInvoiceEmailHtml(Invoice invoice) {
+        return buildInvoiceEmailHtml(invoice, null);
+    }
+
+    public String buildInvoiceEmailHtml(Invoice invoice, com.acrovix.admin.dto.CompanySettingsResponse settings) {
         String invoiceNo = invoice.getInvoiceNumber() != null ? invoice.getInvoiceNumber() : "INV-" + invoice.getId();
         String customerName = (invoice.getCustomer() != null && invoice.getCustomer().getName() != null) 
                 ? invoice.getCustomer().getName() 
                 : (invoice.getClientName() != null ? invoice.getClientName() : "Valued Customer");
+
+        String brandName = (settings != null && settings.getBrandName() != null && !settings.getBrandName().isBlank())
+                ? settings.getBrandName()
+                : ((settings != null && settings.getCompanyName() != null && !settings.getCompanyName().isBlank())
+                        ? settings.getCompanyName() : BRAND_NAME);
+        String contactEmail = (settings != null && settings.getEmail() != null && !settings.getEmail().isBlank())
+                ? settings.getEmail() : CONTACT_EMAIL;
 
         BigDecimal grandTotal = invoice.getGrandTotal() != null ? invoice.getGrandTotal() : BigDecimal.ZERO;
         BigDecimal paidAmount = invoice.getAmountPaid() != null ? invoice.getAmountPaid() : BigDecimal.ZERO;
@@ -147,12 +209,16 @@ public class EmailTemplateBuilder {
         body.append("  <tr style=\"background-color:#FEF2F2;\"><td style=\"padding:10px; font-weight:700; color:#991B1B;\">Balance Due:</td><td style=\"padding:10px; font-weight:700; color:#991B1B;\">").append(CurrencyUtils.formatCurrency(balanceDue, invoice.getCurrency())).append("</td></tr>\n");
         body.append("</table>\n");
 
-        body.append("<p>Please arrange payment by the due date. For queries, contact <a href=\"mailto:sales@acrovix.com\" style=\"color:#0D9488;\">sales@acrovix.com</a>.</p>");
+        body.append("<p>Please arrange payment by the due date. For queries, contact <a href=\"mailto:").append(escapeHtml(contactEmail)).append("\" style=\"color:#0D9488;\">").append(escapeHtml(contactEmail)).append("</a>.</p>");
 
-        return buildCorporateEmail("Invoice: " + invoiceNo, body.toString());
+        return buildCorporateEmail("Invoice: " + invoiceNo, body.toString(), null, null, settings);
     }
 
     public String buildPaymentReceiptEmailHtml(Payment payment, BigDecimal remainingBalance) {
+        return buildPaymentReceiptEmailHtml(payment, remainingBalance, null);
+    }
+
+    public String buildPaymentReceiptEmailHtml(Payment payment, BigDecimal remainingBalance, com.acrovix.admin.dto.CompanySettingsResponse settings) {
         String paymentRef = payment.getPaymentNumber() != null ? payment.getPaymentNumber() : "PAY-" + payment.getId();
         String invoiceNo = (payment.getInvoice() != null && payment.getInvoice().getInvoiceNumber() != null) 
                 ? payment.getInvoice().getInvoiceNumber() 
@@ -160,6 +226,13 @@ public class EmailTemplateBuilder {
         String customerName = (payment.getCustomer() != null && payment.getCustomer().getName() != null) 
                 ? payment.getCustomer().getName() 
                 : "Valued Customer";
+
+        String brandName = (settings != null && settings.getBrandName() != null && !settings.getBrandName().isBlank())
+                ? settings.getBrandName()
+                : ((settings != null && settings.getCompanyName() != null && !settings.getCompanyName().isBlank())
+                        ? settings.getCompanyName() : BRAND_NAME);
+        String contactEmail = (settings != null && settings.getEmail() != null && !settings.getEmail().isBlank())
+                ? settings.getEmail() : CONTACT_EMAIL;
 
         StringBuilder body = new StringBuilder();
         body.append("<p>Dear <strong>").append(escapeHtml(customerName)).append("</strong>,</p>\n");
@@ -178,9 +251,9 @@ public class EmailTemplateBuilder {
         }
         body.append("</table>\n");
 
-        body.append("<p>Thank you for your payment! Contact us at <a href=\"mailto:sales@acrovix.com\" style=\"color:#0D9488;\">sales@acrovix.com</a> for any questions.</p>");
+        body.append("<p>Thank you for your payment! Contact us at <a href=\"mailto:").append(escapeHtml(contactEmail)).append("\" style=\"color:#0D9488;\">").append(escapeHtml(contactEmail)).append("</a> for any questions.</p>");
 
-        return buildCorporateEmail("Payment Receipt: " + paymentRef, body.toString());
+        return buildCorporateEmail("Payment Receipt: " + paymentRef, body.toString(), null, null, settings);
     }
 
     public String buildCrmLeadNotificationHtml(CrmLead lead) {
@@ -382,11 +455,20 @@ public class EmailTemplateBuilder {
     }
 
     public String buildPasswordResetHtml(String resetLink) {
+        return buildPasswordResetHtml(resetLink, null);
+    }
+
+    public String buildPasswordResetHtml(String resetLink, com.acrovix.admin.dto.CompanySettingsResponse settings) {
+        String brandName = (settings != null && settings.getBrandName() != null && !settings.getBrandName().isBlank())
+                ? settings.getBrandName()
+                : ((settings != null && settings.getCompanyName() != null && !settings.getCompanyName().isBlank())
+                        ? settings.getCompanyName() : "ACROVIX");
+
         StringBuilder body = new StringBuilder();
         body.append("<p>Someone requested a password reset for your account.</p>\n");
         body.append("<p>If you did not request this password reset, you can safely ignore this email.</p>\n");
         body.append("<p style=\"margin-top: 20px; margin-bottom: 20px;\">This link expires in 15 minutes.</p>\n");
-        return buildCorporateEmail("Reset your ACROVIX password", body.toString(), "Reset Password", resetLink);
+        return buildCorporateEmail("Reset your " + brandName + " password", body.toString(), "Reset Password", resetLink, settings);
     }
 
     private String escapeHtml(String input) {

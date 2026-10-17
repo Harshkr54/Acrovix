@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { fetchApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { FileText, Plus, AlertCircle, ChevronLeft, ChevronRight, File, Trash2, ShoppingCart, Eye, CheckCircle, XCircle, RefreshCw, History, Send, Pencil } from 'lucide-react';
+import { FileText, Plus, AlertCircle, ChevronLeft, ChevronRight, File, Trash2, ShoppingCart, Eye, CheckCircle, XCircle, RefreshCw, History, Send, Pencil, ExternalLink } from 'lucide-react';
 import CreateQuotationModal from '../components/CreateQuotationModal';
 import CreatePurchaseOrderModal from '../components/CreatePurchaseOrderModal';
 import AcceptRejectQuotationModal from '../components/AcceptRejectQuotationModal';
@@ -13,9 +13,12 @@ import { formatCurrency } from '../utils/formatters';
 import Skeleton from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
+import StatusBadge from '../components/ui/StatusBadge';
+import { useTenant } from '../context/TenantContext';
 
 export default function QuotationList() {
     const { user } = useAuth();
+    const { tenant } = useTenant();
     const isSuperAdmin = user?.role === 'SUPER_ADMIN';
     const [quotations, setQuotations] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -413,15 +416,12 @@ export default function QuotationList() {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap align-top">
                                             <div className="text-[13px] font-bold text-text-primary tracking-tight">
-                                                {formatCurrency(q.grandTotal, q.currency, 2)}
+                                                {formatCurrency(q.grandTotal, q.currency || tenant?.currencyCode || 'USD', 2)}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 align-top">
                                             <div className="flex flex-col items-start gap-1">
-                                                <span className={`inline-flex items-center text-[10px] font-bold uppercase tracking-wider ${getStatusStyle(q.status)}`}>
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5"></span>
-                                                    {normalizeStatus(q.status)}
-                                                </span>
+                                                <StatusBadge status={q.status} />
                                                 {q.status === 'REJECTED' && (q.responseNotes || q.responseSource) && (
                                                     <div 
                                                         className="text-[11px] text-brand-danger font-medium max-w-[220px] truncate" 

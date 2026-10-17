@@ -40,4 +40,11 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
 
     @Query("SELECT COUNT(p) FROM PurchaseOrder p WHERE p.deletedAt IS NULL AND p.status NOT IN ('CANCELLED', 'FULFILLED')")
     long countOpenPurchaseOrders();
+
+    java.util.Optional<PurchaseOrder> findByTenantIdAndId(Long tenantId, Long id);
+    java.util.Optional<PurchaseOrder> findByTenantIdAndIdAndDeletedAtIsNull(Long tenantId, Long id);
+    java.util.List<PurchaseOrder> findAllByTenantId(Long tenantId);
+    Page<PurchaseOrder> findAllByTenantId(Long tenantId, Pageable pageable);
+    void deleteByTenantIdAndId(Long tenantId, Long id);
+    java.util.Optional<PurchaseOrder> findByTenantIdAndPoNumber(Long tenantId, String poNumber);
 }

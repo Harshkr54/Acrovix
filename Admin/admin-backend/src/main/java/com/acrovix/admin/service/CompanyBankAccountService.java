@@ -6,6 +6,7 @@ import com.acrovix.admin.dto.CompanySettingsResponse;
 import com.acrovix.admin.entity.CompanyBankAccount;
 import com.acrovix.admin.exception.ResourceNotFoundException;
 import com.acrovix.admin.repository.CompanyBankAccountRepository;
+import com.acrovix.admin.tenant.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,15 +24,21 @@ public class CompanyBankAccountService {
     private final CompanyBankAccountRepository bankAccountRepository;
     private final CompanySettingsService companySettingsService;
 
+    private Long resolveTenantId() {
+        Long tenantId = TenantContext.getTenantId();
+        return tenantId != null ? tenantId : 1L;
+    }
+
     @Transactional(readOnly = true)
     public List<CompanyBankAccountResponse> getActiveBankAccounts() {
-        List<CompanyBankAccount> accounts = bankAccountRepository.findByIsActiveTrueOrderByIsDefaultDescIdAsc();
+        Long tenantId = resolveTenantId();
+        List<CompanyBankAccount> accounts = bankAccountRepository.findByTenantIdAndIsActiveTrueOrderByIsDefaultDescIdAsc(tenantId);
         if (!accounts.isEmpty()) {
             return accounts.stream().map(this::mapToResponse).collect(Collectors.toList());
         }
 
-        // Seamless fallback to legacy CompanySettings bank details if accounts table is empty
-        CompanySettingsResponse settings = companySettingsService.getCompanySettings();
+        // Seamless fallback to legacy CompanySettings bank details if accounts table is empty for this tenant
+        CompanySettingsResponse settings = companySettingsService.getCompanySettingsForTenant(tenantId);
         if (settings != null && settings.getBankAccountNumber() != null && !settings.getBankAccountNumber().isBlank()) {
             List<CompanyBankAccountResponse> fallbackList = new ArrayList<>();
             fallbackList.add(CompanyBankAccountResponse.builder()
@@ -54,7 +61,8 @@ public class CompanyBankAccountService {
 
     @Transactional(readOnly = true)
     public List<CompanyBankAccountResponse> getAllBankAccounts() {
-        List<CompanyBankAccount> accounts = bankAccountRepository.findAllByOrderByIsDefaultDescIdAsc();
+        Long tenantId = resolveTenantId();
+        List<CompanyBankAccount> accounts = bankAccountRepository.findAllByTenantIdOrderByIsDefaultDescIdAsc(tenantId);
         if (!accounts.isEmpty()) {
             return accounts.stream().map(this::mapToResponse).collect(Collectors.toList());
         }
@@ -63,23 +71,28 @@ public class CompanyBankAccountService {
 
     @Transactional(readOnly = true)
     public CompanyBankAccountResponse getBankAccountById(Long id) {
+        Long tenantId = resolveTenantId();
         CompanyBankAccount account = bankAccountRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Bank account not found: " + id));
+        if (account.getTenantId() != null && !account.getTenantId().equals(tenantId)) {
+            throw new ResourceNotFoundException("Bank account not found: " + id);
+        }
         return mapToResponse(account);
     }
 
     @Transactional
     public CompanyBankAccountResponse createBankAccount(CompanyBankAccountRequest request) {
+        Long tenantId = resolveTenantId();
         boolean makeDefault = Boolean.TRUE.equals(request.getIsDefault());
 
-        // Rule 4 & 5: If no default account exists, ensure the first active account becomes default
-        long activeCount = bankAccountRepository.findByIsActiveTrueOrderByIsDefaultDescIdAsc().size();
+        // Rule 4 & 5: If no default account exists, ensure the first active account becomes default for this tenant
+        long activeCount = bankAccountRepository.findByTenantIdAndIsActiveTrueOrderByIsDefaultDescIdAsc(tenantId).size();
         if (activeCount == 0 && (request.getIsActive() == null || Boolean.TRUE.equals(request.getIsActive()))) {
             makeDefault = true;
         }
 
         if (makeDefault) {
-            bankAccountRepository.resetAllDefaults();
+            bankAccountRepository.resetAllDefaultsForTenant(tenantId);
         }
 
         CompanyBankAccount account = CompanyBankAccount.builder()
@@ -88,9 +101,11 @@ public class CompanyBankAccountService {
                 .bankAccountNumber(request.getBankAccountNumber().trim())
                 .bankIfsc(request.getBankIfsc().trim())
                 .bankBranch(request.getBankBranch() != null ? request.getBankBranch().trim() : null)
+                .upiId(request.getUpiId() != null ? request.getUpiId().trim() : null)
                 .isDefault(makeDefault)
                 .isActive(request.getIsActive() != null ? request.getIsActive() : true)
                 .build();
+        account.setTenantId(tenantId);
 
         CompanyBankAccount saved = bankAccountRepository.save(account);
         return mapToResponse(saved);
@@ -98,8 +113,13 @@ public class CompanyBankAccountService {
 
     @Transactional
     public CompanyBankAccountResponse updateBankAccount(Long id, CompanyBankAccountRequest request) {
+        Long tenantId = resolveTenantId();
         CompanyBankAccount existing = bankAccountRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Bank account not found: " + id));
+
+        if (existing.getTenantId() != null && !existing.getTenantId().equals(tenantId)) {
+            throw new ResourceNotFoundException("Bank account not found: " + id);
+        }
 
         boolean willBeDefault = Boolean.TRUE.equals(request.getIsDefault());
         if (willBeDefault && !Boolean.TRUE.equals(existing.getIsDefault())) {
@@ -108,7 +128,7 @@ public class CompanyBankAccountService {
             if (!targetActive) {
                 throw new IllegalArgumentException("An inactive bank account cannot be set as default.");
             }
-            bankAccountRepository.resetAllDefaults();
+            bankAccountRepository.resetAllDefaultsForTenant(tenantId);
         }
 
         existing.setBankName(request.getBankName().trim());
@@ -116,6 +136,7 @@ public class CompanyBankAccountService {
         existing.setBankAccountNumber(request.getBankAccountNumber().trim());
         existing.setBankIfsc(request.getBankIfsc().trim());
         existing.setBankBranch(request.getBankBranch() != null ? request.getBankBranch().trim() : null);
+        existing.setUpiId(request.getUpiId() != null ? request.getUpiId().trim() : null);
         if (request.getIsDefault() != null) existing.setIsDefault(willBeDefault);
         if (request.getIsActive() != null) existing.setIsActive(request.getIsActive());
 
@@ -125,14 +146,19 @@ public class CompanyBankAccountService {
 
     @Transactional
     public CompanyBankAccountResponse setAsDefault(Long id) {
+        Long tenantId = resolveTenantId();
         CompanyBankAccount target = bankAccountRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Bank account not found: " + id));
+
+        if (target.getTenantId() != null && !target.getTenantId().equals(tenantId)) {
+            throw new ResourceNotFoundException("Bank account not found: " + id);
+        }
 
         if (!Boolean.TRUE.equals(target.getIsActive())) {
             throw new IllegalArgumentException("Cannot set an inactive account as default.");
         }
 
-        bankAccountRepository.resetAllDefaults();
+        bankAccountRepository.resetAllDefaultsForTenant(tenantId);
         target.setIsDefault(true);
         CompanyBankAccount saved = bankAccountRepository.save(target);
         return mapToResponse(saved);
@@ -140,17 +166,22 @@ public class CompanyBankAccountService {
 
     @Transactional
     public CompanyBankAccountResponse deactivateAccount(Long id) {
+        Long tenantId = resolveTenantId();
         CompanyBankAccount existing = bankAccountRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Bank account not found: " + id));
+
+        if (existing.getTenantId() != null && !existing.getTenantId().equals(tenantId)) {
+            throw new ResourceNotFoundException("Bank account not found: " + id);
+        }
 
         boolean wasDefault = Boolean.TRUE.equals(existing.getIsDefault());
         existing.setIsActive(false);
         existing.setIsDefault(false);
         CompanyBankAccount updated = bankAccountRepository.save(existing);
 
-        // Rule 7: If the default account is deactivated, auto-assign next available active account as default
+        // Rule 7: If the default account is deactivated, auto-assign next available active account as default for this tenant
         if (wasDefault) {
-            List<CompanyBankAccount> remainingActive = bankAccountRepository.findByIsActiveTrueOrderByIsDefaultDescIdAsc();
+            List<CompanyBankAccount> remainingActive = bankAccountRepository.findByTenantIdAndIsActiveTrueOrderByIsDefaultDescIdAsc(tenantId);
             if (!remainingActive.isEmpty()) {
                 CompanyBankAccount nextDefault = remainingActive.get(0);
                 nextDefault.setIsDefault(true);
@@ -176,6 +207,7 @@ public class CompanyBankAccountService {
                 .maskedAccountNumber(CompanyBankAccountResponse.maskAccountNumber(entity.getBankAccountNumber()))
                 .bankIfsc(entity.getBankIfsc())
                 .bankBranch(entity.getBankBranch())
+                .upiId(entity.getUpiId())
                 .isDefault(Boolean.TRUE.equals(entity.getIsDefault()))
                 .isActive(Boolean.TRUE.equals(entity.getIsActive()))
                 .createdAt(entity.getCreatedAt())

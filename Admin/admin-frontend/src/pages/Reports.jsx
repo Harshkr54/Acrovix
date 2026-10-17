@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { formatCurrency } from '../utils/formatters';
+import { useTenant } from '../context/TenantContext';
 import { 
     getReportSummary, 
     getQuotationReport, 
@@ -40,6 +41,7 @@ const PRESET_OPTIONS = [
 ];
 
 export default function Reports() {
+    const { tenant } = useTenant();
     const [preset, setPreset] = useState('THIS_FINANCIAL_YEAR');
     const [fromDate, setFromDate] = useState('');
     const [toDate, setToDate] = useState('');
@@ -129,7 +131,8 @@ export default function Reports() {
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.setAttribute('href', url);
-            link.setAttribute('download', `acrovix_report_${reportType.toLowerCase()}_${new Date().toISOString().slice(0,10)}.csv`);
+            const prefix = (tenant?.brandName || 'report').toLowerCase().replace(/\s+/g, '_');
+            link.setAttribute('download', `${prefix}_report_${reportType.toLowerCase()}_${new Date().toISOString().slice(0,10)}.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -151,7 +154,7 @@ export default function Reports() {
                         Reports & Business Analytics
                     </h1>
                     <p className="text-sm text-text-secondary mt-1">
-                        Management reporting and financial visibility from live ACROVIX ERP data.
+                        Management reporting and financial visibility from live {tenant?.brandName || 'ERP'} data.
                     </p>
                 </div>
 
@@ -375,7 +378,7 @@ export default function Reports() {
                                     <TrendingUp className="w-5 h-5 text-brand-teal" />
                                     Monthly Revenue & Quotation Trends
                                 </h3>
-                                <span className="text-xs text-text-muted">Values in INR (₹)</span>
+                                <span className="text-xs text-text-muted">Values in {tenant?.currencyCode || 'INR'} ({tenant?.currencySymbol || '₹'})</span>
                             </div>
 
                             {monthlyTrends.length === 0 ? (

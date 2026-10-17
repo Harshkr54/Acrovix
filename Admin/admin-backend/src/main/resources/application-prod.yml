@@ -1,0 +1,63 @@
+# ==============================================================================
+# ACROVIX PRODUCTION BACKEND PROFILE (prod) - YAML FORMAT
+# ==============================================================================
+spring:
+  datasource:
+    url: ${DB_URL}?sslmode=require
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      connection-timeout: 30000
+      idle-timeout: 300000
+      max-lifetime: 1200000
+      leak-detection-threshold: 60000
+      keepalive-time: 45000
+      pool-name: AcrovixProdHikariPool
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    open-in-view: false
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 1
+    clean-disabled: true
+    validate-on-migrate: true
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:https://admin.acrovix.com,https://app.acrovix.com}
+
+app:
+  demo-mode: false
+  frontend:
+    url: ${ACROVIX_APP_FRONTEND_URL:https://admin.acrovix.com}
+  base-url: ${APP_BASE_URL:${acrovix.app.frontend-url:https://admin.acrovix.com}}
+  cors:
+    allowed-origin-patterns: ${APP_CORS_ALLOWED_ORIGIN_PATTERNS:https://*.acrovix.com,https://acrovix.com}
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION_MS:86400000}
+
+razorpay:
+  key-id: ${RAZORPAY_KEY_ID}
+  key-secret: ${RAZORPAY_KEY_SECRET}
+  webhook:
+    secret: ${RAZORPAY_WEBHOOK_SECRET}
+  webhook-secret: ${razorpay.webhook.secret}

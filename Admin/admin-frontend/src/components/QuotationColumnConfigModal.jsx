@@ -10,10 +10,14 @@ export default function QuotationColumnConfigModal({ isOpen, onClose, activeConf
     const [error, setError] = useState(null);
 
     const builtInKeys = ["rowNumber", "sku", "description", "hsnSac", "quantity", "listPrice", "discountPercent", "unitPrice", "taxPercent", "taxAmount", "total"];
+    const pdfMetadataKeys = new Set(["themeColor", "templateStyle", "brandDisplayMode", "bankDetails", "signature", "termsAndConditions", "customLayoutEnabled"]);
 
     useEffect(() => {
         if (isOpen && activeConfigs) {
-            setConfigs(JSON.parse(JSON.stringify(activeConfigs)).sort((a, b) => a.sortOrder - b.sortOrder));
+            const tableOnly = activeConfigs
+                .filter(c => !pdfMetadataKeys.has(c.columnKey))
+                .sort((a, b) => a.sortOrder - b.sortOrder);
+            setConfigs(JSON.parse(JSON.stringify(tableOnly)));
             setNewColumnName('');
             setNewColumnType('TEXT');
             setError(null);
@@ -120,7 +124,8 @@ export default function QuotationColumnConfigModal({ isOpen, onClose, activeConf
     };
 
     const handleApply = () => {
-        onApply(configs);
+        const preservedPdfConfigs = (activeConfigs || []).filter(c => pdfMetadataKeys.has(c.columnKey));
+        onApply([...configs, ...preservedPdfConfigs]);
     };
 
     const modalContent = (

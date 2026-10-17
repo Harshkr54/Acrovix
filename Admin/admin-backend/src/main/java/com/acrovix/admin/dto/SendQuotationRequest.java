@@ -17,6 +17,11 @@ import java.util.Set;
 public class SendQuotationRequest {
     private String recipientEmail;
     private List<String> recipientEmails;
+    private String pdfVariant;
+
+    public String getPdfVariant() {
+        return (pdfVariant != null && !pdfVariant.trim().isEmpty()) ? pdfVariant.trim().toUpperCase() : "STANDARD";
+    }
 
     /**
      * Resolves all recipients from both singular and list fields,

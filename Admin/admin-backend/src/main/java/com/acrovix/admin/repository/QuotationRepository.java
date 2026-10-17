@@ -17,11 +17,20 @@ public interface QuotationRepository extends JpaRepository<Quotation, Long>, Jpa
     List<Quotation> findByEnquiryIdAndDeletedAtIsNull(Long enquiryId);
     Page<Quotation> findByCustomerIdAndDeletedAtIsNullOrderByCreatedAtDesc(Long customerId, Pageable pageable);
     java.util.Optional<Quotation> findByClientToken(String clientToken);
+    java.util.Optional<Quotation> findByPublicToken(String publicToken);
+
+    @Query("SELECT q FROM Quotation q WHERE q.publicToken = :token OR q.clientToken = :token")
+    java.util.Optional<Quotation> findByToken(@org.springframework.data.repository.query.Param("token") String token);
+
     long countByStatus(String status);
 
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT q FROM Quotation q WHERE q.clientToken = :clientToken")
     java.util.Optional<Quotation> findByClientTokenForUpdate(@org.springframework.data.repository.query.Param("clientToken") String clientToken);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT q FROM Quotation q WHERE q.publicToken = :publicToken OR q.clientToken = :publicToken")
+    java.util.Optional<Quotation> findByPublicTokenForUpdate(@org.springframework.data.repository.query.Param("publicToken") String publicToken);
 
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT q FROM Quotation q WHERE q.id = :id")
@@ -66,4 +75,10 @@ public interface QuotationRepository extends JpaRepository<Quotation, Long>, Jpa
             @org.springframework.data.repository.query.Param("customerId") Long customerId,
             @org.springframework.data.repository.query.Param("email") String email
     );
+
+    java.util.Optional<Quotation> findByTenantIdAndId(Long tenantId, Long id);
+    java.util.List<Quotation> findAllByTenantId(Long tenantId);
+    Page<Quotation> findAllByTenantId(Long tenantId, Pageable pageable);
+    void deleteByTenantIdAndId(Long tenantId, Long id);
+    java.util.Optional<Quotation> findByTenantIdAndQuotationNumber(Long tenantId, String quotationNumber);
 }

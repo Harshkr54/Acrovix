@@ -36,7 +36,7 @@ public class CrmController {
     // --- LEADS ---
 
     @GetMapping("/leads")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<Page<CrmLeadResponse>> getAllLeads(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -58,7 +58,7 @@ public class CrmController {
     }
 
     @GetMapping("/leads/{id}")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<CrmLeadResponse> getLeadById(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser admin) {
@@ -66,7 +66,7 @@ public class CrmController {
     }
 
     @PostMapping("/leads")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<CrmLeadResponse> createLead(
             @Valid @RequestBody CrmLeadRequest request,
             @AuthenticationPrincipal AdminUser admin) {
@@ -74,7 +74,7 @@ public class CrmController {
     }
 
     @RequestMapping(value = "/leads/{id}", method = {RequestMethod.PATCH, RequestMethod.PUT})
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<CrmLeadResponse> updateLead(
             @PathVariable Long id,
             @RequestBody CrmLeadRequest request,
@@ -83,7 +83,7 @@ public class CrmController {
     }
 
     @PatchMapping("/leads/{id}/status")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<CrmLeadResponse> updateLeadStatus(
             @PathVariable Long id,
             @Valid @RequestBody CrmLeadStatusUpdateRequest request,
@@ -92,7 +92,7 @@ public class CrmController {
     }
 
     @PatchMapping("/leads/{id}/assign")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<CrmLeadResponse> assignLead(
             @PathVariable Long id,
             @RequestBody Map<String, Long> body,
@@ -105,7 +105,7 @@ public class CrmController {
     }
 
     @GetMapping("/leads/{id}/activities")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<List<com.acrovix.admin.dto.AdminActivityResponse>> getLeadActivities(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser admin) {
@@ -113,7 +113,7 @@ public class CrmController {
     }
 
     @PostMapping("/leads/{id}/activities")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<com.acrovix.admin.dto.AdminActivityResponse> logLeadActivity(
             @PathVariable Long id,
             @Valid @RequestBody CrmLeadActivityRequest request,
@@ -122,7 +122,7 @@ public class CrmController {
     }
 
     @GetMapping("/leads/{id}/quotations")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<List<Map<String, Object>>> getLeadQuotations(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser admin) {
@@ -132,7 +132,7 @@ public class CrmController {
     // --- FOLLOW-UPS ---
 
     @PostMapping("/leads/{id}/follow-ups")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<CrmFollowUpResponse> createFollowUp(
             @PathVariable Long id,
             @Valid @RequestBody CrmFollowUpRequest request,
@@ -141,7 +141,7 @@ public class CrmController {
     }
 
     @GetMapping("/leads/{id}/follow-ups")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<List<CrmFollowUpResponse>> getFollowUpsForLead(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser admin) {
@@ -149,7 +149,7 @@ public class CrmController {
     }
 
     @RequestMapping(value = "/follow-ups/{id}", method = {RequestMethod.PATCH, RequestMethod.PUT})
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<CrmFollowUpResponse> updateFollowUp(
             @PathVariable Long id,
             @RequestBody CrmFollowUpRequest request,
@@ -158,7 +158,7 @@ public class CrmController {
     }
 
     @PatchMapping("/follow-ups/{id}/complete")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<CrmFollowUpResponse> completeFollowUp(
             @PathVariable Long id,
             @RequestBody(required = false) Map<String, String> body,
@@ -168,7 +168,7 @@ public class CrmController {
     }
 
     @PatchMapping("/follow-ups/{id}/cancel")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<CrmFollowUpResponse> cancelFollowUp(
             @PathVariable Long id,
             @AuthenticationPrincipal AdminUser admin) {
@@ -176,21 +176,21 @@ public class CrmController {
     }
 
     @GetMapping("/follow-ups/overdue")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<List<CrmFollowUpResponse>> getOverdueFollowUps(
             @AuthenticationPrincipal AdminUser admin) {
         return ResponseEntity.ok(crmService.getOverdueFollowUps(admin));
     }
 
     @GetMapping("/follow-ups/due")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<List<CrmFollowUpResponse>> getDueFollowUpsToday(
             @AuthenticationPrincipal AdminUser admin) {
         return ResponseEntity.ok(crmService.getDueFollowUpsToday(admin));
     }
 
     @GetMapping("/follow-ups/upcoming")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<Page<CrmFollowUpResponse>> getUpcomingFollowUps(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -203,14 +203,14 @@ public class CrmController {
     // --- PIPELINE & SUMMARY ---
 
     @GetMapping("/pipeline")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<CrmPipelineResponse> getPipeline(
             @AuthenticationPrincipal AdminUser admin) {
         return ResponseEntity.ok(crmService.getPipeline(admin));
     }
 
     @GetMapping("/dashboard")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<CrmDashboardSummaryResponse> getDashboardSummary(
             @AuthenticationPrincipal AdminUser admin) {
         return ResponseEntity.ok(crmService.getDashboardSummary(admin));
@@ -219,7 +219,7 @@ public class CrmController {
     // --- BULK IMPORT ---
 
     @PostMapping(value = "/leads/import/preview", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<com.acrovix.admin.dto.crm.CrmLeadImportPreviewResponse> previewImportLeads(
             @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
             @RequestParam(value = "sheetName", required = false) String sheetName) {
@@ -227,7 +227,7 @@ public class CrmController {
     }
 
     @PostMapping(value = "/leads/import", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<com.acrovix.admin.dto.crm.CrmLeadImportResultResponse> importLeads(
             @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
             @RequestParam(value = "columnMapping", required = false) String columnMapping,
@@ -236,7 +236,7 @@ public class CrmController {
     }
 
     @PostMapping(value = "/leads/import/records", consumes = org.springframework.http.MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<com.acrovix.admin.dto.crm.CrmLeadImportResultResponse> importLeadRecords(
             @RequestBody List<CrmLeadRequest> requests,
             @AuthenticationPrincipal AdminUser admin) {
@@ -244,7 +244,7 @@ public class CrmController {
     }
 
     @PostMapping(value = "/leads/import/export/converted", consumes = org.springframework.http.MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<byte[]> exportConvertedLeads(
             @RequestBody com.acrovix.admin.dto.crm.CrmLeadImportExportRequest request) {
         String format = request.getFormat() != null ? request.getFormat().toUpperCase() : "CSV";
@@ -260,7 +260,7 @@ public class CrmController {
     }
 
     @PostMapping(value = "/leads/import/export/errors", consumes = org.springframework.http.MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<byte[]> exportErrorReport(
             @RequestBody com.acrovix.admin.dto.crm.CrmLeadImportExportRequest request) {
         byte[] bytes = crmLeadImportService.exportErrorReport(request.getPreviewRows());
@@ -271,7 +271,7 @@ public class CrmController {
     }
 
     @GetMapping("/leads/import/template")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'SALES')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
     public ResponseEntity<byte[]> downloadImportTemplate() {
         byte[] csvBytes = crmLeadImportService.generateTemplateCsv();
         return ResponseEntity.ok()

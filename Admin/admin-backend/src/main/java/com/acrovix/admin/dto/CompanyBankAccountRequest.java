@@ -27,6 +27,7 @@ public class CompanyBankAccountRequest {
     private String bankIfsc;
 
     private String bankBranch;
+    private String upiId;
     private Boolean isDefault;
     private Boolean isActive;
 

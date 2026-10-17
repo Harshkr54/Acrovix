@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { fetchApi } from '../services/api';
+import { formatCurrency } from '../utils/formatters';
+import { useTenant } from '../context/TenantContext';
 import { History, FileText, AlertCircle, Eye, ExternalLink } from 'lucide-react';
 import Modal from './ui/Modal';
 
 export default function QuotationHistoryModal({ isOpen, onClose, quotation, onViewPdf }) {
+    const { tenant } = useTenant();
     const [history, setHistory] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -121,7 +124,7 @@ export default function QuotationHistoryModal({ isOpen, onClose, quotation, onVi
                                             )}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-[13px] font-bold text-text-primary">
-                                            ₹{ver.grandTotal?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                                            {formatCurrency(ver.grandTotal || 0, quotation?.currency || tenant?.currencyCode || 'INR', 2)}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-[12px] text-text-muted font-medium">
                                             {new Date(ver.createdAt).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}

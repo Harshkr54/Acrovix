@@ -3,7 +3,10 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' http://localhost:8081 https://admin.acrovix.com https://api.acrovix.com https://acrovix-admin-backend.onrender.com; form-action 'self'; object-src 'self' blob:; frame-src 'self' blob:;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https: http:; form-action 'self'; object-src 'self' blob:; frame-src 'self' blob:;">
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap" rel="stylesheet" />
   <link rel="icon" type="image/svg+xml" href="./acro header.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ACROVIX Admin Portal</title>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getReceivables } from '../services/api';
 import { formatCurrency } from '../utils/formatters';
+import { useTenant } from '../context/TenantContext';
 import { 
     DollarSign, 
     Search, 
@@ -16,6 +17,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 export default function Receivables() {
+    const { tenant } = useTenant();
     const navigate = useNavigate();
     const [receivables, setReceivables] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -63,7 +65,7 @@ export default function Receivables() {
 
     const renderCurrencyTotals = (map, colorClass = 'text-text-primary') => {
         const keys = Object.keys(map);
-        if (keys.length === 0) return <div className={`text-xl font-bold ${colorClass}`}>₹0.00</div>;
+        if (keys.length === 0) return <div className={`text-xl font-bold ${colorClass}`}>{formatCurrency(0, tenant?.currencyCode || 'INR', 2)}</div>;
         return (
             <div className="space-y-0.5 mt-1">
                 {keys.map(curr => (

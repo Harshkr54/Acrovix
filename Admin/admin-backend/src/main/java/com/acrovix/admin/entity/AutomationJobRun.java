@@ -8,10 +8,11 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "automation_job_runs")
 @Data
+@EqualsAndHashCode(callSuper = false)
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AutomationJobRun {
+public class AutomationJobRun extends TenantAwareEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

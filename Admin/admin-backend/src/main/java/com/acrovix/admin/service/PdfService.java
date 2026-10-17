@@ -31,32 +31,77 @@ public class PdfService {
     @Autowired(required = false)
     private com.acrovix.admin.repository.PaymentRepository paymentRepository;
 
-    
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(PdfService.class);
 
+    public CompanySettingsResponse resolveTenantSettings(Long tenantId) {
+        if (companySettingsService != null && tenantId != null) {
+            try {
+                return companySettingsService.getCompanySettingsForTenant(tenantId);
+            } catch (Exception e) {
+                log.warn("Could not load company settings for tenant {}: {}", tenantId, e.getMessage());
+            }
+        } else if (companySettingsService != null) {
+            try {
+                return companySettingsService.getCompanySettings();
+            } catch (Exception e) {
+                log.warn("Could not load default company settings: {}", e.getMessage());
+            }
+        }
+        return null;
+    }
+
+    public static String resolveCurrencySymbol(String currencyCode, CompanySettingsResponse settings) {
+        if (settings != null && settings.getCurrencySymbol() != null && !settings.getCurrencySymbol().isBlank()) {
+            if (currencyCode == null || settings.getCurrencyCode() == null || currencyCode.equalsIgnoreCase(settings.getCurrencyCode())) {
+                return settings.getCurrencySymbol();
+            }
+        }
+        if (currencyCode == null) return "₹";
+        return switch (currencyCode.toUpperCase()) {
+            case "USD" -> "$";
+            case "EUR" -> "€";
+            case "GBP" -> "£";
+            case "AED" -> "AED ";
+            case "JPY" -> "¥";
+            case "CAD" -> "CA$";
+            case "AUD" -> "A$";
+            case "INR" -> "₹";
+            default -> currencyCode + " ";
+        };
+    }
+
     public byte[] generateQuotationPdf(Quotation quotation) {
+        return generateQuotationPdf(quotation, true);
+    }
+
+    public byte[] generateStandardQuotationPdf(Quotation quotation) {
+        return generateQuotationPdf(quotation, false);
+    }
+
+    public byte[] generateQuotationPdf(Quotation quotation, boolean useCustomLayout) {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            CompanySettingsResponse settings = companySettingsService != null ? companySettingsService.getCompanySettings() : null;
+            CompanySettingsResponse settings = resolveTenantSettings(quotation != null ? quotation.getTenantId() : null);
+            java.awt.Color themeColor = useCustomLayout ? resolveQuotationThemeColor(quotation, settings) : resolveQuotationThemeColor(null, settings);
 
             // Always A4 Portrait
             Document document = new Document(PageSize.A4, 24f, 24f, 22f, 36f);
             PdfWriter writer = PdfWriter.getInstance(document, out);
 
-            QuotationPageEvent pageEvent = new QuotationPageEvent(settings);
+            QuotationPageEvent pageEvent = new QuotationPageEvent(settings, themeColor);
             writer.setPageEvent(pageEvent);
 
             document.open();
 
             // Page 1: Header, Metadata, Customer details, Line Items
-            addQuotationHeader(document, settings);
+            addQuotationHeader(document, settings, themeColor, useCustomLayout ? quotation : null);
             addQuotationMetaPanel(document, writer, quotation);
             addQuotationCustomerPanels(document, writer, quotation);
             
             // Line items table with continuation support
-            addQuotationLineItems(document, quotation, settings);
+            addQuotationLineItems(document, quotation, settings, themeColor, useCustomLayout);
 
             // Closing sections (Totals, Amount in Words, Terms, Bank & Signatory)
-            addQuotationClosingSections(document, writer, quotation, settings);
+            addQuotationClosingSections(document, writer, quotation, settings, themeColor, useCustomLayout);
 
             document.close();
             return out.toByteArray();
@@ -65,6 +110,44 @@ public class PdfService {
             throw new RuntimeException("Failed to generate Quotation PDF", e);
         }
     }
+
+    public boolean isSectionVisible(Quotation quotation, String sectionKey, boolean defaultValue) {
+        if (quotation == null || quotation.getColumnConfigs() == null) return defaultValue;
+        for (com.acrovix.admin.entity.QuotationColumnConfig c : quotation.getColumnConfigs()) {
+            if (sectionKey.equalsIgnoreCase(c.getColumnKey())) {
+                return c.getVisible() != null ? c.getVisible() : defaultValue;
+            }
+        }
+        return defaultValue;
+    }
+
+    public java.awt.Color resolveQuotationThemeColor(Quotation quotation, CompanySettingsResponse settings) {
+        if (quotation != null && quotation.getColumnConfigs() != null) {
+            for (com.acrovix.admin.entity.QuotationColumnConfig c : quotation.getColumnConfigs()) {
+                if ("themeColor".equalsIgnoreCase(c.getColumnKey()) && c.getDisplayName() != null && !c.getDisplayName().isBlank()) {
+                    try {
+                        String hex = c.getDisplayName().trim();
+                        if (hex.startsWith("#")) {
+                            return java.awt.Color.decode(hex);
+                        }
+                    } catch (Exception ignored) {}
+                }
+            }
+        }
+        if (settings != null && settings.getPrimaryColor() != null && !settings.getPrimaryColor().isBlank()) {
+            try {
+                String hex = settings.getPrimaryColor().trim();
+                if (hex.startsWith("#")) {
+                    return java.awt.Color.decode(hex);
+                }
+            } catch (Exception ignored) {}
+        }
+        return NAVY_PRIMARY;
+    }
+
+    public static final java.util.Set<String> PDF_DOCUMENT_METADATA_KEYS = java.util.Set.of(
+            "themeColor", "templateStyle", "brandDisplayMode", "bankDetails", "signature", "termsAndConditions", "customLayoutEnabled"
+    );
 
     // Colors Palette matching reference
     private static final java.awt.Color NAVY_PRIMARY = new java.awt.Color(11, 25, 44);       // #0B192C Dark Navy
@@ -205,15 +288,28 @@ public class PdfService {
     }
 
     private void addQuotationHeader(Document document, CompanySettingsResponse settings) throws DocumentException {
-        Font quotTitleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 22f, NAVY_PRIMARY);
-        Font compNameFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10.5f, NAVY_PRIMARY);
+        addQuotationHeader(document, settings, NAVY_PRIMARY, null);
+    }
+
+    private void addQuotationHeader(Document document, CompanySettingsResponse settings, java.awt.Color themeColor) throws DocumentException {
+        addQuotationHeader(document, settings, themeColor, null);
+    }
+
+    private void addQuotationHeader(Document document, CompanySettingsResponse settings, java.awt.Color themeColor, Quotation quotation) throws DocumentException {
+        java.awt.Color headerColor = themeColor != null ? themeColor : NAVY_PRIMARY;
+        Font quotTitleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 22f, headerColor);
+        Font compNameFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10.5f, headerColor);
         Font gstinBoldFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7.5f, new java.awt.Color(51, 65, 85));
         Font compRegFont = FontFactory.getFont(FontFactory.HELVETICA, 7.5f, TEXT_MUTED);
         Font origRecFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7.0f, new java.awt.Color(100, 116, 139));
 
         String companyName = (settings != null && settings.getCompanyName() != null && !settings.getCompanyName().isBlank()) 
                 ? settings.getCompanyName() : "ACROVIX INNOVATIONS PRIVATE LIMITED";
+        String brandName = (settings != null && settings.getBrandName() != null && !settings.getBrandName().isBlank())
+                ? settings.getBrandName() : companyName;
         String gstin = (settings != null && settings.getGstin() != null) ? settings.getGstin() : "";
+        String pan = (settings != null && settings.getPan() != null) ? settings.getPan() : "";
+        String vatId = (settings != null && settings.getVatId() != null) ? settings.getVatId() : "";
         String compAddress = (settings != null && settings.getRegisteredAddress() != null && !settings.getRegisteredAddress().isBlank()) 
                 ? settings.getRegisteredAddress() 
                 : ((settings != null && settings.getBillingAddress() != null) ? settings.getBillingAddress() : "");
@@ -243,8 +339,24 @@ public class PdfService {
             leftCell.addElement(gstinPara);
         }
 
+        if (!vatId.trim().isEmpty()) {
+            Paragraph vatPara = new Paragraph();
+            vatPara.add(new Chunk("VAT / Tax ID: ", gstinBoldFont));
+            vatPara.add(new Chunk(vatId, gstinBoldFont));
+            vatPara.setSpacingAfter(2f);
+            leftCell.addElement(vatPara);
+        }
+
+        if (!pan.trim().isEmpty()) {
+            Paragraph panPara = new Paragraph();
+            panPara.add(new Chunk("PAN: ", gstinBoldFont));
+            panPara.add(new Chunk(pan, gstinBoldFont));
+            panPara.setSpacingAfter(2f);
+            leftCell.addElement(panPara);
+        }
+
         if (!compAddress.trim().isEmpty()) {
-            String[] addrLines = compAddress.split("\n");
+            String[] addrLines = compAddress.replace("\\n", "\n").split("\n");
             for (String line : addrLines) {
                 if (!line.trim().isEmpty()) {
                     Paragraph addrPara = new Paragraph(line.trim(), compRegFont);
@@ -264,33 +376,63 @@ public class PdfService {
 
         Paragraph origPara = new Paragraph("ORIGINAL FOR RECIPIENT", origRecFont);
         origPara.setAlignment(Element.ALIGN_RIGHT);
-        origPara.setSpacingAfter(12f);
+        origPara.setSpacingAfter(10f);
         rightCell.addElement(origPara);
 
-        boolean logoLoaded = false;
-        if (settings != null && settings.getLogoUrl() != null && !settings.getLogoUrl().isBlank()) {
-            try {
-                Image logo = Image.getInstance(new java.net.URL(settings.getLogoUrl()));
-                logo.scaleToFit(140f, 48f);
-                logo.setAlignment(Element.ALIGN_RIGHT);
-                rightCell.addElement(logo);
-                logoLoaded = true;
-            } catch (Exception e) {
-                log.warn("Could not load logo from URL: {}", settings.getLogoUrl());
+        boolean wordmarkMode = false;
+        if (quotation != null && quotation.getColumnConfigs() != null) {
+            for (com.acrovix.admin.entity.QuotationColumnConfig c : quotation.getColumnConfigs()) {
+                if ("brandDisplayMode".equalsIgnoreCase(c.getColumnKey()) && "WORDMARK".equalsIgnoreCase(c.getDisplayName())) {
+                    wordmarkMode = true;
+                    break;
+                }
             }
         }
 
-        if (!logoLoaded) {
-            try {
-                java.net.URL bundledLogo = getClass().getResource("/static/Acrovix_logo.png");
-                if (bundledLogo != null) {
-                    Image logo = Image.getInstance(bundledLogo);
+        if (wordmarkMode) {
+            Font brandFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 15.0f, headerColor);
+            Paragraph brandPara = new Paragraph(brandName.toUpperCase(), brandFont);
+            brandPara.setAlignment(Element.ALIGN_RIGHT);
+            brandPara.setSpacingBefore(6f);
+            rightCell.addElement(brandPara);
+        } else {
+            boolean logoLoaded = false;
+            if (settings != null && settings.getLogoUrl() != null && !settings.getLogoUrl().isBlank()) {
+                try {
+                    Image logo = Image.getInstance(new java.net.URL(settings.getLogoUrl()));
                     logo.scaleToFit(140f, 48f);
                     logo.setAlignment(Element.ALIGN_RIGHT);
                     rightCell.addElement(logo);
+                    logoLoaded = true;
+                } catch (Exception e) {
+                    log.warn("Could not load logo from URL: {}", settings.getLogoUrl());
                 }
-            } catch (Exception e) {
-                log.warn("Could not load bundled Acrovix logo", e);
+            }
+
+            if (!logoLoaded) {
+                boolean isAcrovix = (settings == null || settings.getTenantId() == null || settings.getTenantId().equals(1L) 
+                        || (settings.getCompanyName() != null && settings.getCompanyName().toUpperCase().contains("ACROVIX")));
+                if (isAcrovix) {
+                    try {
+                        java.net.URL bundledLogo = getClass().getResource("/static/Acrovix_logo.png");
+                        if (bundledLogo != null) {
+                            Image logo = Image.getInstance(bundledLogo);
+                            logo.scaleToFit(140f, 48f);
+                            logo.setAlignment(Element.ALIGN_RIGHT);
+                            rightCell.addElement(logo);
+                            logoLoaded = true;
+                        }
+                    } catch (Exception e) {
+                        log.warn("Could not load bundled Acrovix logo", e);
+                    }
+                }
+                if (!logoLoaded) {
+                    Font brandFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 13.5f, headerColor);
+                    Paragraph brandPara = new Paragraph(brandName.toUpperCase(), brandFont);
+                    brandPara.setAlignment(Element.ALIGN_RIGHT);
+                    brandPara.setSpacingBefore(4f);
+                    rightCell.addElement(brandPara);
+                }
             }
         }
 
@@ -730,6 +872,14 @@ public class PdfService {
     }
 
     private void addQuotationLineItems(Document document, Quotation quotation, CompanySettingsResponse settings) throws DocumentException {
+        addQuotationLineItems(document, quotation, settings, NAVY_PRIMARY, true);
+    }
+
+    private void addQuotationLineItems(Document document, Quotation quotation, CompanySettingsResponse settings, java.awt.Color themeColor) throws DocumentException {
+        addQuotationLineItems(document, quotation, settings, themeColor, true);
+    }
+
+    private void addQuotationLineItems(Document document, Quotation quotation, CompanySettingsResponse settings, java.awt.Color themeColor, boolean useCustomLayout) throws DocumentException {
         java.util.List<QuotationItem> allItems = quotation.getItems() != null ? quotation.getItems() : java.util.Collections.emptyList();
         int totalItems = allItems.size();
 
@@ -739,7 +889,7 @@ public class PdfService {
             java.util.List<QuotationItem> page1Items = allItems.subList(0, 10);
             java.util.List<QuotationItem> page2Items = allItems.subList(10, totalItems);
 
-            PdfPTable table1 = buildLineItemsTable(quotation, page1Items, 1);
+            PdfPTable table1 = buildLineItemsTable(quotation, page1Items, 1, themeColor, useCustomLayout);
             document.add(table1);
 
             Paragraph contPara = new Paragraph("This page intentionally left with next items continuing...", 
@@ -749,15 +899,23 @@ public class PdfService {
 
             document.newPage();
 
-            PdfPTable table2 = buildLineItemsTable(quotation, page2Items, 11);
+            PdfPTable table2 = buildLineItemsTable(quotation, page2Items, 11, themeColor, useCustomLayout);
             document.add(table2);
         } else {
-            PdfPTable table = buildLineItemsTable(quotation, allItems, 1);
+            PdfPTable table = buildLineItemsTable(quotation, allItems, 1, themeColor, useCustomLayout);
             document.add(table);
         }
     }
 
     private PdfPTable buildLineItemsTable(Quotation quotation, java.util.List<QuotationItem> items, int startRowNumber) throws DocumentException {
+        return buildLineItemsTable(quotation, items, startRowNumber, NAVY_PRIMARY, true);
+    }
+
+    private PdfPTable buildLineItemsTable(Quotation quotation, java.util.List<QuotationItem> items, int startRowNumber, java.awt.Color themeColor) throws DocumentException {
+        return buildLineItemsTable(quotation, items, startRowNumber, themeColor, true);
+    }
+
+    private PdfPTable buildLineItemsTable(Quotation quotation, java.util.List<QuotationItem> items, int startRowNumber, java.awt.Color themeColor, boolean useCustomLayout) throws DocumentException {
         Font headerFont = getAppropriateFont(true, 6.8f, java.awt.Color.WHITE);
         Font cellFont = FontFactory.getFont(FontFactory.HELVETICA, 7.0f, TEXT_DARK);
 
@@ -765,12 +923,14 @@ public class PdfService {
         String curSym = "USD".equalsIgnoreCase(currencyCode) ? "$" : "₹";
 
         java.util.List<com.acrovix.admin.entity.QuotationColumnConfig> configs = new java.util.ArrayList<>();
-        if (quotation.getColumnConfigs() != null && !quotation.getColumnConfigs().isEmpty()) {
+        if (useCustomLayout && quotation.getColumnConfigs() != null && !quotation.getColumnConfigs().isEmpty()) {
             configs.addAll(quotation.getColumnConfigs().stream()
-                    .filter(com.acrovix.admin.entity.QuotationColumnConfig::getVisible)
+                    .filter(c -> c.getVisible() != null && c.getVisible())
+                    .filter(c -> !PDF_DOCUMENT_METADATA_KEYS.contains(c.getColumnKey()))
                     .sorted(java.util.Comparator.comparing(com.acrovix.admin.entity.QuotationColumnConfig::getSortOrder))
                     .collect(java.util.stream.Collectors.toList()));
-        } else {
+        }
+        if (configs.isEmpty()) {
             // Default 11 columns matching reference
             String[] keys = {"rowNumber", "sku", "description", "hsnSac", "quantity", "listPrice", "discountPercent", "unitPrice", "taxPercent", "taxAmount", "total"};
             String[] displayNames = {"#", "SKU", "DESCRIPTION", "HSN / SAC", "QTY", "LIST PRICE (" + curSym + ")", "DISC %", "UNIT PRICE (" + curSym + ")", "TAX %", "TAX AMT. (" + curSym + ")", "TOTAL (" + curSym + ")"};
@@ -826,7 +986,7 @@ public class PdfService {
             }
 
             PdfPCell hCell = new PdfPCell(new Phrase(dispName, headerFont));
-            hCell.setBackgroundColor(NAVY_PRIMARY);
+            hCell.setBackgroundColor(themeColor != null ? themeColor : NAVY_PRIMARY);
             hCell.setBorderColor(new java.awt.Color(30, 41, 59));
             hCell.setBorderWidth(0.5f);
             hCell.setPaddingTop(5f);
@@ -938,6 +1098,14 @@ public class PdfService {
     }
 
     private void addQuotationClosingSections(Document document, PdfWriter writer, Quotation quotation, CompanySettingsResponse settings) throws DocumentException {
+        addQuotationClosingSections(document, writer, quotation, settings, NAVY_PRIMARY, true);
+    }
+
+    private void addQuotationClosingSections(Document document, PdfWriter writer, Quotation quotation, CompanySettingsResponse settings, java.awt.Color themeColor) throws DocumentException {
+        addQuotationClosingSections(document, writer, quotation, settings, themeColor, true);
+    }
+
+    private void addQuotationClosingSections(Document document, PdfWriter writer, Quotation quotation, CompanySettingsResponse settings, java.awt.Color themeColor, boolean useCustomLayout) throws DocumentException {
         String currencyCode = quotation.getCurrency() != null ? quotation.getCurrency().name() : "INR";
         String curSym = "USD".equalsIgnoreCase(currencyCode) ? "$ " : "₹ ";
 
@@ -1030,10 +1198,11 @@ public class PdfService {
         totTaxVal.setPaddingBottom(4f);
         summaryTable.addCell(totTaxVal);
 
-        // Grand Total row (Solid Blue Banner)
+        // Grand Total row (Solid Theme Color Banner)
         BigDecimal grandTotal = quotation.getGrandTotal() != null ? quotation.getGrandTotal() : subtotal.add(taxAmount);
+        java.awt.Color grandTotalBg = themeColor != null ? themeColor : BLUE_ACCENT;
         PdfPCell gtLabel = new PdfPCell(new Phrase("Grand Total", grandLabelFont));
-        gtLabel.setBackgroundColor(BLUE_ACCENT);
+        gtLabel.setBackgroundColor(grandTotalBg);
         gtLabel.setBorder(Rectangle.NO_BORDER);
         gtLabel.setPaddingTop(6f);
         gtLabel.setPaddingBottom(6f);
@@ -1041,7 +1210,7 @@ public class PdfService {
         summaryTable.addCell(gtLabel);
 
         PdfPCell gtVal = new PdfPCell(new Phrase(curSym + formatAmount(grandTotal, currencyCode), grandValFont));
-        gtVal.setBackgroundColor(BLUE_ACCENT);
+        gtVal.setBackgroundColor(grandTotalBg);
         gtVal.setBorder(Rectangle.NO_BORDER);
         gtVal.setHorizontalAlignment(Element.ALIGN_RIGHT);
         gtVal.setPaddingTop(6f);
@@ -1060,7 +1229,7 @@ public class PdfService {
         String wordsText = convertAmountToWords(grandTotal, currencyCode);
         Paragraph wordsPara = new Paragraph();
         wordsPara.add(new Chunk("Total amount (in words):  ", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7.5f, TEXT_DARK)));
-        wordsPara.add(new Chunk(wordsText, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7.5f, NAVY_PRIMARY)));
+        wordsPara.add(new Chunk(wordsText, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7.5f, themeColor != null ? themeColor : NAVY_PRIMARY)));
 
         PdfPCell wordsCell = new PdfPCell(wordsPara);
         wordsCell.setBackgroundColor(ICE_BLUE_BG);
@@ -1072,10 +1241,11 @@ public class PdfService {
         document.add(wordsPanel);
 
         // 3. Terms & Conditions Card
+        boolean showTerms = useCustomLayout ? isSectionVisible(quotation, "termsAndConditions", true) : true;
         boolean hasQuotationTerms = quotation.getTermsAndConditions() != null && !quotation.getTermsAndConditions().isBlank();
         boolean hasDefaultTerms = settings != null && settings.getDefaultTermsAndConditions() != null && !settings.getDefaultTermsAndConditions().isBlank();
 
-        if (hasQuotationTerms || hasDefaultTerms) {
+        if (showTerms && (hasQuotationTerms || hasDefaultTerms)) {
             String terms = hasQuotationTerms ? quotation.getTermsAndConditions() : settings.getDefaultTermsAndConditions();
             String[] termsLines = terms.split("\n");
 
@@ -1157,9 +1327,15 @@ public class PdfService {
         String companyName = (settings != null && settings.getCompanyName() != null && !settings.getCompanyName().isBlank()) 
                 ? settings.getCompanyName() : "ACROVIX INNOVATIONS PRIVATE LIMITED";
 
-        com.acrovix.admin.entity.CompanyBankAccount defaultBankAcc = companyBankAccountRepository != null 
-                ? companyBankAccountRepository.findFirstByIsDefaultTrueAndIsActiveTrue().orElse(null) 
-                : null;
+        Long tenantId = (quotation != null && quotation.getTenantId() != null) ? quotation.getTenantId() 
+                : (settings != null && settings.getTenantId() != null ? settings.getTenantId() : Long.valueOf(1L));
+        com.acrovix.admin.entity.CompanyBankAccount defaultBankAcc = null;
+        if (companyBankAccountRepository != null && tenantId != null) {
+            defaultBankAcc = companyBankAccountRepository.findFirstByTenantIdAndIsDefaultTrueAndIsActiveTrue(tenantId).orElse(null);
+            if (defaultBankAcc == null) {
+                defaultBankAcc = companyBankAccountRepository.findFirstByTenantIdAndIsActiveTrueOrderByIdAsc(tenantId).orElse(null);
+            }
+        }
 
         // Dynamic bank details: use quotation-specific selected bank account, fallback to default bank account, then settings
         boolean hasQuotationBank = quotation != null && quotation.getBankName() != null && !quotation.getBankName().isBlank();
@@ -1179,95 +1355,116 @@ public class PdfService {
                 : (defaultBankAcc != null && defaultBankAcc.getBankBranch() != null ? defaultBankAcc.getBankBranch() 
                 : (settings != null && settings.getBankBranch() != null ? settings.getBankBranch() : ""));
 
-        PdfPTable bankSigTable = new PdfPTable(2);
-        bankSigTable.setWidthPercentage(100);
-        bankSigTable.setWidths(new float[]{55f, 45f});
-        bankSigTable.setSpacingBefore(4f);
+        boolean showBank = useCustomLayout ? isSectionVisible(quotation, "bankDetails", true) : true;
+        boolean showSignature = useCustomLayout ? isSectionVisible(quotation, "signature", true) : true;
 
-        // Left Panel: Bank Details
-        PdfPTable bankInner = new PdfPTable(2);
-        bankInner.setWidthPercentage(100);
-        bankInner.setWidths(new float[]{34f, 66f});
+        PdfPCell bankCard = null;
+        if (showBank) {
+            PdfPTable bankInner = new PdfPTable(2);
+            bankInner.setWidthPercentage(100);
+            bankInner.setWidths(new float[]{34f, 66f});
 
-        Phrase bankHeaderPhrase = new Phrase();
-        Image bankIcon = createVectorIcon(writer, "bank", 11f, 10f, BLUE_ACCENT);
-        if (bankIcon != null) {
-            bankIcon.setAlignment(Image.ALIGN_MIDDLE);
-            bankHeaderPhrase.add(new Chunk(bankIcon, 0, -1.5f));
-            bankHeaderPhrase.add(new Chunk("  "));
-        }
-        bankHeaderPhrase.add(new Chunk("Bank Details", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8.5f, BLUE_ACCENT)));
-
-        PdfPCell bankHeader = new PdfPCell(bankHeaderPhrase);
-        bankHeader.setColspan(2);
-        bankHeader.setBorder(Rectangle.NO_BORDER);
-        bankHeader.setPaddingBottom(5f);
-        bankInner.addCell(bankHeader);
-
-        Font bLabel = FontFactory.getFont(FontFactory.HELVETICA, 7.5f, TEXT_MUTED);
-        Font bVal = FontFactory.getFont(FontFactory.HELVETICA, 7.5f, TEXT_DARK);
-
-        if (!bBank.isBlank()) addKeyValueRow(bankInner, "Bank", bBank, bLabel, bVal);
-        if (!bHolder.isBlank() && (!bBank.isBlank() || !bAcc.isBlank())) addKeyValueRow(bankInner, "Account Holder", bHolder, bLabel, bVal);
-        if (!bAcc.isBlank()) addKeyValueRow(bankInner, "Account Number", bAcc, bLabel, bVal);
-        if (!bIfsc.isBlank()) addKeyValueRow(bankInner, "IFSC Code", bIfsc, bLabel, bVal);
-        if (!bBranch.isBlank()) addKeyValueRow(bankInner, "Branch", bBranch, bLabel, bVal);
-
-        PdfPCell bankCard = new PdfPCell(bankInner);
-        bankCard.setBackgroundColor(ICE_BLUE_BG);
-        bankCard.setBorderColor(ICE_BLUE_BORDER);
-        bankCard.setBorderWidth(0.5f);
-        bankCard.setPadding(6f);
-        bankCard.setPaddingLeft(8f);
-        bankSigTable.addCell(bankCard);
-
-        // Right Panel: Authorized Signatory
-        PdfPTable sigInner = new PdfPTable(1);
-        sigInner.setWidthPercentage(100);
-
-        PdfPCell forCompanyCell = new PdfPCell(new Phrase("For " + companyName, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8.0f, NAVY_PRIMARY)));
-        forCompanyCell.setBorder(Rectangle.NO_BORDER);
-        forCompanyCell.setHorizontalAlignment(Element.ALIGN_CENTER);
-        forCompanyCell.setPaddingBottom(6f);
-        sigInner.addCell(forCompanyCell);
-
-        // Signature image or spacing
-        boolean sigRendered = false;
-        if (settings != null && settings.getSignatureUrl() != null && !settings.getSignatureUrl().isBlank()) {
-            try {
-                Image sigImg = Image.getInstance(new java.net.URL(settings.getSignatureUrl()));
-                sigImg.scaleToFit(110f, 32f);
-                sigImg.setAlignment(Element.ALIGN_CENTER);
-                PdfPCell sigImgCell = new PdfPCell(sigImg);
-                sigImgCell.setBorder(Rectangle.NO_BORDER);
-                sigImgCell.setHorizontalAlignment(Element.ALIGN_CENTER);
-                sigInner.addCell(sigImgCell);
-                sigRendered = true;
-            } catch (Exception e) {
-                log.warn("Could not load signature image from URL");
+            Phrase bankHeaderPhrase = new Phrase();
+            Image bankIcon = createVectorIcon(writer, "bank", 11f, 10f, BLUE_ACCENT);
+            if (bankIcon != null) {
+                bankIcon.setAlignment(Image.ALIGN_MIDDLE);
+                bankHeaderPhrase.add(new Chunk(bankIcon, 0, -1.5f));
+                bankHeaderPhrase.add(new Chunk("  "));
             }
+            bankHeaderPhrase.add(new Chunk("Bank Details", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8.5f, BLUE_ACCENT)));
+
+            PdfPCell bankHeader = new PdfPCell(bankHeaderPhrase);
+            bankHeader.setColspan(2);
+            bankHeader.setBorder(Rectangle.NO_BORDER);
+            bankHeader.setPaddingBottom(5f);
+            bankInner.addCell(bankHeader);
+
+            Font bLabel = FontFactory.getFont(FontFactory.HELVETICA, 7.5f, TEXT_MUTED);
+            Font bVal = FontFactory.getFont(FontFactory.HELVETICA, 7.5f, TEXT_DARK);
+
+            if (!bBank.isBlank()) addKeyValueRow(bankInner, "Bank", bBank, bLabel, bVal);
+            if (!bHolder.isBlank() && (!bBank.isBlank() || !bAcc.isBlank())) addKeyValueRow(bankInner, "Account Holder", bHolder, bLabel, bVal);
+            if (!bAcc.isBlank()) addKeyValueRow(bankInner, "Account Number", bAcc, bLabel, bVal);
+            if (!bIfsc.isBlank()) addKeyValueRow(bankInner, "IFSC Code", bIfsc, bLabel, bVal);
+            if (!bBranch.isBlank()) addKeyValueRow(bankInner, "Branch", bBranch, bLabel, bVal);
+
+            bankCard = new PdfPCell(bankInner);
+            bankCard.setBackgroundColor(ICE_BLUE_BG);
+            bankCard.setBorderColor(ICE_BLUE_BORDER);
+            bankCard.setBorderWidth(0.5f);
+            bankCard.setPadding(6f);
+            bankCard.setPaddingLeft(8f);
         }
 
-        if (!sigRendered) {
-            PdfPCell blankSig = new PdfPCell(new Phrase(" "));
-            blankSig.setBorder(Rectangle.NO_BORDER);
-            blankSig.setPaddingBottom(32f);
-            sigInner.addCell(blankSig);
+        PdfPCell sigContainer = null;
+        if (showSignature) {
+            PdfPTable sigInner = new PdfPTable(1);
+            sigInner.setWidthPercentage(100);
+
+            PdfPCell forCompanyCell = new PdfPCell(new Phrase("For " + companyName, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8.0f, NAVY_PRIMARY)));
+            forCompanyCell.setBorder(Rectangle.NO_BORDER);
+            forCompanyCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            forCompanyCell.setPaddingBottom(6f);
+            sigInner.addCell(forCompanyCell);
+
+            // Signature image or spacing
+            boolean sigRendered = false;
+            if (settings != null && settings.getSignatureUrl() != null && !settings.getSignatureUrl().isBlank()) {
+                try {
+                    Image sigImg = Image.getInstance(new java.net.URL(settings.getSignatureUrl()));
+                    sigImg.scaleToFit(110f, 32f);
+                    sigImg.setAlignment(Element.ALIGN_CENTER);
+                    PdfPCell sigImgCell = new PdfPCell(sigImg);
+                    sigImgCell.setBorder(Rectangle.NO_BORDER);
+                    sigImgCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                    sigInner.addCell(sigImgCell);
+                    sigRendered = true;
+                } catch (Exception e) {
+                    log.warn("Could not load signature image from URL");
+                }
+            }
+
+            if (!sigRendered) {
+                PdfPCell blankSig = new PdfPCell(new Phrase(" "));
+                blankSig.setBorder(Rectangle.NO_BORDER);
+                blankSig.setPaddingBottom(32f);
+                sigInner.addCell(blankSig);
+            }
+
+            PdfPCell authTextCell = new PdfPCell(new Phrase("Authorized Signatory", FontFactory.getFont(FontFactory.HELVETICA, 7.5f, TEXT_MUTED)));
+            authTextCell.setBorder(Rectangle.NO_BORDER);
+            authTextCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            authTextCell.setPaddingTop(3f);
+            sigInner.addCell(authTextCell);
+
+            sigContainer = new PdfPCell(sigInner);
+            sigContainer.setBorder(Rectangle.NO_BORDER);
+            sigContainer.setVerticalAlignment(Element.ALIGN_BOTTOM);
+            sigContainer.setPaddingLeft(12f);
         }
 
-        PdfPCell authTextCell = new PdfPCell(new Phrase("Authorized Signatory", FontFactory.getFont(FontFactory.HELVETICA, 7.5f, TEXT_MUTED)));
-        authTextCell.setBorder(Rectangle.NO_BORDER);
-        authTextCell.setHorizontalAlignment(Element.ALIGN_CENTER);
-        authTextCell.setPaddingTop(3f);
-        sigInner.addCell(authTextCell);
-
-        PdfPCell sigContainer = new PdfPCell(sigInner);
-        sigContainer.setBorder(Rectangle.NO_BORDER);
-        sigContainer.setVerticalAlignment(Element.ALIGN_BOTTOM);
-        sigContainer.setPaddingLeft(12f);
-        bankSigTable.addCell(sigContainer);
-
-        document.add(bankSigTable);
+        if (showBank && showSignature) {
+            PdfPTable bankSigTable = new PdfPTable(2);
+            bankSigTable.setWidthPercentage(100);
+            bankSigTable.setWidths(new float[]{55f, 45f});
+            bankSigTable.setSpacingBefore(4f);
+            bankSigTable.addCell(bankCard);
+            bankSigTable.addCell(sigContainer);
+            document.add(bankSigTable);
+        } else if (showBank) {
+            PdfPTable bankTable = new PdfPTable(1);
+            bankTable.setWidthPercentage(100);
+            bankTable.setSpacingBefore(4f);
+            bankTable.addCell(bankCard);
+            document.add(bankTable);
+        } else if (showSignature) {
+            PdfPTable sigTable = new PdfPTable(1);
+            sigTable.setWidthPercentage(45);
+            sigTable.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            sigTable.setSpacingBefore(4f);
+            sigTable.addCell(sigContainer);
+            document.add(sigTable);
+        }
         addDigitalDocumentDisclaimer(document);
     }
 
@@ -1280,7 +1477,7 @@ public class PdfService {
         if (amount == null) amount = BigDecimal.ZERO;
         BigDecimal scaled = amount.setScale(2, java.math.RoundingMode.HALF_UP);
 
-        if ("USD".equalsIgnoreCase(currencyCode)) {
+        if (!"INR".equalsIgnoreCase(currencyCode)) {
             java.text.NumberFormat nf = java.text.NumberFormat.getNumberInstance(java.util.Locale.US);
             nf.setMinimumFractionDigits(2);
             nf.setMaximumFractionDigits(2);
@@ -1314,33 +1511,89 @@ public class PdfService {
     }
 
     public static String convertAmountToWords(BigDecimal amount, String currencyCode) {
+        String code = (currencyCode != null && !currencyCode.trim().isEmpty()) ? currencyCode.trim().toUpperCase() : "INR";
         if (amount == null || amount.compareTo(BigDecimal.ZERO) == 0) {
-            return "USD".equalsIgnoreCase(currencyCode) ? "USD Zero Dollars Only" : "INR Zero Rupees Only";
+            String majorZero = switch (code) {
+                case "USD" -> "Zero Dollars";
+                case "EUR" -> "Zero Euros";
+                case "GBP" -> "Zero Pounds";
+                case "AED" -> "Zero Dirhams";
+                case "CAD" -> "Zero Canadian Dollars";
+                case "AUD" -> "Zero Australian Dollars";
+                case "JPY" -> "Zero Yen";
+                case "INR" -> "Zero Rupees";
+                default -> "Zero " + code;
+            };
+            return code + " " + majorZero + " Only";
         }
 
-        boolean isUsd = "USD".equalsIgnoreCase(currencyCode);
+        boolean isIndian = "INR".equalsIgnoreCase(code);
         BigDecimal abs = amount.abs().setScale(2, java.math.RoundingMode.HALF_UP);
         long whole = abs.longValue();
         long fraction = abs.remainder(BigDecimal.ONE).multiply(BigDecimal.valueOf(100)).longValue();
 
-        StringBuilder sb = new StringBuilder();
-        sb.append(isUsd ? "USD " : "INR ");
+        String majorUnit;
+        String minorUnit;
+        boolean hasMinor = true;
 
-        if (isUsd) {
+        switch (code) {
+            case "USD":
+                majorUnit = whole == 1 ? "Dollar" : "Dollars";
+                minorUnit = fraction == 1 ? "Cent" : "Cents";
+                break;
+            case "EUR":
+                majorUnit = whole == 1 ? "Euro" : "Euros";
+                minorUnit = fraction == 1 ? "Cent" : "Cents";
+                break;
+            case "GBP":
+                majorUnit = whole == 1 ? "Pound" : "Pounds";
+                minorUnit = fraction == 1 ? "Penny" : "Pence";
+                break;
+            case "AED":
+                majorUnit = "Dirhams";
+                minorUnit = fraction == 1 ? "Fil" : "Fils";
+                break;
+            case "CAD":
+                majorUnit = whole == 1 ? "Canadian Dollar" : "Canadian Dollars";
+                minorUnit = fraction == 1 ? "Cent" : "Cents";
+                break;
+            case "AUD":
+                majorUnit = whole == 1 ? "Australian Dollar" : "Australian Dollars";
+                minorUnit = fraction == 1 ? "Cent" : "Cents";
+                break;
+            case "JPY":
+                majorUnit = "Yen";
+                minorUnit = "";
+                hasMinor = false;
+                break;
+            case "INR":
+                majorUnit = whole == 1 ? "Rupee" : "Rupees";
+                minorUnit = fraction == 1 ? "Paisa" : "Paise";
+                break;
+            default:
+                majorUnit = code;
+                minorUnit = fraction == 1 ? "Cent" : "Cents";
+                break;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(code).append(" ");
+
+        if (isIndian) {
             if (whole > 0) {
-                sb.append(convertNumberToUsWords(whole)).append(" Dollars");
+                sb.append(convertNumberToWords(whole)).append(" ").append(majorUnit);
             }
             if (fraction > 0) {
                 if (whole > 0) sb.append(" and ");
-                sb.append(convertNumberToUsWords(fraction)).append(" Cents");
+                sb.append(convertNumberToWords(fraction)).append(" ").append(minorUnit);
             }
         } else {
             if (whole > 0) {
-                sb.append(convertNumberToWords(whole)).append(" Rupees");
+                sb.append(convertNumberToUsWords(whole)).append(" ").append(majorUnit);
             }
-            if (fraction > 0) {
+            if (hasMinor && fraction > 0) {
                 if (whole > 0) sb.append(" and ");
-                sb.append(convertNumberToWords(fraction)).append(" Paise");
+                sb.append(convertNumberToUsWords(fraction)).append(" ").append(minorUnit);
             }
         }
 
@@ -1378,11 +1631,17 @@ public class PdfService {
 
     static class QuotationPageEvent extends PdfPageEventHelper {
         private final CompanySettingsResponse settings;
+        private final java.awt.Color themeColor;
         private com.lowagie.text.pdf.PdfTemplate totalPagesTemplate;
         private com.lowagie.text.pdf.BaseFont baseFont;
 
         public QuotationPageEvent(CompanySettingsResponse settings) {
+            this(settings, NAVY_PRIMARY);
+        }
+
+        public QuotationPageEvent(CompanySettingsResponse settings, java.awt.Color themeColor) {
             this.settings = settings;
+            this.themeColor = themeColor != null ? themeColor : NAVY_PRIMARY;
         }
 
         @Override
@@ -1404,10 +1663,12 @@ public class PdfService {
             float pageWidth = document.getPageSize().getWidth();
             float pageHeight = document.getPageSize().getHeight();
 
+            java.awt.Color primaryAccent = themeColor != null ? themeColor : new java.awt.Color(20, 55, 120);
+
             // 1. Top-Right decorative triangles (Page 1)
             if (writer.getPageNumber() == 1) {
                 cb.saveState();
-                cb.setColorFill(new java.awt.Color(20, 55, 120)); // Navy
+                cb.setColorFill(primaryAccent); // Theme Color
                 cb.moveTo(pageWidth - 75f, pageHeight);
                 cb.lineTo(pageWidth, pageHeight);
                 cb.lineTo(pageWidth, pageHeight - 75f);
@@ -1433,7 +1694,7 @@ public class PdfService {
             cb.closePath();
             cb.fill();
 
-            cb.setColorFill(new java.awt.Color(20, 55, 120)); // Navy
+            cb.setColorFill(primaryAccent); // Theme Color
             cb.moveTo(pageWidth - 55f, 0);
             cb.lineTo(pageWidth, 0);
             cb.lineTo(pageWidth, 48f);
@@ -1446,12 +1707,14 @@ public class PdfService {
             float footerY = 16f;
             Font footerFont = FontFactory.getFont(FontFactory.HELVETICA, 7.5f, new java.awt.Color(71, 85, 105));
 
+            boolean isAcrovix = (settings == null || settings.getTenantId() == null || settings.getTenantId().equals(1L) 
+                    || (settings.getCompanyName() != null && settings.getCompanyName().toUpperCase().contains("ACROVIX")));
             String phone = (settings != null && settings.getPhone() != null && !settings.getPhone().isBlank()) 
-                    ? settings.getPhone() : "+91 98765 43210";
+                    ? settings.getPhone() : (isAcrovix ? "+91 98765 43210" : "");
             String email = (settings != null && settings.getEmail() != null && !settings.getEmail().isBlank()) 
-                    ? settings.getEmail() : "contact@acrovix.com";
+                    ? settings.getEmail() : (isAcrovix ? "contact@acrovix.com" : "");
             String website = (settings != null && settings.getWebsite() != null && !settings.getWebsite().isBlank()) 
-                    ? settings.getWebsite() : "www.acrovix.com";
+                    ? settings.getWebsite() : (isAcrovix ? "www.acrovix.com" : "");
 
             PdfPTable footerTable = new PdfPTable(3);
             footerTable.setTotalWidth(pageWidth * 0.65f);
@@ -1650,7 +1913,7 @@ public class PdfService {
             // A4 Portrait, clean 28pt horizontal margins, 26pt top, 34pt bottom
             Document document = new Document(PageSize.A4, 28f, 28f, 26f, 34f);
             PdfWriter writer = PdfWriter.getInstance(document, out);
-            CompanySettingsResponse settings = companySettingsService != null ? companySettingsService.getCompanySettings() : null;
+            CompanySettingsResponse settings = resolveTenantSettings(po != null ? po.getTenantId() : null);
             writer.setPageEvent(new PurchaseOrderPageEvent(po, settings));
             document.open();
 
@@ -1676,7 +1939,7 @@ public class PdfService {
             addPurchaseOrderFinancialSummary(document, po);
 
             // 8. Side-by-side TERMS & CONDITIONS and REMARKS / ADDITIONAL NOTES
-            addPurchaseOrderTermsAndRemarks(document, writer, po);
+            addPurchaseOrderTermsAndRemarks(document, writer, po, settings);
 
             // 9. Dual Authorization Signatures (For Acrovix Innovations Private Limited & For Vendor)
             addPurchaseOrderSignatures(document, settings);
@@ -1705,6 +1968,9 @@ public class PdfService {
         logoCell.setPadding(0);
         logoCell.setPaddingTop(3f);
 
+        boolean isAcrovix = (settings == null || settings.getTenantId() == null || settings.getTenantId().equals(1L) 
+                || (settings.getCompanyName() != null && settings.getCompanyName().toUpperCase().contains("ACROVIX")));
+
         Image logo = null;
         if (settings != null && settings.getLogoUrl() != null && !settings.getLogoUrl().trim().isEmpty()) {
             try {
@@ -1713,7 +1979,7 @@ public class PdfService {
                 log.warn("Failed to load logo from URL for PO: " + settings.getLogoUrl(), ex);
             }
         }
-        if (logo == null) {
+        if (logo == null && isAcrovix) {
             java.net.URL defaultLogoUrl = getClass().getResource("/static/Acrovix_logo.png");
             if (defaultLogoUrl != null) {
                 try {
@@ -1727,26 +1993,30 @@ public class PdfService {
             logoCell.addElement(logo);
         } else {
             String companyName = (settings != null && settings.getCompanyName() != null && !settings.getCompanyName().isBlank()) 
-                    ? settings.getCompanyName() : "ACROVIX INNOVATIONS PRIVATE LIMITED";
-            logoCell.addElement(new Paragraph(companyName, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 13f, NAVY_PRIMARY)));
+                    ? settings.getCompanyName() : (isAcrovix ? "ACROVIX INNOVATIONS PRIVATE LIMITED" : "PURCHASE ORDER");
+            String brandName = (settings != null && settings.getBrandName() != null && !settings.getBrandName().isBlank())
+                    ? settings.getBrandName() : companyName;
+            logoCell.addElement(new Paragraph(brandName, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 13f, NAVY_PRIMARY)));
 
-            Paragraph taglinePara = new Paragraph();
-            taglinePara.setSpacingBefore(3.5f);
-            Image linkIc = createVectorIcon(writer, "link", 8f, 7.5f, NAVY_PRIMARY);
-            if (linkIc != null) { taglinePara.add(new Chunk(linkIc, 0, -1f)); taglinePara.add(new Chunk(" ")); }
-            taglinePara.add(new Chunk("SYNC", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7.2f, NAVY_PRIMARY)));
-            taglinePara.add(new Chunk("   |   ", FontFactory.getFont(FontFactory.HELVETICA, 7.2f, new java.awt.Color(148, 163, 184))));
+            if (isAcrovix) {
+                Paragraph taglinePara = new Paragraph();
+                taglinePara.setSpacingBefore(3.5f);
+                Image linkIc = createVectorIcon(writer, "link", 8f, 7.5f, NAVY_PRIMARY);
+                if (linkIc != null) { taglinePara.add(new Chunk(linkIc, 0, -1f)); taglinePara.add(new Chunk(" ")); }
+                taglinePara.add(new Chunk("SYNC", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7.2f, NAVY_PRIMARY)));
+                taglinePara.add(new Chunk("   |   ", FontFactory.getFont(FontFactory.HELVETICA, 7.2f, new java.awt.Color(148, 163, 184))));
 
-            Image scaleIc = createVectorIcon(writer, "chart", 8f, 7.5f, TEAL_ACCENT);
-            if (scaleIc != null) { taglinePara.add(new Chunk(scaleIc, 0, -1f)); taglinePara.add(new Chunk(" ")); }
-            taglinePara.add(new Chunk("SCALE", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7.2f, NAVY_PRIMARY)));
-            taglinePara.add(new Chunk("   |   ", FontFactory.getFont(FontFactory.HELVETICA, 7.2f, new java.awt.Color(148, 163, 184))));
+                Image scaleIc = createVectorIcon(writer, "chart", 8f, 7.5f, TEAL_ACCENT);
+                if (scaleIc != null) { taglinePara.add(new Chunk(scaleIc, 0, -1f)); taglinePara.add(new Chunk(" ")); }
+                taglinePara.add(new Chunk("SCALE", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7.2f, NAVY_PRIMARY)));
+                taglinePara.add(new Chunk("   |   ", FontFactory.getFont(FontFactory.HELVETICA, 7.2f, new java.awt.Color(148, 163, 184))));
 
-            Image succIc = createVectorIcon(writer, "arrow-up-right", 8f, 7.5f, TEAL_ACCENT);
-            if (succIc != null) { taglinePara.add(new Chunk(succIc, 0, -1f)); taglinePara.add(new Chunk(" ")); }
-            taglinePara.add(new Chunk("SUCCEED", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7.2f, NAVY_PRIMARY)));
+                Image succIc = createVectorIcon(writer, "arrow-up-right", 8f, 7.5f, TEAL_ACCENT);
+                if (succIc != null) { taglinePara.add(new Chunk(succIc, 0, -1f)); taglinePara.add(new Chunk(" ")); }
+                taglinePara.add(new Chunk("SUCCEED", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7.2f, NAVY_PRIMARY)));
 
-            logoCell.addElement(taglinePara);
+                logoCell.addElement(taglinePara);
+            }
         }
 
         headerTable.addCell(logoCell);
@@ -1762,17 +2032,17 @@ public class PdfService {
         compCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
 
         String companyName = (settings != null && settings.getCompanyName() != null && !settings.getCompanyName().isBlank()) 
-                ? settings.getCompanyName() : "ACROVIX INNOVATIONS PRIVATE LIMITED";
+                ? settings.getCompanyName() : (isAcrovix ? "ACROVIX INNOVATIONS PRIVATE LIMITED" : "");
         String compAddress = (settings != null && settings.getRegisteredAddress() != null && !settings.getRegisteredAddress().isBlank()) 
                 ? settings.getRegisteredAddress() 
-                : ((settings != null && settings.getBillingAddress() != null) ? settings.getBillingAddress() : "3RD FLOOR, 956, VIGNESHWARA\n6TH CROSS, 1ST MAIN, BENGALURU\nKARNATAKA, 560060");
+                : ((settings != null && settings.getBillingAddress() != null) ? settings.getBillingAddress() : (isAcrovix ? "3RD FLOOR, 956, VIGNESHWARA\n6TH CROSS, 1ST MAIN, BENGALURU\nKARNATAKA, 560060" : ""));
         compAddress = compAddress.replace("\\n", "\n");
         String compPhone = (settings != null && settings.getPhone() != null && !settings.getPhone().isBlank()) 
-                ? settings.getPhone() : "+91 80000 222";
+                ? settings.getPhone() : (isAcrovix ? "+91 80000 222" : "");
         String compEmail = (settings != null && settings.getEmail() != null && !settings.getEmail().isBlank()) 
-                ? settings.getEmail() : "sales@acrovix.com";
+                ? settings.getEmail() : (isAcrovix ? "sales@acrovix.com" : "");
         String compWeb = (settings != null && settings.getWebsite() != null && !settings.getWebsite().isBlank()) 
-                ? settings.getWebsite() : "https://acrovix.com";
+                ? settings.getWebsite() : (isAcrovix ? "https://acrovix.com" : "");
 
         PdfPTable compTable = new PdfPTable(2);
         compTable.setWidthPercentage(100);
@@ -2046,53 +2316,74 @@ public class PdfService {
         pBillHeader.setSpacingAfter(4f);
         billCell.addElement(pBillHeader);
 
+        boolean isAcrovix = (settings == null || settings.getTenantId() == null || settings.getTenantId().equals(1L) 
+                || (settings.getCompanyName() != null && settings.getCompanyName().toUpperCase().contains("ACROVIX")));
         String companyName = (settings != null && settings.getCompanyName() != null && !settings.getCompanyName().isBlank()) 
-                ? settings.getCompanyName() : "Acrovix Innovations Private Limited";
+                ? settings.getCompanyName() : (isAcrovix ? "Acrovix Innovations Private Limited" : "Buyer");
         String compAddress = (settings != null && settings.getRegisteredAddress() != null && !settings.getRegisteredAddress().isBlank()) 
                 ? settings.getRegisteredAddress() 
-                : ((settings != null && settings.getBillingAddress() != null) ? settings.getBillingAddress() : "956, 3rd Floor, Vigneshwara, 6th Cross, 1st Main Kengeri, Bengaluru, Karnataka, 560060");
+                : ((settings != null && settings.getBillingAddress() != null) ? settings.getBillingAddress() : (isAcrovix ? "956, 3rd Floor, Vigneshwara, 6th Cross, 1st Main Kengeri, Bengaluru, Karnataka, 560060" : ""));
         compAddress = compAddress.replace("\\n", "\n");
-        String compGstin = (settings != null && settings.getGstin() != null && !settings.getGstin().isBlank()) ? settings.getGstin() : "29ABFCA9588C1Z8";
-        String compPan = (settings != null && settings.getPan() != null && !settings.getPan().isBlank()) ? settings.getPan() : "U46511BR2026PTC085813.";
-        String compEmail = (settings != null && settings.getEmail() != null && !settings.getEmail().isBlank()) ? settings.getEmail() : "Sales@acrovix.com";
-        String compPhone = (settings != null && settings.getPhone() != null && !settings.getPhone().isBlank()) ? settings.getPhone() : "8092848065";
+        String compGstin = (settings != null && settings.getGstin() != null && !settings.getGstin().isBlank()) ? settings.getGstin() : (isAcrovix ? "29ABFCA9588C1Z8" : "");
+        String compPan = (settings != null && settings.getPan() != null && !settings.getPan().isBlank()) ? settings.getPan() : (isAcrovix ? "U46511BR2026PTC085813." : "");
+        String compVat = (settings != null && settings.getVatId() != null && !settings.getVatId().isBlank()) ? settings.getVatId() : "";
+        String compEmail = (settings != null && settings.getEmail() != null && !settings.getEmail().isBlank()) ? settings.getEmail() : (isAcrovix ? "Sales@acrovix.com" : "");
+        String compPhone = (settings != null && settings.getPhone() != null && !settings.getPhone().isBlank()) ? settings.getPhone() : (isAcrovix ? "8092848065" : "");
 
         Paragraph pBillName = new Paragraph(companyName, valBoldFont);
         pBillName.setSpacingAfter(3f);
         billCell.addElement(pBillName);
 
         // Address with Pin Icon
-        Paragraph pBillAddr = new Paragraph();
-        Image bPin = createVectorIcon(writer, "pin", 7.0f, 8.0f, BLUE_ACCENT);
-        if (bPin != null) { pBillAddr.add(new Chunk(bPin, 0, -1f)); pBillAddr.add(new Chunk(" ")); }
-        pBillAddr.add(new Chunk(compAddress, valFont));
-        pBillAddr.setLeading(9f);
-        pBillAddr.setSpacingAfter(3f);
-        billCell.addElement(pBillAddr);
+        if (!compAddress.isBlank()) {
+            Paragraph pBillAddr = new Paragraph();
+            Image bPin = createVectorIcon(writer, "pin", 7.0f, 8.0f, BLUE_ACCENT);
+            if (bPin != null) { pBillAddr.add(new Chunk(bPin, 0, -1f)); pBillAddr.add(new Chunk(" ")); }
+            pBillAddr.add(new Chunk(compAddress, valFont));
+            pBillAddr.setLeading(9f);
+            pBillAddr.setSpacingAfter(3f);
+            billCell.addElement(pBillAddr);
+        }
 
-        // GSTIN & CIN with Document Icon
-        Paragraph pBillReg = new Paragraph();
-        Image bDoc = createVectorIcon(writer, "receipt", 7.0f, 7.0f, BLUE_ACCENT);
-        if (bDoc != null) { pBillReg.add(new Chunk(bDoc, 0, -1f)); pBillReg.add(new Chunk(" ")); }
-        pBillReg.add(new Chunk("GSTIN: " + compGstin + "\nCIN: " + compPan, valFont));
-        pBillReg.setLeading(9f);
-        pBillReg.setSpacingAfter(3f);
-        billCell.addElement(pBillReg);
+        // Tax Registration (GSTIN / VAT / PAN) with Document Icon
+        StringBuilder regText = new StringBuilder();
+        if (!compGstin.isBlank()) regText.append("GSTIN: ").append(compGstin);
+        if (!compVat.isBlank()) {
+            if (regText.length() > 0) regText.append("\n");
+            regText.append("VAT / Tax ID: ").append(compVat);
+        }
+        if (!compPan.isBlank()) {
+            if (regText.length() > 0) regText.append("\n");
+            regText.append(isAcrovix ? "CIN: " : "PAN: ").append(compPan);
+        }
+        if (regText.length() > 0) {
+            Paragraph pBillReg = new Paragraph();
+            Image bDoc = createVectorIcon(writer, "receipt", 7.0f, 7.0f, BLUE_ACCENT);
+            if (bDoc != null) { pBillReg.add(new Chunk(bDoc, 0, -1f)); pBillReg.add(new Chunk(" ")); }
+            pBillReg.add(new Chunk(regText.toString(), valFont));
+            pBillReg.setLeading(9f);
+            pBillReg.setSpacingAfter(3f);
+            billCell.addElement(pBillReg);
+        }
 
         // Email with Email Icon
-        Paragraph pBillEm = new Paragraph();
-        Image bEm = createVectorIcon(writer, "email", 7.5f, 6.0f, BLUE_ACCENT);
-        if (bEm != null) { pBillEm.add(new Chunk(bEm, 0, -1f)); pBillEm.add(new Chunk(" ")); }
-        pBillEm.add(new Chunk("Email: " + compEmail, valFont));
-        pBillEm.setSpacingAfter(2f);
-        billCell.addElement(pBillEm);
+        if (!compEmail.isBlank()) {
+            Paragraph pBillEm = new Paragraph();
+            Image bEm = createVectorIcon(writer, "email", 7.5f, 6.0f, BLUE_ACCENT);
+            if (bEm != null) { pBillEm.add(new Chunk(bEm, 0, -1f)); pBillEm.add(new Chunk(" ")); }
+            pBillEm.add(new Chunk("Email: " + compEmail, valFont));
+            pBillEm.setSpacingAfter(2f);
+            billCell.addElement(pBillEm);
+        }
 
         // Phone with Phone Icon
-        Paragraph pBillPh = new Paragraph();
-        Image bPh = createVectorIcon(writer, "phone", 7.0f, 7.0f, BLUE_ACCENT);
-        if (bPh != null) { pBillPh.add(new Chunk(bPh, 0, -1f)); pBillPh.add(new Chunk(" ")); }
-        pBillPh.add(new Chunk("Phone: " + compPhone, valFont));
-        billCell.addElement(pBillPh);
+        if (!compPhone.isBlank()) {
+            Paragraph pBillPh = new Paragraph();
+            Image bPh = createVectorIcon(writer, "phone", 7.0f, 7.0f, BLUE_ACCENT);
+            if (bPh != null) { pBillPh.add(new Chunk(bPh, 0, -1f)); pBillPh.add(new Chunk(" ")); }
+            pBillPh.add(new Chunk("Phone: " + compPhone, valFont));
+            billCell.addElement(pBillPh);
+        }
 
         // Spacer
         PdfPCell spacer = new PdfPCell();
@@ -2632,7 +2923,7 @@ public class PdfService {
         return formatted;
     }
 
-    private void addPurchaseOrderTermsAndRemarks(Document document, PdfWriter writer, com.acrovix.admin.entity.PurchaseOrder po) throws DocumentException {
+    private void addPurchaseOrderTermsAndRemarks(Document document, PdfWriter writer, com.acrovix.admin.entity.PurchaseOrder po, CompanySettingsResponse settings) throws DocumentException {
         PdfPTable container = new PdfPTable(3);
         container.setWidthPercentage(100);
         container.setWidths(new float[]{49f, 2f, 49f});
@@ -2666,15 +2957,32 @@ public class PdfService {
             }
         }
         if (termsList.isEmpty()) {
-            termsList.add("This Purchase Order is issued for VMware vSphere Foundation (VCF-VSP-FND-1Y) subscription licenses for a total of 128 cores, for a 3 (three) year subscription term.");
-            termsList.add("Year 1 pricing is quoted in INR; Year 2 and Year 3 pricing is quoted in USD, as reflected in the line items above.");
-            termsList.add("Payment Term: Year 2 and Year 3 charges will be billed and payable on a Year-on-Year (YoY) basis.");
-            termsList.add("Invoices for all payments under this PO must be raised in the name and address of Acrovix Innovations Private Limited as per the Bill To details mentioned above, quoting GSTIN 29ABFCA9588C1Z8.");
-            termsList.add("This PO is valid subject to mutual agreement on delivery timelines and standard terms of sale/service applicable to the vendor.");
-            termsList.add("Any change to product, pricing, or term of this order must be documented via a written amendment to this PO.");
-            termsList.add("18% GST will be added on the price.");
-            termsList.add("Payment term- 30 days on license delivery.");
-            termsList.add("Support will be provided by OEM.");
+            if (settings != null && settings.getDefaultTermsAndConditions() != null && !settings.getDefaultTermsAndConditions().isBlank()) {
+                String[] rawLines = settings.getDefaultTermsAndConditions().split("\n");
+                for (String l : rawLines) {
+                    if (!l.trim().isEmpty()) termsList.add(l.trim());
+                }
+            } else {
+                boolean isAcrovix = (settings == null || settings.getTenantId() == null || settings.getTenantId().equals(1L) 
+                        || (settings.getCompanyName() != null && settings.getCompanyName().toUpperCase().contains("ACROVIX")));
+                if (isAcrovix) {
+                    termsList.add("This Purchase Order is issued for subscription licenses and services as per the line items above.");
+                    termsList.add("Invoices for all payments under this PO must be raised in the name and address of Acrovix Innovations Private Limited quoting GSTIN 29ABFCA9588C1Z8.");
+                    termsList.add("This PO is valid subject to mutual agreement on delivery timelines and standard terms of sale/service applicable to the vendor.");
+                    termsList.add("Any change to product, pricing, or term of this order must be documented via a written amendment to this PO.");
+                    termsList.add("Payment term: As agreed upon delivery.");
+                } else {
+                    String compName = (settings != null && settings.getCompanyName() != null && !settings.getCompanyName().isBlank()) 
+                            ? settings.getCompanyName() : "Buyer";
+                    String taxRef = (settings != null && settings.getGstin() != null && !settings.getGstin().isBlank()) 
+                            ? "quoting GSTIN " + settings.getGstin() 
+                            : ((settings != null && settings.getVatId() != null && !settings.getVatId().isBlank()) ? "quoting VAT ID " + settings.getVatId() : "");
+                    termsList.add("This Purchase Order is issued for the products and services as per the line items above.");
+                    termsList.add("Invoices for all payments under this PO must be raised in the name and address of " + compName + (taxRef.isEmpty() ? "." : " " + taxRef + "."));
+                    termsList.add("This PO is valid subject to mutual agreement on delivery timelines and standard terms of sale/service applicable to the vendor.");
+                    termsList.add("Any change to product, pricing, or term of this order must be documented via a written amendment to this PO.");
+                }
+            }
         }
 
         Font tItemFont = FontFactory.getFont(FontFactory.HELVETICA, 6.5f, TEXT_DARK);
@@ -2837,12 +3145,14 @@ public class PdfService {
             float footerY = 14f;
             Font footerFont = FontFactory.getFont(FontFactory.HELVETICA, 7.5f, TEXT_MUTED);
 
+            boolean isAcrovix = (settings == null || settings.getTenantId() == null || settings.getTenantId().equals(1L) 
+                    || (settings.getCompanyName() != null && settings.getCompanyName().toUpperCase().contains("ACROVIX")));
             String phone = (settings != null && settings.getPhone() != null && !settings.getPhone().isBlank()) 
-                    ? settings.getPhone() : "+91 98765 43210";
+                    ? settings.getPhone() : (isAcrovix ? "+91 98765 43210" : "");
             String email = (settings != null && settings.getEmail() != null && !settings.getEmail().isBlank()) 
-                    ? settings.getEmail() : "contact@acrovix.com";
+                    ? settings.getEmail() : (isAcrovix ? "contact@acrovix.com" : "");
             String website = (settings != null && settings.getWebsite() != null && !settings.getWebsite().isBlank()) 
-                    ? settings.getWebsite() : "www.acrovix.com";
+                    ? settings.getWebsite() : (isAcrovix ? "www.acrovix.com" : "");
 
             PdfPTable footerTable = new PdfPTable(3);
             footerTable.setTotalWidth(pageWidth * 0.65f);
@@ -2850,19 +3160,19 @@ public class PdfService {
                 footerTable.setWidths(new float[]{32f, 38f, 30f});
             } catch (Exception ignored) {}
 
-            Phrase pPhrase = new Phrase("Phone: " + phone, footerFont);
+            Phrase pPhrase = new Phrase(phone.isBlank() ? "" : "Phone: " + phone, footerFont);
             PdfPCell cPhone = new PdfPCell(pPhrase);
             cPhone.setBorder(Rectangle.NO_BORDER);
             cPhone.setPadding(0);
             footerTable.addCell(cPhone);
 
-            Phrase mPhrase = new Phrase("Email: " + email, footerFont);
+            Phrase mPhrase = new Phrase(email.isBlank() ? "" : "Email: " + email, footerFont);
             PdfPCell cEmail = new PdfPCell(mPhrase);
             cEmail.setBorder(Rectangle.NO_BORDER);
             cEmail.setPadding(0);
             footerTable.addCell(cEmail);
 
-            Phrase gPhrase = new Phrase("Web: " + website, footerFont);
+            Phrase gPhrase = new Phrase(website.isBlank() ? "" : "Web: " + website, footerFont);
             PdfPCell cWeb = new PdfPCell(gPhrase);
             cWeb.setBorder(Rectangle.NO_BORDER);
             cWeb.setPadding(0);
@@ -2925,10 +3235,7 @@ public class PdfService {
             Document document = new Document(PageSize.A4, 36, 36, 42, 36);
             PdfWriter writer = PdfWriter.getInstance(document, out);
 
-            CompanySettingsResponse settings = null;
-            if (companySettingsService != null) {
-                try { settings = companySettingsService.getCompanySettings(); } catch (Exception e) { log.warn("No settings", e); }
-            }
+            CompanySettingsResponse settings = resolveTenantSettings(invoice != null ? invoice.getTenantId() : null);
 
             writer.setPageEvent(new InvoicePageEvent(invoice, settings));
             document.open();
@@ -2959,11 +3266,14 @@ public class PdfService {
         headerTable.setWidths(new float[]{42f, 58f});
         headerTable.setSpacingAfter(8f);
 
-        // Left Cell: ACROVIX Logo
+        // Left Cell: Logo or Brand Name
         PdfPCell logoCell = new PdfPCell();
         logoCell.setBorder(Rectangle.NO_BORDER);
         logoCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
         logoCell.setPadding(0);
+
+        boolean isAcrovix = (settings == null || settings.getTenantId() == null || settings.getTenantId().equals(1L) 
+                || (settings.getCompanyName() != null && settings.getCompanyName().toUpperCase().contains("ACROVIX")));
 
         Image logo = null;
         if (settings != null && settings.getLogoUrl() != null && !settings.getLogoUrl().trim().isEmpty()) {
@@ -2973,7 +3283,7 @@ public class PdfService {
                 log.warn("Failed to load logo from URL for invoice: " + settings.getLogoUrl(), ex);
             }
         }
-        if (logo == null) {
+        if (logo == null && isAcrovix) {
             java.net.URL defaultLogoUrl = getClass().getResource("/static/Acrovix_logo.png");
             if (defaultLogoUrl != null) {
                 try {
@@ -2987,8 +3297,10 @@ public class PdfService {
             logoCell.addElement(logo);
         } else {
             String companyName = (settings != null && settings.getCompanyName() != null) 
-                    ? settings.getCompanyName() : "ACROVIX INNOVATIONS PRIVATE LIMITED";
-            logoCell.addElement(new Paragraph(companyName, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14f, NAVY_PRIMARY)));
+                    ? settings.getCompanyName() : (isAcrovix ? "ACROVIX INNOVATIONS PRIVATE LIMITED" : "INVOICE");
+            String brandName = (settings != null && settings.getBrandName() != null && !settings.getBrandName().isBlank())
+                    ? settings.getBrandName() : companyName;
+            logoCell.addElement(new Paragraph(brandName.toUpperCase(), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14f, NAVY_PRIMARY)));
         }
         headerTable.addCell(logoCell);
 
@@ -2999,18 +3311,22 @@ public class PdfService {
         compCell.setPadding(0);
 
         String companyName = (settings != null && settings.getCompanyName() != null && !settings.getCompanyName().isBlank()) 
-                ? settings.getCompanyName() : "ACROVIX INNOVATIONS PRIVATE LIMITED";
+                ? settings.getCompanyName() : (isAcrovix ? "ACROVIX INNOVATIONS PRIVATE LIMITED" : "");
         String compAddress = (settings != null && settings.getRegisteredAddress() != null && !settings.getRegisteredAddress().isBlank()) 
                 ? settings.getRegisteredAddress() 
                 : ((settings != null && settings.getBillingAddress() != null) ? settings.getBillingAddress() : "Manikonda, Hyderabad, Telangana, India - 500089");
         String compPhone = (settings != null && settings.getPhone() != null && !settings.getPhone().isBlank()) 
-                ? settings.getPhone() : "+91 98765 43210";
+                ? settings.getPhone() : (isAcrovix ? "+91 98765 43210" : "");
         String compEmail = (settings != null && settings.getEmail() != null && !settings.getEmail().isBlank()) 
-                ? settings.getEmail() : "contact@acrovix.com";
+                ? settings.getEmail() : (isAcrovix ? "contact@acrovix.com" : "");
         String compWeb = (settings != null && settings.getWebsite() != null && !settings.getWebsite().isBlank()) 
-                ? settings.getWebsite() : "www.acrovix.com";
+                ? settings.getWebsite() : (isAcrovix ? "www.acrovix.com" : "");
         String compGstin = (settings != null && settings.getGstin() != null && !settings.getGstin().isBlank())
                 ? settings.getGstin() : "";
+        String compVat = (settings != null && settings.getVatId() != null && !settings.getVatId().isBlank())
+                ? settings.getVatId() : "";
+        String compPan = (settings != null && settings.getPan() != null && !settings.getPan().isBlank())
+                ? settings.getPan() : "";
 
         Paragraph pName = new Paragraph(companyName, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9.5f, NAVY_PRIMARY));
         pName.setAlignment(Element.ALIGN_RIGHT);
@@ -3028,11 +3344,37 @@ public class PdfService {
             compCell.addElement(pGstin);
         }
 
-        Font contactFont = FontFactory.getFont(FontFactory.HELVETICA, 7.5f, TEXT_MUTED);
-        Paragraph pContact = new Paragraph();
-        pContact.setAlignment(Element.ALIGN_RIGHT);
-        pContact.add(new Chunk("Phone: " + compPhone + "  |  Email: " + compEmail + "  |  Web: " + compWeb, contactFont));
-        compCell.addElement(pContact);
+        if (!compVat.isEmpty()) {
+            Paragraph pVat = new Paragraph("VAT / Tax ID: " + compVat, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7.5f, TEXT_DARK));
+            pVat.setAlignment(Element.ALIGN_RIGHT);
+            pVat.setSpacingAfter(2f);
+            compCell.addElement(pVat);
+        }
+
+        if (!compPan.isEmpty()) {
+            Paragraph pPan = new Paragraph("PAN: " + compPan, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7.5f, TEXT_DARK));
+            pPan.setAlignment(Element.ALIGN_RIGHT);
+            pPan.setSpacingAfter(2f);
+            compCell.addElement(pPan);
+        }
+
+        StringBuilder contactLine = new StringBuilder();
+        if (!compPhone.isBlank()) contactLine.append("Phone: ").append(compPhone);
+        if (!compEmail.isBlank()) {
+            if (contactLine.length() > 0) contactLine.append("  |  ");
+            contactLine.append("Email: ").append(compEmail);
+        }
+        if (!compWeb.isBlank()) {
+            if (contactLine.length() > 0) contactLine.append("  |  ");
+            contactLine.append("Web: ").append(compWeb);
+        }
+
+        if (contactLine.length() > 0) {
+            Font contactFont = FontFactory.getFont(FontFactory.HELVETICA, 7.5f, TEXT_MUTED);
+            Paragraph pContact = new Paragraph(contactLine.toString(), contactFont);
+            pContact.setAlignment(Element.ALIGN_RIGHT);
+            compCell.addElement(pContact);
+        }
 
         headerTable.addCell(compCell);
         document.add(headerTable);
@@ -3518,27 +3860,36 @@ public class PdfService {
         bHeaderCell.setPaddingBottom(4f);
         bankInner.addCell(bHeaderCell);
 
-        com.acrovix.admin.entity.CompanyBankAccount defaultBankAcc = companyBankAccountRepository != null 
-                ? companyBankAccountRepository.findFirstByIsDefaultTrueAndIsActiveTrue().orElse(null) 
-                : null;
+        Long tenantId = (invoice != null && invoice.getTenantId() != null) ? invoice.getTenantId() 
+                : (settings != null && settings.getTenantId() != null ? settings.getTenantId() : Long.valueOf(1L));
+        com.acrovix.admin.entity.CompanyBankAccount defaultBankAcc = null;
+        if (companyBankAccountRepository != null && tenantId != null) {
+            defaultBankAcc = companyBankAccountRepository.findFirstByTenantIdAndIsDefaultTrueAndIsActiveTrue(tenantId).orElse(null);
+            if (defaultBankAcc == null) {
+                defaultBankAcc = companyBankAccountRepository.findFirstByTenantIdAndIsActiveTrueOrderByIdAsc(tenantId).orElse(null);
+            }
+        }
+
+        boolean isAcrovix = (settings == null || tenantId == null || tenantId.equals(1L) 
+                || (settings.getCompanyName() != null && settings.getCompanyName().toUpperCase().contains("ACROVIX")));
 
         String bName = (defaultBankAcc != null && defaultBankAcc.getBankName() != null) ? defaultBankAcc.getBankName() 
-                : ((settings != null && settings.getBankName() != null && !settings.getBankName().isBlank()) ? settings.getBankName() : "HDFC Bank");
+                : ((settings != null && settings.getBankName() != null && !settings.getBankName().isBlank()) ? settings.getBankName() : (isAcrovix ? "HDFC Bank" : ""));
         String bHolder = (defaultBankAcc != null && defaultBankAcc.getAccountHolder() != null) ? defaultBankAcc.getAccountHolder() 
                 : ((settings != null && settings.getLegalName() != null && !settings.getLegalName().isBlank()) ? settings.getLegalName() : 
-                ((settings != null && settings.getCompanyName() != null) ? settings.getCompanyName() : "ACROVIX INNOVATIONS PRIVATE LIMITED"));
+                ((settings != null && settings.getCompanyName() != null) ? settings.getCompanyName() : (isAcrovix ? "ACROVIX INNOVATIONS PRIVATE LIMITED" : "")));
         String bAcc = (defaultBankAcc != null && defaultBankAcc.getBankAccountNumber() != null) ? defaultBankAcc.getBankAccountNumber() 
-                : ((settings != null && settings.getBankAccountNumber() != null && !settings.getBankAccountNumber().isBlank()) ? settings.getBankAccountNumber() : "50200001245678");
+                : ((settings != null && settings.getBankAccountNumber() != null && !settings.getBankAccountNumber().isBlank()) ? settings.getBankAccountNumber() : (isAcrovix ? "50200001245678" : ""));
         String bIfsc = (defaultBankAcc != null && defaultBankAcc.getBankIfsc() != null) ? defaultBankAcc.getBankIfsc() 
-                : ((settings != null && settings.getBankIfsc() != null && !settings.getBankIfsc().isBlank()) ? settings.getBankIfsc() : "HDFC0001234");
+                : ((settings != null && settings.getBankIfsc() != null && !settings.getBankIfsc().isBlank()) ? settings.getBankIfsc() : (isAcrovix ? "HDFC0001234" : ""));
         String bBranch = (defaultBankAcc != null && defaultBankAcc.getBankBranch() != null) ? defaultBankAcc.getBankBranch() 
-                : ((settings != null && settings.getBankBranch() != null && !settings.getBankBranch().isBlank()) ? settings.getBankBranch() : "Koramangala, Bengaluru");
+                : ((settings != null && settings.getBankBranch() != null && !settings.getBankBranch().isBlank()) ? settings.getBankBranch() : (isAcrovix ? "Koramangala, Bengaluru" : ""));
 
-        addPoMetaRow(bankInner, "Bank", bName, labelFont, valBoldFont);
-        addPoMetaRow(bankInner, "Account Holder", bHolder, labelFont, valFont);
-        addPoMetaRow(bankInner, "Account Number", bAcc, labelFont, valBoldFont);
-        addPoMetaRow(bankInner, "IFSC Code", bIfsc, labelFont, valFont);
-        addPoMetaRow(bankInner, "Branch", bBranch, labelFont, valFont);
+        if (!bName.isBlank()) addPoMetaRow(bankInner, "Bank", bName, labelFont, valBoldFont);
+        if (!bHolder.isBlank()) addPoMetaRow(bankInner, "Account Holder", bHolder, labelFont, valFont);
+        if (!bAcc.isBlank()) addPoMetaRow(bankInner, "Account Number", bAcc, labelFont, valBoldFont);
+        if (!bIfsc.isBlank()) addPoMetaRow(bankInner, (bIfsc.length() <= 11 && bIfsc.matches("^[A-Z0-9]+$") ? "IFSC / SWIFT" : "IFSC Code"), bIfsc, labelFont, valFont);
+        if (!bBranch.isBlank()) addPoMetaRow(bankInner, "Branch", bBranch, labelFont, valFont);
 
         PdfPCell bankCard = new PdfPCell(bankInner);
         bankCard.setBackgroundColor(ICE_BLUE_BG);
@@ -3796,12 +4147,14 @@ public class PdfService {
             Font footFont = FontFactory.getFont(FontFactory.HELVETICA, 6.8f, java.awt.Color.WHITE);
             Font footNoteFont = FontFactory.getFont(FontFactory.HELVETICA, 6.6f, new java.awt.Color(203, 213, 225));
 
+            boolean isAcrovix = (settings == null || settings.getTenantId() == null || settings.getTenantId().equals(1L) 
+                    || (settings.getCompanyName() != null && settings.getCompanyName().toUpperCase().contains("ACROVIX")));
             String phone = (settings != null && settings.getPhone() != null && !settings.getPhone().isBlank()) 
-                    ? settings.getPhone() : "+91 98765 43210";
+                    ? settings.getPhone() : (isAcrovix ? "+91 98765 43210" : "");
             String email = (settings != null && settings.getEmail() != null && !settings.getEmail().isBlank()) 
-                    ? settings.getEmail() : "contact@acrovix.com";
+                    ? settings.getEmail() : (isAcrovix ? "contact@acrovix.com" : "");
             String website = (settings != null && settings.getWebsite() != null && !settings.getWebsite().isBlank()) 
-                    ? settings.getWebsite() : "www.acrovix.com";
+                    ? settings.getWebsite() : (isAcrovix ? "www.acrovix.com" : "");
 
             PdfPTable footerTable = new PdfPTable(3);
             footerTable.setTotalWidth(pageWidth - 48f);
@@ -3811,17 +4164,23 @@ public class PdfService {
 
             // Left: Contact channels with icons on single line
             Phrase contactPhrase = new Phrase();
-            Image phIcon = createVectorIcon(writer, "phone", 7.0f, 7.0f, java.awt.Color.WHITE);
-            if (phIcon != null) { contactPhrase.add(new Chunk(phIcon, 0, -1f)); contactPhrase.add(new Chunk(" ")); }
-            contactPhrase.add(new Chunk(phone + "   ", footFont));
+            if (!phone.isBlank()) {
+                Image phIcon = createVectorIcon(writer, "phone", 7.0f, 7.0f, java.awt.Color.WHITE);
+                if (phIcon != null) { contactPhrase.add(new Chunk(phIcon, 0, -1f)); contactPhrase.add(new Chunk(" ")); }
+                contactPhrase.add(new Chunk(phone + "   ", footFont));
+            }
 
-            Image emIcon = createVectorIcon(writer, "email", 8.0f, 6.0f, java.awt.Color.WHITE);
-            if (emIcon != null) { contactPhrase.add(new Chunk(emIcon, 0, -1f)); contactPhrase.add(new Chunk(" ")); }
-            contactPhrase.add(new Chunk(email + "   ", footFont));
+            if (!email.isBlank()) {
+                Image emIcon = createVectorIcon(writer, "email", 8.0f, 6.0f, java.awt.Color.WHITE);
+                if (emIcon != null) { contactPhrase.add(new Chunk(emIcon, 0, -1f)); contactPhrase.add(new Chunk(" ")); }
+                contactPhrase.add(new Chunk(email + "   ", footFont));
+            }
 
-            Image wbIcon = createVectorIcon(writer, "globe", 7.0f, 7.0f, java.awt.Color.WHITE);
-            if (wbIcon != null) { contactPhrase.add(new Chunk(wbIcon, 0, -1f)); contactPhrase.add(new Chunk(" ")); }
-            contactPhrase.add(new Chunk(website, footFont));
+            if (!website.isBlank()) {
+                Image wbIcon = createVectorIcon(writer, "globe", 7.0f, 7.0f, java.awt.Color.WHITE);
+                if (wbIcon != null) { contactPhrase.add(new Chunk(wbIcon, 0, -1f)); contactPhrase.add(new Chunk(" ")); }
+                contactPhrase.add(new Chunk(website, footFont));
+            }
 
             PdfPCell cContact = new PdfPCell(contactPhrase);
             cContact.setBorder(Rectangle.NO_BORDER);
@@ -3870,10 +4229,7 @@ public class PdfService {
             Document document = new Document(PageSize.A4, 34f, 34f, 26f, 38f);
             PdfWriter writer = PdfWriter.getInstance(document, out);
 
-            CompanySettingsResponse settings = null;
-            if (companySettingsService != null) {
-                try { settings = companySettingsService.getCompanySettings(); } catch (Exception e) { log.warn("No settings", e); }
-            }
+            CompanySettingsResponse settings = resolveTenantSettings(payment != null ? payment.getTenantId() : null);
 
             writer.setPageEvent(new PaymentReceiptPageEvent(settings));
             document.open();
@@ -3888,10 +4244,10 @@ public class PdfService {
             addPaymentReceiptInfoCards(document, writer, payment);
 
             // 4. Amount Received Highlight
-            addPaymentReceiptAmountHighlight(document, writer, payment);
+            addPaymentReceiptAmountHighlight(document, writer, payment, settings);
 
             // 5. Payment Breakdown Table
-            addPaymentReceiptBreakdownTable(document, writer, payment);
+            addPaymentReceiptBreakdownTable(document, writer, payment, settings);
 
             // 6. Payment Notes and Authorized Signatory
             addPaymentReceiptNotesAndSignatory(document, writer, payment, settings);
@@ -3910,7 +4266,10 @@ public class PdfService {
         headerTable.setWidths(new float[]{42f, 58f});
         headerTable.setSpacingAfter(7f);
 
-        // Left Cell: ACROVIX Logo & Tagline
+        boolean isAcrovix = (settings == null || settings.getTenantId() == null || settings.getTenantId().equals(1L) 
+                || (settings.getCompanyName() != null && settings.getCompanyName().toUpperCase().contains("ACROVIX")));
+
+        // Left Cell: Tenant Logo or Text Brand Badge
         PdfPCell logoCell = new PdfPCell();
         logoCell.setBorder(Rectangle.NO_BORDER);
         logoCell.setVerticalAlignment(Element.ALIGN_TOP);
@@ -3924,7 +4283,7 @@ public class PdfService {
                 log.warn("Failed to load logo from URL for payment receipt: " + settings.getLogoUrl(), ex);
             }
         }
-        if (logo == null) {
+        if (logo == null && isAcrovix) {
             java.net.URL defaultLogoUrl = getClass().getResource("/static/Acrovix_logo.png");
             if (defaultLogoUrl != null) {
                 try {
@@ -3937,105 +4296,163 @@ public class PdfService {
             logo.scaleToFit(140f, 44f);
             logoCell.addElement(logo);
         } else {
-            String companyName = (settings != null && settings.getCompanyName() != null) 
-                    ? settings.getCompanyName() : "ACROVIX INNOVATIONS PRIVATE LIMITED";
-            logoCell.addElement(new Paragraph(companyName, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 13f, NAVY_PRIMARY)));
-            Paragraph taglinePara = new Paragraph();
-            taglinePara.setSpacingBefore(3.5f);
-            taglinePara.add(new Chunk("SYNC   |   SCALE   |   SUCCEED", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 6.8f, new java.awt.Color(13, 148, 136))));
-            logoCell.addElement(taglinePara);
+            String brandOrCompany = (settings != null && settings.getBrandName() != null && !settings.getBrandName().isBlank())
+                    ? settings.getBrandName().trim()
+                    : ((settings != null && settings.getCompanyName() != null && !settings.getCompanyName().isBlank())
+                            ? settings.getCompanyName().trim() : (isAcrovix ? "ACROVIX INNOVATIONS PRIVATE LIMITED" : "COMPANY"));
+            Paragraph brandBadge = new Paragraph(brandOrCompany.toUpperCase(), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 13f, NAVY_PRIMARY));
+            logoCell.addElement(brandBadge);
+            if (isAcrovix) {
+                Paragraph taglinePara = new Paragraph();
+                taglinePara.setSpacingBefore(3.5f);
+                taglinePara.add(new Chunk("SYNC   |   SCALE   |   SUCCEED", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 6.8f, new java.awt.Color(13, 148, 136))));
+                logoCell.addElement(taglinePara);
+            }
         }
 
         headerTable.addCell(logoCell);
 
-        // Right Cell: Company Information matching reference layout
+        // Right Cell: Company Information
         PdfPCell compCell = new PdfPCell();
         compCell.setBorder(Rectangle.NO_BORDER);
         compCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
         compCell.setPadding(0);
 
         String companyName = (settings != null && settings.getCompanyName() != null && !settings.getCompanyName().isBlank()) 
-                ? settings.getCompanyName() : "ACROVIX INNOVATIONS PRIVATE LIMITED";
+                ? settings.getCompanyName() : (isAcrovix ? "ACROVIX INNOVATIONS PRIVATE LIMITED" : "");
         String compAddress = (settings != null && settings.getRegisteredAddress() != null && !settings.getRegisteredAddress().isBlank()) 
                 ? settings.getRegisteredAddress() 
-                : ((settings != null && settings.getBillingAddress() != null) ? settings.getBillingAddress() : "3rd Floor, 956, Vigneshwara, 6th Cross 1st Main,\nBengaluru Urban, Karnataka - 560060, India");
+                : ((settings != null && settings.getBillingAddress() != null) ? settings.getBillingAddress() : (isAcrovix ? "3rd Floor, 956, Vigneshwara, 6th Cross 1st Main,\nBengaluru Urban, Karnataka - 560060, India" : ""));
         String compPhone = (settings != null && settings.getPhone() != null && !settings.getPhone().isBlank()) 
-                ? settings.getPhone() : "+91 98765 43210";
+                ? settings.getPhone() : (isAcrovix ? "+91 98765 43210" : "");
         String compEmail = (settings != null && settings.getEmail() != null && !settings.getEmail().isBlank()) 
-                ? settings.getEmail() : "contact@acrovix.com";
+                ? settings.getEmail() : (isAcrovix ? "contact@acrovix.com" : "");
         String compWeb = (settings != null && settings.getWebsite() != null && !settings.getWebsite().isBlank()) 
-                ? settings.getWebsite() : "www.acrovix.com";
+                ? settings.getWebsite() : (isAcrovix ? "www.acrovix.com" : "");
 
-        Paragraph pName = new Paragraph(companyName, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9.2f, NAVY_PRIMARY));
-        pName.setAlignment(Element.ALIGN_RIGHT);
-        compCell.addElement(pName);
+        if (!companyName.isBlank()) {
+            Paragraph pName = new Paragraph(companyName, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9.2f, NAVY_PRIMARY));
+            pName.setAlignment(Element.ALIGN_RIGHT);
+            compCell.addElement(pName);
+        }
 
-        // Address with Pin Icon on left of address
+        // Info Block
         PdfPTable infoBlock = new PdfPTable(2);
         infoBlock.setHorizontalAlignment(Element.ALIGN_RIGHT);
         infoBlock.setWidthPercentage(95);
-        try { infoBlock.setWidths(new float[]{6f, 94f}); } catch (Exception ignored) {}
+        try { infoBlock.setWidths(new float[]{8f, 92f}); } catch (Exception ignored) {}
 
         Font cFont = FontFactory.getFont(FontFactory.HELVETICA, 7.2f, TEXT_MUTED);
 
-        // Pin & Address
-        Image pinIcon = createVectorIcon(writer, "pin", 7.0f, 8.5f, new java.awt.Color(37, 99, 235));
-        PdfPCell cPin = new PdfPCell();
-        cPin.setBorder(Rectangle.NO_BORDER);
-        cPin.setPadding(0);
-        cPin.setPaddingTop(1f);
-        if (pinIcon != null) cPin.addElement(pinIcon);
-        infoBlock.addCell(cPin);
+        if (!compAddress.isBlank()) {
+            Image pinIcon = createVectorIcon(writer, "pin", 7.0f, 8.5f, new java.awt.Color(37, 99, 235));
+            PdfPCell cPin = new PdfPCell();
+            cPin.setBorder(Rectangle.NO_BORDER);
+            cPin.setPadding(0);
+            cPin.setPaddingTop(1f);
+            if (pinIcon != null) cPin.addElement(pinIcon);
+            infoBlock.addCell(cPin);
 
-        PdfPCell cAddr = new PdfPCell(new Phrase(compAddress, cFont));
-        cAddr.setBorder(Rectangle.NO_BORDER);
-        cAddr.setPadding(0);
-        cAddr.setPaddingBottom(1.5f);
-        infoBlock.addCell(cAddr);
+            PdfPCell cAddr = new PdfPCell(new Phrase(compAddress, cFont));
+            cAddr.setBorder(Rectangle.NO_BORDER);
+            cAddr.setPadding(0);
+            cAddr.setPaddingBottom(1.5f);
+            infoBlock.addCell(cAddr);
+        }
 
-        // Phone
-        Image phIc = createVectorIcon(writer, "phone", 7.0f, 7.0f, new java.awt.Color(37, 99, 235));
-        PdfPCell cPhIc = new PdfPCell();
-        cPhIc.setBorder(Rectangle.NO_BORDER);
-        cPhIc.setPadding(0);
-        cPhIc.setPaddingTop(1f);
-        if (phIc != null) cPhIc.addElement(phIc);
-        infoBlock.addCell(cPhIc);
+        if (!compPhone.isBlank()) {
+            Image phIc = createVectorIcon(writer, "phone", 7.0f, 7.0f, new java.awt.Color(37, 99, 235));
+            PdfPCell cPhIc = new PdfPCell();
+            cPhIc.setBorder(Rectangle.NO_BORDER);
+            cPhIc.setPadding(0);
+            cPhIc.setPaddingTop(1f);
+            if (phIc != null) cPhIc.addElement(phIc);
+            infoBlock.addCell(cPhIc);
 
-        PdfPCell cPhVal = new PdfPCell(new Phrase(compPhone, cFont));
-        cPhVal.setBorder(Rectangle.NO_BORDER);
-        cPhVal.setPadding(0);
-        cPhVal.setPaddingBottom(1.0f);
-        infoBlock.addCell(cPhVal);
+            PdfPCell cPhVal = new PdfPCell(new Phrase(compPhone, cFont));
+            cPhVal.setBorder(Rectangle.NO_BORDER);
+            cPhVal.setPadding(0);
+            cPhVal.setPaddingBottom(1.0f);
+            infoBlock.addCell(cPhVal);
+        }
 
-        // Email
-        Image emIc = createVectorIcon(writer, "email", 7.5f, 6.0f, new java.awt.Color(37, 99, 235));
-        PdfPCell cEmIc = new PdfPCell();
-        cEmIc.setBorder(Rectangle.NO_BORDER);
-        cEmIc.setPadding(0);
-        cEmIc.setPaddingTop(1f);
-        if (emIc != null) cEmIc.addElement(emIc);
-        infoBlock.addCell(cEmIc);
+        if (!compEmail.isBlank()) {
+            Image emIc = createVectorIcon(writer, "email", 7.5f, 6.0f, new java.awt.Color(37, 99, 235));
+            PdfPCell cEmIc = new PdfPCell();
+            cEmIc.setBorder(Rectangle.NO_BORDER);
+            cEmIc.setPadding(0);
+            cEmIc.setPaddingTop(1f);
+            if (emIc != null) cEmIc.addElement(emIc);
+            infoBlock.addCell(cEmIc);
 
-        PdfPCell cEmVal = new PdfPCell(new Phrase(compEmail, cFont));
-        cEmVal.setBorder(Rectangle.NO_BORDER);
-        cEmVal.setPadding(0);
-        cEmVal.setPaddingBottom(1.0f);
-        infoBlock.addCell(cEmVal);
+            PdfPCell cEmVal = new PdfPCell(new Phrase(compEmail, cFont));
+            cEmVal.setBorder(Rectangle.NO_BORDER);
+            cEmVal.setPadding(0);
+            cEmVal.setPaddingBottom(1.0f);
+            infoBlock.addCell(cEmVal);
+        }
 
-        // Website
-        Image wbIc = createVectorIcon(writer, "globe", 7.0f, 7.0f, new java.awt.Color(37, 99, 235));
-        PdfPCell cWbIc = new PdfPCell();
-        cWbIc.setBorder(Rectangle.NO_BORDER);
-        cWbIc.setPadding(0);
-        cWbIc.setPaddingTop(1f);
-        if (wbIc != null) cWbIc.addElement(wbIc);
-        infoBlock.addCell(cWbIc);
+        if (!compWeb.isBlank()) {
+            Image wbIc = createVectorIcon(writer, "globe", 7.0f, 7.0f, new java.awt.Color(37, 99, 235));
+            PdfPCell cWbIc = new PdfPCell();
+            cWbIc.setBorder(Rectangle.NO_BORDER);
+            cWbIc.setPadding(0);
+            cWbIc.setPaddingTop(1f);
+            if (wbIc != null) cWbIc.addElement(wbIc);
+            infoBlock.addCell(cWbIc);
 
-        PdfPCell cWbVal = new PdfPCell(new Phrase(compWeb, cFont));
-        cWbVal.setBorder(Rectangle.NO_BORDER);
-        cWbVal.setPadding(0);
-        infoBlock.addCell(cWbVal);
+            PdfPCell cWbVal = new PdfPCell(new Phrase(compWeb, cFont));
+            cWbVal.setBorder(Rectangle.NO_BORDER);
+            cWbVal.setPadding(0);
+            infoBlock.addCell(cWbVal);
+        }
+
+        // Dynamic GSTIN / VAT / PAN
+        String gstin = (settings != null && settings.getGstin() != null && !settings.getGstin().isBlank()) ? settings.getGstin().trim() : null;
+        String vatNumber = (settings != null && settings.getVatNumber() != null && !settings.getVatNumber().isBlank()) ? settings.getVatNumber().trim() : null;
+        String pan = (settings != null && settings.getPan() != null && !settings.getPan().isBlank()) ? settings.getPan().trim() : null;
+
+        if (gstin != null) {
+            PdfPCell cLbl = new PdfPCell(new Phrase("GST:", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 6.8f, BLUE_ACCENT)));
+            cLbl.setBorder(Rectangle.NO_BORDER);
+            cLbl.setPadding(0);
+            cLbl.setPaddingTop(1f);
+            infoBlock.addCell(cLbl);
+
+            PdfPCell cVal = new PdfPCell(new Phrase(gstin, cFont));
+            cVal.setBorder(Rectangle.NO_BORDER);
+            cVal.setPadding(0);
+            cVal.setPaddingBottom(1.0f);
+            infoBlock.addCell(cVal);
+        }
+
+        if (vatNumber != null) {
+            PdfPCell cLbl = new PdfPCell(new Phrase("VAT:", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 6.8f, BLUE_ACCENT)));
+            cLbl.setBorder(Rectangle.NO_BORDER);
+            cLbl.setPadding(0);
+            cLbl.setPaddingTop(1f);
+            infoBlock.addCell(cLbl);
+
+            PdfPCell cVal = new PdfPCell(new Phrase(vatNumber, cFont));
+            cVal.setBorder(Rectangle.NO_BORDER);
+            cVal.setPadding(0);
+            cVal.setPaddingBottom(1.0f);
+            infoBlock.addCell(cVal);
+        }
+
+        if (pan != null) {
+            PdfPCell cLbl = new PdfPCell(new Phrase("PAN:", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 6.8f, BLUE_ACCENT)));
+            cLbl.setBorder(Rectangle.NO_BORDER);
+            cLbl.setPadding(0);
+            cLbl.setPaddingTop(1f);
+            infoBlock.addCell(cLbl);
+
+            PdfPCell cVal = new PdfPCell(new Phrase(pan, cFont));
+            cVal.setBorder(Rectangle.NO_BORDER);
+            cVal.setPadding(0);
+            cVal.setPaddingBottom(1.0f);
+            infoBlock.addCell(cVal);
+        }
 
         compCell.addElement(infoBlock);
         headerTable.addCell(compCell);
@@ -4407,13 +4824,16 @@ public class PdfService {
         table.addCell(c2);
     }
 
-    private void addPaymentReceiptAmountHighlight(Document document, PdfWriter writer, com.acrovix.admin.entity.Payment payment) throws DocumentException {
+    private void addPaymentReceiptAmountHighlight(Document document, PdfWriter writer, com.acrovix.admin.entity.Payment payment, CompanySettingsResponse settings) throws DocumentException {
         PdfPTable amountCard = new PdfPTable(2);
         amountCard.setWidthPercentage(100);
         amountCard.setWidths(new float[]{11f, 89f});
         amountCard.setSpacingAfter(7f);
 
-        // Circular Rupee Icon Cell
+        String curCode = payment.getCurrency() != null ? payment.getCurrency().name() : (settings != null && settings.getCurrencyCode() != null ? settings.getCurrencyCode() : "INR");
+        String curSym = resolveCurrencySymbol(curCode, settings);
+
+        // Circular Currency Icon Cell
         PdfPCell iconCell = new PdfPCell();
         iconCell.setBackgroundColor(ICE_BLUE_BG);
         iconCell.setBorderColor(ICE_BLUE_BORDER);
@@ -4422,10 +4842,10 @@ public class PdfService {
         iconCell.setHorizontalAlignment(Element.ALIGN_CENTER);
         iconCell.setPadding(8f);
 
-        Image rupeeBadge = createRupeeCircleBadge(writer, 34f);
-        if (rupeeBadge != null) {
-            rupeeBadge.setAlignment(Element.ALIGN_CENTER);
-            iconCell.addElement(rupeeBadge);
+        Image currBadge = createCurrencyCircleBadge(writer, 34f, curSym.trim());
+        if (currBadge != null) {
+            currBadge.setAlignment(Element.ALIGN_CENTER);
+            iconCell.addElement(currBadge);
         }
         amountCard.addCell(iconCell);
 
@@ -4445,9 +4865,6 @@ public class PdfService {
         contentCell.addElement(pLabel);
 
         // Large Formatted Amount
-        String curSym = "₹";
-        String curCode = payment.getCurrency() != null ? payment.getCurrency().name() : "INR";
-        if ("USD".equalsIgnoreCase(curCode)) curSym = "$";
         BigDecimal amt = payment.getAmount() != null ? payment.getAmount() : BigDecimal.ZERO;
         String formattedAmt = curSym + formatAmount(amt, curCode);
 
@@ -4459,7 +4876,7 @@ public class PdfService {
         // Amount in words
         Paragraph pWords = new Paragraph();
         pWords.add(new Chunk("Amount in words: \n", FontFactory.getFont(FontFactory.HELVETICA, 6.8f, TEXT_MUTED)));
-        String wordsText = com.acrovix.admin.util.AmountToWordsConverter.convert(amt);
+        String wordsText = convertAmountToWords(amt, curCode);
         pWords.add(new Chunk(wordsText, FontFactory.getFont(FontFactory.HELVETICA_OBLIQUE, 7.5f, NAVY_PRIMARY)));
         contentCell.addElement(pWords);
 
@@ -4467,7 +4884,7 @@ public class PdfService {
         document.add(amountCard);
     }
 
-    private void addPaymentReceiptBreakdownTable(Document document, PdfWriter writer, com.acrovix.admin.entity.Payment payment) throws DocumentException {
+    private void addPaymentReceiptBreakdownTable(Document document, PdfWriter writer, com.acrovix.admin.entity.Payment payment, CompanySettingsResponse settings) throws DocumentException {
         // Section Header
         Phrase bHead = new Phrase();
         Image chartIc = createVectorIcon(writer, "chart", 8.5f, 8.5f, new java.awt.Color(37, 99, 235));
@@ -4479,7 +4896,8 @@ public class PdfService {
 
         // Data calculation
         com.acrovix.admin.entity.Invoice invoice = payment.getInvoice();
-        String curCode = payment.getCurrency() != null ? payment.getCurrency().name() : "INR";
+        String curCode = payment.getCurrency() != null ? payment.getCurrency().name() : (settings != null && settings.getCurrencyCode() != null ? settings.getCurrencyCode() : "INR");
+        String curSym = resolveCurrencySymbol(curCode, settings);
         BigDecimal thisPayment = payment.getAmount() != null ? payment.getAmount() : BigDecimal.ZERO;
 
         BigDecimal invoiceTotal = BigDecimal.ZERO;
@@ -4535,7 +4953,6 @@ public class PdfService {
         table.setWidths(new float[]{78f, 22f});
         table.setSpacingAfter(7f);
 
-        // Header Row - Use Unicode font so Amount (₹) renders ₹ symbol!
         Font thFont = getAppropriateFont(true, 7.5f, new java.awt.Color(71, 85, 105));
         PdfPCell h1 = new PdfPCell(new Phrase("Particulars", thFont));
         h1.setBackgroundColor(new java.awt.Color(248, 250, 252));
@@ -4543,7 +4960,7 @@ public class PdfService {
         h1.setPadding(4.5f);
         table.addCell(h1);
 
-        String curHeader = "USD".equalsIgnoreCase(curCode) ? "Amount ($)" : "Amount (₹)";
+        String curHeader = "Amount (" + curSym.trim() + ")";
         PdfPCell h2 = new PdfPCell(new Phrase(curHeader, thFont));
         h2.setBackgroundColor(new java.awt.Color(248, 250, 252));
         h2.setBorderColor(new java.awt.Color(226, 232, 240));
@@ -4679,7 +5096,9 @@ public class PdfService {
         rightStamp.setPadding(0);
         rightStamp.setPaddingRight(2f);
 
-        Image stampImage = createOfficialStamp(writer, 38f, companyName, "BENGALURU");
+        String stampCity = (settings != null && settings.getRegisteredAddress() != null && settings.getRegisteredAddress().contains("Bengaluru"))
+                ? "BENGALURU" : "OFFICIAL";
+        Image stampImage = createOfficialStamp(writer, 38f, companyName, stampCity);
         if (stampImage != null) {
             stampImage.setAlignment(Element.ALIGN_RIGHT);
             rightStamp.addElement(stampImage);
@@ -4692,7 +5111,7 @@ public class PdfService {
         document.add(bottomTable);
     }
 
-    private static Image createRupeeCircleBadge(PdfWriter writer, float size) {
+    private static Image createCurrencyCircleBadge(PdfWriter writer, float size, String symbol) {
         try {
             com.lowagie.text.pdf.PdfTemplate t = writer.getDirectContent().createTemplate(size, size);
             java.awt.Color bgBlue = new java.awt.Color(37, 99, 235); // #2563EB
@@ -4710,10 +5129,10 @@ public class PdfService {
                         com.lowagie.text.pdf.BaseFont.NOT_EMBEDDED);
             }
             t.beginText();
-            float fSize = size * 0.52f;
+            String sym = (symbol != null && !symbol.isBlank()) ? symbol.trim() : "₹";
+            float fSize = sym.length() > 2 ? size * 0.35f : (sym.length() > 1 ? size * 0.42f : size * 0.52f);
             t.setFontAndSize(bf, fSize);
             t.setColorFill(java.awt.Color.WHITE);
-            String sym = "₹";
             float w = bf.getWidthPoint(sym, fSize);
             t.setTextMatrix(cx - w / 2f, cy - fSize * 0.35f);
             t.showText(sym);
@@ -4766,9 +5185,10 @@ public class PdfService {
             // City in box
             t.beginText();
             t.setFontAndSize(bf, 3.8f);
-            float wCity = bf.getWidthPoint(city, 3.8f);
+            String displayCity = (city != null && !city.isBlank()) ? city.toUpperCase() : "OFFICIAL";
+            float wCity = bf.getWidthPoint(displayCity, 3.8f);
             t.setTextMatrix(cx - wCity / 2f, cy - 1.2f);
-            t.showText(city);
+            t.showText(displayCity);
 
             // Bottom star
             t.setFontAndSize(bf, 4.5f);
@@ -4777,10 +5197,13 @@ public class PdfService {
             t.showText("*");
             t.endText();
 
-            // Circular ring text: ACROVIX INNOVATIONS PRIVATE LIMITED
-            String text = "ACROVIX INNOVATIONS PRIVATE LIMITED";
+            // Circular ring text
+            String text = (companyName != null && !companyName.isBlank()) ? companyName.trim().toUpperCase() : "OFFICIAL SEAL";
+            if (text.length() > 38) {
+                text = text.substring(0, 38).trim();
+            }
             float ringR = (rOuter + rInner) / 2f;
-            float charAngle = 8.5f;
+            float charAngle = Math.min(8.5f, 240f / Math.max(text.length(), 1));
             float startAngle = 90f + (text.length() * charAngle) / 2f;
 
             t.beginText();

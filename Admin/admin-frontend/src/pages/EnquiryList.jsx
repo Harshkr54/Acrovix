@@ -7,6 +7,7 @@ import EnquiryDetailModal from '../components/EnquiryDetailModal';
 import Skeleton from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
+import StatusBadge from '../components/ui/StatusBadge';
 
 export default function EnquiryList() {
     const [enquiries, setEnquiries] = useState([]);
@@ -504,10 +505,7 @@ export default function EnquiryList() {
                                                     <option value="CONVERTED">CONVERTED</option>
                                                     <option value="CLOSED">CLOSED</option>
                                                 </select>
-                                                <span className={`inline-flex items-center text-[10px] font-bold uppercase tracking-wider ${getStatusStyle(enq.status)}`}>
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-current "></span>
-                                                    {getStatusLabel(enq.status)}
-                                                </span>
+                                                <StatusBadge status={enq.status} />
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-[12px] text-text-muted font-medium align-top">

@@ -14,11 +14,17 @@ public class CompanySettingsRequest {
     @Size(max = 150, message = "Legal name cannot exceed 150 characters")
     private String legalName;
 
+    @Size(max = 150, message = "Brand name cannot exceed 150 characters")
+    private String brandName;
+
     @Size(max = 50, message = "GSTIN cannot exceed 50 characters")
     private String gstin;
 
     @Size(max = 50, message = "PAN cannot exceed 50 characters")
     private String pan;
+
+    @Size(max = 50, message = "VAT ID cannot exceed 50 characters")
+    private String vatId;
 
     @NotBlank(message = "Email is required")
     @Size(max = 150, message = "Email cannot exceed 150 characters")
@@ -51,6 +57,27 @@ public class CompanySettingsRequest {
 
     @Size(max = 255, message = "Logo URL cannot exceed 255 characters")
     private String logoUrl;
+
+    @Size(max = 255, message = "Favicon URL cannot exceed 255 characters")
+    private String faviconUrl;
+
+    @Size(max = 50, message = "Primary color cannot exceed 50 characters")
+    private String primaryColor;
+
+    @Size(max = 50, message = "Secondary color cannot exceed 50 characters")
+    private String secondaryColor;
+
+    @Size(max = 10, message = "Currency code cannot exceed 10 characters")
+    private String currencyCode;
+
+    @Size(max = 10, message = "Currency symbol cannot exceed 10 characters")
+    private String currencySymbol;
+
+    @Size(max = 50, message = "Timezone cannot exceed 50 characters")
+    private String timezone;
+
+    @Size(max = 30, message = "Date format cannot exceed 30 characters")
+    private String dateFormat;
 
     @Size(max = 255, message = "Signature URL cannot exceed 255 characters")
     private String signatureUrl;
