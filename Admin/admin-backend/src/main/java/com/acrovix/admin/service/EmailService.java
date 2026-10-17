@@ -218,15 +218,36 @@ public class EmailService {
                     helper.setText(request.getBody() != null ? request.getBody() : "", false);
                 }
 
+                if (request.getInlineImages() != null && !request.getInlineImages().isEmpty()) {
+                    for (Map.Entry<String, EmailAttachment> entry : request.getInlineImages().entrySet()) {
+                        if (entry.getValue() != null && entry.getValue().getContent() != null && entry.getValue().getContent().length > 0) {
+                            String contentType = entry.getValue().getContentType() != null ? entry.getValue().getContentType() : "image/png";
+                            helper.addInline(
+                                    entry.getKey(),
+                                    new ByteArrayResource(entry.getValue().getContent()),
+                                    contentType
+                            );
+                        }
+                    }
+                }
+
                 if (request.getAttachments() != null) {
                     for (EmailAttachment attachment : request.getAttachments()) {
                         if (attachment != null && attachment.getContent() != null && attachment.getContent().length > 0) {
                             String contentType = attachment.getContentType() != null ? attachment.getContentType() : "application/octet-stream";
-                            helper.addAttachment(
-                                     attachment.getFilename() != null ? attachment.getFilename() : "attachment",
-                                     new ByteArrayResource(attachment.getContent()),
-                                     contentType
-                            );
+                            if (attachment.getContentId() != null && !attachment.getContentId().isBlank()) {
+                                helper.addInline(
+                                        attachment.getContentId().trim(),
+                                        new ByteArrayResource(attachment.getContent()),
+                                        contentType
+                                );
+                            } else {
+                                helper.addAttachment(
+                                         attachment.getFilename() != null ? attachment.getFilename() : "attachment",
+                                         new ByteArrayResource(attachment.getContent()),
+                                         contentType
+                                );
+                            }
                         }
                     }
                 }

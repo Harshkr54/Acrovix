@@ -28,12 +28,16 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin/invoices")
-@RequiredArgsConstructor
 @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN', 'SALES')")
 public class InvoiceController {
 
     private final InvoiceService invoiceService;
     private final com.acrovix.admin.service.PaymentGatewayService paymentGatewayService;
+
+    public InvoiceController(InvoiceService invoiceService, com.acrovix.admin.service.PaymentGatewayService paymentGatewayService) {
+        this.invoiceService = invoiceService;
+        this.paymentGatewayService = paymentGatewayService;
+    }
 
     @GetMapping
     public ResponseEntity<Page<InvoiceResponse>> getInvoices(
@@ -140,6 +144,21 @@ public class InvoiceController {
         return ResponseEntity.ok(java.util.Map.of("success", true, "message", "Invoice email sent successfully"));
     }
 
+    @RateLimit(category = RateLimitCategory.EMAIL)
+    @PostMapping("/{id}/send-payment-qr-email")
+    public ResponseEntity<java.util.Map<String, Object>> sendPaymentQrEmail(
+            @PathVariable Long id,
+            @RequestBody(required = false) java.util.Map<String, String> body,
+            @AuthenticationPrincipal AdminUser admin) {
+        String overrideEmail = body != null ? body.get("recipientEmail") : null;
+        String recipient = invoiceService.sendPaymentQrEmail(id, overrideEmail, admin);
+        return ResponseEntity.ok(java.util.Map.of(
+                "success", true,
+                "message", "Payment details and QR code sent to " + recipient,
+                "recipient", recipient
+        ));
+    }
+
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'COMPANY_ADMIN')")
     @PostMapping("/{id}/payment-link")
     public ResponseEntity<java.util.Map<String, Object>> generatePaymentLink(
@@ -153,5 +172,36 @@ public class InvoiceController {
         response.put("publicToken", invoice.getPublicToken());
         response.put("invoice", invoice);
         return ResponseEntity.ok(response);
+    }
+
+    @RateLimit(category = RateLimitCategory.PDF)
+    @GetMapping("/{id}/settlement-receipt-pdf")
+    public ResponseEntity<byte[]> getSettlementReceiptPdf(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AdminUser admin) {
+        Invoice invoice = invoiceService.getInvoiceById(id, admin);
+        byte[] pdfBytes = invoiceService.generateSettlementReceiptPdf(id, admin);
+
+        org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+        headers.setContentType(org.springframework.http.MediaType.APPLICATION_PDF);
+        String safeNumber = invoice.getInvoiceNumber() != null ? invoice.getInvoiceNumber().replace("/", "_") : "INV_" + id;
+        headers.setContentDispositionFormData("filename", "Settlement_Statement_" + safeNumber + ".pdf");
+
+        return new ResponseEntity<>(pdfBytes, headers, org.springframework.http.HttpStatus.OK);
+    }
+
+    @RateLimit(category = RateLimitCategory.EMAIL)
+    @PostMapping("/{id}/send-settlement-email")
+    public ResponseEntity<java.util.Map<String, Object>> sendSettlementEmail(
+            @PathVariable Long id,
+            @RequestBody(required = false) java.util.Map<String, String> body,
+            @AuthenticationPrincipal AdminUser admin) {
+        String overrideEmail = body != null ? body.get("recipientEmail") : null;
+        String recipient = invoiceService.sendSettlementEmail(id, overrideEmail, admin);
+        return ResponseEntity.ok(java.util.Map.of(
+                "success", true,
+                "message", "Payment settlement statement sent to " + recipient,
+                "recipient", recipient
+        ));
     }
 }

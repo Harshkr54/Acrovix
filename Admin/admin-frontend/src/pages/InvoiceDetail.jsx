@@ -15,10 +15,13 @@ import {
     getCompanySettings,
     getCompanyBankAccounts,
     getInvoicePdf,
-    sendInvoiceEmail
+    sendInvoiceEmail,
+    getSettlementReceiptPdf,
+    sendSettlementEmail
 } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useTenant } from '../context/TenantContext';
+import { useToast } from '../context/ToastContext';
 import { 
     ArrowLeft, Clock, CheckCircle, FileText, Download, Edit3, X, CreditCard, 
     Plus, AlertCircle, RefreshCw, Mail, Link as LinkIcon, Copy, ExternalLink, 
@@ -39,6 +42,7 @@ export default function InvoiceDetail() {
     const navigate = useNavigate();
     const { user } = useAuth();
     const { tenant } = useTenant();
+    const { showToast } = useToast();
     
     const [invoice, setInvoice] = useState(null);
     const [companySettings, setCompanySettings] = useState(null);
@@ -49,6 +53,8 @@ export default function InvoiceDetail() {
     const [actionLoading, setActionLoading] = useState(false);
     const [sendingEmail, setSendingEmail] = useState(false);
     const [isTimelineOpen, setIsTimelineOpen] = useState(false);
+    const [downloadingSettlement, setDownloadingSettlement] = useState(false);
+    const [sendingSettlementEmail, setSendingSettlementEmail] = useState(false);
 
     // Dynamic height sync: Match TERMS & CONDITIONS card height to BANK DETAILS card
     const bankDetailsCardRef = useRef(null);
@@ -183,11 +189,6 @@ export default function InvoiceDetail() {
         }
     }, [isRecordPaymentModalOpen]);
 
-    const showToast = (type, message) => {
-        window.dispatchEvent(new CustomEvent('acrovix-toast', {
-            detail: { type, message }
-        }));
-    };
 
     // --- PDF PREVIEW & DOWNLOAD ---
     const handlePreviewPdf = async () => {
@@ -247,6 +248,43 @@ export default function InvoiceDetail() {
             showToast('error', err.message || 'Failed to send invoice email.');
         } finally {
             setSendingEmail(false);
+        }
+    };
+
+    // --- DOWNLOAD SETTLEMENT STATEMENT PDF ---
+    const handleDownloadSettlementPdf = async () => {
+        try {
+            setDownloadingSettlement(true);
+            const response = await getSettlementReceiptPdf(id);
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `SETTLEMENT_STATEMENT_${invoice?.invoiceNumber || id}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            showToast('success', 'Payment Settlement Statement downloaded successfully.');
+        } catch (err) {
+            console.error('Failed to download settlement statement', err);
+            showToast('error', err.message || 'Could not download Settlement Statement PDF.');
+        } finally {
+            setDownloadingSettlement(false);
+        }
+    };
+
+    // --- SEND SETTLEMENT CLEARANCE EMAIL ---
+    const handleSendSettlementEmail = async () => {
+        try {
+            setSendingSettlementEmail(true);
+            await sendSettlementEmail(id);
+            showToast('success', `Payment clearance statement sent to ${invoice?.clientEmail || 'client'}.`);
+        } catch (err) {
+            console.error('Failed to send settlement clearance email', err);
+            showToast('error', err.message || 'Failed to send settlement clearance email.');
+        } finally {
+            setSendingSettlementEmail(false);
         }
     };
 
@@ -471,6 +509,7 @@ export default function InvoiceDetail() {
     if (!invoice) return <div className="p-8 text-center text-text-muted">Invoice not found.</div>;
 
     const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+    const isFullyPaid = invoice.status === 'PAID' || Number(invoice.balanceDue || 0) <= 0.001;
     const isRecordPaymentEligible = isSuperAdmin && invoice.invoiceType === 'TAX_INVOICE' && (invoice.status === 'ISSUED' || invoice.status === 'PARTIALLY_PAID');
     const currencySymbol = invoice.currency === 'USD' ? '$' : (invoice.currency === 'EUR' ? '€' : (invoice.currency === 'GBP' ? '£' : (invoice.currency === 'AED' ? 'AED' : (tenant?.currencySymbol || '₹'))));
 
@@ -1075,41 +1114,105 @@ export default function InvoiceDetail() {
                             </h3>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
-                            {/* Instant Pay via QR Modal Button */}
-                            <button
-                                type="button"
-                                onClick={handleOpenPayViaQrModal}
-                                className="btn btn-secondary btn-sm border-blue-500/30 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 flex items-center gap-1.5 shadow-sm"
-                                title="Open Instant Pay via QR code modal"
-                            >
-                                <QrCode className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                                <span>Pay via QR</span>
-                            </button>
+                            {!isFullyPaid ? (
+                                <>
+                                    {/* Instant Pay via QR Modal Button */}
+                                    <button
+                                        type="button"
+                                        onClick={handleOpenPayViaQrModal}
+                                        className="btn btn-secondary btn-sm border-blue-500/30 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 flex items-center gap-1.5 shadow-sm"
+                                        title="Open Instant Pay via QR code modal"
+                                    >
+                                        <QrCode className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                                        <span>Pay via QR</span>
+                                    </button>
 
-                            {/* Enterprise Generate & Share Payment Link Modal Button */}
-                            {isRecordPaymentEligible && (
-                                <button
-                                    type="button"
-                                    onClick={handleOpenSendPaymentLinkModal}
-                                    className="btn btn-secondary btn-sm border-border-subtle hover:bg-blue-500/5 text-text-primary flex items-center gap-1.5 shadow-sm"
-                                    title="Generate, copy, and share public payment portal via WhatsApp or Email"
-                                >
-                                    <Share2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                                    <span>Payment Link</span>
-                                </button>
-                            )}
-                            
-                            {isRecordPaymentEligible && (
-                                <button 
-                                    onClick={handleOpenRecordPaymentModal}
-                                    className="btn btn-success btn-sm flex items-center gap-1.5"
-                                >
-                                    <Plus className="w-3.5 h-3.5" /> 
-                                    <span>Record Payment</span>
-                                </button>
+                                    {/* Enterprise Generate & Share Payment Link Modal Button */}
+                                    <button
+                                        type="button"
+                                        onClick={handleOpenSendPaymentLinkModal}
+                                        className="btn btn-secondary btn-sm border-border-subtle hover:bg-blue-500/5 text-text-primary flex items-center gap-1.5 shadow-sm"
+                                        title="Generate, copy, and share public payment portal via WhatsApp or Email"
+                                    >
+                                        <Share2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                                        <span>Payment Link</span>
+                                    </button>
+                                    
+                                    {isSuperAdmin && (
+                                        <button 
+                                            type="button"
+                                            onClick={handleOpenRecordPaymentModal}
+                                            className="btn btn-success btn-sm flex items-center gap-1.5"
+                                        >
+                                            <Plus className="w-3.5 h-3.5" /> 
+                                            <span>Record Payment</span>
+                                        </button>
+                                    )}
+                                </>
+                            ) : (
+                                <>
+                                    {/* Enterprise Action 1: Download Settlement Statement (PDF) */}
+                                    <button
+                                        type="button"
+                                        onClick={handleDownloadSettlementPdf}
+                                        disabled={downloadingSettlement}
+                                        className="btn btn-secondary btn-sm border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 flex items-center gap-1.5 shadow-sm"
+                                        title="Download official A4 Payment Settlement Certificate & Ledger Statement PDF"
+                                    >
+                                        {downloadingSettlement ? (
+                                            <span className="animate-spin w-3.5 h-3.5 border-2 border-emerald-600/30 border-t-emerald-600 rounded-full"></span>
+                                        ) : (
+                                            <Download className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                                        )}
+                                        <span>Download Settlement Statement (PDF)</span>
+                                    </button>
+
+                                    {/* Enterprise Action 2: Send Paid Clearance to Client */}
+                                    <button
+                                        type="button"
+                                        onClick={handleSendSettlementEmail}
+                                        disabled={sendingSettlementEmail}
+                                        className="btn btn-success btn-sm flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                                        title={`Send official Payment Settlement & Clearance Statement to ${invoice.clientEmail || 'client'}`}
+                                    >
+                                        {sendingSettlementEmail ? (
+                                            <span className="animate-spin w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full"></span>
+                                        ) : (
+                                            <CheckCircle className="w-3.5 h-3.5 text-white" />
+                                        )}
+                                        <span>Send Paid Clearance to Client</span>
+                                    </button>
+
+                                    {/* Edge-case secondary Record Payment link */}
+                                    {isSuperAdmin && (
+                                        <button 
+                                            type="button"
+                                            onClick={handleOpenRecordPaymentModal}
+                                            className="text-xs text-text-muted hover:text-text-primary underline underline-offset-2 px-2 py-1 transition-colors"
+                                            title="Record edge-case overpayment or adjustment"
+                                        >
+                                            + Record Payment
+                                        </button>
+                                    )}
+                                </>
                             )}
                         </div>
                     </div>
+
+                    {/* Settlement Badge / Banner when fully paid */}
+                    {isFullyPaid && (
+                        <div className="mb-4 p-3.5 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 rounded-xl flex items-center justify-between gap-3 text-xs text-emerald-800 dark:text-emerald-300 shadow-xs">
+                            <div className="flex items-center gap-2 font-medium">
+                                <span className="text-base leading-none">✅</span>
+                                <span>
+                                    Account Settled: All dues ({formatCurrency(invoice.grandTotal || 0, invoice.currency, 2)}) have been cleared and reconciled by {user?.fullName || user?.name || 'Admin'}.
+                                </span>
+                            </div>
+                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-300/50 dark:border-emerald-700/50 shrink-0">
+                                Zero Dues
+                            </span>
+                        </div>
+                    )}
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                         <div className="p-4 bg-bg-main rounded-xl border border-border-subtle">

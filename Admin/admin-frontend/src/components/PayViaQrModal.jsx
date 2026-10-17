@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
-import { X, QrCode, Copy, Check, ExternalLink, ShieldCheck, Smartphone, AlertTriangle } from 'lucide-react';
+import { X, QrCode, Copy, Check, ExternalLink, ShieldCheck, Smartphone, AlertTriangle, MessageCircle, Mail, Loader2 } from 'lucide-react';
 import { formatCurrency } from '../utils/formatters';
-import { getPublicQrUrl, getCompanyBankAccounts } from '../services/api';
+import { getPublicQrUrl, getCompanyBankAccounts, sendPaymentQrEmail } from '../services/api';
+import { useToast } from '../context/ToastContext';
 
 export default function PayViaQrModal({
     isOpen,
@@ -14,10 +15,12 @@ export default function PayViaQrModal({
     bankAccounts,
     onRecordPaymentClick
 }) {
+    const { showToast } = useToast();
     const [copiedUpi, setCopiedUpi] = useState(false);
     const [copiedLink, setCopiedLink] = useState(false);
     const [imgSrc, setImgSrc] = useState('');
     const [fetchedBankAccounts, setFetchedBankAccounts] = useState(null);
+    const [isSendingEmail, setIsSendingEmail] = useState(false);
 
     // Prevent body scrolling behind open modal
     useEffect(() => {
@@ -99,17 +102,71 @@ export default function PayViaQrModal({
         setTimeout(() => setCopiedLink(false), 2000);
     };
 
+    const handleShareWhatsApp = () => {
+        const clientPhone = invoice?.customerPhone || invoice?.phone || invoice?.clientPhone || invoice?.customer?.phone || '';
+        // Format phone: remove spaces/dashes, ensure country code (default 91 if 10 digits)
+        const cleanPhone = clientPhone.replace(/\D/g, '').replace(/^0+/, '');
+        const targetPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+
+        const outstandingAmt = (invoice?.balanceDue && Number(invoice.balanceDue) > 0)
+            ? Number(invoice.balanceDue).toFixed(2)
+            : (invoice?.grandTotal ? Number(invoice.grandTotal).toFixed(2) : balanceDue.toFixed(2));
+
+        const effectiveUpi = upiId || activeBank?.upiId || '';
+        const effectiveHolder = accountHolderName || tenant?.companyName || 'Acrovix Innovations';
+        const clientName = invoice?.customerName || invoice?.clientName || invoice?.customer?.name || 'Customer';
+        const invoiceNum = invoice?.invoiceNumber || invoice?.id || 'INV';
+        const invoiceUrl = publicUrl || `${window.location.origin}/pay/invoice/${invoice?.publicToken || invoice?.id}`;
+
+        const message = 
+          `*Payment Request from ${tenant?.companyName || 'Acrovix Innovations'}*\n\n` +
+          `Dear *${clientName}*,\n` +
+          `Please find the payment details for Invoice *#${invoiceNum}*:\n\n` +
+          `💵 *Outstanding Amount:* ₹${outstandingAmt}\n` +
+          `🏦 *Payee UPI ID:* ${effectiveUpi}\n` +
+          `👤 *Account Holder:* ${effectiveHolder}\n\n` +
+          `🔗 *Pay Online / View Invoice:* ${invoiceUrl}\n\n` +
+          `_Thank you for your business!_`;
+
+        const whatsappUrl = targetPhone 
+          ? `https://api.whatsapp.com/send?phone=${targetPhone}&text=${encodeURIComponent(message)}`
+          : `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+        window.open(whatsappUrl, '_blank');
+    };
+
+    const handleSendEmail = async () => {
+        if (!invoice?.id) return;
+        setIsSendingEmail(true);
+        try {
+            const clientEmail = (invoice?.customerEmail || invoice?.clientEmail || invoice?.customer?.email || '').trim();
+            const res = await sendPaymentQrEmail(invoice.id, clientEmail || null);
+            const target = res?.recipient || clientEmail || 'client';
+            showToast({
+                type: 'success',
+                message: `Payment details and QR code sent to ${target}!`
+            });
+        } catch (error) {
+            console.error('Failed to send payment QR email:', error);
+            showToast({
+                type: 'error',
+                message: error.message || 'Failed to send payment email.'
+            });
+        } finally {
+            setIsSendingEmail(false);
+        }
+    };
+
     return createPortal(
         <div 
             className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm"
             onClick={onClose}
         >
             <div 
-                className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl p-6 overflow-hidden animate-in fade-in zoom-in-95 duration-150 flex flex-col my-auto"
+                className="relative w-full max-w-md max-h-[92vh] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl p-5 sm:p-6 flex flex-col my-auto"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 shrink-0">
                     <div className="flex items-center gap-2.5">
                         <div className="w-9 h-9 rounded-xl bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center">
                             <QrCode className="w-5 h-5" />
@@ -129,7 +186,7 @@ export default function PayViaQrModal({
                 </div>
 
                 {/* Content */}
-                <div className="py-4 space-y-4">
+                <div className="py-3 space-y-3.5 overflow-y-auto pr-1 min-h-0 flex-1">
                     {/* Amount & Invoice Info Card */}
                     <div className="p-3.5 rounded-xl bg-gradient-to-br from-blue-500/5 via-indigo-500/5 to-purple-500/5 border border-blue-500/20 dark:border-blue-500/30 flex items-center justify-between">
                         <div>
@@ -265,6 +322,42 @@ export default function PayViaQrModal({
                             </div>
                         </div>
                     )}
+
+                    {/* Dedicated Share Action Row */}
+                    <div className="pt-2">
+                        <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                            SHARE PAYMENT REQUEST
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <button
+                                type="button"
+                                onClick={handleShareWhatsApp}
+                                className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-semibold text-xs shadow-sm hover:shadow transition-all"
+                            >
+                                <MessageCircle className="w-4 h-4 fill-white" />
+                                <span>Share via WhatsApp</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={handleSendEmail}
+                                disabled={isSendingEmail}
+                                className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-semibold text-xs shadow-sm hover:shadow transition-all"
+                            >
+                                {isSendingEmail ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        <span>Sending Email...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Mail className="w-4 h-4" />
+                                        <span>Send Email with QR</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Footer Actions */}

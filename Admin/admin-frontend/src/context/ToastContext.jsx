@@ -15,7 +15,21 @@ export const ToastProvider = ({ children }) => {
     const [toasts, setToasts] = useState([]);
     const lastToastRef = React.useRef({ message: '', time: 0 });
 
-    const showToast = useCallback(({ type = 'info', message, duration = 4000 }) => {
+    const showToast = useCallback((typeOrObj, maybeMsg, maybeDuration) => {
+        let type = 'info';
+        let message = '';
+        let duration = 4000;
+
+        if (typeof typeOrObj === 'object' && typeOrObj !== null) {
+            type = typeOrObj.type || 'info';
+            message = typeOrObj.message || '';
+            duration = typeOrObj.duration || 4000;
+        } else {
+            type = typeOrObj || 'info';
+            message = maybeMsg || '';
+            duration = maybeDuration || 4000;
+        }
+
         if (!message) return;
 
         // Suppress repeated identical error popups within 5 seconds cooldown

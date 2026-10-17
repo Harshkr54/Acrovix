@@ -214,6 +214,147 @@ public class EmailTemplateBuilder {
         return buildCorporateEmail("Invoice: " + invoiceNo, body.toString(), null, null, settings);
     }
 
+    public String buildInvoicePaymentQrEmailHtml(
+            Invoice invoice,
+            com.acrovix.admin.dto.CompanySettingsResponse settings,
+            com.acrovix.admin.dto.CompanyBankAccountResponse bankAccount,
+            String paymentUrl) {
+        String invoiceNo = invoice.getInvoiceNumber() != null ? invoice.getInvoiceNumber() : "INV-" + invoice.getId();
+        String customerName = (invoice.getCustomer() != null && invoice.getCustomer().getName() != null)
+                ? invoice.getCustomer().getName()
+                : (invoice.getClientName() != null ? invoice.getClientName() : "Valued Customer");
+
+        String brandName = (settings != null && settings.getBrandName() != null && !settings.getBrandName().isBlank())
+                ? settings.getBrandName()
+                : ((settings != null && settings.getCompanyName() != null && !settings.getCompanyName().isBlank())
+                        ? settings.getCompanyName() : BRAND_NAME);
+
+        BigDecimal grandTotal = invoice.getGrandTotal() != null ? invoice.getGrandTotal() : BigDecimal.ZERO;
+        BigDecimal paidAmount = invoice.getAmountPaid() != null ? invoice.getAmountPaid() : BigDecimal.ZERO;
+        BigDecimal balanceDue = invoice.getBalanceDue() != null && invoice.getBalanceDue().compareTo(BigDecimal.ZERO) > 0
+                ? invoice.getBalanceDue()
+                : grandTotal.subtract(paidAmount).max(BigDecimal.ZERO);
+
+        String upiId = bankAccount != null && bankAccount.getUpiId() != null && !bankAccount.getUpiId().isBlank()
+                ? bankAccount.getUpiId()
+                : "";
+        String accountHolder = bankAccount != null && bankAccount.getAccountHolder() != null && !bankAccount.getAccountHolder().isBlank()
+                ? bankAccount.getAccountHolder()
+                : (settings != null && settings.getCompanyName() != null ? settings.getCompanyName() : brandName);
+        String bankName = bankAccount != null && bankAccount.getBankName() != null ? bankAccount.getBankName() : (settings != null && settings.getBankName() != null ? settings.getBankName() : "Bank Account");
+        String accNumber = bankAccount != null && bankAccount.getBankAccountNumber() != null ? bankAccount.getBankAccountNumber() : (settings != null && settings.getBankAccountNumber() != null ? settings.getBankAccountNumber() : "N/A");
+        String ifsc = bankAccount != null && bankAccount.getBankIfsc() != null ? bankAccount.getBankIfsc() : (settings != null && settings.getBankIfsc() != null ? settings.getBankIfsc() : "N/A");
+        String branch = bankAccount != null && bankAccount.getBankBranch() != null ? bankAccount.getBankBranch() : (settings != null && settings.getBankBranch() != null ? settings.getBankBranch() : "");
+
+        StringBuilder body = new StringBuilder();
+        body.append("<p style=\"font-size:15px; color:#1E293B;\">Dear <strong>").append(escapeHtml(customerName)).append("</strong>,</p>\n");
+        body.append("<p style=\"font-size:14px; color:#475569; line-height:1.6;\">Your invoice <strong>#")
+            .append(escapeHtml(invoiceNo))
+            .append("</strong> has a pending balance of <strong style=\"color:#0F172A; font-size:16px;\">₹")
+            .append(balanceDue.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString())
+            .append("</strong>.</p>\n");
+
+        // QR Code Container
+        body.append("<div style=\"text-align:center; margin:24px 0; padding:20px; background-color:#F8FAFC; border:1px solid #E2E8F0; border-radius:12px;\">\n");
+        body.append("  <div style=\"font-size:11px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:1px; margin-bottom:12px;\">Instant UPI QR Payment</div>\n");
+        body.append("  <div style=\"display:inline-block; padding:12px; background-color:#FFFFFF; border:1px solid #CBD5E1; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.06);\">\n");
+        body.append("    <img src=\"cid:qrCodeImage\" alt=\"UPI Payment QR Code\" width=\"200\" height=\"200\" style=\"display:block; margin:0 auto; border:none;\" />\n");
+        body.append("  </div>\n");
+        body.append("  <p style=\"font-size:12px; color:#64748B; margin-top:12px; margin-bottom:4px;\">Scan with any UPI app: <strong>BHIM, Google Pay, PhonePe, Paytm, CRED</strong></p>\n");
+        if (!upiId.isBlank()) {
+            body.append("  <div style=\"display:inline-block; margin-top:4px; padding:4px 14px; background-color:#EEF2FF; border:1px solid #C7D2FE; border-radius:6px; font-family:monospace; font-weight:700; color:#3730A3; font-size:13px;\">UPI ID: ")
+                .append(escapeHtml(upiId)).append("</div>\n");
+        }
+        body.append("</div>\n");
+
+        // NEFT/RTGS Bank Details Table
+        body.append("<div style=\"margin:24px 0;\">\n");
+        body.append("  <div style=\"font-size:11px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;\">Direct Bank Transfer (NEFT / RTGS / IMPS)</div>\n");
+        body.append("  <table style=\"width:100%; border-collapse:collapse; background-color:#FFFFFF; border:1px solid #E2E8F0; border-radius:8px; overflow:hidden; font-size:13px;\">\n");
+        body.append("    <tr style=\"background-color:#F8FAFC;\"><td style=\"padding:8px 12px; font-weight:600; color:#64748B; width:35%; border-bottom:1px solid #E2E8F0;\">Account Holder:</td><td style=\"padding:8px 12px; font-weight:600; color:#1E293B; border-bottom:1px solid #E2E8F0;\">").append(escapeHtml(accountHolder)).append("</td></tr>\n");
+        body.append("    <tr><td style=\"padding:8px 12px; font-weight:600; color:#64748B; border-bottom:1px solid #E2E8F0;\">Bank Name:</td><td style=\"padding:8px 12px; color:#1E293B; border-bottom:1px solid #E2E8F0;\">").append(escapeHtml(bankName)).append("</td></tr>\n");
+        body.append("    <tr style=\"background-color:#F8FAFC;\"><td style=\"padding:8px 12px; font-weight:600; color:#64748B; border-bottom:1px solid #E2E8F0;\">Account Number:</td><td style=\"padding:8px 12px; font-family:monospace; font-weight:700; color:#1E293B; border-bottom:1px solid #E2E8F0;\">").append(escapeHtml(accNumber)).append("</td></tr>\n");
+        body.append("    <tr><td style=\"padding:8px 12px; font-weight:600; color:#64748B; border-bottom:1px solid #E2E8F0;\">IFSC Code:</td><td style=\"padding:8px 12px; font-family:monospace; font-weight:700; color:#1E293B; border-bottom:1px solid #E2E8F0;\">").append(escapeHtml(ifsc)).append("</td></tr>\n");
+        if (!branch.isBlank()) {
+            body.append("    <tr style=\"background-color:#F8FAFC;\"><td style=\"padding:8px 12px; font-weight:600; color:#64748B;\">Branch:</td><td style=\"padding:8px 12px; color:#1E293B;\">").append(escapeHtml(branch)).append("</td></tr>\n");
+        }
+        body.append("  </table>\n");
+        body.append("</div>\n");
+
+        String title = "Payment Request: #" + invoiceNo;
+        String ctaText = "View Invoice & Pay Online";
+        return buildCorporateEmail(title, body.toString(), ctaText, paymentUrl, settings);
+    }
+
+    public String buildSettlementStatementEmailHtml(
+            Invoice invoice,
+            com.acrovix.admin.dto.CompanySettingsResponse settings,
+            java.util.List<Payment> payments) {
+        String invoiceNo = invoice.getInvoiceNumber() != null ? invoice.getInvoiceNumber() : "INV-" + invoice.getId();
+        String customerName = (invoice.getCustomer() != null && invoice.getCustomer().getName() != null)
+                ? invoice.getCustomer().getName()
+                : (invoice.getClientName() != null ? invoice.getClientName() : "Valued Customer");
+
+        String brandName = (settings != null && settings.getBrandName() != null && !settings.getBrandName().isBlank())
+                ? settings.getBrandName()
+                : ((settings != null && settings.getCompanyName() != null && !settings.getCompanyName().isBlank())
+                        ? settings.getCompanyName() : BRAND_NAME);
+
+        BigDecimal grandTotal = invoice.getGrandTotal() != null ? invoice.getGrandTotal() : BigDecimal.ZERO;
+        BigDecimal paidAmount = invoice.getAmountPaid() != null ? invoice.getAmountPaid() : grandTotal;
+
+        StringBuilder body = new StringBuilder();
+        body.append("<p style=\"font-size:15px; color:#1E293B;\">Dear <strong>").append(escapeHtml(customerName)).append("</strong>,</p>\n");
+        body.append("<p style=\"font-size:14px; color:#475569; line-height:1.6;\">We are pleased to confirm that all payments for Invoice <strong>#")
+            .append(escapeHtml(invoiceNo))
+            .append("</strong> have been received and reconciled in full. Your account balance is now <strong>₹0.00</strong>.</p>\n");
+
+        // Green Success Badge
+        body.append("<div style=\"margin:20px 0; padding:16px 20px; background-color:#ECFDF5; border:1px solid #A7F3D0; border-radius:10px;\">\n");
+        body.append("  <div style=\"font-size:14px; font-weight:700; color:#065F46;\">")
+            .append("✅ Account Fully Settled &amp; Reconciled (No Dues Outstanding)</div>\n");
+        body.append("  <div style=\"font-size:12px; color:#047857; margin-top:4px;\">All invoice liabilities have been discharged. An official Payment Settlement Statement PDF is attached to this email.</div>\n");
+        body.append("</div>\n");
+
+        // Financial Summary Table
+        body.append("<table style=\"width:100%; border-collapse:collapse; margin:20px 0; background-color:#F8FAFC; border:1px solid #E2E8F0; font-size:13px; border-radius:8px; overflow:hidden;\">\n");
+        body.append("  <tr><td style=\"padding:10px 14px; font-weight:600; color:#64748B; border-bottom:1px solid #E2E8F0;\">Invoice Number:</td><td style=\"padding:10px 14px; font-weight:700; color:#1E293B; border-bottom:1px solid #E2E8F0;\">").append(escapeHtml(invoiceNo)).append("</td></tr>\n");
+        body.append("  <tr><td style=\"padding:10px 14px; font-weight:600; color:#64748B; border-bottom:1px solid #E2E8F0;\">Total Invoice Amount:</td><td style=\"padding:10px 14px; font-weight:700; color:#1E293B; border-bottom:1px solid #E2E8F0;\">₹").append(grandTotal.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString()).append("</td></tr>\n");
+        body.append("  <tr style=\"background-color:#F0FDF4;\"><td style=\"padding:10px 14px; font-weight:600; color:#065F46; border-bottom:1px solid #E2E8F0;\">Total Settled:</td><td style=\"padding:10px 14px; font-weight:700; color:#059669; border-bottom:1px solid #E2E8F0;\">₹").append(paidAmount.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString()).append("</td></tr>\n");
+        body.append("  <tr style=\"background-color:#F8FAFC;\"><td style=\"padding:10px 14px; font-weight:600; color:#64748B;\">Outstanding Balance:</td><td style=\"padding:10px 14px; font-weight:800; color:#16A34A;\">₹0.00 (NIL DUES)</td></tr>\n");
+        body.append("</table>\n");
+
+        // Payment History Snippet
+        if (payments != null && !payments.isEmpty()) {
+            body.append("<div style=\"margin:20px 0;\">\n");
+            body.append("  <div style=\"font-size:11px; font-weight:700; color:#64748B; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;\">Reconciled Payments Ledger</div>\n");
+            body.append("  <table style=\"width:100%; border-collapse:collapse; background-color:#FFFFFF; border:1px solid #E2E8F0; font-size:12px;\">\n");
+            body.append("    <tr style=\"background-color:#F1F5F9; color:#475569; font-weight:600;\">\n");
+            body.append("      <th style=\"padding:8px 10px; text-align:left; border-bottom:1px solid #E2E8F0;\">Payment Ref</th>\n");
+            body.append("      <th style=\"padding:8px 10px; text-align:left; border-bottom:1px solid #E2E8F0;\">Date</th>\n");
+            body.append("      <th style=\"padding:8px 10px; text-align:left; border-bottom:1px solid #E2E8F0;\">Method</th>\n");
+            body.append("      <th style=\"padding:8px 10px; text-align:right; border-bottom:1px solid #E2E8F0;\">Amount</th>\n");
+            body.append("    </tr>\n");
+            for (Payment p : payments) {
+                if (p.getStatus() == com.acrovix.admin.entity.PaymentStatus.RECORDED) {
+                    body.append("    <tr>\n");
+                    body.append("      <td style=\"padding:8px 10px; border-bottom:1px solid #F1F5F9; font-family:monospace; font-weight:600;\">").append(escapeHtml(p.getPaymentNumber() != null ? p.getPaymentNumber() : "-")).append("</td>\n");
+                    body.append("      <td style=\"padding:8px 10px; border-bottom:1px solid #F1F5F9; color:#64748B;\">").append(p.getPaymentDate() != null ? p.getPaymentDate().toString() : "-").append("</td>\n");
+                    body.append("      <td style=\"padding:8px 10px; border-bottom:1px solid #F1F5F9; color:#64748B;\">").append(p.getPaymentMethod() != null ? p.getPaymentMethod().name().replace("_", " ") : "-").append("</td>\n");
+                    body.append("      <td style=\"padding:8px 10px; border-bottom:1px solid #F1F5F9; text-align:right; font-weight:600; color:#059669;\">₹").append(p.getAmount() != null ? p.getAmount().setScale(2, java.math.RoundingMode.HALF_UP).toPlainString() : "0.00").append("</td>\n");
+                    body.append("    </tr>\n");
+                }
+            }
+            body.append("  </table>\n");
+            body.append("</div>\n");
+        }
+
+        body.append("<p style=\"font-size:13px; color:#64748B; margin-top:20px;\">Thank you for your business and timely settlement! If you have any questions regarding this clearance statement, feel free to reply to this email.</p>\n");
+
+        String title = "Account Settled: Invoice #" + invoiceNo + " - " + brandName;
+        return buildCorporateEmail(title, body.toString(), null, null, settings);
+    }
+
     public String buildPaymentReceiptEmailHtml(Payment payment, BigDecimal remainingBalance) {
         return buildPaymentReceiptEmailHtml(payment, remainingBalance, null);
     }

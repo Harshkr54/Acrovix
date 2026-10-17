@@ -13,4 +13,5 @@ public class EmailAttachment {
     private String filename;
     private byte[] content;
     private String contentType;
+    private String contentId;
 }

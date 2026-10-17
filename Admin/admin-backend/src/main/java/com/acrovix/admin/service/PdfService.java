@@ -5229,5 +5229,649 @@ public class PdfService {
             return null;
         }
     }
+
+    // =========================================================================
+    // PAYMENT SETTLEMENT CERTIFICATE & STATEMENT PDF GENERATION
+    // =========================================================================
+
+    static class SettlementStatementPageEvent extends PdfPageEventHelper {
+        private final CompanySettingsResponse settings;
+        private com.lowagie.text.pdf.PdfTemplate totalPagesTemplate;
+        private com.lowagie.text.pdf.BaseFont baseFont;
+
+        public SettlementStatementPageEvent(CompanySettingsResponse settings) {
+            this.settings = settings;
+        }
+
+        @Override
+        public void onOpenDocument(PdfWriter writer, Document document) {
+            try {
+                totalPagesTemplate = writer.getDirectContent().createTemplate(30f, 16f);
+                baseFont = com.lowagie.text.pdf.BaseFont.createFont(
+                        com.lowagie.text.pdf.BaseFont.HELVETICA,
+                        com.lowagie.text.pdf.BaseFont.WINANSI,
+                        com.lowagie.text.pdf.BaseFont.NOT_EMBEDDED);
+            } catch (Exception e) {
+                log.warn("Could not initialize footer template fonts for Settlement Statement", e);
+            }
+        }
+
+        @Override
+        public void onEndPage(PdfWriter writer, Document document) {
+            float pageWidth = document.getPageSize().getWidth();
+            float pageHeight = document.getPageSize().getHeight();
+
+            PdfContentByte cbUnder = writer.getDirectContentUnder();
+            try {
+                cbUnder.saveState();
+                com.lowagie.text.pdf.BaseFont bf = getUnicodeBaseFont();
+                if (bf == null) {
+                    bf = com.lowagie.text.pdf.BaseFont.createFont(
+                            com.lowagie.text.pdf.BaseFont.HELVETICA_BOLD,
+                            com.lowagie.text.pdf.BaseFont.WINANSI,
+                            com.lowagie.text.pdf.BaseFont.NOT_EMBEDDED);
+                }
+                cbUnder.beginText();
+                cbUnder.setFontAndSize(bf, 36f);
+                cbUnder.setColorFill(new java.awt.Color(236, 253, 245)); // Soft subtle emerald
+                cbUnder.showTextAligned(Element.ALIGN_CENTER, "PAID IN FULL - NO DUES", pageWidth / 2f, pageHeight / 2f, 42f);
+                cbUnder.endText();
+                cbUnder.restoreState();
+            } catch (Exception ignored) {}
+
+            float footerBarH = 26f;
+            cbUnder.saveState();
+            cbUnder.setColorFill(new java.awt.Color(6, 78, 59)); // Deep Emerald #064E3B
+            cbUnder.rectangle(0, 0, pageWidth, footerBarH);
+            cbUnder.fill();
+
+            cbUnder.setColorFill(new java.awt.Color(16, 185, 129)); // Vibrant Emerald #10B981
+            cbUnder.moveTo(0, 0);
+            cbUnder.lineTo(34f, 0);
+            cbUnder.lineTo(24f, footerBarH);
+            cbUnder.lineTo(0, footerBarH);
+            cbUnder.closePath();
+            cbUnder.fill();
+            cbUnder.restoreState();
+
+            PdfContentByte fg = writer.getDirectContent();
+            float footerY = 8.5f;
+            Font footFont = FontFactory.getFont(FontFactory.HELVETICA, 6.8f, java.awt.Color.WHITE);
+            Font footNoteFont = FontFactory.getFont(FontFactory.HELVETICA, 6.5f, new java.awt.Color(209, 250, 229));
+
+            PdfPTable footerTable = new PdfPTable(2);
+            footerTable.setTotalWidth(pageWidth - 48f);
+            try {
+                footerTable.setWidths(new float[]{78f, 22f});
+            } catch (Exception ignored) {}
+
+            PdfPCell cDisc = new PdfPCell(new Phrase("Official Payment Settlement Certificate & Clearance Statement • Acrovix ERP & Compliance Engine", footNoteFont));
+            cDisc.setBorder(Rectangle.NO_BORDER);
+            cDisc.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cDisc.setPadding(0);
+            footerTable.addCell(cDisc);
+
+            PdfPCell cPage = new PdfPCell(new Phrase("Page " + writer.getPageNumber() + " of 1", footFont));
+            cPage.setBorder(Rectangle.NO_BORDER);
+            cPage.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            cPage.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cPage.setPadding(0);
+            footerTable.addCell(cPage);
+
+            footerTable.writeSelectedRows(0, -1, 24f, footerY + 9f, fg);
+        }
+
+        @Override
+        public void onCloseDocument(PdfWriter writer, Document document) {
+            if (totalPagesTemplate != null && baseFont != null) {
+                totalPagesTemplate.beginText();
+                totalPagesTemplate.setFontAndSize(baseFont, 6.8f);
+                totalPagesTemplate.setColorFill(java.awt.Color.WHITE);
+                totalPagesTemplate.setTextMatrix(0, 1f);
+                int total = Math.max(1, writer.getPageNumber() - 1);
+                totalPagesTemplate.showText(String.valueOf(total));
+                totalPagesTemplate.endText();
+            }
+        }
+    }
+
+    public byte[] generatePaymentSettlementStatementPdf(com.acrovix.admin.entity.Invoice invoice, java.util.List<com.acrovix.admin.entity.Payment> payments, com.acrovix.admin.entity.AdminUser admin) {
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Document document = new Document(PageSize.A4, 30f, 30f, 24f, 34f);
+            PdfWriter writer = PdfWriter.getInstance(document, out);
+
+            CompanySettingsResponse settings = resolveTenantSettings(invoice != null ? invoice.getTenantId() : null);
+
+            writer.setPageEvent(new SettlementStatementPageEvent(settings));
+            document.open();
+
+            // 1. Company Header
+            addPaymentReceiptHeader(document, writer, settings);
+
+            // 2. Title Banner
+            addSettlementTitleBanner(document, writer, invoice);
+
+            // 3. Client & Invoice Info Cards
+            addSettlementInfoCards(document, writer, invoice, payments);
+
+            // 4. Financial Summary Cards (Total Value, Total Paid, Balance Due = 0)
+            addSettlementSummaryCards(document, writer, invoice, settings, payments);
+
+            // 5. Complete Transaction Ledger Table
+            addSettlementLedgerTable(document, writer, invoice, settings, payments);
+
+            // 6. Signatory and Green Settlement Stamp
+            addSettlementSignatoryAndStamp(document, writer, invoice, settings, admin);
+
+            document.close();
+            return out.toByteArray();
+        } catch (Exception e) {
+            log.error("Failed to generate Payment Settlement Statement PDF", e);
+            throw new RuntimeException("Failed to generate Payment Settlement Statement PDF", e);
+        }
+    }
+
+    private void addSettlementTitleBanner(Document document, PdfWriter writer, com.acrovix.admin.entity.Invoice invoice) throws DocumentException {
+        PdfPTable banner = new PdfPTable(2);
+        banner.setWidthPercentage(100);
+        banner.setWidths(new float[]{65f, 35f});
+        banner.setSpacingAfter(7f);
+
+        PdfPCell leftCell = new PdfPCell();
+        leftCell.setBackgroundColor(new java.awt.Color(236, 253, 245)); // Emerald 50
+        leftCell.setBorderColor(new java.awt.Color(167, 243, 208)); // Emerald 200
+        leftCell.setBorderWidth(0.6f);
+        leftCell.setPadding(7f);
+        leftCell.setPaddingLeft(10f);
+
+        Paragraph titlePara = new Paragraph();
+        titlePara.add(new Chunk("PAYMENT RECEIPT & ", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 13.5f, new java.awt.Color(6, 78, 59))));
+        titlePara.add(new Chunk("CLEARANCE STATEMENT", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 13.5f, new java.awt.Color(5, 150, 105))));
+        leftCell.addElement(titlePara);
+
+        Paragraph subPara = new Paragraph("OFFICIAL SETTLEMENT CERTIFICATE • ZERO DUES OUTSTANDING", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7.0f, new java.awt.Color(4, 120, 87)));
+        subPara.setSpacingBefore(2f);
+        leftCell.addElement(subPara);
+
+        PdfPCell rightCell = new PdfPCell();
+        rightCell.setBackgroundColor(new java.awt.Color(236, 253, 245));
+        rightCell.setBorderColor(new java.awt.Color(167, 243, 208));
+        rightCell.setBorderWidth(0.6f);
+        rightCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        rightCell.setPadding(7f);
+        rightCell.setPaddingRight(10f);
+
+        Paragraph badgeP = new Paragraph("ACCOUNT FULLY SETTLED", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8.5f, new java.awt.Color(5, 150, 105)));
+        badgeP.setAlignment(Element.ALIGN_RIGHT);
+        rightCell.addElement(badgeP);
+
+        String invNo = invoice != null && invoice.getInvoiceNumber() != null ? invoice.getInvoiceNumber() : "INV";
+        Paragraph invP = new Paragraph("Invoice #" + invNo, FontFactory.getFont(FontFactory.HELVETICA, 7.5f, TEXT_MUTED));
+        invP.setAlignment(Element.ALIGN_RIGHT);
+        invP.setSpacingBefore(2f);
+        rightCell.addElement(invP);
+
+        banner.addCell(leftCell);
+        banner.addCell(rightCell);
+        document.add(banner);
+    }
+
+    private void addSettlementInfoCards(Document document, PdfWriter writer, com.acrovix.admin.entity.Invoice invoice, java.util.List<com.acrovix.admin.entity.Payment> payments) throws DocumentException {
+        PdfPTable cardsTable = new PdfPTable(3);
+        cardsTable.setWidthPercentage(100);
+        cardsTable.setWidths(new float[]{49f, 2f, 49f});
+        cardsTable.setSpacingAfter(7f);
+
+        Font cardHeadFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8.2f, NAVY_PRIMARY);
+        Font labelFont = FontFactory.getFont(FontFactory.HELVETICA, 7.2f, TEXT_MUTED);
+        Font valFont = FontFactory.getFont(FontFactory.HELVETICA, 7.2f, TEXT_DARK);
+        Font valBoldFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7.2f, TEXT_DARK);
+
+        // LEFT CARD: ISSUED TO / CLIENT DETAILS
+        PdfPCell leftCard = new PdfPCell();
+        leftCard.setBackgroundColor(ICE_BLUE_BG);
+        leftCard.setBorderColor(ICE_BLUE_BORDER);
+        leftCard.setBorderWidth(0.5f);
+        leftCard.setPadding(7f);
+
+        Paragraph pLHead = new Paragraph("ISSUED TO / CLIENT DETAILS", cardHeadFont);
+        pLHead.setSpacingAfter(4f);
+        leftCard.addElement(pLHead);
+
+        PdfPTable leftGrid = new PdfPTable(2);
+        leftGrid.setWidthPercentage(100);
+        try { leftGrid.setWidths(new float[]{34f, 66f}); } catch (Exception ignored) {}
+
+        String clientName = (invoice.getCustomer() != null && invoice.getCustomer().getName() != null && !invoice.getCustomer().getName().isBlank())
+                ? invoice.getCustomer().getName()
+                : (invoice.getClientName() != null ? invoice.getClientName() : "Customer");
+        String clientAddress = invoice.getClientAddress() != null && !invoice.getClientAddress().isBlank()
+                ? invoice.getClientAddress() : "-";
+        String clientGstin = invoice.getClientGstin() != null && !invoice.getClientGstin().isBlank()
+                ? invoice.getClientGstin() : "-";
+        String clientEmail = (invoice.getCustomer() != null && invoice.getCustomer().getEmail() != null)
+                ? invoice.getCustomer().getEmail() : (invoice.getClientEmail() != null ? invoice.getClientEmail() : "-");
+
+        addReceiptDetailRow(leftGrid, "Client Name", clientName, labelFont, valBoldFont);
+        addReceiptDetailRow(leftGrid, "Client GSTIN", clientGstin, labelFont, valFont);
+        addReceiptDetailRow(leftGrid, "Client Email", clientEmail, labelFont, valFont);
+        addReceiptDetailRow(leftGrid, "Billing Address", clientAddress.replace("\n", ", "), labelFont, valFont);
+
+        leftCard.addElement(leftGrid);
+
+        // Spacer
+        PdfPCell spacer = new PdfPCell();
+        spacer.setBorder(Rectangle.NO_BORDER);
+
+        // RIGHT CARD: INVOICE & SETTLEMENT REFERENCE
+        PdfPCell rightCard = new PdfPCell();
+        rightCard.setBackgroundColor(ICE_BLUE_BG);
+        rightCard.setBorderColor(ICE_BLUE_BORDER);
+        rightCard.setBorderWidth(0.5f);
+        rightCard.setPadding(7f);
+
+        Paragraph pRHead = new Paragraph("INVOICE & CLEARANCE REFERENCE", cardHeadFont);
+        pRHead.setSpacingAfter(4f);
+        rightCard.addElement(pRHead);
+
+        PdfPTable rightGrid = new PdfPTable(2);
+        rightGrid.setWidthPercentage(100);
+        try { rightGrid.setWidths(new float[]{38f, 62f}); } catch (Exception ignored) {}
+
+        String invNo = invoice.getInvoiceNumber() != null ? invoice.getInvoiceNumber() : "-";
+        String invDate = invoice.getInvoiceDate() != null ? invoice.getInvoiceDate().format(DateTimeFormatter.ofPattern("dd MMM yyyy")) : "-";
+        
+        LocalDate settlementDate = LocalDate.now();
+        if (payments != null && !payments.isEmpty()) {
+            for (com.acrovix.admin.entity.Payment p : payments) {
+                if (p.getPaymentDate() != null) {
+                    settlementDate = p.getPaymentDate();
+                    break;
+                }
+            }
+        }
+        String settlementDateStr = settlementDate.format(DateTimeFormatter.ofPattern("dd MMM yyyy"));
+
+        addReceiptDetailRow(rightGrid, "Invoice Number", invNo, labelFont, valBoldFont);
+        addReceiptDetailRow(rightGrid, "Invoice Date", invDate, labelFont, valFont);
+        addReceiptDetailRow(rightGrid, "Settlement Date", settlementDateStr, labelFont, valFont);
+        addReceiptDetailRow(rightGrid, "Settlement Status", "PAID IN FULL (CLEARED)", labelFont, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7.2f, new java.awt.Color(5, 150, 105)));
+
+        rightCard.addElement(rightGrid);
+
+        cardsTable.addCell(leftCard);
+        cardsTable.addCell(spacer);
+        cardsTable.addCell(rightCard);
+
+        document.add(cardsTable);
+    }
+
+    private void addSettlementSummaryCards(Document document, PdfWriter writer, com.acrovix.admin.entity.Invoice invoice, CompanySettingsResponse settings, java.util.List<com.acrovix.admin.entity.Payment> payments) throws DocumentException {
+        PdfPTable sumTable = new PdfPTable(5);
+        sumTable.setWidthPercentage(100);
+        try { sumTable.setWidths(new float[]{32f, 2f, 32f, 2f, 32f}); } catch (Exception ignored) {}
+        sumTable.setSpacingAfter(7f);
+
+        String curCode = invoice.getCurrency() != null ? invoice.getCurrency().name() : "INR";
+        String curSym = resolveCurrencySymbol(curCode, settings);
+
+        BigDecimal invoiceTotal = invoice.getGrandTotal() != null ? invoice.getGrandTotal() : BigDecimal.ZERO;
+        BigDecimal totalPaid = BigDecimal.ZERO;
+        if (payments != null) {
+            for (com.acrovix.admin.entity.Payment p : payments) {
+                if (p.getStatus() == com.acrovix.admin.entity.PaymentStatus.RECORDED && p.getAmount() != null) {
+                    totalPaid = totalPaid.add(p.getAmount());
+                }
+            }
+        }
+        if (totalPaid.compareTo(BigDecimal.ZERO) == 0 && invoice.getAmountPaid() != null) {
+            totalPaid = invoice.getAmountPaid();
+        }
+
+        // Card 1: Total Invoice Value
+        PdfPCell c1 = createMetricCard("TOTAL INVOICE VALUE", curSym + formatAmount(invoiceTotal, curCode), NAVY_PRIMARY, new java.awt.Color(241, 245, 249), new java.awt.Color(203, 213, 225));
+        // Spacer
+        PdfPCell sp1 = new PdfPCell(); sp1.setBorder(Rectangle.NO_BORDER);
+        // Card 2: Total Amount Settled
+        PdfPCell c2 = createMetricCard("TOTAL AMOUNT SETTLED", curSym + formatAmount(totalPaid, curCode), new java.awt.Color(5, 150, 105), new java.awt.Color(236, 253, 245), new java.awt.Color(167, 243, 208));
+        // Spacer
+        PdfPCell sp2 = new PdfPCell(); sp2.setBorder(Rectangle.NO_BORDER);
+        // Card 3: Balance Outstanding
+        PdfPCell c3 = createMetricCard("BALANCE OUTSTANDING", curSym + "0.00 (NIL DUES)", new java.awt.Color(16, 185, 129), new java.awt.Color(236, 253, 245), new java.awt.Color(167, 243, 208));
+
+        sumTable.addCell(c1);
+        sumTable.addCell(sp1);
+        sumTable.addCell(c2);
+        sumTable.addCell(sp2);
+        sumTable.addCell(c3);
+
+        document.add(sumTable);
+    }
+
+    private PdfPCell createMetricCard(String label, String value, java.awt.Color textColor, java.awt.Color bgColor, java.awt.Color borderColor) {
+        PdfPCell cell = new PdfPCell();
+        cell.setBackgroundColor(bgColor);
+        cell.setBorderColor(borderColor);
+        cell.setBorderWidth(0.6f);
+        cell.setPadding(6f);
+        cell.setPaddingTop(5f);
+        cell.setPaddingBottom(5f);
+
+        Paragraph pL = new Paragraph(label, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 6.8f, TEXT_MUTED));
+        pL.setSpacingAfter(2f);
+        cell.addElement(pL);
+
+        Font vFont = getAppropriateFont(true, 11f, textColor);
+        Paragraph pV = new Paragraph(value, vFont);
+        cell.addElement(pV);
+
+        return cell;
+    }
+
+    private void addSettlementLedgerTable(Document document, PdfWriter writer, com.acrovix.admin.entity.Invoice invoice, CompanySettingsResponse settings, java.util.List<com.acrovix.admin.entity.Payment> payments) throws DocumentException {
+        Paragraph headP = new Paragraph("PAYMENT TRANSACTIONS & RECONCILIATION LEDGER", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8.2f, NAVY_PRIMARY));
+        headP.setSpacingAfter(4f);
+        document.add(headP);
+
+        PdfPTable table = new PdfPTable(7);
+        table.setWidthPercentage(100);
+        try {
+            table.setWidths(new float[]{5f, 21f, 13f, 17f, 19f, 13f, 12f});
+        } catch (Exception ignored) {}
+        table.setSpacingAfter(7f);
+
+        String curCode = invoice.getCurrency() != null ? invoice.getCurrency().name() : "INR";
+        String curSym = resolveCurrencySymbol(curCode, settings);
+
+        Font hFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 6.8f, java.awt.Color.WHITE);
+        String[] headers = new String[]{"#", "Payment Ref", "Date", "Payment Method", "UTR / Cheque No", "Bank Deposited", "Amount"};
+        for (int i = 0; i < headers.length; i++) {
+            PdfPCell hc = new PdfPCell(new Phrase(headers[i], hFont));
+            hc.setBackgroundColor(new java.awt.Color(15, 23, 42)); // Slate 900
+            hc.setBorderColor(new java.awt.Color(51, 65, 85));
+            hc.setPaddingTop(4.5f);
+            hc.setPaddingBottom(4.5f);
+            hc.setPaddingLeft(3f);
+            hc.setPaddingRight(3f);
+            hc.setHorizontalAlignment(i == 6 ? Element.ALIGN_RIGHT : (i == 0 ? Element.ALIGN_CENTER : Element.ALIGN_LEFT));
+            hc.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            table.addCell(hc);
+        }
+
+        Font rowFont = FontFactory.getFont(FontFactory.HELVETICA, 7.0f, TEXT_DARK);
+        Font rowMonoBold = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7.0f, NAVY_PRIMARY);
+        Font rowAmtFont = getAppropriateFont(true, 7.2f, new java.awt.Color(5, 150, 105));
+
+        int seq = 1;
+        BigDecimal totalPaid = BigDecimal.ZERO;
+        if (payments != null && !payments.isEmpty()) {
+            for (com.acrovix.admin.entity.Payment p : payments) {
+                if (p.getStatus() != com.acrovix.admin.entity.PaymentStatus.RECORDED) continue;
+
+                java.awt.Color rowBg = (seq % 2 == 0) ? new java.awt.Color(248, 250, 252) : java.awt.Color.WHITE;
+
+                // #
+                PdfPCell cSeq = new PdfPCell(new Phrase(String.valueOf(seq++), rowFont));
+                cSeq.setHorizontalAlignment(Element.ALIGN_CENTER);
+                styleLedgerCell(cSeq, rowBg);
+                table.addCell(cSeq);
+
+                // Ref
+                PdfPCell cRef = new PdfPCell(new Phrase(p.getPaymentNumber() != null ? p.getPaymentNumber() : "-", rowMonoBold));
+                styleLedgerCell(cRef, rowBg);
+                table.addCell(cRef);
+
+                // Date
+                String dtStr = p.getPaymentDate() != null ? p.getPaymentDate().format(DateTimeFormatter.ofPattern("dd MMM yyyy")) : "-";
+                PdfPCell cDt = new PdfPCell(new Phrase(dtStr, rowFont));
+                styleLedgerCell(cDt, rowBg);
+                table.addCell(cDt);
+
+                // Method
+                String method = p.getPaymentMethod() != null ? p.getPaymentMethod().name().replace("_", " ") : "BANK TRANSFER";
+                PdfPCell cMethod = new PdfPCell(new Phrase(method, rowFont));
+                styleLedgerCell(cMethod, rowBg);
+                table.addCell(cMethod);
+
+                // UTR / Cheque
+                String ref = p.getTransactionReference() != null && !p.getTransactionReference().isBlank()
+                        ? p.getTransactionReference() : (p.getChequeNumber() != null ? p.getChequeNumber() : "-");
+                PdfPCell cUtr = new PdfPCell(new Phrase(ref, rowFont));
+                styleLedgerCell(cUtr, rowBg);
+                table.addCell(cUtr);
+
+                // Bank Deposited
+                String bank = p.getBankName() != null && !p.getBankName().isBlank() ? p.getBankName() : "-";
+                PdfPCell cBank = new PdfPCell(new Phrase(bank, rowFont));
+                styleLedgerCell(cBank, rowBg);
+                table.addCell(cBank);
+
+                // Amount
+                BigDecimal amt = p.getAmount() != null ? p.getAmount() : BigDecimal.ZERO;
+                totalPaid = totalPaid.add(amt);
+                PdfPCell cAmt = new PdfPCell(new Phrase(curSym + formatAmount(amt, curCode), rowAmtFont));
+                cAmt.setHorizontalAlignment(Element.ALIGN_RIGHT);
+                styleLedgerCell(cAmt, rowBg);
+                table.addCell(cAmt);
+            }
+        }
+
+        if (seq == 1) {
+            // Fallback if no individual payment row exists
+            PdfPCell cEmpty = new PdfPCell(new Phrase("Payment recorded directly against invoice (Full settlement).", rowFont));
+            cEmpty.setColspan(7);
+            cEmpty.setPadding(6f);
+            cEmpty.setHorizontalAlignment(Element.ALIGN_CENTER);
+            table.addCell(cEmpty);
+            totalPaid = invoice.getAmountPaid() != null ? invoice.getAmountPaid() : invoice.getGrandTotal();
+        }
+
+        // Total Row
+        PdfPCell cTotalLabel = new PdfPCell(new Phrase("Total Reconciled & Cleared Amount:", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7.5f, NAVY_PRIMARY)));
+        cTotalLabel.setColspan(6);
+        cTotalLabel.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        cTotalLabel.setBackgroundColor(new java.awt.Color(236, 253, 245));
+        cTotalLabel.setBorderColor(new java.awt.Color(167, 243, 208));
+        cTotalLabel.setPadding(5f);
+        table.addCell(cTotalLabel);
+
+        PdfPCell cTotalVal = new PdfPCell(new Phrase(curSym + formatAmount(totalPaid, curCode), getAppropriateFont(true, 8.0f, new java.awt.Color(5, 150, 105))));
+        cTotalVal.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        cTotalVal.setBackgroundColor(new java.awt.Color(236, 253, 245));
+        cTotalVal.setBorderColor(new java.awt.Color(167, 243, 208));
+        cTotalVal.setPadding(5f);
+        table.addCell(cTotalVal);
+
+        document.add(table);
+    }
+
+    private void styleLedgerCell(PdfPCell cell, java.awt.Color bgColor) {
+        cell.setBackgroundColor(bgColor);
+        cell.setBorderColor(new java.awt.Color(226, 232, 240));
+        cell.setBorderWidth(0.5f);
+        cell.setPaddingTop(3.5f);
+        cell.setPaddingBottom(3.5f);
+        cell.setPaddingLeft(3f);
+        cell.setPaddingRight(3f);
+        cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+    }
+
+    private void addSettlementSignatoryAndStamp(Document document, PdfWriter writer, com.acrovix.admin.entity.Invoice invoice, CompanySettingsResponse settings, com.acrovix.admin.entity.AdminUser admin) throws DocumentException {
+        PdfPTable bottomTable = new PdfPTable(3);
+        bottomTable.setWidthPercentage(100);
+        try { bottomTable.setWidths(new float[]{54f, 2f, 44f}); } catch (Exception ignored) {}
+
+        // LEFT CARD: Official Certification Note
+        PdfPCell certCard = new PdfPCell();
+        certCard.setBackgroundColor(new java.awt.Color(248, 250, 252));
+        certCard.setBorderColor(new java.awt.Color(226, 232, 240));
+        certCard.setBorderWidth(0.5f);
+        certCard.setPadding(7f);
+
+        Paragraph certHead = new Paragraph("OFFICIAL SETTLEMENT & CLEARANCE CERTIFICATE", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7.5f, NAVY_PRIMARY));
+        certHead.setSpacingAfter(4f);
+        certCard.addElement(certHead);
+
+        String invNo = invoice.getInvoiceNumber() != null ? invoice.getInvoiceNumber() : "-";
+        Paragraph certBody = new Paragraph(
+                "This official certificate confirms that all payment dues and financial obligations for Invoice #" + invNo + " have been settled and reconciled in full. There are no outstanding charges or dues against this invoice.\n\n" +
+                "This statement may be maintained by the client as proof of clearance for tax, auditing, and accounting compliance purposes.",
+                FontFactory.getFont(FontFactory.HELVETICA, 6.8f, TEXT_DARK)
+        );
+        certBody.setLeading(9f);
+        certCard.addElement(certBody);
+
+        bottomTable.addCell(certCard);
+
+        // Spacer
+        PdfPCell sp = new PdfPCell(); sp.setBorder(Rectangle.NO_BORDER);
+        bottomTable.addCell(sp);
+
+        // RIGHT CARD: Signatory & Stamp
+        PdfPCell sigCard = new PdfPCell();
+        sigCard.setBackgroundColor(java.awt.Color.WHITE);
+        sigCard.setBorderColor(new java.awt.Color(226, 232, 240));
+        sigCard.setBorderWidth(0.5f);
+        sigCard.setPadding(6f);
+
+        String companyName = settings != null && settings.getCompanyName() != null ? settings.getCompanyName() : "Acrovix Innovations";
+        Paragraph pFor = new Paragraph("For " + companyName, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7.2f, NAVY_PRIMARY));
+        pFor.setSpacingAfter(2f);
+        sigCard.addElement(pFor);
+
+        PdfPTable innerSigTable = new PdfPTable(2);
+        innerSigTable.setWidthPercentage(100);
+        try { innerSigTable.setWidths(new float[]{55f, 45f}); } catch (Exception ignored) {}
+
+        // Left of inner: Signatory name, role, timestamp
+        PdfPCell sigInfo = new PdfPCell();
+        sigInfo.setBorder(Rectangle.NO_BORDER);
+        sigInfo.setPadding(0);
+
+        String adminName = admin != null ? admin.getName() : "Authorized Officer";
+        Paragraph pSigTitle = new Paragraph("Authorized Signatory", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7.2f, TEXT_DARK));
+        pSigTitle.setSpacingBefore(12f);
+        pSigTitle.setSpacingAfter(2f);
+        sigInfo.addElement(pSigTitle);
+
+        Paragraph pAdmin = new Paragraph("Reconciled by: " + adminName, FontFactory.getFont(FontFactory.HELVETICA, 6.8f, TEXT_MUTED));
+        sigInfo.addElement(pAdmin);
+
+        String nowStr = java.time.LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a"));
+        Paragraph pTime = new Paragraph("Date: " + nowStr, FontFactory.getFont(FontFactory.HELVETICA, 6.5f, TEXT_MUTED));
+        pTime.setSpacingBefore(1.5f);
+        sigInfo.addElement(pTime);
+
+        innerSigTable.addCell(sigInfo);
+
+        // Right of inner: Circular Green Stamp
+        PdfPCell stampCell = new PdfPCell();
+        stampCell.setBorder(Rectangle.NO_BORDER);
+        stampCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        stampCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        stampCell.setPadding(0);
+
+        Image greenStamp = createSettlementPaidStamp(writer, 62f);
+        if (greenStamp != null) {
+            greenStamp.setAlignment(Element.ALIGN_RIGHT);
+            stampCell.addElement(greenStamp);
+        }
+        innerSigTable.addCell(stampCell);
+
+        sigCard.addElement(innerSigTable);
+        bottomTable.addCell(sigCard);
+
+        document.add(bottomTable);
+    }
+
+    public static Image createSettlementPaidStamp(PdfWriter writer, float size) {
+        try {
+            com.lowagie.text.pdf.PdfTemplate t = writer.getDirectContent().createTemplate(size, size);
+            java.awt.Color stampGreen = new java.awt.Color(5, 150, 105); // Emerald green
+            t.setColorStroke(stampGreen);
+            t.setColorFill(stampGreen);
+
+            float cx = size / 2f;
+            float cy = size / 2f;
+            float rOuter = (size - 2f) / 2f;
+            float rInner = rOuter - 2.8f;
+            float rCenter = rInner - 4.5f;
+
+            // Outer circle
+            t.setLineWidth(1.3f);
+            t.circle(cx, cy, rOuter);
+            t.stroke();
+
+            // Inner circle
+            t.setLineWidth(0.6f);
+            t.circle(cx, cy, rInner);
+            t.stroke();
+
+            // Innermost circle
+            t.setLineWidth(0.5f);
+            t.circle(cx, cy, rCenter);
+            t.stroke();
+
+            com.lowagie.text.pdf.BaseFont bf = com.lowagie.text.pdf.BaseFont.createFont(
+                    com.lowagie.text.pdf.BaseFont.HELVETICA_BOLD,
+                    com.lowagie.text.pdf.BaseFont.WINANSI,
+                    com.lowagie.text.pdf.BaseFont.NOT_EMBEDDED);
+
+            // Center box
+            t.setLineWidth(0.6f);
+            t.rectangle(cx - 15f, cy - 4.2f, 30f, 8.4f);
+            t.stroke();
+
+            // "PAID IN FULL" in box
+            t.beginText();
+            t.setFontAndSize(bf, 3.8f);
+            String displayCenter = "PAID IN FULL";
+            float wCenter = bf.getWidthPoint(displayCenter, 3.8f);
+            t.setTextMatrix(cx - wCenter / 2f, cy - 1.4f);
+            t.showText(displayCenter);
+
+            // Sub text below box: "ZERO DUES"
+            t.setFontAndSize(bf, 3.0f);
+            String displaySub = "ZERO DUES";
+            float wSub = bf.getWidthPoint(displaySub, 3.0f);
+            t.setTextMatrix(cx - wSub / 2f, cy - 8.2f);
+            t.showText(displaySub);
+
+            // Top star
+            t.setFontAndSize(bf, 4.5f);
+            float wTop = bf.getWidthPoint("*", 4.5f);
+            t.setTextMatrix(cx - wTop / 2f, cy + 5.5f);
+            t.showText("*");
+            t.endText();
+
+            // Circular ring text: "PAID IN FULL • NO DUES OUTSTANDING •"
+            String text = "PAID IN FULL • NO DUES OUTSTANDING •";
+            float ringR = (rOuter + rInner) / 2f;
+            float charAngle = Math.min(9.5f, 260f / Math.max(text.length(), 1));
+            float startAngle = 90f + (text.length() * charAngle) / 2f;
+
+            t.beginText();
+            t.setFontAndSize(bf, 2.7f);
+            for (int i = 0; i < text.length(); i++) {
+                char ch = text.charAt(i);
+                float angleDeg = startAngle - (i * charAngle);
+                float angleRad = (float) Math.toRadians(angleDeg);
+                float x = cx + ringR * (float) Math.cos(angleRad);
+                float y = cy + ringR * (float) Math.sin(angleRad);
+
+                float rot = angleDeg - 90f;
+                float cosR = (float) Math.cos(Math.toRadians(rot));
+                float sinR = (float) Math.sin(Math.toRadians(rot));
+
+                t.setTextMatrix(cosR, sinR, -sinR, cosR, x - 1.0f, y - 1.0f);
+                t.showText(String.valueOf(ch));
+            }
+            t.endText();
+
+            return Image.getInstance(t);
+        } catch (Exception e) {
+            return null;
+        }
+    }
 }
 

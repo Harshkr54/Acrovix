@@ -43,6 +43,21 @@ public class InvoiceService {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private AuditLogService auditLogService;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private QrCodeService qrCodeService;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private CompanyBankAccountService companyBankAccountService;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private CompanySettingsService companySettingsService;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private EmailTemplateBuilder templateBuilder;
+
+    @org.springframework.beans.factory.annotation.Value("${acrovix.app.frontend-url:${app.frontend.url:https://admin.acrovix.com}}")
+    private String frontendUrl;
+
     @org.springframework.beans.factory.annotation.Autowired
     public InvoiceService(
             InvoiceRepository invoiceRepository,
@@ -115,6 +130,211 @@ public class InvoiceService {
 
         emailService.sendInvoiceEmail(invoice, targetEmail);
     }
+
+    @Transactional
+    public String sendPaymentQrEmail(Long id, String overrideEmail, AdminUser admin) {
+        Long tenantId = com.acrovix.admin.tenant.TenantContext.requireTenantId();
+        Invoice invoice = getInvoiceById(id, admin);
+
+        if (invoice.getPublicToken() == null || invoice.getPublicToken().isBlank()) {
+            invoice.setPublicToken(java.util.UUID.randomUUID().toString());
+            invoice = invoiceRepository.save(invoice);
+        }
+
+        String targetEmail = (overrideEmail != null && !overrideEmail.trim().isEmpty())
+                ? overrideEmail.trim()
+                : (invoice.getCustomer() != null && invoice.getCustomer().getEmail() != null
+                        ? invoice.getCustomer().getEmail().trim()
+                        : invoice.getClientEmail());
+
+        if (targetEmail == null || targetEmail.trim().isEmpty()) {
+            throw new IllegalArgumentException("Recipient email is required to send payment request.");
+        }
+
+        if (!targetEmail.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
+            throw new IllegalArgumentException("Invalid recipient email format: " + targetEmail);
+        }
+
+        com.acrovix.admin.dto.CompanySettingsResponse settings = companySettingsService != null
+                ? companySettingsService.getCompanySettingsForTenant(tenantId)
+                : null;
+
+        List<com.acrovix.admin.dto.CompanyBankAccountResponse> banks = companyBankAccountService != null
+                ? companyBankAccountService.getActiveBankAccounts()
+                : List.of();
+
+        com.acrovix.admin.dto.CompanyBankAccountResponse activeBank = banks.stream()
+                .filter(b -> Boolean.TRUE.equals(b.getIsDefault()))
+                .findFirst()
+                .orElse(!banks.isEmpty() ? banks.get(0) : null);
+
+        String upiId = activeBank != null && activeBank.getUpiId() != null && !activeBank.getUpiId().isBlank()
+                ? activeBank.getUpiId().trim()
+                : "";
+
+        String brandName = (settings != null && settings.getBrandName() != null && !settings.getBrandName().isBlank())
+                ? settings.getBrandName().trim()
+                : ((settings != null && settings.getCompanyName() != null && !settings.getCompanyName().isBlank())
+                        ? settings.getCompanyName().trim() : "Acrovix Innovations");
+
+        BigDecimal grandTotal = invoice.getGrandTotal() != null ? invoice.getGrandTotal() : BigDecimal.ZERO;
+        BigDecimal paidAmount = invoice.getAmountPaid() != null ? invoice.getAmountPaid() : BigDecimal.ZERO;
+        BigDecimal balanceDue = invoice.getBalanceDue() != null && invoice.getBalanceDue().compareTo(BigDecimal.ZERO) > 0
+                ? invoice.getBalanceDue()
+                : grandTotal.subtract(paidAmount).max(BigDecimal.ONE);
+
+        String invoiceNo = invoice.getInvoiceNumber() != null ? invoice.getInvoiceNumber() : String.valueOf(invoice.getId());
+
+        // Official NPCI UPI payload
+        String effectiveUpiId = !upiId.isBlank() ? upiId : "payments@acrovix";
+        String upiPayload = "upi://pay?pa=" + effectiveUpiId
+                + "&pn=" + java.net.URLEncoder.encode(brandName, java.nio.charset.StandardCharsets.UTF_8)
+                + "&am=" + balanceDue.setScale(2, RoundingMode.HALF_UP).toPlainString()
+                + "&cu=INR&tn=Invoice-" + invoiceNo + "&tr=INV-" + invoice.getId();
+
+        byte[] qrCodeBytes;
+        if (qrCodeService != null) {
+            qrCodeBytes = qrCodeService.generateQrCodePng(upiPayload, 260, 260);
+        } else {
+            qrCodeBytes = new QrCodeService().generateQrCodePng(upiPayload, 260, 260);
+        }
+
+        String baseAppUrl = (frontendUrl != null && !frontendUrl.isBlank()) ? frontendUrl.trim() : "https://admin.acrovix.com";
+        while (baseAppUrl.endsWith("/")) {
+            baseAppUrl = baseAppUrl.substring(0, baseAppUrl.length() - 1);
+        }
+        String paymentUrl = baseAppUrl + "/pay/invoice/" + invoice.getPublicToken();
+
+        EmailTemplateBuilder builder = templateBuilder != null ? templateBuilder : new EmailTemplateBuilder();
+        String htmlBody = builder.buildInvoicePaymentQrEmailHtml(invoice, settings, activeBank, paymentUrl);
+
+        String subject = "Payment Request for Invoice #" + invoiceNo + " - " + brandName;
+
+        com.acrovix.admin.dto.email.EmailAttachment qrAttachment = com.acrovix.admin.dto.email.EmailAttachment.builder()
+                .filename("invoice-qr-" + invoice.getId() + ".png")
+                .content(qrCodeBytes)
+                .contentType("image/png")
+                .contentId("qrCodeImage")
+                .build();
+
+        com.acrovix.admin.dto.email.EmailRequest request = com.acrovix.admin.dto.email.EmailRequest.builder()
+                .to(targetEmail)
+                .fromName(brandName)
+                .replyTo(settings != null ? settings.getEmail() : null)
+                .tenantId(tenantId)
+                .subject(subject)
+                .htmlBody(htmlBody)
+                .isHtml(true)
+                .emailType(EmailType.INVOICE)
+                .relatedEntityType("INVOICE")
+                .relatedEntityId(invoice.getId())
+                .inlineImages(java.util.Map.of("qrCodeImage", qrAttachment))
+                .attachments(List.of(qrAttachment))
+                .build();
+
+        emailService.sendEmail(request);
+
+        // Audit log
+        if (auditLogService != null) {
+            try {
+                auditLogService.log(
+                        "INVOICE",
+                        invoice.getId(),
+                        "INVOICE_PAYMENT_QR_EMAIL_SENT",
+                        admin != null ? admin.getUsername() : "SYSTEM",
+                        "Payment request with UPI QR sent to " + targetEmail
+                );
+            } catch (Exception ignored) {}
+        }
+
+        return targetEmail;
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] generateSettlementReceiptPdf(Long id, AdminUser admin) {
+        Invoice invoice = getInvoiceById(id, admin);
+        List<Payment> payments = paymentRepository.findByInvoiceIdOrderByCreatedAtDesc(id);
+        return pdfService.generatePaymentSettlementStatementPdf(invoice, payments, admin);
+    }
+
+    @Transactional
+    public String sendSettlementEmail(Long id, String overrideEmail, AdminUser admin) {
+        Long tenantId = com.acrovix.admin.tenant.TenantContext.requireTenantId();
+        Invoice invoice = getInvoiceById(id, admin);
+        List<Payment> payments = paymentRepository.findByInvoiceIdOrderByCreatedAtDesc(id);
+
+        String targetEmail = (overrideEmail != null && !overrideEmail.trim().isEmpty())
+                ? overrideEmail.trim()
+                : (invoice.getCustomer() != null && invoice.getCustomer().getEmail() != null
+                        ? invoice.getCustomer().getEmail().trim()
+                        : invoice.getClientEmail());
+
+        if (targetEmail == null || targetEmail.trim().isEmpty()) {
+            throw new IllegalArgumentException("Recipient email is required to send settlement statement.");
+        }
+
+        if (!targetEmail.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
+            throw new IllegalArgumentException("Invalid recipient email format: " + targetEmail);
+        }
+
+        com.acrovix.admin.dto.CompanySettingsResponse settings = companySettingsService != null
+                ? companySettingsService.getCompanySettingsForTenant(tenantId)
+                : null;
+
+        String brandName = (settings != null && settings.getBrandName() != null && !settings.getBrandName().isBlank())
+                ? settings.getBrandName().trim()
+                : ((settings != null && settings.getCompanyName() != null && !settings.getCompanyName().isBlank())
+                        ? settings.getCompanyName().trim() : "Acrovix Innovations");
+
+        String invoiceNo = invoice.getInvoiceNumber() != null ? invoice.getInvoiceNumber() : String.valueOf(invoice.getId());
+
+        byte[] pdfBytes = pdfService.generatePaymentSettlementStatementPdf(invoice, payments, admin);
+
+        EmailTemplateBuilder builder = templateBuilder != null ? templateBuilder : new EmailTemplateBuilder();
+        String htmlBody = builder.buildSettlementStatementEmailHtml(invoice, settings, payments);
+
+        String subject = "Payment Clearance & Settlement Statement - Invoice #" + invoiceNo + " - " + brandName;
+
+        String safeFileName = "Settlement_Statement_" + (invoice.getInvoiceNumber() != null ? invoice.getInvoiceNumber().replace("/", "_") : "INV_" + invoice.getId()) + ".pdf";
+
+        com.acrovix.admin.dto.email.EmailAttachment statementAttachment = com.acrovix.admin.dto.email.EmailAttachment.builder()
+                .filename(safeFileName)
+                .content(pdfBytes)
+                .contentType("application/pdf")
+                .build();
+
+        com.acrovix.admin.dto.email.EmailRequest request = com.acrovix.admin.dto.email.EmailRequest.builder()
+                .to(targetEmail)
+                .fromName(brandName)
+                .replyTo(settings != null ? settings.getEmail() : null)
+                .tenantId(tenantId)
+                .subject(subject)
+                .htmlBody(htmlBody)
+                .isHtml(true)
+                .emailType(EmailType.INVOICE)
+                .relatedEntityType("INVOICE")
+                .relatedEntityId(invoice.getId())
+                .attachments(List.of(statementAttachment))
+                .build();
+
+        emailService.sendEmail(request);
+
+        // Audit log
+        if (auditLogService != null) {
+            try {
+                auditLogService.log(
+                        "INVOICE",
+                        invoice.getId(),
+                        "INVOICE_SETTLEMENT_EMAIL_SENT",
+                        admin != null ? admin.getUsername() : "SYSTEM",
+                        "Payment settlement clearance statement PDF sent to " + targetEmail
+                );
+            } catch (Exception ignored) {}
+        }
+
+        return targetEmail;
+    }
+
 
     @Transactional(readOnly = true)
     public Page<InvoiceResponse> searchInvoices(InvoiceType type, InvoiceStatus status, String search, Pageable pageable, AdminUser currentUser) {

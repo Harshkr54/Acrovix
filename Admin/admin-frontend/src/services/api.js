@@ -108,7 +108,8 @@ export const fetchApi = async (endpoint, options = {}) => {
         }
 
         // Return response object for PDF endpoints
-        if (url.includes('/pdf')) {
+        const contentType = response.headers.get('content-type') || '';
+        if (url.includes('/pdf') || url.includes('-pdf') || url.endsWith('.pdf') || contentType.includes('application/pdf')) {
             return response;
         }
 
@@ -392,6 +393,13 @@ export const convertProformaToTaxInvoice = (id) => fetchApi(`/invoices/proforma/
 export const getInvoicePdf = (id) => fetchApi(`/invoices/${id}/pdf`);
 
 export const sendInvoiceEmail = (id, data) => fetchApi(`/invoices/${id}/send-email`, {
+    method: 'POST',
+    body: JSON.stringify(data || {})
+});
+
+export const getSettlementReceiptPdf = (id) => fetchApi(`/invoices/${id}/settlement-receipt-pdf`);
+
+export const sendSettlementEmail = (id, data) => fetchApi(`/invoices/${id}/send-settlement-email`, {
     method: 'POST',
     body: JSON.stringify(data || {})
 });
@@ -799,6 +807,13 @@ export const updateTenantStatus = async (id, status) => {
     return fetchApi(`/api/v1/super-admin/tenants/${id}/status`, {
         method: 'PATCH',
         body: JSON.stringify({ status })
+    });
+};
+
+export const sendPaymentQrEmail = async (invoiceId, recipientEmail = null) => {
+    return fetchApi(`/api/admin/invoices/${invoiceId}/send-payment-qr-email`, {
+        method: 'POST',
+        body: JSON.stringify(recipientEmail ? { recipientEmail } : {})
     });
 };
 

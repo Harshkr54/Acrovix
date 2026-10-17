@@ -39,6 +39,9 @@ public class EmailRequest {
     @Builder.Default
     private List<EmailAttachment> attachments = new ArrayList<>();
 
+    @Builder.Default
+    private java.util.Map<String, EmailAttachment> inlineImages = new java.util.HashMap<>();
+
     /**
      * Resolves all recipients from both toRecipients and to fields,
      * handling comma/semicolon separation and case-insensitive deduplication while preserving ordering.
